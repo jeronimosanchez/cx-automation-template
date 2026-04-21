@@ -1,0 +1,22 @@
+
+# Credenciales GCP
+*.json
+.env
+credentials.json
+service-account*.json
+
+# Reportes QA
+*.html
+qa_*.txt
+reports/
+
+# Archivos temporales
+*.bak
+*_(1).py
+*_(2).py
+*_(3).py
+
+# Python
+__pycache__/
+*.pyc
+.venv/
