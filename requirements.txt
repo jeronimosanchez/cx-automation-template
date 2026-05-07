@@ -1,0 +1,6 @@
+# Python deps para cx-automation-template (Sprint 1).
+# Promptfoo NO esta aqui: se instala via npm en qa/ (ver qa/README.md).
+
+requests>=2.31
+google-auth>=2.23
+pyyaml>=6.0

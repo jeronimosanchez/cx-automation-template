@@ -205,3 +205,23 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# === cx-automation-template (Sprint 1) ===
+# Sesiones y artefactos locales de Claude Code
+.claude/
+
+# Reports timestamped (validate_api, audit, ...)
+reports/
+validation_report_*.txt
+audit_legacy_examples_*.txt
+
+# Node deps (qa/Promptfoo)
+node_modules/
+qa/node_modules/
+
+# Promptfoo cache local
+.promptfoo/
+qa/.promptfoo/
+
+# macOS metadata
+.DS_Store

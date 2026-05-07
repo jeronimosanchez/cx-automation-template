@@ -1,0 +1,32 @@
+# Contexto del agente Dialogflow CX. Una sola fuente de verdad para todos
+# los scripts del template. Cambiar aqui = afectar a todos los scripts.
+#
+# Decisiones tecnicas (Sprint 1):
+#   - Auth via `gcloud auth print-access-token` (NO google.auth.default).
+#   - Header obligatorio x-goog-user-project en todas las llamadas.
+#   - Workaround R1: Full Update para playbooks en europe-west1.
+
+project: floristeria-petal-digital
+location: europe-west1
+agent_id: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
+
+api:
+  base_v3beta1: https://europe-west1-dialogflow.googleapis.com/v3beta1
+  scope: https://www.googleapis.com/auth/dialogflow
+  required_headers:
+    x-goog-user-project: floristeria-petal-digital
+
+tool:
+  display_name: PetalDataTool
+  id: 39e35fac-e018-4e98-b735-e45cb761bf5c
+  operation_id: consultarDatos
+
+# IDs de Playbooks confirmados en S60 (referencia / fallback).
+# Por defecto los scripts resuelven el ID por displayName via LIST /playbooks.
+playbooks:
+  Petal CX Orchestrator: 00000000-0000-0000-0000-000000000000
+  Checkout: 1d2698dd-0027-4881-a9b4-6970d61885cb
+  Registro_Task: 2d111e5e-e811-4098-b52b-ab1128a0d0e2
+  Gestion_Deuda: 871d4bbb-5c90-443b-bbb1-1d83d254c2c3
+  Handoff: 9d0d211b-e39e-40cd-932b-b732caa62334
+  Compra: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
