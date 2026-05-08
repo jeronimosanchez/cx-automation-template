@@ -1,0 +1,25 @@
+# Fixture sintetico Sprint 3, Task 2.
+# Page de prueba bajo el flow Test_Flow (definitions/flows/example_flow.yaml).
+# El campo `parent_flow_displayName` es local-only: lo lee push_pages.py para
+# resolver el flow_id por LIST /flows y NO se envia al body de la API.
+parent_flow_displayName: Test_Flow
+
+displayName: Test_Page
+entryFulfillment:
+  messages:
+    - text:
+        text:
+          - "Bienvenido a la Test_Page sintetica."
+
+form:
+  parameters:
+    - displayName: nombre_usuario
+      entityType: projects/-/locations/-/agents/-/entityTypes/sys.person
+      required: true
+      fillBehavior:
+        initialPromptFulfillment:
+          messages:
+            - text:
+                text:
+                  - "Como te llamas?"
+      redact: false

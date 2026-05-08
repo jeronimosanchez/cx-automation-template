@@ -1,0 +1,15 @@
+# Fixture sintetico Sprint 3, Task 5.
+# Webhook simple con genericWebService apuntando a una URL inventada.
+# NO se llama en runtime; sirve solo para validar el flujo LIST/diff/PATCH.
+displayName: Test_Webhook
+timeout: 5s
+disabled: true
+
+genericWebService:
+  uri: https://example.com/webhook
+  webhookType: WEBHOOK_TYPE_STANDARD
+  httpMethod: POST
+  requestHeaders:
+    X-Test-Header: sprint3-fixture
+  requestBody: ""
+  parameterMapping: {}
