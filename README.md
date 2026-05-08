@@ -3,13 +3,15 @@
 Template reutilizable para automatizar agentes conversacionales en Dialogflow CX (REST v3beta1).
 
 Provee:
-- Definiciones declarativas YAML para los 9 recursos top-level de CX:
+- Definiciones declarativas YAML para los 11 recursos top-level de CX:
   - **Modernos (Sprint 2)**: Examples, Playbooks, Tools, Agent config.
   - **NLU clasico Flow-based (Sprint 3)**: Flows, Pages, Intents, Entity Types, Webhooks, Generators.
-- Scripts agnosticos al agente con flujo idempotente `LIST -> diff -> PATCH/POST` (`GET -> diff -> PATCH` para el agente).
-- Suite de tests unitarios (`pytest`) sin red — 197 tests al cierre de Sprint 3.
+  - **Deploy / lifecycle (Sprint 4)**: Environments, Versions.
+- Scripts agnosticos al agente con flujo idempotente `LIST -> diff -> PATCH/POST` (`GET -> diff -> PATCH` para el agente; `POST-only` para Versions inmutables).
+- Suite de tests unitarios (`pytest`) sin red — 241 tests al cierre de Sprint 4.
 - QA con Promptfoo + custom provider Python que llama a `detectIntent`.
 - Validacion de capacidades de la API (`src/validate_api.py`) — usado para descubrir limites / comportamientos antes de codificarlos.
+- **CI/CD GitHub Actions (Sprint 4)** con WIF: deploy automatico tras push a `main`, QA Promptfoo en PRs.
 
 Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codigo.
 
@@ -31,7 +33,9 @@ Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codig
 │   ├── intents/                    #   un YAML por Intent (Sprint 3)
 │   ├── entity_types/               #   un YAML por Entity Type (Sprint 3)
 │   ├── webhooks/                   #   un YAML por Webhook (Sprint 3)
-│   └── generators/                 #   un YAML por Generator (Sprint 3)
+│   ├── generators/                 #   un YAML por Generator (Sprint 3)
+│   ├── environments/               #   un YAML por Environment (Sprint 4)
+│   └── versions/                   #   un YAML por Version (immutable, Sprint 4)
 ├── src/                            # Scripts Python ejecutables
 │   ├── diff.py                     #   funcion pura (recurso local vs remoto)
 │   ├── push_examples.py            #   upsert Examples desde YAML
@@ -44,6 +48,8 @@ Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codig
 │   ├── push_entity_types.py        #   upsert Entity Types desde YAML (Sprint 3)
 │   ├── push_webhooks.py            #   upsert Webhooks desde YAML (Sprint 3)
 │   ├── push_generators.py          #   upsert Generators desde YAML (Sprint 3)
+│   ├── push_environments.py        #   upsert Environments desde YAML (Sprint 4)
+│   ├── push_versions.py            #   --create / --list de Versions immutables (Sprint 4)
 │   └── validate_api.py             #   valida capacidades de la API CX (9 tests)
 ├── tests/                          # Tests unitarios pytest (sin red)
 │   ├── test_diff.py
@@ -56,13 +62,19 @@ Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codig
 │   ├── test_push_intents.py
 │   ├── test_push_entity_types.py
 │   ├── test_push_webhooks.py
-│   └── test_push_generators.py
+│   ├── test_push_generators.py
+│   ├── test_push_environments.py
+│   └── test_push_versions.py
+├── .github/workflows/              # CI/CD (Sprint 4)
+│   ├── deploy.yml                  #   push a main → deploy + Version snapshot
+│   └── qa.yml                      #   push a feature/** + PR → Promptfoo eval
 ├── qa/                             # Promptfoo + custom provider
 │   ├── promptfoo_provider.py
 │   ├── promptfooconfig.yaml
 │   └── README.md
 ├── reports/                        # outputs timestamped (gitignored)
 ├── docs/                           # documentacion ampliada
+│   └── setup-cicd.md               #   guia paso a paso Fase B (humana, Sprint 4)
 ├── requirements.txt
 └── .gitignore
 ```
@@ -167,6 +179,23 @@ python src/push_agent_config.py --dry-run
 ```
 
 Lee el bloque `agent_definition:` de `definitions/agent.yaml`, hace GET del agente, diffea, y PATCH-ea solo los campos cambiados. Sin LIST.
+
+### Environments / Versions — Sprint 4
+
+```bash
+# Environments (LIST → diff → PATCH/POST, igual que el resto)
+python src/push_environments.py --all --dry-run
+
+# Versions (immutables: solo --create o --list)
+python src/push_versions.py --list                                  # lista versiones de todos los flows
+python src/push_versions.py --list --flow "Default Start Flow"      # filtra por flow
+
+python src/push_versions.py --create --description "v1.0.0" --dry-run
+python src/push_versions.py --create --file definitions/versions/v1.yaml --dry-run
+python src/push_versions.py --create --all --dry-run                # todos los YAMLs en definitions/versions/
+```
+
+`push_versions.py` es el unico modulo del template que NO sigue el patron LIST → diff → PATCH/POST: las Versions son snapshots inmutables, solo POST crea recursos nuevos.
 
 ### NLU clasico Flow-based — Sprint 3
 
@@ -317,13 +346,29 @@ agent_definition:
 
 ---
 
+## CI/CD
+
+Sprint 4 introduce dos workflows GitHub Actions con autenticacion via **Workload Identity Federation** (NO Service Account Keys):
+
+| Workflow | Trigger | Que hace |
+|---|---|---|
+| `.github/workflows/qa.yml` | push a `feature/**` o PR a `main` | `promptfoo eval` contra Default Environment, bloquea merge si falla. `cancel-in-progress: true` (cortar QA stale). |
+| `.github/workflows/deploy.yml` | push a `main` (post-merge) | Deploy de Examples / Playbooks / Tools / Agent Config + creacion de Version snapshot. `concurrency: 1` con `cancel-in-progress: false` (no cortar deploys). |
+
+Los workflows referencian dos GitHub Variables (NO secrets): `GCP_WIF_PROVIDER` y `GCP_SERVICE_ACCOUNT`. Hasta que esten configuradas, los workflows fallan limpio en `google-github-actions/auth@v2` — no tocan Petal.
+
+**Fase B humana (configuracion GCP IAM + GitHub Variables)**: ver guia paso a paso en [`docs/setup-cicd.md`](docs/setup-cicd.md). Tiempo estimado 30-45 min.
+
+---
+
 ## Roadmap
 
 - **Sprint 1** ✅ — Estructura base, `push_examples` agnostico, Promptfoo skeleton, `validate_api` re-ubicado.
 - **Sprint 2** ✅ — `diff.py` puro + tests, idempotencia en `push_examples`, modulos nuevos `push_playbooks` / `push_tools` / `push_agent_config`, suite pytest sin red.
 - **Sprint 3** ✅ — Cobertura NLU clasico Flow-based: `push_flows`, `push_pages`, `push_intents`, `push_entity_types`, `push_webhooks`, `push_generators`. Validacion completa diferida a un proyecto Flow-based real (Petal es Playbook-only).
-- **Sprint 4+** — CI/CD GitHub Actions con `concurrency: 1`, migracion legacy Examples, mas agentes.
+- **Sprint 4** ✅ — CI/CD GitHub Actions con WIF, modulos `push_environments` y `push_versions` (immutable), workflows `deploy.yml` + `qa.yml`, guia humana `docs/setup-cicd.md`.
+- **Sprint 5+** — Activar Fase B humana, primer deploy real a Petal, migracion legacy de Examples.
 
 ---
 
-*Estado al 8-may-2026: Sprint 3 entregado (template cubre 9/9 recursos top-level CX). Ver `📋 Claude Code Reports` en Notion para logs de ejecucion autonoma.*
+*Estado al 8-may-2026: Sprint 4 entregado (template cubre 11/11 recursos top-level CX + CI/CD listo para activar). Ver `📋 Claude Code Reports` en Notion para logs de ejecucion autonoma.*

@@ -1,0 +1,79 @@
+# Sprint 4, Task 3 — Deploy automatico a Petal CX al hacer push a main.
+#
+# IMPORTANTE: este workflow NO se ejecutara hasta que la Fase B del
+# Sprint 4 este completa (WIF configurado en GCP + Variables en GitHub).
+# Sin esa configuracion el step `google-github-actions/auth` fallara.
+# Ver `docs/setup-cicd.md` para los pasos manuales que activan el flow.
+#
+# Decisiones tecnicas (Sprint 4):
+#   - WIF (Workload Identity Federation), NO Service Account Key.
+#   - concurrency: 1 (last-write-wins, sin race conditions, S60).
+#   - cancel-in-progress: false (NO cortar deploys a medias en main).
+#   - Solo recursos modernos (Sprint 2) en deploy automatico. Recursos
+#     NLU clasico (Sprint 3) y Environments/Versions (Sprint 4) se
+#     activaran progresivamente conforme aparezcan agentes que los usen.
+#
+# Trigger: push a main.
+name: Deploy to Petal CX
+
+on:
+  push:
+    branches: [main]
+
+# Concurrencia 1 por rama. cancel-in-progress=false: si llega otro push
+# mientras hay deploy en curso, espera (NO cancela).
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write   # CRITICO: WIF requiere id-token writable
+
+jobs:
+  deploy:
+    name: Deploy YAMLs to floristeria-petal-digital
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Auth to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify auth
+        run: gcloud auth print-access-token > /dev/null
+
+      # ----- Recursos modernos (Sprint 2) -----
+      - name: Deploy Examples
+        run: python src/push_examples.py --all
+
+      - name: Deploy Playbooks
+        run: python src/push_playbooks.py --all
+
+      - name: Deploy Tools
+        run: python src/push_tools.py --all
+
+      - name: Deploy Agent Config
+        run: python src/push_agent_config.py
+
+      # ----- Snapshot inmutable post-deploy -----
+      - name: Create Version snapshot
+        run: |
+          python src/push_versions.py \
+            --create \
+            --description="Auto deploy ${{ github.sha }}"

@@ -1,0 +1,10 @@
+# Fixture sintetico Sprint 4, Task 1.
+# Environment de prueba. Apunta a versiones genericas; en uso real cada
+# Environment lleva versionConfigs[] con las versiones especificas de los
+# flows que componen el snapshot productivo.
+displayName: Test_Environment
+description: Environment sintetico de prueba Sprint 4. NO toca produccion.
+
+# versionConfigs apunta flow + version. En el fixture se deja vacio para no
+# referenciar versiones inexistentes en Petal.
+versionConfigs: []
