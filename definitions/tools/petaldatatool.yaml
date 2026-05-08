@@ -1,0 +1,10 @@
+# definitions/tools/petaldatatool.yaml
+# Tool definition para PetalDataTool. La spec OpenAPI vive en el fichero
+# adyacente referenciado por openapi_spec_file (raw text, no parseado).
+# Esto preserva formatting exacto y evita falsos diffs por re-serializacion.
+
+displayName: PetalDataTool
+description: Tool para consultar perfil/inventario/adhoc en Google Sheets via Apps
+  Script
+toolType: CUSTOMIZED_TOOL
+openapi_spec_file: petaldatatool_openapi.yaml

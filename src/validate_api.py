@@ -35,6 +35,7 @@ Uso:
 
 import argparse
 import json
+import subprocess
 import sys
 import time
 import threading
@@ -42,8 +43,6 @@ import atexit
 import copy
 from datetime import datetime
 import requests
-import google.auth
-import google.auth.transport.requests
 
 
 # ============================================================
@@ -73,12 +72,28 @@ _dummy_example_paths = []  # paths de dummies a limpiar
 # AUTH Y HTTP HELPERS
 # ============================================================
 def get_headers():
-    creds, _ = google.auth.default(
-        scopes=["https://www.googleapis.com/auth/dialogflow"]
-    )
-    creds.refresh(google.auth.transport.requests.Request())
+    """Obtiene token via `gcloud auth print-access-token`.
+
+    Decision Sprint 2: usar gcloud directo en lugar de
+    `google.auth.default()` para evitar la fragilidad de ADC con
+    quota project (problema visto en Sprint 1).
+    """
+    try:
+        token = subprocess.check_output(
+            ["gcloud", "auth", "print-access-token"],
+            text=True,
+        ).strip()
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "gcloud no encontrado en PATH. Instala Google Cloud SDK."
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(
+            "gcloud no autenticado o no instalado. "
+            "Ejecuta `gcloud auth login` y reintenta."
+        ) from exc
     return {
-        "Authorization": f"Bearer {creds.token}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
         "x-goog-user-project": PROJECT,
     }

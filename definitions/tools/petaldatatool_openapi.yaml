@@ -1,0 +1,250 @@
+openapi: 3.0.0
+info:
+  title: PetalDataTool
+  version: 3.9.0
+  description: API para Floristeria Petal - perfil, registro, inventario, business, agent_copy, validar_pedido, pedidos.
+servers:
+  - url: https://petal-sheet-api-920225907399.europe-west1.run.app
+paths:
+  /exec:
+    get:
+      operationId: consultarDatos
+      summary: Consulta datos de la floristeria
+      parameters:
+        - name: recurso
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [perfil, registro, inventario, business, agent_copy, validar_pedido, pedidos]
+          description: Tipo de recurso a consultar.
+        - name: accion
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [leer, crear, actualizar]
+          description: Accion a realizar. Default leer.
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Email del cliente (recurso=perfil) o ID cliente (recurso=validar_pedido).
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Email del cliente para buscar perfil.
+        - name: nombre
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Nombre del cliente (recurso=registro).
+        - name: apellidos
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Apellidos del cliente (recurso=registro).
+        - name: calle
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Calle con numero (recurso=registro).
+        - name: codigo_postal
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Codigo postal (recurso=registro).
+        - name: ciudad
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Ciudad (recurso=registro).
+        - name: telefono
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Telefono (recurso=registro, opcional).
+        - name: fecha_nacimiento
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Fecha nacimiento (recurso=registro, opcional).
+        - name: tipo
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Tipo cliente particular/empresa (registro) o tipo producto (inventario).
+        - name: cif
+          in: query
+          required: false
+          schema:
+            type: string
+          description: CIF empresa (recurso=registro, opcional).
+        - name: producto
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Nombre del producto a buscar en inventario.
+        - name: color
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Color del producto (inventario).
+        - name: categoria
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Categoria de uso del producto (inventario).
+        - name: ocasion
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Ocasion del producto - Funeral, Boda, Regalo, Decoracion, Romantico, Nacimiento, Corporativo (inventario).
+        - name: tamano
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Tamano S, M o L (inventario).
+        - name: precio_max
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Precio maximo. Filtra productos con Precio menor o igual a este valor (inventario).
+        - name: productos_excluidos
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Lista de productos ya mostrados al usuario que NO deben volver a aparecer. Formato - identificadores Producto|Color|Tamano separados por ';;' entre items. Cada identificador usa los valores exactos de las columnas Producto, Color y Tamano del inventario. Ejemplo - 'Ramo de Peonias|Coral|M;;Ramo de Girasoles|Amarillo|M'. El match es tolerante (ignora acentos, mayusculas, guiones y espacios multiples). Limite interno de 30 ultimos items.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Numero maximo de resultados. Default 5, max 10 (inventario).
+        - name: motivo
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Motivo de compra para filtrar por Categoria_Uso (inventario, legacy).
+        - name: clave
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Clave de variable (business, agent_copy).
+        - name: cantidad
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Cantidad de producto (validar_pedido).
+        - name: precio_estimado
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Precio estimado del pedido (validar_pedido).
+        - name: estado_pago
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Estado de pago del cliente (validar_pedido).
+        - name: id_cliente
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del cliente (pedidos).
+        - name: ID_Cliente
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del cliente para crear pedido.
+        - name: Nombre_Cliente
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Nombre del cliente para crear pedido.
+        - name: Producto
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Producto del pedido.
+        - name: Cantidad
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Cantidad del pedido.
+        - name: Precio_Total
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Precio total del pedido.
+        - name: Direccion_Entrega
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Direccion de entrega del pedido.
+        - name: Motivo_Compra
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [Regalo, Funeral, Boda, Decoracion, Corporativo, Otro, 'No indicada']
+          description: Motivo de la compra. Valores permitidos Regalo, Funeral, Boda, Decoracion, Corporativo, Otro, No indicada. Si no se detecta ocasion durante la compra, usar 'No indicada'. NUNCA enviar el string literal 'None'.
+        - name: cache
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Poner false para forzar lectura sin cache.
+      responses:
+        '200':
+          description: Respuesta exitosa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  recurso:
+                    type: string
+                  count:
+                    type: integer
+                  resultados:
+                    type: array
+                    items:
+                      type: object
+                  fallback:
+                    type: string
+                    description: Indica si se relajaron filtros - color_relajado, producto_y_color_relajados, sin_filtros_opcionales.
+                  sin_mas_opciones:
+                    type: boolean
+                    description: True cuando el resultado esta vacio Y el agente envio productos_excluidos. Indica que ya se mostraron todos los productos disponibles con esos filtros. El agente debe aplicar fallback de agotamiento en vez de repetir opciones.

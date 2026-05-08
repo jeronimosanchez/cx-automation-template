@@ -30,3 +30,29 @@ playbooks:
   Gestion_Deuda: 871d4bbb-5c90-443b-bbb1-1d83d254c2c3
   Handoff: 9d0d211b-e39e-40cd-932b-b732caa62334
   Compra: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+
+# ============================================================
+# agent_definition (Sprint 2, Task 6)
+# ============================================================
+# Body literal del recurso Agent (sin campos read-only). push_agent_config.py
+# hace GET → diff → PATCH parcial contra esta definicion.
+#
+# Campo `start_playbook_id` se resuelve a `startPlaybook` (full path) en
+# runtime usando project/location/agent_id de arriba — mantiene el YAML
+# agnostico al deployment.
+#
+# Campos NO incluidos aqui pero presentes en remoto se preservan
+# (no se borran via PATCH). Eso aplica a `satisfiesPzi` (read-only Google).
+agent_definition:
+  displayName: Floristeria-Petal
+  defaultLanguageCode: es
+  timeZone: America/Los_Angeles
+  speechToTextSettings: {}
+  advancedSettings:
+    audioExportGcsDestination: {}
+    speechSettings:
+      endpointerSensitivity: 90
+      noSpeechTimeout: 5s
+    loggingSettings: {}
+  start_playbook_id: 00000000-0000-0000-0000-000000000000
+  enableMultiLanguageTraining: true
