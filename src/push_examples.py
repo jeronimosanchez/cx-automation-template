@@ -2,10 +2,21 @@
 """
 src/push_examples.py — Crear/upsert Examples en un Playbook de Dialogflow CX.
 
+Idempotencia (Sprint 2, Task 3): patron `LIST -> diff -> PATCH/POST`.
+- LIST de Examples del Playbook target (paginado).
+- Match por displayName.
+- Si no existe -> POST.
+- Si existe -> diff vs local (ignorando campos read-only) -> PATCH parcial
+  con updateMask SOLO si hay cambios.
+- Reporta al final: created / updated / unchanged / failed.
+
 Decisiones tecnicas no negociables (Sprint 1):
   - Auth: `gcloud auth print-access-token` (NO google.auth.default).
   - Header obligatorio x-goog-user-project (definido en definitions/agent.yaml).
   - Constantes especificas del proyecto en YAML, no hardcoded.
+
+Concurrencia (Sprint 2): asumir last-write-wins. La proteccion real
+(`concurrency: 1` en GitHub Actions) llega en Sprint 4.
 
 Uso:
   python src/push_examples.py --list-playbooks
@@ -22,6 +33,7 @@ Schema YAML esperado (definitions/examples/<playbook>.yaml):
       playbookOutput: { actionParameters: {...} }
 """
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -29,8 +41,19 @@ from pathlib import Path
 import requests
 import yaml
 
+# Permitir import directo desde src/ tanto al ejecutar el script
+# (`python src/push_examples.py`) como al importarlo desde un test.
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
+
+from diff import DiffResult, diff_resource  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_YAML_DEFAULT = REPO_ROOT / "definitions" / "agent.yaml"
+
+# Campos read-only del recurso Example. NO entran en diff ni updateMask.
+EXAMPLE_IGNORE_FIELDS = ["name", "tokenCount", "createTime", "updateTime"]
 
 
 def load_agent_config(path=AGENT_YAML_DEFAULT):
@@ -88,6 +111,37 @@ def find_playbook(cfg, headers, display_name):
     return matches[0]
 
 
+def list_examples(cfg, headers, parent_playbook):
+    """LIST /examples del Playbook con paginacion (nextPageToken).
+
+    Devuelve lista plana de dicts (cada uno con `name`, `displayName`,
+    `actions`, etc., tal como los devuelve la API).
+    """
+    items = []
+    next_token = None
+    page = 0
+    while True:
+        page += 1
+        params = {"pageSize": 100}
+        if next_token:
+            params["pageToken"] = next_token
+        r = requests.get(
+            f"{base_url(cfg)}/{parent_playbook}/examples",
+            headers=headers, params=params,
+        )
+        if r.status_code != 200:
+            raise RuntimeError(
+                f"LIST /examples fallo en pagina {page}: "
+                f"{r.status_code} {r.text[:300]}"
+            )
+        data = r.json()
+        items.extend(data.get("examples", []))
+        next_token = data.get("nextPageToken")
+        if not next_token:
+            break
+    return items
+
+
 def inject_tool_path(example, cfg):
     """Inyecta el campo 'tool' (full path) en cada toolUse si no esta presente.
     El YAML deja el campo fuera para mantenerlo agnostico al agente."""
@@ -101,23 +155,71 @@ def inject_tool_path(example, cfg):
 def create_example(cfg, headers, parent, body, dry_run=False):
     print(f"  ➕ {body['displayName']}")
     if dry_run:
-        print("     (dry-run, no se envia)")
+        print("     (dry-run, no se envia POST)")
         return True
     r = requests.post(f"{base_url(cfg)}/{parent}/examples", headers=headers, json=body)
     if r.status_code == 200:
         print("     ✅ Creado")
         return True
-    print(f"     ❌ Error {r.status_code}: {r.text}")
+    print(f"     ❌ Error POST {r.status_code}: {r.text[:300]}")
     return False
 
 
+def patch_example(cfg, headers, name, payload, update_mask, dry_run=False):
+    """PATCH parcial con updateMask. payload es el sub-dict de campos
+    cambiados; update_mask es la lista de paths con notacion punto.
+    """
+    short = name.split("/")[-1]
+    mask_str = ",".join(update_mask)
+    print(f"  ✏️  PATCH {short} mask=[{mask_str}]")
+    if dry_run:
+        print("     (dry-run, no se envia PATCH)")
+        return True
+    params = {"updateMask": mask_str}
+    r = requests.patch(
+        f"{base_url(cfg)}/{name}",
+        headers=headers, params=params, json=payload,
+    )
+    if r.status_code == 200:
+        print("     ✅ Actualizado")
+        return True
+    print(f"     ❌ Error PATCH {r.status_code}: {r.text[:300]}")
+    return False
+
+
+def upsert_example(cfg, headers, parent, body, existing_by_name, dry_run=False):
+    """LIST -> diff -> PATCH/POST. Devuelve la accion ejecutada:
+    'created' | 'updated' | 'unchanged' | 'failed'.
+    """
+    remote = existing_by_name.get(body["displayName"])
+    if remote is None:
+        ok = create_example(cfg, headers, parent, body, dry_run)
+        return "created" if ok else "failed"
+
+    result: DiffResult = diff_resource(
+        body, remote, ignore_fields=EXAMPLE_IGNORE_FIELDS,
+    )
+    if not result.needs_update:
+        print(f"  = {body['displayName']} (unchanged)")
+        return "unchanged"
+
+    ok = patch_example(
+        cfg, headers,
+        name=remote["name"],
+        payload=result.patch_payload,
+        update_mask=result.update_mask,
+        dry_run=dry_run,
+    )
+    return "updated" if ok else "failed"
+
+
 def main():
-    ap = argparse.ArgumentParser(description="Crear/upsert Examples en un Playbook de CX.")
+    ap = argparse.ArgumentParser(description="Crear/upsert Examples en un Playbook de CX (idempotente).")
     ap.add_argument("--playbook", help="displayName del Playbook destino")
     ap.add_argument("--file", help="Path al YAML de Examples (relativo al repo o absoluto)")
-    ap.add_argument("--dry-run", action="store_true", help="No envia POST")
+    ap.add_argument("--dry-run", action="store_true", help="No envia POST/PATCH; muestra que se haria")
     ap.add_argument("--list-playbooks", action="store_true", help="Listar Playbooks del agente y salir")
-    ap.add_argument("--only", help="ID del Example a crear (filtra por campo `id` del YAML)")
+    ap.add_argument("--only", help="ID del Example a procesar (filtra por campo `id` del YAML)")
     args = ap.parse_args()
 
     cfg = load_agent_config()
@@ -157,16 +259,33 @@ def main():
             print(f"  ❌ --only {args.only} no encontrado en el YAML.")
             return 1
 
-    stats = {"OK": 0, "FAIL": 0}
-    print(f"\n\U0001f4dd Creando {len(examples)} Example(s) {'(DRY-RUN)' if args.dry_run else ''}...\n")
+    print(f"\n\U0001f4dc LIST de Examples remotos del Playbook (paginado)...")
+    try:
+        remote_examples = list_examples(cfg, headers, parent)
+    except RuntimeError as e:
+        print(f"  ❌ {e}")
+        return 1
+    existing_by_name = {ex["displayName"]: ex for ex in remote_examples}
+    print(f"   ✓ {len(remote_examples)} Example(s) remotos detectados")
+
+    stats = {"created": 0, "updated": 0, "unchanged": 0, "failed": 0}
+    mode = "(DRY-RUN)" if args.dry_run else ""
+    print(f"\n\U0001f4dd Procesando {len(examples)} Example(s) {mode}...\n")
     for ex in examples:
         body = {k: v for k, v in ex.items() if k != "id"}
         body = inject_tool_path(body, cfg)
-        ok = create_example(cfg, headers, parent, body, args.dry_run)
-        stats["OK" if ok else "FAIL"] += 1
+        action = upsert_example(cfg, headers, parent, body, existing_by_name, args.dry_run)
+        stats[action] += 1
 
-    print(f"\n{'='*50}\n\U0001f4ca OK: {stats['OK']}  FAIL: {stats['FAIL']}\n{'='*50}")
-    return 0 if stats["FAIL"] == 0 else 1
+    print(
+        f"\n{'='*55}\n"
+        f"\U0001f4ca created={stats['created']}  "
+        f"updated={stats['updated']}  "
+        f"unchanged={stats['unchanged']}  "
+        f"failed={stats['failed']}"
+        f"\n{'='*55}"
+    )
+    return 0 if stats["failed"] == 0 else 1
 
 
 if __name__ == "__main__":
