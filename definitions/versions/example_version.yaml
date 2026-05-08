@@ -1,0 +1,7 @@
+# Fixture sintetico Sprint 4, Task 2.
+# Las Versions son immutables. POST crea snapshot, no hay PATCH.
+# `flow_displayName` es local-only: se usa para resolver flow_id por LIST
+# /flows. NO va al body de la API.
+flow_displayName: Default Start Flow
+displayName: v0_test_sprint4
+description: Snapshot sintetico Sprint 4 (no se aplica a Petal).
