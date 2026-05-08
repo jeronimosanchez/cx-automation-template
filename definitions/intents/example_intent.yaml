@@ -1,0 +1,38 @@
+# Fixture sintetico Sprint 3, Task 3.
+# Intent de prueba con training phrases (mezclando texto plano y partes
+# annotated con parameterId, para validar que el diff respeta la
+# estructura completa).
+displayName: Test_Intent_Greeting
+description: Saludo sintetico de prueba para Sprint 3.
+priority: 500000
+isFallback: false
+
+trainingPhrases:
+  - parts:
+      - text: "Hola, buenos dias"
+    repeatCount: 1
+
+  - parts:
+      - text: "Buenas tardes"
+    repeatCount: 1
+
+  - parts:
+      - text: "Hola, soy "
+      - text: "Jero"
+        parameterId: nombre_usuario
+    repeatCount: 1
+
+  - parts:
+      - text: "Que tal? Soy "
+      - text: "Lucia"
+        parameterId: nombre_usuario
+    repeatCount: 1
+
+parameters:
+  - id: nombre_usuario
+    entityType: projects/-/locations/-/agents/-/entityTypes/sys.person
+    isList: false
+    redact: false
+
+labels:
+  scenario: smoke_sprint3

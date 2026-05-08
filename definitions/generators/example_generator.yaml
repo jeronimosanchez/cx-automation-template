@@ -1,0 +1,22 @@
+# Fixture sintetico Sprint 3, Task 6.
+# Generator simple con prompt y modelParameter (config Gemini).
+displayName: Test_Greeting_Generator
+
+promptText:
+  text: |
+    Eres un asistente cordial. Saluda al usuario por su nombre $usuario y
+    confirma que estas disponible para ayudarle con la consulta:
+    $consulta_breve
+
+placeholders:
+  - id: usuario
+    name: usuario
+  - id: consulta_breve
+    name: consulta_breve
+
+modelParameter:
+  model: gemini-1.5-flash
+  temperature: 0.2
+  maxDecodeSteps: 256
+  topP: 0.95
+  topK: 40

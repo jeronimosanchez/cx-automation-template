@@ -1,0 +1,25 @@
+# Fixture sintetico Sprint 3, Task 1.
+# Flow de prueba para validar el ciclo LIST -> diff -> PATCH/POST contra
+# un agente Flow-based futuro. NO se aplica a Petal (Petal es Playbook-only).
+#
+# Esquema basado en Dialogflow CX v3beta1 Flow:
+#   - displayName: nombre legible (clave de match para upsert).
+#   - description: texto libre.
+#   - nluSettings: parametros del NLU clasico.
+#   - eventHandlers: handlers de eventos (welcome, no-match, etc).
+#   - transitionRoutes: routing por intent/condition.
+displayName: Test_Flow
+description: Flow sintetico de prueba para Sprint 3. No vinculado a Petal.
+
+nluSettings:
+  modelType: MODEL_TYPE_STANDARD
+  classificationThreshold: 0.3
+  modelTrainingMode: MODEL_TRAINING_MODE_AUTOMATIC
+
+eventHandlers:
+  - event: sys.no-match-default
+    triggerFulfillment:
+      messages:
+        - text:
+            text:
+              - "Lo siento, no entendi. Puedes repetir?"

@@ -3,13 +3,17 @@
 Template reutilizable para automatizar agentes conversacionales en Dialogflow CX (REST v3beta1).
 
 Provee:
-- Definiciones declarativas de Examples / Playbooks / Tools / Agent config en YAML.
+- Definiciones declarativas YAML para los 9 recursos top-level de CX:
+  - **Modernos (Sprint 2)**: Examples, Playbooks, Tools, Agent config.
+  - **NLU clasico Flow-based (Sprint 3)**: Flows, Pages, Intents, Entity Types, Webhooks, Generators.
 - Scripts agnosticos al agente con flujo idempotente `LIST -> diff -> PATCH/POST` (`GET -> diff -> PATCH` para el agente).
-- Suite de tests unitarios (`pytest`) sin red.
+- Suite de tests unitarios (`pytest`) sin red — 197 tests al cierre de Sprint 3.
 - QA con Promptfoo + custom provider Python que llama a `detectIntent`.
 - Validacion de capacidades de la API (`src/validate_api.py`) — usado para descubrir limites / comportamientos antes de codificarlos.
 
 Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codigo.
+
+**Limitacion validacion Sprint 3**: Petal (el agente de referencia) es Playbook-only. Los modulos NLU clasico (`push_flows`, `push_pages`, `push_intents`, `push_entity_types`, `push_webhooks`, `push_generators`) estan validados con tests unitarios + smoke tests `--dry-run` con fixtures sinteticos + LIST contra Petal real (sin errores). El camino completo `created/updated/unchanged` con cambios reales queda diferido hasta que aparezca un proyecto Flow-based real (ej. ECH).
 
 ---
 
@@ -21,20 +25,38 @@ Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codig
 │   ├── agent.yaml                  #   contexto + agent_definition (config global)
 │   ├── examples/                   #   un YAML por Playbook (registro_task.yaml, ...)
 │   ├── playbooks/                  #   un YAML por Playbook (handoff.yaml, ...)
-│   └── tools/                      #   wrapper YAML + OpenAPI raw adyacente
+│   ├── tools/                      #   wrapper YAML + OpenAPI raw adyacente
+│   ├── flows/                      #   un YAML por Flow (Sprint 3)
+│   ├── pages/                      #   un YAML por Page (parent_flow_displayName, Sprint 3)
+│   ├── intents/                    #   un YAML por Intent (Sprint 3)
+│   ├── entity_types/               #   un YAML por Entity Type (Sprint 3)
+│   ├── webhooks/                   #   un YAML por Webhook (Sprint 3)
+│   └── generators/                 #   un YAML por Generator (Sprint 3)
 ├── src/                            # Scripts Python ejecutables
 │   ├── diff.py                     #   funcion pura (recurso local vs remoto)
 │   ├── push_examples.py            #   upsert Examples desde YAML
 │   ├── push_playbooks.py           #   upsert Playbooks desde YAML
 │   ├── push_tools.py               #   upsert Tools desde YAML
 │   ├── push_agent_config.py        #   sync config global del agente (GET → diff → PATCH)
+│   ├── push_flows.py               #   upsert Flows desde YAML (Sprint 3)
+│   ├── push_pages.py               #   upsert Pages anidadas bajo Flow (Sprint 3)
+│   ├── push_intents.py             #   upsert Intents desde YAML (Sprint 3)
+│   ├── push_entity_types.py        #   upsert Entity Types desde YAML (Sprint 3)
+│   ├── push_webhooks.py            #   upsert Webhooks desde YAML (Sprint 3)
+│   ├── push_generators.py          #   upsert Generators desde YAML (Sprint 3)
 │   └── validate_api.py             #   valida capacidades de la API CX (9 tests)
 ├── tests/                          # Tests unitarios pytest (sin red)
 │   ├── test_diff.py
 │   ├── test_push_examples.py
 │   ├── test_push_playbooks.py
 │   ├── test_push_tools.py
-│   └── test_push_agent_config.py
+│   ├── test_push_agent_config.py
+│   ├── test_push_flows.py
+│   ├── test_push_pages.py
+│   ├── test_push_intents.py
+│   ├── test_push_entity_types.py
+│   ├── test_push_webhooks.py
+│   └── test_push_generators.py
 ├── qa/                             # Promptfoo + custom provider
 │   ├── promptfoo_provider.py
 │   ├── promptfooconfig.yaml
@@ -82,7 +104,7 @@ Ver `qa/README.md`.
 
 ## Comandos
 
-Patron unificado en los 4 push_*.py: **`LIST -> diff -> PATCH/POST`** con idempotencia real (PATCH parcial con `updateMask`). Para el agente: `GET -> diff -> PATCH` (no hay LIST: solo hay un agente).
+Patron unificado en los 9 push_*.py de recursos colectivos: **`LIST -> diff -> PATCH/POST`** con idempotencia real (PATCH parcial con `updateMask`). Para el agente (recurso unico): `GET -> diff -> PATCH`.
 
 Todos los scripts soportan `--dry-run`. **Recomendado antes de tocar producción.**
 
@@ -145,6 +167,33 @@ python src/push_agent_config.py --dry-run
 ```
 
 Lee el bloque `agent_definition:` de `definitions/agent.yaml`, hace GET del agente, diffea, y PATCH-ea solo los campos cambiados. Sin LIST.
+
+### NLU clasico Flow-based — Sprint 3
+
+Mismo patron `LIST -> diff -> PATCH/POST` con flags `--file`, `--all`, `--only`, `--dry-run`. Estos modulos cubren los recursos del Dialogflow CX clasico (no Playbook-based).
+
+```bash
+# Flows (top-level)
+python src/push_flows.py --all --dry-run
+
+# Pages (anidadas bajo Flow — el YAML declara parent_flow_displayName)
+python src/push_pages.py --all --dry-run
+python src/push_pages.py --all --flow Test_Flow --dry-run   # filtro por flow padre
+
+# Intents
+python src/push_intents.py --all --dry-run
+
+# Entity Types (KIND_MAP / KIND_LIST / KIND_REGEXP)
+python src/push_entity_types.py --all --dry-run
+
+# Webhooks (genericWebService)
+python src/push_webhooks.py --all --dry-run
+
+# Generators (Gemini, con placeholders en promptText)
+python src/push_generators.py --all --dry-run
+```
+
+Cada modulo tiene un fixture sintetico bajo `definitions/<recurso>/example_*.yaml` que sirve para probar el flujo en seco. Los nombres de los displayName empiezan por `Test_*` para no colisionar con recursos reales.
 
 ### Validar capacidades de la API
 
@@ -272,8 +321,9 @@ agent_definition:
 
 - **Sprint 1** ✅ — Estructura base, `push_examples` agnostico, Promptfoo skeleton, `validate_api` re-ubicado.
 - **Sprint 2** ✅ — `diff.py` puro + tests, idempotencia en `push_examples`, modulos nuevos `push_playbooks` / `push_tools` / `push_agent_config`, suite pytest sin red.
-- **Sprint 3+** — Migracion legacy de Examples (`petaldatatool` → `consultarDatos`), CI/CD GitHub Actions con `concurrency: 1`, mas agentes.
+- **Sprint 3** ✅ — Cobertura NLU clasico Flow-based: `push_flows`, `push_pages`, `push_intents`, `push_entity_types`, `push_webhooks`, `push_generators`. Validacion completa diferida a un proyecto Flow-based real (Petal es Playbook-only).
+- **Sprint 4+** — CI/CD GitHub Actions con `concurrency: 1`, migracion legacy Examples, mas agentes.
 
 ---
 
-*Estado al 8-may-2026: Sprint 2 entregado. Ver `📋 Claude Code Reports` en Notion para logs de ejecucion autonoma.*
+*Estado al 8-may-2026: Sprint 3 entregado (template cubre 9/9 recursos top-level CX). Ver `📋 Claude Code Reports` en Notion para logs de ejecucion autonoma.*

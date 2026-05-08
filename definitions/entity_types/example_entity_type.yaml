@@ -1,0 +1,26 @@
+# Fixture sintetico Sprint 3, Task 4.
+# Entity Type tipo KIND_MAP (mapa value->synonyms[]).
+displayName: Test_Color
+kind: KIND_MAP
+autoExpansionMode: AUTO_EXPANSION_MODE_DEFAULT
+enableFuzzyExtraction: false
+redact: false
+
+entities:
+  - value: rojo
+    synonyms:
+      - rojo
+      - "color rojo"
+      - "tono rojo"
+  - value: azul
+    synonyms:
+      - azul
+      - "color azul"
+      - "tono azul"
+  - value: verde
+    synonyms:
+      - verde
+      - "color verde"
+      - "tono verde"
+
+excludedPhrases: []
