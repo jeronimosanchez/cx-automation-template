@@ -69,6 +69,4 @@ jobs:
 
       - name: Run Promptfoo eval
         working-directory: qa
-        env:
-          PROMPTFOO_PYTHON: ../.venv/bin/python
         run: promptfoo eval
