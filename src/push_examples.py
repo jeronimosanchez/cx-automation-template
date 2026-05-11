@@ -51,6 +51,7 @@ from diff import DiffResult, diff_resource  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_YAML_DEFAULT = REPO_ROOT / "definitions" / "agent.yaml"
+EXAMPLES_DIR = REPO_ROOT / "definitions" / "examples"
 
 # Campos read-only del recurso Example. NO entran en diff ni updateMask.
 EXAMPLE_IGNORE_FIELDS = ["name", "tokenCount", "createTime", "updateTime"]
@@ -213,10 +214,57 @@ def upsert_example(cfg, headers, parent, body, existing_by_name, dry_run=False):
     return "updated" if ok else "failed"
 
 
+def discover_example_files():
+    if not EXAMPLES_DIR.is_dir():
+        return []
+    return sorted(EXAMPLES_DIR.glob("*.yaml"))
+
+
+def load_examples_yaml(file_path):
+    with open(file_path) as f:
+        data = yaml.safe_load(f)
+    if not data or "examples" not in data:
+        raise ValueError(f"{file_path}: YAML no contiene clave 'examples'")
+    playbook = data.get("playbook")
+    if not playbook:
+        raise ValueError(f"{file_path}: falta clave 'playbook' (necesaria en modo --all)")
+    return playbook, data["examples"]
+
+
+def process_examples_for_playbook(cfg, headers, playbook_name, examples, dry_run):
+    """Resuelve el Playbook, lista remotos y hace upsert. Devuelve stats."""
+    print(f"\n\U0001f50d Resolviendo Playbook '{playbook_name}'...")
+    parent = find_playbook(cfg, headers, playbook_name)
+    if not parent:
+        return {"created": 0, "updated": 0, "unchanged": 0, "failed": len(examples)}
+    print(f"   ✓ ID {parent.split('/')[-1]}")
+
+    print(f"\n\U0001f4dc LIST de Examples remotos del Playbook (paginado)...")
+    try:
+        remote_examples = list_examples(cfg, headers, parent)
+    except RuntimeError as e:
+        print(f"  ❌ {e}")
+        return {"created": 0, "updated": 0, "unchanged": 0, "failed": len(examples)}
+    existing_by_name = {ex["displayName"]: ex for ex in remote_examples}
+    print(f"   ✓ {len(remote_examples)} Example(s) remotos detectados")
+
+    stats = {"created": 0, "updated": 0, "unchanged": 0, "failed": 0}
+    mode = "(DRY-RUN)" if dry_run else ""
+    print(f"\n\U0001f4dd Procesando {len(examples)} Example(s) {mode}...\n")
+    for ex in examples:
+        body = {k: v for k, v in ex.items() if k != "id"}
+        body = inject_tool_path(body, cfg)
+        action = upsert_example(cfg, headers, parent, body, existing_by_name, dry_run)
+        stats[action] += 1
+    return stats
+
+
 def main():
     ap = argparse.ArgumentParser(description="Crear/upsert Examples en un Playbook de CX (idempotente).")
     ap.add_argument("--playbook", help="displayName del Playbook destino")
     ap.add_argument("--file", help="Path al YAML de Examples (relativo al repo o absoluto)")
+    ap.add_argument("--all", action="store_true",
+                    help="Procesar todos los YAMLs en definitions/examples/ (playbook se lee del YAML)")
     ap.add_argument("--dry-run", action="store_true", help="No envia POST/PATCH; muestra que se haria")
     ap.add_argument("--list-playbooks", action="store_true", help="Listar Playbooks del agente y salir")
     ap.add_argument("--only", help="ID del Example a procesar (filtra por campo `id` del YAML)")
@@ -233,9 +281,40 @@ def main():
             print(f"   {dn:35s}  ID: {name.split('/')[-1]}")
         return 0
 
-    if not args.playbook or not args.file:
-        ap.error("--playbook y --file son obligatorios (o usa --list-playbooks)")
+    if args.all and (args.file or args.playbook):
+        ap.error("--all no admite --file ni --playbook")
+    if not args.all and (not args.playbook or not args.file):
+        ap.error("--playbook y --file son obligatorios (o usa --all / --list-playbooks)")
 
+    # Modo --all: descubre YAMLs, agrupa por playbook (lo lee del YAML)
+    if args.all:
+        yaml_files = discover_example_files()
+        if not yaml_files:
+            print(f"  ⚠  No hay YAMLs en {EXAMPLES_DIR}. Nada que hacer.")
+            return 0
+        total = {"created": 0, "updated": 0, "unchanged": 0, "failed": 0}
+        for fp in yaml_files:
+            print(f"\n\U0001f4c4 Cargando {fp}...")
+            try:
+                playbook_name, examples = load_examples_yaml(fp)
+            except ValueError as e:
+                print(f"  ❌ {e}")
+                total["failed"] += 1
+                continue
+            stats = process_examples_for_playbook(cfg, headers, playbook_name, examples, args.dry_run)
+            for k in total:
+                total[k] += stats[k]
+        print(
+            f"\n{'='*55}\n"
+            f"\U0001f4ca [TOTAL] created={total['created']}  "
+            f"updated={total['updated']}  "
+            f"unchanged={total['unchanged']}  "
+            f"failed={total['failed']}"
+            f"\n{'='*55}"
+        )
+        return 0 if total["failed"] == 0 else 1
+
+    # Modo single file
     file_path = Path(args.file)
     if not file_path.is_absolute():
         file_path = REPO_ROOT / file_path
@@ -246,12 +325,6 @@ def main():
         print("  ❌ El YAML no contiene clave 'examples'.")
         return 1
 
-    print(f"\n\U0001f50d Resolviendo Playbook '{args.playbook}'...")
-    parent = find_playbook(cfg, headers, args.playbook)
-    if not parent:
-        return 1
-    print(f"   ✓ ID {parent.split('/')[-1]}")
-
     examples = data["examples"]
     if args.only:
         examples = [e for e in examples if e.get("id") == args.only]
@@ -259,23 +332,7 @@ def main():
             print(f"  ❌ --only {args.only} no encontrado en el YAML.")
             return 1
 
-    print(f"\n\U0001f4dc LIST de Examples remotos del Playbook (paginado)...")
-    try:
-        remote_examples = list_examples(cfg, headers, parent)
-    except RuntimeError as e:
-        print(f"  ❌ {e}")
-        return 1
-    existing_by_name = {ex["displayName"]: ex for ex in remote_examples}
-    print(f"   ✓ {len(remote_examples)} Example(s) remotos detectados")
-
-    stats = {"created": 0, "updated": 0, "unchanged": 0, "failed": 0}
-    mode = "(DRY-RUN)" if args.dry_run else ""
-    print(f"\n\U0001f4dd Procesando {len(examples)} Example(s) {mode}...\n")
-    for ex in examples:
-        body = {k: v for k, v in ex.items() if k != "id"}
-        body = inject_tool_path(body, cfg)
-        action = upsert_example(cfg, headers, parent, body, existing_by_name, args.dry_run)
-        stats[action] += 1
+    stats = process_examples_for_playbook(cfg, headers, args.playbook, examples, args.dry_run)
 
     print(
         f"\n{'='*55}\n"
