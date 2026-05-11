@@ -72,8 +72,11 @@ jobs:
         run: python src/push_agent_config.py
 
       # ----- Snapshot inmutable post-deploy -----
+      # displayName es REQUERIDO por la API (no se auto-genera). run_number
+      # es monotonico por workflow, garantiza unicidad dentro del flow.
       - name: Create Version snapshot
         run: |
           python src/push_versions.py \
             --create \
+            --display-name="ci-${{ github.run_number }}" \
             --description="Auto deploy ${{ github.sha }}"

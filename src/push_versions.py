@@ -23,18 +23,22 @@ Modos CLI:
 
 Schema YAML (definitions/versions/*.yaml):
   flow_displayName: "Default Start Flow"   # campo local-only (resuelve flow_id)
-  displayName: "v1.0.0"                    # opcional; la API auto-genera si falta
+  displayName: "v1.0.0"                    # REQUERIDO por la API
   description: "Initial release"
 
 Decisiones tecnicas no negociables:
   - Auth: `gcloud auth print-access-token`.
   - Header obligatorio x-goog-user-project.
   - 0 PATCH/POST reales en Sprint 4 sobre Versions de Petal (solo --dry-run).
+  - POST /versions es un LRO: el 200 contiene un Operation, no la Version.
+    Hay que polear GET /operations/{id} hasta done=true para detectar
+    fallos asincronos (p.ej. "Version display name should be specified").
 """
 import argparse
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import requests
@@ -149,8 +153,37 @@ def list_versions(cfg, headers, flow_name):
     return items
 
 
+_OP_POLL_INTERVAL_SECONDS = 3
+_OP_POLL_TIMEOUT_SECONDS = 180
+
+
+def wait_for_operation(cfg, headers, op_name, timeout=_OP_POLL_TIMEOUT_SECONDS):
+    """Polea GET /v3beta1/{op_name} hasta done=true.
+
+    Devuelve el dict `error` (Status) si la operation fallo, o None si
+    completo OK. Levanta TimeoutError si excede `timeout`.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        r = requests.get(f"{base_url(cfg)}/{op_name}", headers=headers)
+        if r.status_code != 200:
+            return {"code": r.status_code, "message": r.text[:300]}
+        data = r.json()
+        if data.get("done"):
+            return data.get("error")
+        if time.monotonic() >= deadline:
+            raise TimeoutError(
+                f"Operation {op_name.split('/')[-1]} no completo en {timeout}s"
+            )
+        time.sleep(_OP_POLL_INTERVAL_SECONDS)
+
+
 def create_version(cfg, headers, flow_name, body, dry_run=False):
-    """POST /flows/{flow_id}/versions. Crea un snapshot inmutable."""
+    """POST /flows/{flow_id}/versions. Crea un snapshot inmutable.
+
+    El POST devuelve un Operation LRO (no la Version). Hay que polear
+    GET /operations/{id} hasta done=true para detectar fallos async.
+    """
     label = body.get("displayName") or "(auto)"
     desc = body.get("description", "")
     print(f"  + POST version '{label}' on flow={flow_name.split('/')[-1]}")
@@ -163,11 +196,30 @@ def create_version(cfg, headers, flow_name, body, dry_run=False):
         f"{base_url(cfg)}/{flow_name}/versions",
         headers=headers, json=body,
     )
-    if r.status_code in (200, 201):
-        print("     OK Snapshot creado")
-        return True
-    print(f"     ERR POST {r.status_code}: {r.text[:300]}")
-    return False
+    if r.status_code not in (200, 201):
+        print(f"     ERR POST {r.status_code}: {r.text[:300]}")
+        return False
+
+    try:
+        payload = r.json()
+    except ValueError:
+        payload = {}
+    op_name = payload.get("name", "")
+    if "/operations/" in op_name:
+        print(f"     LRO iniciada, polling {op_name.split('/')[-1]}...")
+        try:
+            error = wait_for_operation(cfg, headers, op_name)
+        except TimeoutError as e:
+            print(f"     ERR {e}")
+            return False
+        if error:
+            code = error.get("code")
+            msg = error.get("message", "")[:200]
+            print(f"     ERR Operation fallo: code={code} msg={msg}")
+            return False
+
+    print("     OK Snapshot creado")
+    return True
 
 
 def split_local_fields(raw_body: dict):
