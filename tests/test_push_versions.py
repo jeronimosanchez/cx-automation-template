@@ -153,6 +153,69 @@ def test_create_version_dry_run_skips_post():
     mp.assert_not_called()
 
 
+# --- LRO (Long Running Operation) ---
+# POST /versions devuelve un Operation; el script debe polear /operations/{id}
+# hasta done=true antes de declarar exito.
+OP_NAME = "projects/p/locations/l/operations/op-abc"
+
+
+def test_create_version_lro_polling_success():
+    """POST devuelve Operation; GET op devuelve done=true sin error."""
+    with patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.get") as mg:
+        mp.return_value = _resp(200, {"name": OP_NAME})
+        mg.return_value = _resp(200, {"name": OP_NAME, "done": True})
+        ok = create_version(CFG, HEADERS, FLOW_NAME,
+                            {"displayName": "v1", "description": "d"}, dry_run=False)
+    assert ok is True
+    mg.assert_called_once()
+    polled_url = mg.call_args.args[0]
+    assert OP_NAME in polled_url
+
+
+def test_create_version_lro_polling_async_error():
+    """POST devuelve Operation; GET op devuelve done=true con error -> False.
+
+    Reproduce el fallo silencioso del run 25643707590: 200 al POST pero
+    'Version display name should be specified' en la operation.
+    """
+    err = {"code": 3, "message": "Version display name should be specified."}
+    with patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.get") as mg:
+        mp.return_value = _resp(200, {"name": OP_NAME})
+        mg.return_value = _resp(200, {"name": OP_NAME, "done": True, "error": err})
+        ok = create_version(CFG, HEADERS, FLOW_NAME,
+                            {"description": "d"}, dry_run=False)
+    assert ok is False
+
+
+def test_create_version_lro_polling_get_4xx_returns_false():
+    """Si el GET de polling falla con 4xx/5xx, reporta fallo."""
+    with patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.get") as mg:
+        mp.return_value = _resp(200, {"name": OP_NAME})
+        mg.return_value = _resp(500, text="server error")
+        ok = create_version(CFG, HEADERS, FLOW_NAME,
+                            {"displayName": "v1", "description": "d"}, dry_run=False)
+    assert ok is False
+
+
+def test_create_version_lro_polling_waits_for_done(monkeypatch):
+    """Si la primera respuesta no esta done, sigue poleando."""
+    monkeypatch.setattr("src.push_versions.time.sleep", lambda _: None)
+    with patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.get") as mg:
+        mp.return_value = _resp(200, {"name": OP_NAME})
+        mg.side_effect = [
+            _resp(200, {"name": OP_NAME}),                  # aun no done
+            _resp(200, {"name": OP_NAME, "done": True}),    # ok
+        ]
+        ok = create_version(CFG, HEADERS, FLOW_NAME,
+                            {"displayName": "v1", "description": "d"}, dry_run=False)
+    assert ok is True
+    assert mg.call_count == 2
+
+
 # ============================================================
 # split_local_fields — extrae flow_displayName del body API
 # ============================================================
