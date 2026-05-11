@@ -372,3 +372,4 @@ Los workflows referencian dos GitHub Variables (NO secrets): `GCP_WIF_PROVIDER` 
 ---
 
 *Estado al 8-may-2026: Sprint 4 entregado (template cubre 11/11 recursos top-level CX + CI/CD listo para activar). Ver `📋 Claude Code Reports` en Notion para logs de ejecucion autonoma.*
+
