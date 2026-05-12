@@ -1,0 +1,5 @@
+displayName: PetalDataTool
+description: Tool para consultar perfil/inventario/adhoc en Google Sheets via Apps
+  Script
+toolType: CUSTOMIZED_TOOL
+openapi_spec_file: petaldatatool_openapi.yaml
