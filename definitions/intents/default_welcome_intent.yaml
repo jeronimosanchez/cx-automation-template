@@ -1,0 +1,23 @@
+displayName: Default Welcome Intent
+priority: 500000
+trainingPhrases:
+- id: ff19935a-9c22-41fd-85fe-2b8e6538bcf1
+  parts:
+  - text: hola
+  repeatCount: 1
+- id: 001cf976-ead2-41f9-9141-359fac6bcd4a
+  parts:
+  - text: hey
+  repeatCount: 1
+- id: 233ab51d-08c3-41d8-a3dd-3041567b8a82
+  parts:
+  - text: saludos
+  repeatCount: 1
+- id: e1dac8cc-5127-464a-9b02-d3ca3bffc2fc
+  parts:
+  - text: hey ho
+  repeatCount: 1
+- id: ee293785-e71e-423f-b796-1165a04465de
+  parts:
+  - text: chao
+  repeatCount: 1
