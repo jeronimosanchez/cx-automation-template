@@ -133,7 +133,10 @@ python src/validate_api.py
 1. **IAM y roles en GCP** — ningún cambio sin aprobación explícita de Jero.
 2. **Agente Petal en producción** — `745375ba-ac7e-4eb8-b8a0-d742891f2aa4`. Ningún cambio sin aprobación.
 3. **GitHub Secrets** — nunca crear, modificar ni leer sin aprobación.
-4. **`~/petal-sheet-api/`** — proyecto separado (backend Cloud Run de inventario). Nunca tocar desde este repo.
+4. **`petal-sheet-api`** — proyecto separado (backend Cloud Run de inventario). Vive en tres instancias, ninguna se toca desde este repo:
+   - `~/petal-sheet-api/` (local) — código fuente editable.
+   - `github.com/jeronimosanchez/petal-sheet-api` (privado) — copia de seguridad.
+   - Cloud Run `europe-west1` — servidor que corre 24/7.
 5. **Sprint 5** — nunca en autopilot. Gate humano obligatorio en cada paso de migración de artefactos reales.
 
 ---
