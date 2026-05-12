@@ -128,7 +128,17 @@ python src/validate_api.py
 
 ---
 
-## 6. Constraints (nunca tocar sin aprobación explícita)
+## 6. Flujo de trabajo
+
+Reglas operativas sobre cómo cualquier cambio llega a producción.
+
+1. **El único camino a producción es `git push` → GitHub → CI/CD con QA automático.** Ningún despliegue válido ocurre fuera de este flujo.
+2. **`--dry-run` se usa solo para previsualizar cambios antes de commitear**, nunca despliega nada real.
+3. **Los scripts `push_*.py` nunca se ejecutan directamente contra producción sin pasar por el CI/CD.** El uso local se limita a `--dry-run`. La pasada real la hace `deploy.yml` tras push a `main`.
+
+---
+
+## 7. Constraints (nunca tocar sin aprobación explícita)
 
 1. **IAM y roles en GCP** — ningún cambio sin aprobación explícita de Jero.
 2. **Agente Petal en producción** — `745375ba-ac7e-4eb8-b8a0-d742891f2aa4`. Ningún cambio sin aprobación.
@@ -141,7 +151,7 @@ python src/validate_api.py
 
 ---
 
-## 7. Autopilot — guardarraíles (7 gates)
+## 8. Autopilot — guardarraíles (7 gates)
 
 Antes de cualquier commit autónomo, verificar los 7 gates. Los marcados como **AUTO** Claude Code los chequea sin pedir confirmación; los marcados como **GATE** requieren aprobación explícita de Jero antes de continuar.
 
@@ -157,7 +167,7 @@ Si cualquier gate AUTO falla, parar inmediatamente y reportar a Jero. No intenta
 
 ---
 
-## 8. Referencias técnicas y protocolo de arranque
+## 9. Referencias técnicas y protocolo de arranque
 
 ### Identificadores
 
