@@ -43,6 +43,7 @@ playbooks:
 #
 # Campos NO incluidos aqui pero presentes en remoto se preservan
 # (no se borran via PATCH). Eso aplica a `satisfiesPzi` (read-only Google).
+# === DO NOT EDIT — exported from CX by pull_agent_config.py ===
 agent_definition:
   displayName: Floristeria-Petal
   defaultLanguageCode: es
