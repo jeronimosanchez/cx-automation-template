@@ -29,10 +29,15 @@ Schema YAML (definitions/versions/*.yaml):
 Decisiones tecnicas no negociables:
   - Auth: `gcloud auth print-access-token`.
   - Header obligatorio x-goog-user-project.
-  - 0 PATCH/POST reales en Sprint 4 sobre Versions de Petal (solo --dry-run).
   - POST /versions es un LRO: el 200 contiene un Operation, no la Version.
     Hay que polear GET /operations/{id} hasta done=true para detectar
     fallos asincronos (p.ej. "Version display name should be specified").
+  - Rotacion automatica al llegar al limite duro de CX (20 versions/flow,
+    FailedPrecondition observado en S60). Antes del POST, el flow se
+    inspecciona; si tiene >= 20 versions, se borra la mas antigua (por
+    createTime) antes de crear la nueva. Solo se borra UNA por create
+    (single-shot rotation). Si el DELETE falla (e.g. version referenciada
+    por un environment), el create se aborta sin POST y se reporta el error.
 """
 import argparse
 import os
@@ -54,6 +59,10 @@ VERSIONS_DIR = REPO_ROOT / "definitions" / "versions"
 
 DEFAULT_FLOW_DISPLAY_NAME = "Default Start Flow"
 _LOCAL_ONLY_FIELDS = {"flow_displayName"}
+
+# Limite duro de CX: 20 versions por flow. Observado en S60 (FailedPrecondition).
+# Cuando se alcanza, rotate_versions_if_full() borra la mas antigua antes del POST.
+_MAX_VERSIONS_PER_FLOW = 20
 
 
 def load_agent_config(path=AGENT_YAML_DEFAULT):
@@ -178,12 +187,93 @@ def wait_for_operation(cfg, headers, op_name, timeout=_OP_POLL_TIMEOUT_SECONDS):
         time.sleep(_OP_POLL_INTERVAL_SECONDS)
 
 
+def delete_version(cfg, headers, name, dry_run=False):
+    """DELETE /v3beta1/{name}. Borra una version (no es LRO, response sync).
+
+    name es el path completo: projects/.../flows/<f>/versions/<v>.
+    Devuelve True si DELETE=200/204 (o dry_run), False en error.
+    """
+    short = name.rsplit("/", 1)[-1]
+    print(f"  - DELETE version {short}")
+    if dry_run:
+        print("     (dry-run, no se envia DELETE)")
+        return True
+    r = requests.delete(f"{base_url(cfg)}/{name}", headers=headers)
+    if r.status_code in (200, 204):
+        print("     OK borrada")
+        return True
+    # Caso comun: version referenciada por un environment -> 400/409
+    print(f"     ERR DELETE {r.status_code}: {r.text[:300]}")
+    return False
+
+
+def find_oldest_version(versions):
+    """Devuelve la version con el createTime mas antiguo.
+
+    IMPORTANTE: ordena por createTime, NO por displayName. Si se ordena
+    por displayName alfabeticamente, `ci-10` viene antes que `ci-9` y
+    se borraria un snapshot mas reciente. Por createTime es por TIEMPO real.
+
+    Si una version no tiene createTime (caso raro), se ordena al final
+    (no se considera la mas vieja — defensivo).
+    """
+    if not versions:
+        return None
+    # Sentinel "9999..." para versiones sin createTime: las pone al final.
+    return min(versions, key=lambda v: v.get("createTime") or "9999-12-31T23:59:59Z")
+
+
+def rotate_versions_if_full(cfg, headers, flow_name, dry_run=False):
+    """LIST versions del flow; si esta en el limite (>=20), borra la mas
+    antigua. Single-shot: solo UN delete por invocacion, suficiente para
+    crear UN snapshot nuevo despues.
+
+    Devuelve True si:
+      - El flow tiene < _MAX_VERSIONS_PER_FLOW (no-op).
+      - Habia >= _MAX_VERSIONS_PER_FLOW y el DELETE de la mas antigua OK.
+    Devuelve False si:
+      - El LIST fallo, o el DELETE fallo (e.g. version referenciada por env).
+    """
+    try:
+        versions = list_versions(cfg, headers, flow_name)
+    except RuntimeError as e:
+        print(f"     ERR rotacion: LIST fallo: {e}")
+        return False
+
+    if len(versions) < _MAX_VERSIONS_PER_FLOW:
+        # No-op silencioso. No imprimir nada para no enruidar el caso comun.
+        return True
+
+    oldest = find_oldest_version(versions)
+    if oldest is None:
+        print(f"     ERR rotacion: {len(versions)} versions en flow pero no se pudo seleccionar la mas antigua")
+        return False
+
+    print(
+        f"     ⚠ flow tiene {len(versions)} version(es) "
+        f"(>= limite {_MAX_VERSIONS_PER_FLOW}). "
+        f"Rotando: borrar la mas antigua '{oldest.get('displayName')}' "
+        f"(created={oldest.get('createTime')})."
+    )
+    return delete_version(cfg, headers, oldest["name"], dry_run=dry_run)
+
+
 def create_version(cfg, headers, flow_name, body, dry_run=False):
     """POST /flows/{flow_id}/versions. Crea un snapshot inmutable.
+
+    Antes del POST, llama a `rotate_versions_if_full` para asegurar que
+    el flow no esta saturado (CX rechaza POST si hay >= 20 versions con
+    FailedPrecondition). Si la rotacion falla, se aborta el create sin
+    POSTear.
 
     El POST devuelve un Operation LRO (no la Version). Hay que polear
     GET /operations/{id} hasta done=true para detectar fallos async.
     """
+    # Rotacion: borra la version mas vieja si el flow ya esta en el limite.
+    if not rotate_versions_if_full(cfg, headers, flow_name, dry_run=dry_run):
+        print("     ERR Rotacion fallo, abortando create.")
+        return False
+
     label = body.get("displayName") or "(auto)"
     desc = body.get("description", "")
     print(f"  + POST version '{label}' on flow={flow_name.split('/')[-1]}")

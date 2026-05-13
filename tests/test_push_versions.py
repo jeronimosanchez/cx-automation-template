@@ -20,14 +20,18 @@ import pytest
 
 from src.push_versions import (
     DEFAULT_FLOW_DISPLAY_NAME,
+    _MAX_VERSIONS_PER_FLOW,
     cmd_create,
     cmd_list,
     create_version,
+    delete_version,
     discover_version_files,
+    find_oldest_version,
     list_flows,
     list_versions,
     load_version_yaml,
     resolve_flow_id,
+    rotate_versions_if_full,
     split_local_fields,
 )
 
@@ -122,9 +126,16 @@ def test_resolve_flow_id_not_found_raises():
 # ============================================================
 # create_version — POST de snapshot inmutable
 # ============================================================
+# Helper para tests que no exercen rotation: mockea list_versions devolviendo
+# vacio (asi rotate_versions_if_full es no-op).
+_EMPTY_VERSIONS_LIST_RESP = lambda: _resp(200, {"versions": []})
+
+
 def test_create_version_success():
     body = {"displayName": "v1", "description": "first"}
-    with patch("src.push_versions.requests.post") as mp:
+    with patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.get") as mg:
+        mg.return_value = _EMPTY_VERSIONS_LIST_RESP()  # rotation: no-op
         mp.return_value = _resp(200, {})
         ok = create_version(CFG, HEADERS, FLOW_NAME, body, dry_run=False)
     assert ok is True
@@ -133,21 +144,27 @@ def test_create_version_success():
 
 def test_create_version_201_success():
     """POST puede devolver 201 Created en algunas APIs CX."""
-    with patch("src.push_versions.requests.post") as mp:
+    with patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.get") as mg:
+        mg.return_value = _EMPTY_VERSIONS_LIST_RESP()
         mp.return_value = _resp(201, {})
         ok = create_version(CFG, HEADERS, FLOW_NAME, {"description": "d"}, dry_run=False)
     assert ok is True
 
 
 def test_create_version_4xx_returns_false():
-    with patch("src.push_versions.requests.post") as mp:
+    with patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.get") as mg:
+        mg.return_value = _EMPTY_VERSIONS_LIST_RESP()
         mp.return_value = _resp(400, text="bad")
         ok = create_version(CFG, HEADERS, FLOW_NAME, {"description": "d"}, dry_run=False)
     assert ok is False
 
 
 def test_create_version_dry_run_skips_post():
-    with patch("src.push_versions.requests.post") as mp:
+    with patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.get") as mg:
+        mg.return_value = _EMPTY_VERSIONS_LIST_RESP()  # rotation LIST aun corre en dry-run
         ok = create_version(CFG, HEADERS, FLOW_NAME, {"description": "d"}, dry_run=True)
     assert ok is True
     mp.assert_not_called()
@@ -160,17 +177,24 @@ OP_NAME = "projects/p/locations/l/operations/op-abc"
 
 
 def test_create_version_lro_polling_success():
-    """POST devuelve Operation; GET op devuelve done=true sin error."""
+    """POST devuelve Operation; GET op devuelve done=true sin error.
+
+    Tras rotation, get se llama: (1) list_versions, (2) operation polling.
+    """
     with patch("src.push_versions.requests.post") as mp, \
          patch("src.push_versions.requests.get") as mg:
         mp.return_value = _resp(200, {"name": OP_NAME})
-        mg.return_value = _resp(200, {"name": OP_NAME, "done": True})
+        mg.side_effect = [
+            _resp(200, {"versions": []}),                   # rotation LIST: vacio
+            _resp(200, {"name": OP_NAME, "done": True}),    # operation polling
+        ]
         ok = create_version(CFG, HEADERS, FLOW_NAME,
                             {"displayName": "v1", "description": "d"}, dry_run=False)
     assert ok is True
-    mg.assert_called_once()
-    polled_url = mg.call_args.args[0]
-    assert OP_NAME in polled_url
+    assert mg.call_count == 2
+    # Verifica que el segundo GET (operation poll) apunta al OP_NAME
+    second_url = mg.call_args_list[1].args[0]
+    assert OP_NAME in second_url
 
 
 def test_create_version_lro_polling_async_error():
@@ -183,7 +207,10 @@ def test_create_version_lro_polling_async_error():
     with patch("src.push_versions.requests.post") as mp, \
          patch("src.push_versions.requests.get") as mg:
         mp.return_value = _resp(200, {"name": OP_NAME})
-        mg.return_value = _resp(200, {"name": OP_NAME, "done": True, "error": err})
+        mg.side_effect = [
+            _resp(200, {"versions": []}),                                    # rotation
+            _resp(200, {"name": OP_NAME, "done": True, "error": err}),       # op error
+        ]
         ok = create_version(CFG, HEADERS, FLOW_NAME,
                             {"description": "d"}, dry_run=False)
     assert ok is False
@@ -194,7 +221,10 @@ def test_create_version_lro_polling_get_4xx_returns_false():
     with patch("src.push_versions.requests.post") as mp, \
          patch("src.push_versions.requests.get") as mg:
         mp.return_value = _resp(200, {"name": OP_NAME})
-        mg.return_value = _resp(500, text="server error")
+        mg.side_effect = [
+            _resp(200, {"versions": []}),       # rotation OK
+            _resp(500, text="server error"),    # operation polling fails
+        ]
         ok = create_version(CFG, HEADERS, FLOW_NAME,
                             {"displayName": "v1", "description": "d"}, dry_run=False)
     assert ok is False
@@ -207,13 +237,14 @@ def test_create_version_lro_polling_waits_for_done(monkeypatch):
          patch("src.push_versions.requests.get") as mg:
         mp.return_value = _resp(200, {"name": OP_NAME})
         mg.side_effect = [
-            _resp(200, {"name": OP_NAME}),                  # aun no done
+            _resp(200, {"versions": []}),                   # rotation LIST
+            _resp(200, {"name": OP_NAME}),                  # op aun no done
             _resp(200, {"name": OP_NAME, "done": True}),    # ok
         ]
         ok = create_version(CFG, HEADERS, FLOW_NAME,
                             {"displayName": "v1", "description": "d"}, dry_run=False)
     assert ok is True
-    assert mg.call_count == 2
+    assert mg.call_count == 3
 
 
 # ============================================================
@@ -406,3 +437,231 @@ def test_cmd_list_flow_filter_not_found_returns_failed():
         mg.return_value = _resp(200, {"flows": flows})
         rc = cmd_list(CFG, HEADERS, flow_filter="Missing")
     assert rc == 1
+
+
+# ============================================================
+# Rotacion automatica al limite de 20 versions/flow (S60 finding)
+# ============================================================
+def _version(name_suffix, display, create_time):
+    """Helper para construir un dict de version remoto realistico."""
+    return {
+        "name": f"{FLOW_NAME}/versions/{name_suffix}",
+        "displayName": display,
+        "createTime": create_time,
+        "state": "SUCCEEDED",
+    }
+
+
+def test_max_versions_per_flow_constant_is_20():
+    """CX hard limit. Si cambia, el codigo y esta constante deben actualizarse juntos."""
+    assert _MAX_VERSIONS_PER_FLOW == 20
+
+
+# --- find_oldest_version ---
+def test_find_oldest_version_returns_none_for_empty():
+    assert find_oldest_version([]) is None
+
+
+def test_find_oldest_version_picks_minimum_createTime():
+    versions = [
+        _version("3", "ci-8", "2026-05-12T14:49:02Z"),
+        _version("1", "ci-6", "2026-05-11T10:18:55Z"),  # oldest
+        _version("2", "ci-7", "2026-05-12T14:24:19Z"),
+    ]
+    oldest = find_oldest_version(versions)
+    assert oldest["displayName"] == "ci-6"
+
+
+def test_find_oldest_uses_createTime_not_displayName_lex():
+    """CRITICO: ci-10 viene LEXICOGRAFICAMENTE antes que ci-9, pero CRONOLOGICAMENTE despues.
+    Si se ordena por displayName, ci-10 (mas nuevo) seria 'oldest' -> bug grave.
+    Esto verifica que se ordena por createTime real, no por nombre."""
+    versions = [
+        _version("10", "ci-10", "2026-05-12T20:00:00Z"),  # mas nuevo
+        _version("9", "ci-9",  "2026-05-12T16:00:00Z"),   # oldest cronologicamente
+    ]
+    oldest = find_oldest_version(versions)
+    # Por createTime, el mas viejo es ci-9 (16:00 < 20:00).
+    # Si se ordenara por displayName lex, ci-10 vendria antes y seria 'oldest'.
+    assert oldest["displayName"] == "ci-9", (
+        "Bug: se esta ordenando por displayName (lex), no por createTime. "
+        "ci-10 NO es mas viejo que ci-9."
+    )
+
+
+def test_find_oldest_handles_missing_createTime():
+    """Defensivo: version sin createTime queda al final (no se considera la mas vieja)."""
+    versions = [
+        _version("1", "real", "2026-05-12T10:00:00Z"),
+        {"name": f"{FLOW_NAME}/versions/2", "displayName": "no-createtime"},  # sin createTime
+    ]
+    oldest = find_oldest_version(versions)
+    assert oldest["displayName"] == "real"
+
+
+# --- delete_version ---
+def test_delete_version_sync_success():
+    with patch("src.push_versions.requests.delete") as md:
+        md.return_value = _resp(200)
+        ok = delete_version(CFG, HEADERS, f"{FLOW_NAME}/versions/1", dry_run=False)
+    assert ok is True
+    md.assert_called_once()
+
+
+def test_delete_version_204_is_success():
+    with patch("src.push_versions.requests.delete") as md:
+        md.return_value = _resp(204)
+        ok = delete_version(CFG, HEADERS, f"{FLOW_NAME}/versions/1", dry_run=False)
+    assert ok is True
+
+
+def test_delete_version_4xx_returns_false():
+    """Caso real: version referenciada por un environment -> 400/409."""
+    with patch("src.push_versions.requests.delete") as md:
+        md.return_value = _resp(409, text="referenced by environment")
+        ok = delete_version(CFG, HEADERS, f"{FLOW_NAME}/versions/1", dry_run=False)
+    assert ok is False
+
+
+def test_delete_version_dry_run_skips_network():
+    with patch("src.push_versions.requests.delete") as md:
+        ok = delete_version(CFG, HEADERS, f"{FLOW_NAME}/versions/1", dry_run=True)
+    assert ok is True
+    md.assert_not_called()
+
+
+# --- rotate_versions_if_full ---
+def test_rotate_no_op_when_under_limit():
+    """Si hay < 20 versions, no se borra nada y devuelve True."""
+    versions = [_version(str(i), f"ci-{i}", f"2026-05-12T{10+i:02d}:00:00Z") for i in range(5)]
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(200, {"versions": versions})
+        ok = rotate_versions_if_full(CFG, HEADERS, FLOW_NAME, dry_run=False)
+    assert ok is True
+    md.assert_not_called()  # CRITICO: no se debe borrar nada
+
+
+def test_rotate_deletes_oldest_at_exact_limit():
+    """Si hay exactamente 20 versions, se borra la mas antigua."""
+    # 20 versions, la primera (i=0) es la mas vieja
+    versions = [
+        _version(str(i), f"ci-{i+6}", f"2026-05-{11 + i//10:02d}T{10 + (i % 10):02d}:00:00Z")
+        for i in range(20)
+    ]
+    # Forzamos que i=0 sea la oldest por createTime
+    versions[0]["createTime"] = "2026-05-01T00:00:00Z"  # claramente la mas vieja
+
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(200, {"versions": versions})
+        md.return_value = _resp(200)
+        ok = rotate_versions_if_full(CFG, HEADERS, FLOW_NAME, dry_run=False)
+    assert ok is True
+    md.assert_called_once()
+    # Verifica que se borro la mas vieja (su `name`)
+    deleted_url = md.call_args.args[0]
+    assert deleted_url.endswith(f"/versions/0"), (
+        f"Se esperaba DELETE sobre versions/0 (la oldest); fue: {deleted_url}"
+    )
+
+
+def test_rotate_handles_above_limit_single_delete():
+    """Defensivo: si por alguna razon hay > 20 versions, borra solo UNA (single-shot)."""
+    versions = [
+        _version(str(i), f"ci-{i}", f"2026-05-12T{i:02d}:00:00Z")
+        for i in range(25)
+    ]
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(200, {"versions": versions})
+        md.return_value = _resp(200)
+        ok = rotate_versions_if_full(CFG, HEADERS, FLOW_NAME, dry_run=False)
+    assert ok is True
+    # Single-shot: solo UN DELETE, no varios.
+    assert md.call_count == 1
+
+
+def test_rotate_dry_run_no_delete():
+    """En dry-run no se llama requests.delete aunque haya >= 20 versions."""
+    versions = [_version(str(i), f"ci-{i}", f"2026-05-12T{i:02d}:00:00Z") for i in range(20)]
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(200, {"versions": versions})
+        ok = rotate_versions_if_full(CFG, HEADERS, FLOW_NAME, dry_run=True)
+    assert ok is True
+    md.assert_not_called()
+
+
+def test_rotate_delete_failure_returns_false():
+    """Si el DELETE falla (e.g. version referenciada por env), rotate devuelve False."""
+    versions = [_version(str(i), f"ci-{i}", f"2026-05-12T{i:02d}:00:00Z") for i in range(20)]
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(200, {"versions": versions})
+        md.return_value = _resp(409, text="referenced by environment")
+        ok = rotate_versions_if_full(CFG, HEADERS, FLOW_NAME, dry_run=False)
+    assert ok is False
+
+
+def test_rotate_list_failure_returns_false():
+    """Si el LIST de versions falla, rotate devuelve False sin intentar DELETE."""
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(500, text="server error")
+        ok = rotate_versions_if_full(CFG, HEADERS, FLOW_NAME, dry_run=False)
+    assert ok is False
+    md.assert_not_called()
+
+
+# --- create_version end-to-end con rotation ---
+def test_create_version_with_rotation_under_limit_proceeds():
+    """E2E: 5 versions en CX -> rotate no-op -> POST procede normal."""
+    versions_5 = [_version(str(i), f"ci-{i}", f"2026-05-12T{i:02d}:00:00Z") for i in range(5)]
+    body = {"displayName": "ci-NEW", "description": "test"}
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(200, {"versions": versions_5})  # list para rotation
+        mp.return_value = _resp(200, {"name": "v"})  # POST sync (sin LRO en el name)
+        ok = create_version(CFG, HEADERS, FLOW_NAME, body, dry_run=False)
+    assert ok is True
+    md.assert_not_called()  # no se rota
+    mp.assert_called_once()  # se POST
+
+
+def test_create_version_with_rotation_at_limit_deletes_then_posts():
+    """E2E: 20 versions en CX -> rotate borra la mas vieja -> POST procede."""
+    versions_20 = [
+        _version(str(i), f"ci-{i}", f"2026-05-12T{i:02d}:00:00Z")
+        for i in range(20)
+    ]
+    body = {"displayName": "ci-NEW", "description": "test"}
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(200, {"versions": versions_20})
+        md.return_value = _resp(200)
+        mp.return_value = _resp(200, {"name": "v"})
+        ok = create_version(CFG, HEADERS, FLOW_NAME, body, dry_run=False)
+    assert ok is True
+    md.assert_called_once()  # rotation borro 1
+    mp.assert_called_once()  # POST despues de rotation
+
+
+def test_create_version_aborts_post_when_rotation_fails():
+    """E2E: 20 versions + DELETE falla -> NO se hace POST (create returns False)."""
+    versions_20 = [
+        _version(str(i), f"ci-{i}", f"2026-05-12T{i:02d}:00:00Z")
+        for i in range(20)
+    ]
+    body = {"displayName": "ci-NEW", "description": "test"}
+    with patch("src.push_versions.requests.get") as mg, \
+         patch("src.push_versions.requests.post") as mp, \
+         patch("src.push_versions.requests.delete") as md:
+        mg.return_value = _resp(200, {"versions": versions_20})
+        md.return_value = _resp(409, text="referenced by env")
+        ok = create_version(CFG, HEADERS, FLOW_NAME, body, dry_run=False)
+    assert ok is False
+    md.assert_called_once()  # se intento rotation
+    mp.assert_not_called()    # PERO no se POST porque rotation fallo
