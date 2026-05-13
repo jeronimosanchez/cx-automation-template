@@ -14,6 +14,7 @@ import pytest
 
 from src.push_playbooks import (
     PLAYBOOK_IGNORE_FIELDS,
+    build_full_update_body,
     create_playbook,
     discover_playbook_files,
     get_playbook,
@@ -118,12 +119,16 @@ def test_upsert_playbook_unchanged_when_match():
 
 
 def test_upsert_playbook_updated_when_diff():
+    """Full Update (§3.8): PATCH sin updateMask, body completo con
+    todos los campos remotos + locales overlayed."""
     body = {"displayName": "PB1", "goal": "NEW_GOAL", "playbookType": "ROUTINE"}
     full_remote = {
         "name": "projects/.../playbooks/pb-uuid",
         "displayName": "PB1",
         "goal": "OLD_GOAL",
         "playbookType": "ROUTINE",
+        "instruction": {"steps": [{"text": "step en remote"}]},  # campo NO en local
+        "tokenCount": "100",  # read-only — debe strippearse del body enviado
     }
     existing_summary = {"PB1": {"name": full_remote["name"], "displayName": "PB1"}}
     with patch("src.push_playbooks.requests.get") as mg, \
@@ -134,7 +139,18 @@ def test_upsert_playbook_updated_when_diff():
     assert action == "updated"
     mpa.assert_called_once()
     kwargs = mpa.call_args.kwargs
-    assert "goal" in kwargs["params"]["updateMask"]
+    # CRITICO §3.8: NO updateMask en params.
+    assert "params" not in kwargs or "updateMask" not in (kwargs.get("params") or {}), (
+        f"Bug §3.8: PATCH no debe enviar updateMask. params={kwargs.get('params')}"
+    )
+    sent_body = kwargs["json"]
+    # El cambio local se aplico.
+    assert sent_body["goal"] == "NEW_GOAL"
+    # Campos del remote NO en local se preservaron (Full Update — no se borran).
+    assert sent_body["instruction"] == {"steps": [{"text": "step en remote"}]}
+    # Read-only strippeados.
+    assert "tokenCount" not in sent_body
+    assert "name" not in sent_body
 
 
 def test_upsert_playbook_post_4xx_returns_failed():
@@ -230,12 +246,102 @@ def test_playbook_ignore_fields_includes_standard():
 
 
 def test_create_and_patch_dry_run_helpers():
+    """Firma nueva de patch_playbook tras §3.8 workaround: recibe `body` completo
+    (no `payload` + `update_mask`)."""
     with patch("src.push_playbooks.requests.post") as mp, \
          patch("src.push_playbooks.requests.patch") as mpa:
         assert create_playbook(CFG, HEADERS, {"displayName": "X"}, dry_run=True) is True
         assert patch_playbook(
             CFG, HEADERS, name="pb/x",
-            payload={"goal": "g"}, update_mask=["goal"], dry_run=True,
+            body={"displayName": "X", "goal": "g"}, dry_run=True,
         ) is True
     mp.assert_not_called()
     mpa.assert_not_called()
+
+
+# ============================================================
+# §3.8 workaround — Full Update sin updateMask
+# ============================================================
+def test_patch_playbook_does_not_send_update_mask():
+    """REGRESSION GUARD §3.8: en europe-west1 el PATCH con updateMask
+    falla silenciosamente para Playbooks. patch_playbook NUNCA debe
+    enviar `params['updateMask']`."""
+    with patch("src.push_playbooks.requests.patch") as mpa:
+        mpa.return_value = _resp(200, {})
+        patch_playbook(
+            CFG, HEADERS, name="projects/.../playbooks/pb-x",
+            body={"displayName": "X", "goal": "g", "playbookType": "ROUTINE"},
+            dry_run=False,
+        )
+    kwargs = mpa.call_args.kwargs
+    # Aceptable: kwargs sin 'params', o params=None, o params={} sin updateMask.
+    params = kwargs.get("params") or {}
+    assert "updateMask" not in params, (
+        f"Bug §3.8: patch_playbook no debe enviar updateMask. params={params}"
+    )
+
+
+def test_patch_playbook_sends_full_body_as_json():
+    """El body completo va como JSON request body."""
+    body = {"displayName": "X", "goal": "g", "instruction": {"steps": [{"text": "..."}]}}
+    with patch("src.push_playbooks.requests.patch") as mpa:
+        mpa.return_value = _resp(200, {})
+        patch_playbook(CFG, HEADERS, name="pb/x", body=body, dry_run=False)
+    assert mpa.call_args.kwargs["json"] == body
+
+
+def test_build_full_update_body_local_overrides_remote():
+    """Campos en local sobrescriben los del remote."""
+    remote = {"displayName": "P", "goal": "OLD", "playbookType": "ROUTINE"}
+    local = {"displayName": "P", "goal": "NEW"}
+    merged = build_full_update_body(remote, local)
+    assert merged["goal"] == "NEW"
+    assert merged["playbookType"] == "ROUTINE"  # remote-only, preservado
+
+
+def test_build_full_update_body_preserves_remote_only_fields():
+    """Campos solo en remote (que local no menciona) se preservan."""
+    remote = {
+        "displayName": "P",
+        "goal": "g",
+        "instruction": {"steps": [{"text": "remote step"}]},
+        "referencedTools": ["projects/.../tools/t-1"],
+    }
+    local = {"displayName": "P", "goal": "g_changed"}
+    merged = build_full_update_body(remote, local)
+    assert merged["instruction"] == {"steps": [{"text": "remote step"}]}
+    assert merged["referencedTools"] == ["projects/.../tools/t-1"]
+
+
+def test_build_full_update_body_strips_readonly():
+    """Read-only del PLAYBOOK_IGNORE_FIELDS se strippean del merged."""
+    remote = {
+        "name": "projects/.../playbooks/pb-uuid",
+        "displayName": "P",
+        "goal": "g",
+        "tokenCount": "5000",
+        "createTime": "2026-01-01",
+        "updateTime": "2026-01-02",
+    }
+    local = {"displayName": "P", "goal": "g_new"}
+    merged = build_full_update_body(remote, local)
+    for f in PLAYBOOK_IGNORE_FIELDS:
+        assert f not in merged, f"{f} debio ser strippeado del Full Update body"
+
+
+def test_upsert_playbook_unchanged_does_not_call_patch():
+    """Cuando el diff es vacio NO se llama a patch (el bug §3.8 no
+    se dispara), y NO se construye Full Update body innecesariamente."""
+    body = {"displayName": "PB1", "goal": "X", "playbookType": "ROUTINE"}
+    full_remote = {
+        "name": "pb/uuid", "displayName": "PB1",
+        "goal": "X", "playbookType": "ROUTINE",
+        "tokenCount": "42",
+    }
+    existing = {"PB1": {"name": "pb/uuid", "displayName": "PB1"}}
+    with patch("src.push_playbooks.requests.get") as mg, \
+         patch("src.push_playbooks.requests.patch") as mpa:
+        mg.return_value = _resp(200, full_remote)
+        action = upsert_playbook(CFG, HEADERS, body, existing, dry_run=False)
+    assert action == "unchanged"
+    mpa.assert_not_called()  # CRITICO: no PATCH si no hay diff
