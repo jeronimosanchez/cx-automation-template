@@ -1,5 +1,5 @@
 displayName: Handoff
-goal: escalado a humano - MULTI TEST
+goal: escalado a humano
 playbookType: ROUTINE
 inputParameterDefinitions:
 - name: saldo

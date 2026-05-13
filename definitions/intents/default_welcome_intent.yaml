@@ -21,6 +21,3 @@ trainingPhrases:
   parts:
   - text: chao
   repeatCount: 1
-- parts:
-  - text: pipeline test phrase
-  repeatCount: 1
