@@ -2,9 +2,10 @@
 """
 src/push_examples.py — Crear/upsert Examples en un Playbook de Dialogflow CX.
 
-Idempotencia (Sprint 2, Task 3): patron `LIST -> diff -> PATCH/POST`.
+Idempotencia (Sprint 2, Task 3 — refactor PR10a Sprint 5): patron
+`LIST -> diff -> PATCH/POST`.
 - LIST de Examples del Playbook target (paginado).
-- Match por displayName.
+- Match por `id` (UUID, rename-resistant) y fallback a `displayName`.
 - Si no existe -> POST.
 - Si existe -> diff vs local (ignorando campos read-only) -> PATCH parcial
   con updateMask SOLO si hay cambios.
@@ -18,19 +19,23 @@ Decisiones tecnicas no negociables (Sprint 1):
 Concurrencia (Sprint 2): asumir last-write-wins. La proteccion real
 (`concurrency: 1` en GitHub Actions) llega en Sprint 4.
 
+Schema YAML — one example per file, anidado por playbook (PR10a Sprint 5):
+  # definitions/examples/<playbook_slug>/<example_slug>.yaml
+  playbook: Registro_Task        # local-only — resuelve el playbook padre
+  id: 084bc84b-...               # local-only — UUID del example en CX
+                                 #   (rename-resistant: si cambias displayName
+                                 #    pero mantienes id, push hace PATCH en
+                                 #    lugar de crear duplicado)
+  displayName: Registro completo
+  actions: [...]
+  playbookInput: {...}
+  playbookOutput: {...}
+
 Uso:
   python src/push_examples.py --list-playbooks
-  python src/push_examples.py --playbook=Registro_Task --file=definitions/examples/registro_task.yaml --dry-run
-  python src/push_examples.py --playbook=Registro_Task --file=definitions/examples/registro_task.yaml
-  python src/push_examples.py --playbook=Registro_Task --file=definitions/examples/registro_task.yaml --only EX_REG_01
-
-Schema YAML esperado (definitions/examples/<playbook>.yaml):
-  playbook: Registro_Task
-  examples:
-    - id: EX_REG_01
-      displayName: "..."
-      actions: [...]
-      playbookOutput: { actionParameters: {...} }
+  python src/push_examples.py --file=definitions/examples/registro_task/ex_reg_01.yaml --dry-run
+  python src/push_examples.py --all --dry-run
+  python src/push_examples.py --all --only "Ex_Reg_01"  # filtra por displayName
 """
 import argparse
 import os
@@ -55,6 +60,10 @@ EXAMPLES_DIR = REPO_ROOT / "definitions" / "examples"
 
 # Campos read-only del recurso Example. NO entran en diff ni updateMask.
 EXAMPLE_IGNORE_FIELDS = ["name", "tokenCount", "createTime", "updateTime"]
+
+# Campos local-only del YAML: existen para que push resuelva parent/lookup
+# pero NO se envian al API.
+_LOCAL_ONLY_FIELDS = {"playbook", "id"}
 
 
 def load_agent_config(path=AGENT_YAML_DEFAULT):
@@ -188,11 +197,42 @@ def patch_example(cfg, headers, name, payload, update_mask, dry_run=False):
     return False
 
 
-def upsert_example(cfg, headers, parent, body, existing_by_name, dry_run=False):
+def split_local_fields(raw_body):
+    """Separa campos local-only (playbook, id) del body que va al API.
+    Devuelve (api_body, playbook_name, example_id).
+    """
+    playbook = raw_body.get("playbook")
+    example_id = raw_body.get("id")
+    api_body = {k: v for k, v in raw_body.items() if k not in _LOCAL_ONLY_FIELDS}
+    return api_body, playbook, example_id
+
+
+def find_existing_example(remote_examples, example_id, display_name):
+    """Lookup rename-resistant: primero por id (UUID), fallback a displayName.
+
+    - Si example_id no es None, busca un remoto cuyo `name` termine en ese id.
+    - Si no encuentra (o example_id es None), busca por displayName.
+    - Devuelve el dict remoto completo o None.
+    """
+    if example_id:
+        for ex in remote_examples:
+            if ex.get("name", "").rsplit("/", 1)[-1] == example_id:
+                return ex
+    for ex in remote_examples:
+        if ex.get("displayName") == display_name:
+            return ex
+    return None
+
+
+def upsert_example(cfg, headers, parent, body, example_id, remote_examples, dry_run=False):
     """LIST -> diff -> PATCH/POST. Devuelve la accion ejecutada:
     'created' | 'updated' | 'unchanged' | 'failed'.
+
+    body es el api_body (sin campos local-only). example_id es el UUID
+    para lookup rename-resistant; puede ser None (push se basara solo
+    en displayName, perdiendo rename-resistance).
     """
-    remote = existing_by_name.get(body["displayName"])
+    remote = find_existing_example(remote_examples, example_id, body["displayName"])
     if remote is None:
         ok = create_example(cfg, headers, parent, body, dry_run)
         return "created" if ok else "failed"
@@ -215,28 +255,52 @@ def upsert_example(cfg, headers, parent, body, existing_by_name, dry_run=False):
 
 
 def discover_example_files():
+    """Descubre todos los YAMLs recursivamente (subcarpetas por playbook).
+
+    Tras PR10a, el layout es:
+      definitions/examples/<playbook_slug>/<example_slug>.yaml
+
+    Excluye .gitkeep y cualquier no-yaml.
+    """
     if not EXAMPLES_DIR.is_dir():
         return []
-    return sorted(EXAMPLES_DIR.glob("*.yaml"))
+    return sorted(EXAMPLES_DIR.rglob("*.yaml"))
 
 
-def load_examples_yaml(file_path):
+def load_example_yaml(file_path):
+    """Carga un YAML de un Example individual.
+
+    Schema (PR10a):
+      playbook: <displayName>     (local-only, requerido)
+      id: <uuid>                  (local-only, opcional pero recomendado)
+      displayName: <str>          (api body, requerido)
+      actions: [...]              (api body)
+      playbookInput: {...}        (api body)
+      playbookOutput: {...}       (api body)
+
+    Devuelve (playbook_name, example_id, api_body).
+    """
     with open(file_path) as f:
         data = yaml.safe_load(f)
-    if not data or "examples" not in data:
-        raise ValueError(f"{file_path}: YAML no contiene clave 'examples'")
-    playbook = data.get("playbook")
-    if not playbook:
-        raise ValueError(f"{file_path}: falta clave 'playbook' (necesaria en modo --all)")
-    return playbook, data["examples"]
+    if not isinstance(data, dict):
+        raise ValueError(f"{file_path}: YAML no contiene un dict al top-level.")
+    if not data.get("playbook"):
+        raise ValueError(f"{file_path}: falta clave 'playbook' al top-level.")
+    if not data.get("displayName"):
+        raise ValueError(f"{file_path}: falta clave 'displayName' al top-level.")
+    api_body, playbook, example_id = split_local_fields(data)
+    return playbook, example_id, api_body
 
 
-def process_examples_for_playbook(cfg, headers, playbook_name, examples, dry_run):
-    """Resuelve el Playbook, lista remotos y hace upsert. Devuelve stats."""
+def process_examples_for_playbook(cfg, headers, playbook_name, examples_with_ids, dry_run):
+    """Resuelve el Playbook, lista remotos y hace upsert. Devuelve stats.
+
+    examples_with_ids es lista de (example_id, api_body) tuples.
+    """
     print(f"\n\U0001f50d Resolviendo Playbook '{playbook_name}'...")
     parent = find_playbook(cfg, headers, playbook_name)
     if not parent:
-        return {"created": 0, "updated": 0, "unchanged": 0, "failed": len(examples)}
+        return {"created": 0, "updated": 0, "unchanged": 0, "failed": len(examples_with_ids)}
     print(f"   ✓ ID {parent.split('/')[-1]}")
 
     print(f"\n\U0001f4dc LIST de Examples remotos del Playbook (paginado)...")
@@ -244,30 +308,27 @@ def process_examples_for_playbook(cfg, headers, playbook_name, examples, dry_run
         remote_examples = list_examples(cfg, headers, parent)
     except RuntimeError as e:
         print(f"  ❌ {e}")
-        return {"created": 0, "updated": 0, "unchanged": 0, "failed": len(examples)}
-    existing_by_name = {ex["displayName"]: ex for ex in remote_examples}
+        return {"created": 0, "updated": 0, "unchanged": 0, "failed": len(examples_with_ids)}
     print(f"   ✓ {len(remote_examples)} Example(s) remotos detectados")
 
     stats = {"created": 0, "updated": 0, "unchanged": 0, "failed": 0}
     mode = "(DRY-RUN)" if dry_run else ""
-    print(f"\n\U0001f4dd Procesando {len(examples)} Example(s) {mode}...\n")
-    for ex in examples:
-        body = {k: v for k, v in ex.items() if k != "id"}
+    print(f"\n\U0001f4dd Procesando {len(examples_with_ids)} Example(s) {mode}...\n")
+    for example_id, body in examples_with_ids:
         body = inject_tool_path(body, cfg)
-        action = upsert_example(cfg, headers, parent, body, existing_by_name, dry_run)
+        action = upsert_example(cfg, headers, parent, body, example_id, remote_examples, dry_run)
         stats[action] += 1
     return stats
 
 
 def main():
     ap = argparse.ArgumentParser(description="Crear/upsert Examples en un Playbook de CX (idempotente).")
-    ap.add_argument("--playbook", help="displayName del Playbook destino")
-    ap.add_argument("--file", help="Path al YAML de Examples (relativo al repo o absoluto)")
+    ap.add_argument("--file", help="Path a un YAML de Example individual (relativo al repo o absoluto). El playbook padre se lee del propio YAML.")
     ap.add_argument("--all", action="store_true",
-                    help="Procesar todos los YAMLs en definitions/examples/ (playbook se lee del YAML)")
+                    help="Procesar todos los YAMLs recursivamente en definitions/examples/<playbook>/")
     ap.add_argument("--dry-run", action="store_true", help="No envia POST/PATCH; muestra que se haria")
     ap.add_argument("--list-playbooks", action="store_true", help="Listar Playbooks del agente y salir")
-    ap.add_argument("--only", help="ID del Example a procesar (filtra por campo `id` del YAML)")
+    ap.add_argument("--only", help="displayName del Example a procesar (filtra YAMLs antes de procesar; internamente la API usa el id local)")
     args = ap.parse_args()
 
     cfg = load_agent_config()
@@ -281,68 +342,67 @@ def main():
             print(f"   {dn:35s}  ID: {name.split('/')[-1]}")
         return 0
 
-    if args.all and (args.file or args.playbook):
-        ap.error("--all no admite --file ni --playbook")
-    if not args.all and (not args.playbook or not args.file):
-        ap.error("--playbook y --file son obligatorios (o usa --all / --list-playbooks)")
+    if args.all and args.file:
+        ap.error("--all y --file son excluyentes")
+    if not args.all and not args.file:
+        ap.error("debes pasar --file <path> o --all (o usa --list-playbooks)")
 
-    # Modo --all: descubre YAMLs, agrupa por playbook (lo lee del YAML)
+    # 1) Cargar YAMLs (uno o todos), agrupar por playbook.
     if args.all:
         yaml_files = discover_example_files()
-        if not yaml_files:
-            print(f"  ⚠  No hay YAMLs en {EXAMPLES_DIR}. Nada que hacer.")
-            return 0
-        total = {"created": 0, "updated": 0, "unchanged": 0, "failed": 0}
-        for fp in yaml_files:
-            print(f"\n\U0001f4c4 Cargando {fp}...")
-            try:
-                playbook_name, examples = load_examples_yaml(fp)
-            except ValueError as e:
-                print(f"  ❌ {e}")
-                total["failed"] += 1
-                continue
-            stats = process_examples_for_playbook(cfg, headers, playbook_name, examples, args.dry_run)
-            for k in total:
-                total[k] += stats[k]
-        print(
-            f"\n{'='*55}\n"
-            f"\U0001f4ca [TOTAL] created={total['created']}  "
-            f"updated={total['updated']}  "
-            f"unchanged={total['unchanged']}  "
-            f"failed={total['failed']}"
-            f"\n{'='*55}"
-        )
-        return 0 if total["failed"] == 0 else 1
+    else:
+        file_path = Path(args.file)
+        if not file_path.is_absolute():
+            file_path = REPO_ROOT / file_path
+        yaml_files = [file_path]
 
-    # Modo single file
-    file_path = Path(args.file)
-    if not file_path.is_absolute():
-        file_path = REPO_ROOT / file_path
-    print(f"\n\U0001f4c4 Cargando {file_path}...")
-    with open(file_path) as f:
-        data = yaml.safe_load(f)
-    if not data or "examples" not in data:
-        print("  ❌ El YAML no contiene clave 'examples'.")
+    if not yaml_files:
+        print(f"  ⚠  No hay YAMLs en {EXAMPLES_DIR}. Nada que hacer.")
+        return 0
+
+    grouped: dict[str, list[tuple]] = {}  # playbook_name -> [(example_id, api_body), ...]
+    load_failed = 0
+    for fp in yaml_files:
+        print(f"\n\U0001f4c4 Cargando {fp}...")
+        try:
+            playbook_name, example_id, api_body = load_example_yaml(fp)
+        except (ValueError, FileNotFoundError) as e:
+            print(f"  ❌ {e}")
+            load_failed += 1
+            continue
+        if args.only and api_body.get("displayName") != args.only:
+            continue
+        grouped.setdefault(playbook_name, []).append((example_id, api_body))
+
+    if args.only and not grouped:
+        print(f"  ❌ --only '{args.only}' no machea ningun YAML cargado.")
         return 1
 
-    examples = data["examples"]
-    if args.only:
-        examples = [e for e in examples if e.get("id") == args.only]
-        if not examples:
-            print(f"  ❌ --only {args.only} no encontrado en el YAML.")
+    if not grouped:
+        if load_failed:
             return 1
+        print("  ⚠  Nada que procesar tras el filtro.")
+        return 0
 
-    stats = process_examples_for_playbook(cfg, headers, args.playbook, examples, args.dry_run)
+    # 2) Por cada playbook: LIST remoto, upsert sus examples.
+    total = {"created": 0, "updated": 0, "unchanged": 0, "failed": load_failed}
+    for playbook_name, examples_with_ids in grouped.items():
+        stats = process_examples_for_playbook(
+            cfg, headers, playbook_name, examples_with_ids, args.dry_run,
+        )
+        for k in total:
+            if k in stats:
+                total[k] += stats[k]
 
     print(
         f"\n{'='*55}\n"
-        f"\U0001f4ca created={stats['created']}  "
-        f"updated={stats['updated']}  "
-        f"unchanged={stats['unchanged']}  "
-        f"failed={stats['failed']}"
+        f"\U0001f4ca [TOTAL] created={total['created']}  "
+        f"updated={total['updated']}  "
+        f"unchanged={total['unchanged']}  "
+        f"failed={total['failed']}"
         f"\n{'='*55}"
     )
-    return 0 if stats["failed"] == 0 else 1
+    return 0 if total["failed"] == 0 else 1
 
 
 if __name__ == "__main__":
