@@ -1,0 +1,9 @@
+flow_displayName: Default Start Flow
+id: '15'
+displayName: ci-18
+description: Auto deploy 96593e04ee31fcf71cf63f31969ddb0894f90e64
+state: SUCCEEDED
+createTime: '2026-05-13T08:32:26.720054Z'
+nluSettings:
+  modelType: MODEL_TYPE_ADVANCED
+  classificationThreshold: 0.3
