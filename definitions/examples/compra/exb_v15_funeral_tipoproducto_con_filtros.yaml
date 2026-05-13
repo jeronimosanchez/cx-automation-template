@@ -1,0 +1,50 @@
+playbook: Compra
+id: 838860ed-db3b-4d67-8449-5f3af4165830
+displayName: 'ExB v15: Funeral → tipo+producto con filtros'
+description: Producto con filtros
+actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      categoria: funeral
+      recurso: inventario
+    outputActionParameters:
+      resultado: opciones funeral encontradas
+- agentUtterance:
+    text: 'Lamento la pérdida, Marta. Para funerales tenemos: Ramos — desde 5€, Coronas fúnebres — desde 396€. ¿Qué tipo te interesa?'
+- userUtterance:
+    text: Un ramo de gladiolos
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      producto: gladiolos
+      recurso: inventario
+      tipo: Ramo
+    outputActionParameters:
+      resultado: Ramo de Gladiolos Blancos S encontrado
+- agentUtterance:
+    text: El Ramo de Gladiolos Blancos (S) tiene 2 tallos por 11€. ¿Cuántos quieres?
+- userUtterance:
+    text: '3'
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
+playbookInput:
+  precedingConversationSummary: Caso de recopilacion  completa
+  actionParameters:
+    Direccion_Habitual: Plaza del Sol 2, Valencia
+    tipo_cliente: particular
+    estado_pago: Al dia
+    ocasion_detectada: Funeral
+    intencion_inicial: comprar flores para funeral
+    id_cliente: '103'
+    nombre_cliente: Marta
+playbookOutput:
+  executionSummary: recopilacion completa
+  actionParameters:
+    cantidad: '3'
+    ocasion_detectada: Funeral
+    precio_estimado: '33'
+    producto: Ramo de Gladiolos Blancos — S
+languageCode: es

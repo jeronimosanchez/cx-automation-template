@@ -1,0 +1,30 @@
+playbook: Petal CX Orchestrator
+id: 99c5a6cb-2534-4ae2-bacc-6c19ea536e1b
+displayName: EX5_Ubicación tienda PRE-email (G1)
+description: comunicacion de ubicacion de tienda
+actions:
+- userUtterance:
+    text: ¿Dónde está vuestra tienda en Madrid?
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      recurso: business
+      clave: tienda_madrid
+    outputActionParameters:
+      '200':
+        recurso: business
+        count: 1
+        ok: true
+        resultados:
+        - Impacto en el Diseño CX: Responde consultas de ubicacion sin email. Sede central.
+          Variable: tienda_madrid
+          Descripción: Direccion y datos de la tienda de Madrid (sede central)
+          Valor: 'Calle Gran Via 42, 28013 Madrid | Tel: 911 234 567 | L-S 9:00-20:00'
+- agentUtterance:
+    text: 'Nuestra tienda en Madrid está en Calle Gran Vía 42, 28013 Madrid. Teléfono: 911 234 567. Horario: lunes a sábado de 9:00 a 20:00. ¿Necesitas algo más?'
+playbookOutput:
+  executionSummary: comunicacion de ubicacion de tienda
+  actionParameters: {}
+conversationState: OUTPUT_STATE_OK
+languageCode: es

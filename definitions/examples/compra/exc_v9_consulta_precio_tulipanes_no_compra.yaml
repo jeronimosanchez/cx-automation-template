@@ -1,0 +1,66 @@
+playbook: Compra
+id: 4b262b47-086a-495b-9673-677c1e059775
+displayName: 'ExC v9: Consulta precio tulipanes → no compra'
+actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      producto: tulipanes
+      recurso: inventario
+    outputActionParameters:
+      '200':
+        recurso: inventario
+        ok: true
+        resultados:
+        - Ocasion: Regalo
+          Producto: Ramo de Tulipanes Mixtos — S
+          Tipo_Producto: Ramo
+          Tamano: S
+          Precio: '12'
+          Color: Multicolor
+          Stock: '101'
+          Flores_Tallos: '5'
+          Categoria_Uso: Regalo
+        - Ocasion: Regalo
+          Tipo_Producto: Ramo
+          Producto: Ramo de Tulipanes Mixtos — M
+          Tamano: M
+          Stock: '84'
+          Categoria_Uso: Regalo
+          Flores_Tallos: '10'
+          Precio: '20'
+          Color: Multicolor
+        - Stock: '84'
+          Flores_Tallos: '3'
+          Categoria_Uso: Regalo
+          Precio: '7'
+          Color: Morado
+          Tamano: S
+          Tipo_Producto: Ramo
+          Producto: Ramo de Tulipanes Morados — S
+          Ocasion: Regalo
+        count: 3
+- agentUtterance:
+    text: "Los ramos de tulipanes van de 7€ a 20€, Marta: \n\nTulipanes Morados S — 3 flores, 7€ \nTulipanes Mixtos S — 5 flores, 12€ \nTulipanes Mixtos M — 10 flores, 20€. \n\n¿Te gustaría pedir alguno?\n"
+- userUtterance:
+    text: |+
+      No, solo quería saber. Gracias.
+
+
+- agentUtterance:
+    text: ¡Perfecto! Si cambias de idea, aquí estamos. ¿Puedo ayudarte en algo más?
+playbookInput:
+  precedingConversationSummary: Compra recibe $intencion_inicial="consulta_precio tulipanes". Hace tool call con producto=tulipanes. Muestra rango de precios. Ofrece comprar. Usuario declina. Demuestra que Compra maneja consultas de precio sin iniciar compra.
+  actionParameters:
+    Direccion_Habitual: Plaza del Sol 2, Valencia
+    tipo_cliente: particular
+    estado_pago: Al dia
+    intencion_inicial: consulta_precio tulipanes
+    nombre_cliente: Marta
+    id_cliente: '103'
+playbookOutput:
+  executionSummary: Compra recibe $ocasion_detectada=Funeral. Hace tool call con categoria=Funeral. Presenta tipos disponibles (ramos, coronas). Usuario elige gladiolos, se pregunta cantidad, confirma y transfiere a Checkout. Tono solemne.
+  actionParameters: {}
+conversationState: OUTPUT_STATE_OK
+languageCode: es

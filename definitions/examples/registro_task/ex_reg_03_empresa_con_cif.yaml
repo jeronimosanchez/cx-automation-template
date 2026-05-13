@@ -1,0 +1,98 @@
+playbook: Registro_Task
+id: 52708f07-a8cb-4060-8d1d-8e90f5f9d694
+displayName: Ex_Reg_03 — Empresa con CIF
+actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      accion: leer
+      clave: bienvenida_nuevo_cliente
+      recurso: agent_copy
+    outputActionParameters:
+      '200':
+        recurso: agent_copy
+        ok: true
+        resultados:
+        - valor: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos.
+- agentUtterance:
+    text: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos. Para registrarte, necesito tu correo electronico.
+- userUtterance:
+    text: info@logisticasur.com
+- agentUtterance:
+    text: Vale. ¿Cual es tu nombre?
+- userUtterance:
+    text: Lorena
+- agentUtterance:
+    text: Lorena. ¿Y tus apellidos?
+- userUtterance:
+    text: Pereira Mota
+- agentUtterance:
+    text: Anotado. ¿Eres particular o empresa?
+- userUtterance:
+    text: empresa
+- agentUtterance:
+    text: Como empresa, necesito tu CIF o NIF fiscal.
+- userUtterance:
+    text: B87123456
+- agentUtterance:
+    text: 'B87123456, recibido. Indicame la direccion completa: calle con numero, portal, planta y letra si aplica, codigo postal y ciudad.'
+- userUtterance:
+    text: Avenida de la Industria 45, planta 3, oficina B, 41020 Sevilla
+- agentUtterance:
+    text: Perfecto. ¿Tienes un telefono de contacto? Facilita mucho las entregas.
+- userUtterance:
+    text: '954112233'
+- agentUtterance:
+    text: |-
+      Antes de completar tu registro, revisa tus datos:
+      • Nombre: Lorena Pereira Mota
+      • Email: info@logisticasur.com
+      • Tipo: empresa
+      • CIF: B87123456
+      • Direccion: Avenida de la Industria 45, planta 3, oficina B, 41020 Sevilla
+      • Telefono: 954112233
+      ¿Es todo correcto? Revisa especialmente la direccion — portal, planta y letra si aplica.
+- userUtterance:
+    text: todo correcto
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      calle: Avenida de la Industria 45, planta 3, oficina B
+      ciudad: Sevilla
+      nombre: Lorena
+      apellidos: Pereira Mota
+      cif: B87123456
+      codigo_postal: '41020'
+      accion: crear
+      tipo: empresa
+      email: info@logisticasur.com
+      telefono: '954112233'
+      recurso: registro
+    outputActionParameters:
+      '200':
+        email: info@logisticasur.com
+        tipo: empresa
+        recurso: registro
+        tier: Nuevo
+        id_cliente: '157'
+        ok: true
+        apellidos: Pereira Mota
+        nombre: Lorena
+- agentUtterance:
+    text: Listo, Lorena. Ya estas registrado/a. Continuamos con lo que me pedias.
+playbookOutput:
+  actionParameters:
+    telefono: '954112233'
+    email: info@logisticasur.com
+    razon_handoff: ''
+    nombre_cliente: Lorena
+    tipo_cliente: empresa
+    recien_registrado: true
+    sesion_cerrada: false
+    id_cliente: '157'
+    apellidos: Pereira Mota
+    estado_pago: Al dia
+    Direccion_Habitual: Avenida de la Industria 45, planta 3, oficina B, 41020 Sevilla
+languageCode: es

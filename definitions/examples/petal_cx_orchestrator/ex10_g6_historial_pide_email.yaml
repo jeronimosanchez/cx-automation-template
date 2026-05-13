@@ -1,0 +1,28 @@
+playbook: Petal CX Orchestrator
+id: ddf7b63c-8912-4a51-8bbf-2b2ea051de7e
+displayName: Ex10 — G6 Historial → pide email
+actions:
+- userUtterance:
+    text: Quiero ver mi historial de pedidos
+- agentUtterance:
+    text: Para consultar tu historial necesito identificarte. ¿Me dices tu email?
+- userUtterance:
+    text: ana@email.com
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      id: ana@email.com
+      recurso: perfil
+    outputActionParameters:
+      resultado: 'cliente encontrado: Ana García, ID 101'
+- agentUtterance:
+    text: ¡Hola, Ana! Para revisar tu historial de pedidos te paso con quien puede ayudarte.
+playbookOutput:
+  actionParameters:
+    razon_handoff: historial_pedidos
+    nombre_cliente: Ana
+    intencion_inicial: ver historial de pedidos
+    grupo_intent: G6
+    id_cliente: '101'
+languageCode: es

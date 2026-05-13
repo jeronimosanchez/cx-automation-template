@@ -1,0 +1,58 @@
+playbook: Compra
+id: e4b848ff-bd82-4e39-912a-c03a34225861
+displayName: 'ExG v15: Refinamiento progresivo — filtros acumulados'
+actions:
+- agentUtterance:
+    text: ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?
+- userUtterance:
+    text: Quiero un ramo
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      recurso: inventario
+      categoria: regalo
+      tipo: Ramo
+    outputActionParameters:
+      resultado: ramos para regalo encontrados
+- agentUtterance:
+    text: Tenemos ramos de rosas, tulipanes y peonías para regalo. ¿Qué flor prefieres?
+- userUtterance:
+    text: Rosas
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      recurso: inventario
+      producto: rosas
+      categoria: regalo
+      tipo: Ramo
+    outputActionParameters:
+      resultado: ramos de rosas encontrados
+- agentUtterance:
+    text: Tenemos Ramo de Rosas Rojas (S 22€, M 37€) y Ramo de Rosas Blancas (S 15€). ¿Qué color y tamaño prefieres?
+- userUtterance:
+    text: Rojas, el mediano
+- agentUtterance:
+    text: Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántos quieres?
+- userUtterance:
+    text: '2'
+playbookInput:
+  precedingConversationSummary: refinamiento contexto
+  actionParameters:
+    id_cliente: '101'
+    nombre_cliente: Ana
+    intencion_inicial: quiero flores para un cumpleaños
+    ocasion_detectada: Regalo
+    grupo_intent: G3
+    estado_pago: Al dia
+    Direccion_Habitual: Calle Mayor 10, Madrid
+    tipo_cliente: particular
+playbookOutput:
+  executionSummary: refinamiento contexto
+  actionParameters:
+    ocasion_detectada: Regalo
+    cantidad: '2'
+    precio_estimado: '74'
+    producto: Ramo de Rosas Rojas — M
+languageCode: es
