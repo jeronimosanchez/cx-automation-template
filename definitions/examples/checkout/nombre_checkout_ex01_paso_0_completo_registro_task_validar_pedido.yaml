@@ -1,0 +1,110 @@
+playbook: Checkout
+id: 08402253-7246-414b-b667-63963cd9ee7d
+displayName: 'Nombre: Checkout Ex01 — PASO 0 completo: Registro_Task → validar → pedido'
+description: ' Registro_Task → validar → pedido'
+actions:
+- agentUtterance:
+    text: Para completar tu pedido, necesito tu correo electrónico.
+- userUtterance:
+    text: elena.nueva@email.com
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      id: elena.nueva@email.com
+      recurso: perfil
+    outputActionParameters:
+      '200':
+        resultados: []
+        ok: true
+        count: 0
+        recurso: perfil
+- agentUtterance:
+    text: No encuentro una cuenta con ese email. ¿Quieres probar con otro correo o registrarte como nuevo cliente?
+- userUtterance:
+    text: Me gustaría registrarme
+- playbookInvocation:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
+    playbookInput:
+      actionParameters:
+        email: elena.nueva@email.com
+    playbookOutput:
+      actionParameters:
+        id_cliente: '118'
+        estado_pago: Al dia
+        nombre_cliente: Elena
+        apellidos: García
+        razon_handoff: ''
+        Direccion_Habitual: Calle Mayor 10, 28001 Madrid
+        sesion_cerrada: ''
+        tipo_cliente: particular
+        email: elena.nueva@email.com
+        telefono: '612345678'
+        recien_registrado: 'true'
+    playbookState: OUTPUT_STATE_OK
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      id: '118'
+      precio_estimado: '45'
+      estado_pago: Al dia
+      cantidad: '1'
+      recurso: validar_pedido
+      producto: Ramo de Rosas Rojas — M
+    outputActionParameters:
+      '200':
+        stock_check: OK
+        deuda_check: OK
+        ok: true
+        recurso: validar_pedido
+        sla_check: OK
+- agentUtterance:
+    text: |-
+      "Elena, te resumo tu pedido:
+
+      Producto: 1 x Ramo de Rosas Rojas — M
+      Precio: 45€
+      Entrega en: Calle Mayor 15, 28001 Madrid
+
+      ¿Confirmo el pedido?"
+- userUtterance:
+    text: Sí, perfecto
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      direccion_entrega: Calle Mayor 15, 28001 Madrid
+      nombre: Elena
+      apellidos: nueva
+      recurso: pedidos
+      accion: crear
+      id: '118'
+      producto: Ramo de Rosas Rojas
+      cantidad: '1'
+      precio_total: '45'
+      motivo_compra: Regalo
+    outputActionParameters:
+      '200':
+        id_pedido: PED-0042
+        recurso: pedidos
+        ok: true
+- agentUtterance:
+    text: '"¡Pedido confirmado, Elena! Referencia: PED-0042. (Compra simulada, sin cobro real). ¡Esperamos que lo disfrutes!"'
+playbookInput:
+  precedingConversationSummary: 'incluye toda la informacion del pedido que le envia compra '
+  actionParameters:
+    nombre_cliente: ''
+    ocasion_detectada: cumpleaños
+    producto: Ramo de Rosas Rojas — M
+    id_cliente: ''
+    cantidad: '1'
+    precio_estimado: '45'
+playbookOutput:
+  executionSummary: 'Email no encontrado. Cliente eligió registrarse. Invocó Registro_Task con email. Registro completado. Checkout continúa con PASO '
+  actionParameters:
+    nombre_cliente: María
+    id_cliente: '114'
+    recien_registrado: 'true'
+conversationState: OUTPUT_STATE_OK
+languageCode: es

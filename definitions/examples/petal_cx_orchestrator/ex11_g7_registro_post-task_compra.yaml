@@ -1,0 +1,50 @@
+playbook: Petal CX Orchestrator
+id: b03947cb-07c9-4c5b-bd12-015d5bf47054
+displayName: Ex11 — G7 Registro → post-Task → Compra
+description: Usuario pide registrarse. Orquestador invoca Registro_Task. Task completa y devuelve done. Orquestador retoma, pregunta en qué ayudar, clasifica G5 y transfiere a Compra.
+actions:
+- userUtterance:
+    text: Quiero registrarme
+- playbookInvocation:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
+    playbookInput:
+      precedingConversationSummary: escalado a Registro
+      actionParameters: {}
+    playbookOutput:
+      actionParameters:
+        telefono: '612345678'
+        recien_registrado: 'true'
+        estado_pago: Al dia
+        id_cliente: '155'
+        tipo_cliente: particular
+        email: zara.vidal@correo.com
+        Direccion_Habitual: Paseo del Prado 22, 28014 Madrid
+        sesion_cerrada: ''
+        razon_handoff: ''
+        nombre_cliente: Zara
+        apellidos: Vidal
+    playbookState: OUTPUT_STATE_OK
+- agentUtterance:
+    text: ¿En que puedo ayudarte, Zara?
+- userUtterance:
+    text: Quiero comprar rosas para un cumpleaños
+- agentUtterance:
+    text: ¡Perfecto! Vamos con tus rosas."
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: |
+    Usuario pide registrarse (G7). Orquestador invoca Registro_Task sin inputs. Task completa registro y devuelve done con outputs. Orquestador carga datos del perfil, pregunta en qué ayudar. Usuario pide comprar rosas (G5). Orquestador clasifica, detecta ocasión=Regalo, y transfiere a Compra con $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $intencion_inicial, $ocasion_detectada=Regalo, $grupo_intent=G5.
+  actionParameters:
+    apellidos: Vidal
+    nombre_cliente: Zara
+    Direccion_Habitual: Paseo del Prado 22, 28014 Madrid
+    email: zara.vidal@correo.com
+    tipo_cliente: particular
+    id_cliente: '155'
+    estado_pago: Al dia
+    recien_registrado: 'true'
+    modo_tono: estandar
+    grupo_intent: G7
+conversationState: OUTPUT_STATE_OK
+languageCode: es

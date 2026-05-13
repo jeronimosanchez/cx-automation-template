@@ -1,0 +1,124 @@
+playbook: Registro_Task
+id: 084bc84b-80eb-4a44-adcf-a9a4748e20e8
+displayName: Registro completo
+description: Registro_Task Example 1 — Registro completo con verificación
+actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      clave: bienvenida_nuevo_cliente
+      accion: leer
+      recurso: agent_copy
+    outputActionParameters:
+      '200':
+        recurso: agent_copy
+        count: 1
+        ok: true
+        resultados:
+        - clave: bienvenida_nuevo_cliente
+          valor: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos.
+- agentUtterance:
+    text: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos. Para registrarte, necesito tu correo electrónico.
+- userUtterance:
+    text: zara.vidal@correo.com
+- agentUtterance:
+    text: |+
+      Entendido. ¿Puedes indicarme tu nombre y apellidos?
+
+- userUtterance:
+    text: Zara
+- agentUtterance:
+    text: ¿Y tus apellidos?
+- userUtterance:
+    text: Vidal
+- agentUtterance:
+    text: |+
+      ¿Eres particular o empresa?
+
+- userUtterance:
+    text: particular
+- agentUtterance:
+    text: |+
+      Indícame, por favor, tu dirección completa: calle con número, portal, planta y letra si aplica, código postal y ciudad.
+
+- userUtterance:
+    text: |+
+      Paseo del Prado 22, Madrid
+
+- agentUtterance:
+    text: |+
+      ¿Tu código postal?
+
+- userUtterance:
+    text: |+
+      28014
+
+- agentUtterance:
+    text: |+
+      ¿Tu dirección incluye portal, planta o letra?
+
+- userUtterance:
+    text: |+
+      No, es bajo
+
+- agentUtterance:
+    text: |+
+      ¿Tienes un teléfono de contacto? Facilita mucho las entregas.
+
+- userUtterance:
+    text: |+
+      611222333
+
+- agentUtterance:
+    text: "Antes de completar tu registro, revisa tus datos:\n\n • Nombre: Zara Vidal \n• Email: zara.vidal@correo.com \n• Tipo: particular \n• Dirección: Paseo del Prado 22, 28014 Madrid \n• Teléfono: 611222333 \n\n¿Es todo correcto? \nRevisa especialmente la dirección — portal, planta y letra si aplica."
+- userUtterance:
+    text: |+
+      Sí, correcto
+
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      ciudad: Madrid
+      calle: Paseo del Prado 22
+      nombre: Zara
+      apellidos: Vidal
+      accion: crear
+      tipo_cliente: particular
+      codigo_postal: '28014'
+      telefono: '611222333'
+      email: zara.vidal@correo.com
+      recurso: registro
+    outputActionParameters:
+      '200': |-
+        "ok": true,
+        "recurso": "registro",
+        "id_cliente": "155",
+        "nombre": "Zara",
+        "apellidos": "Vidal",
+        "email": "zara.vidal@correo.com",
+        "tipo": "particular",
+        "tier": "Nuevo"
+        }
+playbookInput:
+  precedingConversationSummary: |
+    Usuario pidió registrarse (G7). Orquestador invocó Registro_Task sin email. El Task debe pedir el email al usuario.
+  actionParameters:
+    email: ''
+playbookOutput:
+  executionSummary: 'Registro completo G7. Email recogido del usuario (no viene del caller). Nombre: Zara Vidal, particular. Dirección unificada en un prompt — usuario da "Paseo del Prado 22, Madrid" sin CP, agente pide CP por slot filling. Pregunta portal/planta/letra, usuario dice no. Teléfono facilitado. PASO 2.9: verificación de datos con resumen completo, usuario confirma. PetalDataTool crea cliente id_cliente=155. Done con 11 outputs. El caller retoma el control.'
+  actionParameters:
+    email: zara.vidal@correo.com
+    'razon_handoff ': ''
+    telefono: '611222333'
+    'id_cliente ': '155'
+    'sesion_cerrada ': 'false'
+    nombre_cliente: Zara
+    tipo_cliente: particular
+    'apellidos ': Vidal
+    recien_registrado: 'true'
+    estado_pago: Al dia
+    Direccion_Habitual: Paseo del Prado 22, 28014 Madrid
+conversationState: OUTPUT_STATE_OK
+languageCode: es

@@ -1,0 +1,93 @@
+playbook: Compra
+id: 82fd8785-2b3f-4214-98a5-04eb15a3d684
+displayName: 'ExH v16: G5 genérico → PASO 1.5 contexto → refinamiento'
+description: G5 producto genérico sin ocasión ni color. PASO 1.5 pregunta contexto antes de proponer.
+actions:
+- userUtterance:
+    text: |+
+      quiero rosas
+
+- agentUtterance:
+    text: |+
+      ¿Es para alguna ocasión especial, Ana? Cumpleaños, boda, decoración...
+
+- userUtterance:
+    text: |+
+      Para un cumpleaños
+
+- agentUtterance:
+    text: |+
+      ¿Tienes preferencia de color?
+
+- userUtterance:
+    text: Rojas
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      producto: rosas
+      categoria: regalo
+      recurso: inventario
+      color: rojo
+    outputActionParameters:
+      '200':
+        resultados:
+        - Tamano: S
+          Categoria_Uso: Regalo
+          Flores_Tallos: '8'
+          Precio: '22'
+          Color: Rojo
+          Producto: Ramo de Rosas Rojas — S
+        - Tamano: M
+          Producto: Ramo de Rosas Rojas — M
+          Color: Rojo
+          Precio: '37'
+          Flores_Tallos: '15'
+          Categoria_Uso: Regalo
+        - Tamano: XL
+          Color: Rojo
+          Producto: Ramo San Valentín Rosas Rojas
+          Precio: '132'
+          Categoria_Uso: Regalo
+          Flores_Tallos: '36'
+        ok: true
+        count: 3
+        recurso: inventario
+- agentUtterance:
+    text: "Para regalo tenemos rosas rojas en tres tamaños: \n\n* S — 8 flores, 22€ · \n* M — 15 flores, 37€ · \n* XL San Valentín — 36 flores, 132€. \n\n¿Cuál prefieres, Ana?"
+- userUtterance:
+    text: |+
+      El mediano
+
+- agentUtterance:
+    text: |+
+      Perfecto, Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántos quieres?
+
+- userUtterance:
+    text: '1'
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
+playbookInput:
+  precedingConversationSummary: Orquestador clasificó "quiero rosas" como G5 y transfirió a Compra con producto=rosas pero sin ocasión ni color.
+  actionParameters:
+    Direccion_Habitual: Calle Mayor 10, Madrid
+    tipo_cliente: particular
+    estado_pago: Al dia
+    grupo_intent: G5
+    intencion_inicial: quiero rosas
+    id_cliente: '101'
+    nombre_cliente: Ana
+playbookOutput:
+  executionSummary: 'G5 con producto genérico "quiero rosas" sin ocasión ni color. PASO 1.5: agente pregunta ocasión (cumpleaños→Regalo), luego color (rojas). Consulta inventario con filtros categoria=regalo + color=rojo. Muestra 3 tamaños. Elige M, cantidad 1. Confirma → Checkout con todos los datos.'
+  actionParameters:
+    nombre_cliente: Ana
+    ocasion_detectada: Regalo
+    'id_cliente ': '101'
+    Direccion_Habitual: Calle Mayor 10, Madrid
+    cantidad: '1'
+    producto: Ramo de Rosas Rojas — M
+    estado_pago: Al dia
+    precio_estimado: '37'
+    tipo_cliente: particular
+conversationState: OUTPUT_STATE_OK
+languageCode: es

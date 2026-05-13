@@ -1,0 +1,79 @@
+playbook: Registro_Task
+id: 276cddb0-f768-431e-90a0-daebed2c3f76
+displayName: Ex_Reg_02 — Datos multiples en un turno
+actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      recurso: agent_copy
+      clave: bienvenida_nuevo_cliente
+      accion: leer
+    outputActionParameters:
+      '200':
+        resultados:
+        - valor: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos.
+        ok: true
+        recurso: agent_copy
+- agentUtterance:
+    text: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos. Para registrarte, necesito tu correo electronico.
+- userUtterance:
+    text: Soy Marcos Ruiz, mi correo es marcos.ruiz@empresa.es
+- agentUtterance:
+    text: Marcos Ruiz, anotado. ¿Eres particular o empresa?
+- userUtterance:
+    text: particular, vivo en Calle Mayor 5, 2A, 28013 Madrid
+- agentUtterance:
+    text: Perfecto, particular. Calle Mayor 5, 2A, 28013 Madrid. ¿Tienes un telefono de contacto? Facilita mucho las entregas.
+- userUtterance:
+    text: no tengo, gracias
+- agentUtterance:
+    text: |-
+      Antes de completar tu registro, revisa tus datos:
+      • Nombre: Marcos Ruiz
+      • Email: marcos.ruiz@empresa.es
+      • Tipo: particular
+      • Direccion: Calle Mayor 5, 2A, 28013 Madrid
+      • Telefono: no facilitado
+      ¿Es todo correcto? Revisa especialmente la direccion — portal, planta y letra si aplica.
+- userUtterance:
+    text: si
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      email: marcos.ruiz@empresa.es
+      tipo: particular
+      codigo_postal: '28013'
+      accion: crear
+      recurso: registro
+      ciudad: Madrid
+      calle: Calle Mayor 5, 2A
+      apellidos: Ruiz
+      nombre: Marcos
+    outputActionParameters:
+      '200':
+        email: marcos.ruiz@empresa.es
+        tipo: particular
+        recurso: registro
+        tier: Nuevo
+        id_cliente: '156'
+        nombre: Marcos
+        ok: true
+        apellidos: Ruiz
+- agentUtterance:
+    text: ¡Genial, Marcos! Ya estas registrado/a. Continuamos con lo que me pedias.
+playbookOutput:
+  actionParameters:
+    id_cliente: '156'
+    apellidos: Ruiz
+    sesion_cerrada: false
+    recien_registrado: true
+    Direccion_Habitual: Calle Mayor 5, 2A, 28013 Madrid
+    estado_pago: Al dia
+    nombre_cliente: Marcos
+    tipo_cliente: particular
+    telefono: ''
+    razon_handoff: ''
+    email: marcos.ruiz@empresa.es
+languageCode: es

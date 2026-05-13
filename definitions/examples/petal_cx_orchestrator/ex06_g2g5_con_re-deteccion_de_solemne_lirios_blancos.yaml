@@ -1,0 +1,64 @@
+playbook: Petal CX Orchestrator
+id: 73e1b0b4-bedb-4cd3-8ce3-b58b0d0a03ab
+displayName: Ex06 — G2→G5 con re-deteccion de solemne (lirios blancos)
+description: Usuario consulta precio (G2), agente ofrece compra, usuario revela que es para un velatorio. Re-detecta modo_tono=solemne a mitad de conversacion y transfiere a Compra con Ocasion=Funeral.
+actions:
+- userUtterance:
+    text: ¿Cuánto cuestan los lirios blancos?
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      recurso: inventario
+      producto: lirios
+      color: blanco
+    outputActionParameters:
+      '200':
+        recurso: inventario
+        ok: true
+        count: 3
+        sin_mas_opciones: false
+        resultados:
+        - Tipo_Producto: Ramo
+          Ocasion: Funeral, Decoracion
+          Precio: '22'
+          Color: Blanco
+          Stock: '40'
+          Producto: Ramo de Lirios Blancos
+          Descripcion_Cantidad: 6 tallos
+          Tamano: S
+        - Tipo_Producto: Ramo
+          Ocasion: Funeral, Decoracion
+          Stock: '28'
+          Color: Blanco
+          Precio: '35'
+          Producto: Ramo de Lirios Blancos
+          Tamano: M
+          Descripcion_Cantidad: 10 tallos
+        - Producto: Ramo de Lirios Blancos
+          Precio: '48'
+          Color: Blanco
+          Stock: '15'
+          Descripcion_Cantidad: 15 tallos
+          Tamano: L
+          Ocasion: Funeral, Decoracion
+          Tipo_Producto: Ramo
+- agentUtterance:
+    text: |
+      Los Lirios Blancos van de 22€ (S) a 48€ (L). ¿Te gustaría pedir un ramo?
+- userUtterance:
+    text: Sí, es para un velatorio
+- agentUtterance:
+    text: Por supuesto, te busco opciones apropiadas.
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: transferencia a Compra sin mail y completando slot filling
+  actionParameters:
+    intencion_inicial: comprar Ramo de Rosas Rojas
+    grupo_intent: G5
+    modo_tono: solemne
+    producto: Ramo de Lirios Blancos
+    ocasion_detectada: Funeral
+conversationState: OUTPUT_STATE_OK
+languageCode: es
