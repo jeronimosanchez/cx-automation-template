@@ -8,8 +8,13 @@ Patron `LIST -> diff -> PATCH/POST` (Sprint 2, Task 4). Misma firma que
 Decisiones tecnicas no negociables:
   - Auth: `gcloud auth print-access-token` (NO google.auth.default).
   - Header obligatorio x-goog-user-project (definitions/agent.yaml).
-  - PATCH parcial con updateMask. Sin full-update.
-  - `src/diff.py` es la fuente de verdad para el diff.
+  - **Full Update** — PATCH del objeto completo SIN updateMask. Workaround
+    del bug §3.8 (PATCH+updateMask falla en `europe-west1` para Playbooks).
+    `diff_resource` se sigue usando para DETECTAR si hay cambios; cuando
+    los hay, se envia el objeto completo (remote merged with local,
+    stripping read-only) en lugar del payload parcial.
+  - `src/diff.py` es la fuente de verdad para el diff (decision binaria
+    needs_update sí/no).
 
 Constraint Sprint 2: Cualquier cambio real en Playbooks de Petal
 requiere aprobacion humana explicita. Por defecto este modulo se
@@ -140,28 +145,54 @@ def create_playbook(cfg, headers, body, dry_run=False):
     return False
 
 
-def patch_playbook(cfg, headers, name, payload, update_mask, dry_run=False):
+def patch_playbook(cfg, headers, name, body, dry_run=False):
+    """Full Update — PATCH del objeto completo SIN updateMask.
+
+    Workaround del bug §3.8: en `europe-west1`, la API de Dialogflow CX
+    rechaza/falla silenciosamente PATCH+updateMask sobre Playbooks. La
+    unica forma validada de aplicar cambios es enviar el objeto completo
+    sin el query param `updateMask`, equivalente a un Full Update.
+
+    `body` debe ser el objeto remoto MERGEADO con los cambios locales y
+    SIN campos read-only (ver `build_full_update_body`).
+    """
     short = name.split("/")[-1]
-    mask_str = ",".join(update_mask)
-    print(f"  ✏️  PATCH {short} mask=[{mask_str}]")
+    print(f"  ✏️  PATCH {short} (full update, §3.8 workaround)")
     if dry_run:
         print("     (dry-run, no se envia PATCH)")
         return True
-    params = {"updateMask": mask_str}
+    # CRITICO: sin `params={"updateMask": ...}`. Ese era el bug.
     r = requests.patch(
         f"{base_url(cfg)}/{name}",
-        headers=headers, params=params, json=payload,
+        headers=headers, json=body,
     )
     if r.status_code == 200:
-        print("     ✅ Actualizado")
+        print("     ✅ Actualizado (full update)")
         return True
     print(f"     ❌ Error PATCH {r.status_code}: {r.text[:300]}")
     return False
 
 
+def build_full_update_body(remote: dict, local: dict) -> dict:
+    """Construye el body para Full Update (§3.8 workaround).
+
+    Toma el remote como base (preserva campos que el local no menciona),
+    overlay con el local (campos editados), y strippea read-only que la
+    API rechaza como input.
+    """
+    merged = dict(remote)
+    merged.update(local)
+    for f in PLAYBOOK_IGNORE_FIELDS:
+        merged.pop(f, None)
+    return merged
+
+
 def upsert_playbook(cfg, headers, body, existing_by_name, dry_run=False):
     """LIST -> diff -> PATCH/POST. Devuelve la accion: 'created' |
     'updated' | 'unchanged' | 'failed'.
+
+    Para PATCH usa Full Update (§3.8 workaround): envia el objeto completo
+    sin updateMask, NO el payload parcial.
     """
     remote_summary = existing_by_name.get(body["displayName"])
     if remote_summary is None:
@@ -169,7 +200,8 @@ def upsert_playbook(cfg, headers, body, existing_by_name, dry_run=False):
         return "created" if ok else "failed"
 
     # GET completo del Playbook remoto para diff fiable (LIST a veces
-    # omite campos como instruction.steps).
+    # omite campos como instruction.steps) Y para construir el body
+    # Full Update con todos los campos preservados.
     try:
         remote = get_playbook(cfg, headers, remote_summary["name"])
     except RuntimeError as e:
@@ -183,12 +215,14 @@ def upsert_playbook(cfg, headers, body, existing_by_name, dry_run=False):
         print(f"  = {body['displayName']} (unchanged)")
         return "unchanged"
 
-    print(f"  Δ  diff detectado: mask={result.update_mask}")
+    # diff_resource.update_mask y patch_payload son informativos aqui — no
+    # se envian a la API. Full Update envia el objeto completo merged.
+    print(f"  Δ  diff detectado: mask={result.update_mask} (informativo)")
+    full_body = build_full_update_body(remote, body)
     ok = patch_playbook(
         cfg, headers,
         name=remote["name"],
-        payload=result.patch_payload,
-        update_mask=result.update_mask,
+        body=full_body,
         dry_run=dry_run,
     )
     return "updated" if ok else "failed"
