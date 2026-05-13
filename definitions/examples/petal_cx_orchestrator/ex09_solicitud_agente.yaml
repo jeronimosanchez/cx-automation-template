@@ -1,0 +1,17 @@
+playbook: Petal CX Orchestrator
+id: 6fa31193-5946-4317-9c67-1cb052a5c9a1
+displayName: Ex09 —solicitud agente
+description: El usuario solicita espontáneamente hablar con agente
+actions:
+- userUtterance:
+    text: Quiero hablar con una persona
+- agentUtterance:
+    text: Entiendo que prefieras hablar con un agente. Te pongo en contacto ahora mismo.
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
+playbookOutput:
+  executionSummary: El usaurio solicita espontaneamente hablar con agente
+  actionParameters:
+    razon_handoff: cliente_solicita_humano
+    modo_tono: estandar
+languageCode: es

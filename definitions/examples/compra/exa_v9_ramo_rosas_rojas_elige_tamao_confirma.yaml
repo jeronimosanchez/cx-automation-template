@@ -1,0 +1,70 @@
+playbook: Compra
+id: 608439a5-daa9-4d14-a14b-c1fc96b02d1d
+displayName: 'ExA v9: Ramo rosas rojas → elige tamaño → confirma'
+actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      recurso: inventario
+      producto: rosas
+      color: Rojo
+      tipo: Ramo
+    outputActionParameters:
+      '200':
+        resultados:
+        - Producto: Ramo San Valentín Rosas Rojas
+          Tipo_Producto: Ramo
+          Ocasion: San Valentín
+          Precio: '132'
+          Color: Rojo
+          Stock: '16'
+          Categoria_Uso: Regalo
+          Flores_Tallos: '36'
+          Tamano: XL
+        - Producto: Ramo de Rosas Rojas — S
+          Tipo_Producto: Ramo
+          Ocasion: Regalo
+          Color: Rojo
+          Precio: '22'
+          Flores_Tallos: '8'
+          Categoria_Uso: Regalo
+          Stock: '5'
+          Tamano: S
+        - Ocasion: Regalo
+          Producto: Ramo de Rosas Rojas — M
+          Tipo_Producto: Ramo
+          Tamano: M
+          Precio: '37'
+          Color: Rojo
+          Stock: '4'
+          Flores_Tallos: '15'
+          Categoria_Uso: Regalo
+        count: 3
+        ok: true
+        recurso: inventario
+- agentUtterance:
+    text: "Tenemos ramos de rosas rojas, Ana! Hay tres opciones: \n\n* S — 8 flores, 22€ |\n* M — 15 flores, 37€ \n* XL San Valentín 36 flores, 132€. \n\n¿Qué tamaño prefieres?"
+- userUtterance:
+    text: El mediano
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
+playbookInput:
+  precedingConversationSummary: Compra recibe $intencion_inicial="comprar ramo de rosas rojas para cumpleaños" con $ocasion_detectada=Regalo del Orquestador. Extrae tipo=Ramo, flor=rosas, color=Rojo. Hace tool call con filtros combinados. Presenta 3 tamaños (S/M/XL). Usuario elige M. Confirma y transfiere a Checkout.
+  actionParameters:
+    estado_pago: Al dia
+    '"tipo_cliente"': particular
+    Direccion_Habitual: Calle Mayor 10, Madrid
+    id_cliente: '101'
+    intencion_inicial: comprar ramo de rosas rojas para cumpleaños
+    nombre_cliente: ana
+    ocasion_detectada: Regalo
+playbookOutput:
+  executionSummary: Compra recibe $intencion_inicial="comprar ramo de rosas rojas para cumpleaños" con $ocasion_detectada=Regalo del Orquestador. Extrae tipo=Ramo, flor=rosas, color=Rojo. Hace tool call con filtros combinados. Presenta 3 tamaños (S/M/XL). Usuario elige M. Confirma y transfiere a Checkout.
+  actionParameters:
+    producto: Ramo de Rosas Rojas — M
+    precio_estimado: '37'
+    cantidad: '1'
+    ocasion_detectada: Regalo
+conversationState: OUTPUT_STATE_OK
+languageCode: es

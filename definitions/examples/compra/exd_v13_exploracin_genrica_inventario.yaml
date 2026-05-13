@@ -1,0 +1,73 @@
+playbook: Compra
+id: 1bf27027-1f37-4427-8715-dc39c69ce749
+displayName: 'ExD v13: Exploración genérica inventario'
+description: Explora Inventario
+actions:
+- agentUtterance:
+    text: Tenemos una gran variedad, Marta. Para orientarte mejor, ¿para qué ocasión buscas? ¿Regalo, boda, funeral, decoración...?
+- userUtterance:
+    text: Para un regalo
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      categoria: regalo
+      recurso: inventario
+    outputActionParameters:
+      '200': |-
+        {
+          "ok": true,
+          "recurso": "inventario",
+          "count": 3,
+          "resultados": [
+            {
+              "Nombre_Producto": "Ramo de Rosas Rojas",
+              "Tipo": "Ramo",
+              "Color": "Rojo",
+              "Tamaño": "S",
+              "Flores_Tallos": 8,
+              "Precio": 22,
+              "Stock": 40,
+              "Categoria": "Regalo"
+            },
+            {
+              "Nombre_Producto": "Ramo de Tulipanes Mixtos",
+              "Tipo": "Ramo",
+              "Color": "Mixto",
+              "Tamaño": "M",
+              "Flores_Tallos": 10,
+              "Precio": 20,
+              "Stock": 35,
+              "Categoria": "Regalo"
+            },
+            {
+              "Nombre_Producto": "Ramo de Peonías Rosas",
+              "Tipo": "Ramo",
+              "Color": "Rosa",
+              "Tamaño": "S",
+              "Flores_Tallos": 4,
+              "Precio": 21,
+              "Stock": 18,
+              "Categoria": "Regalo"
+            }
+          ]
+- agentUtterance:
+    text: 'Para regalo te puedo ofrecer: Ramo de Rosas Rojas — S (8 flores, 22€), Ramo de Tulipanes Mixtos — M (10 flores, 20€), Ramo de Peonías Rosas — S (4 flores, 21€). ¿Algo te interesa?'
+- userUtterance:
+    text: No, solo quería ver qué teníais. Gracias.
+- agentUtterance:
+    text: ¡Perfecto! Si cambias de idea, aquí estamos. ¿Puedo ayudarte en algo más?
+playbookInput:
+  precedingConversationSummary: Explora inventario
+  actionParameters:
+    estado_pago: Al dia
+    tipo_cliente: particular
+    Direccion_Habitual: Plaza del Sol 2, Valencia
+    id_cliente: '103'
+    nombre_cliente: Marta
+    intencion_inicial: consultar_inventario qué flores tenéis
+playbookOutput:
+  executionSummary: consulta inventario
+  actionParameters: {}
+conversationState: OUTPUT_STATE_OK
+languageCode: es

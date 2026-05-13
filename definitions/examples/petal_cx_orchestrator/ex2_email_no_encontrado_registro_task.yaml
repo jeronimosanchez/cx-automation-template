@@ -1,0 +1,65 @@
+playbook: Petal CX Orchestrator
+id: e91713f9-e6b6-4170-91f2-601aacd60602
+displayName: Ex2_ Email no encontrado → Registro_task
+description: 'Transferencia de Usuario a Registro '
+actions:
+- userUtterance:
+    text: noexiste@test.com
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      id: noexiste@test.com
+      recurso: perfil
+    outputActionParameters:
+      '200':
+        recurso: perfil
+        count: 0
+        resultados: []
+        ok: true
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      recurso: agent_copy
+      clave: email_no_encontrado
+    outputActionParameters:
+      '200':
+        recurso: agent_copy
+        count: 1
+        resultados:
+        - valor: No encontramos ninguna cuenta con ese correo. ¿Quieres probar con otro email o prefieres que te registremos con este? 🌸
+          clave: email_no_encontrado
+        ok: true
+- agentUtterance:
+    text: No encontramos ninguna cuenta con ese correo. ¿Quieres probar con otro email o prefieres que te registremos con este? 🌸
+- userUtterance:
+    text: |+
+      Sí, regístrame con ese
+
+- playbookInvocation:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
+    playbookInput:
+      actionParameters:
+        email: noexiste@test.com
+    playbookOutput:
+      actionParameters:
+        estado_pago: Al dia
+        id_cliente: '114'
+        email: noexiste@test.com
+        tipo_cliente: particular
+        Direccion_Habitual: Calle Mayor 10, 28001 Madrid
+        nombre_cliente: Test
+        apellidos: Usuario
+        telefono: '612345678'
+        recien_registrado: 'true'
+    playbookState: OUTPUT_STATE_OK
+playbookOutput:
+  executionSummary: Email no encontrado en PASO 2a. Cliente eligió registrarse. Invocó Registro_Task con email. Registro completado. Orquestador continúa a PASO 3.
+  actionParameters:
+    id_cliente: '114'
+    nombre_cliente: Test
+    recien_registrado: 'true'
+    email: noexiste@test.com
+conversationState: OUTPUT_STATE_OK
+languageCode: es
