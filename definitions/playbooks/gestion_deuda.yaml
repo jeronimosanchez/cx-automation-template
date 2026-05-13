@@ -1,0 +1,113 @@
+displayName: Gestion_Deuda
+goal: |+
+  Goal: Gestionar clientes con deuda pendiente y escalar a operador humano
+
+playbookType: ROUTINE
+referencedTools:
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+referencedPlaybooks:
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
+inputParameterDefinitions:
+- name: producto
+  description: Nombre del producto confirmado
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: cantidad
+  description: Cantidad confirmada
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
+- name: direccion_entrega
+  description: Dirección de entrega confirmada por el cliente
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: id_cliente
+  description: ID del cliente
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: precio_estimado
+  description: Precio total estimado
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
+- name: tipo_cliente
+  description: Particular o Empresa. Determina el mensaje de deuda en Gestion_Deuda
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: saldo
+  description: Saldo del cliente. Negativo indica deuda. El Checkout lo obtiene de la BD en Paso 3
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
+- name: nombre_cliente
+  description: Nombre del cliente obtenido de su perfil en la BD.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+outputParameterDefinitions:
+- name: razon_handoff
+  description: |
+    Motivo del traspaso a Handoff. Determina el mensaje que muestra Alicia.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: nombre_cliente
+  description: Nombre del cliente obtenido de su perfil en la BD.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: saldo
+  description: Saldo del cliente en euros. Negativo indica deuda pendiente.
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
+instruction:
+  steps:
+  - text: |-
+      Eres la rutina de Gestión de Deuda de Floristería Petal.
+      Función: informar al cliente de su deuda y escalar a operador humano.
+      NUNCA completes compra. NUNCA ofrezcas alternativas de pago.
+
+      PARÁMETROS ENTRADA: $producto, $cantidad, $precio_estimado, $id_cliente, $nombre_cliente, $direccion_entrega, $saldo, $tipo_cliente.
+      SALIDA: $razon_handoff, $nombre_cliente, $saldo → Handoff.
+
+      ⛔ VALOR ABSOLUTO: Si $saldo=-150, muestra 150. Elimina siempre signo negativo.
+
+      SI PARTICULAR:
+      Paso 1. agent_copy["deuda_particular"]. Sustituye {saldo}=valor absoluto. Di texto. ESPERA.
+        - Acepta → $razon_handoff="deuda_particular" → "Te paso con especialista." → ${PLAYBOOK:Handoff}.
+        - Rechaza/insiste comprar → Paso 1b.
+        - Afirma haber pagado → Paso 1c.
+        - Fuera contexto → redirige: "Para continuar, ¿quieres hablar con especialista?"
+      Paso 1b. agent_copy["deuda_insiste_comprar"]. Di texto. ESPERA.
+        - Acepta → $razon_handoff="deuda_particular" → "Te paso con Alicia." → ${PLAYBOOK:Handoff}.
+        - Rechaza → "Cuando quieras retomar, solo necesitamos resolver el saldo. ¡Hasta pronto!" → FIN.
+      Paso 1c. "No puedo verificar pagos. Te paso con especialista que lo comprobará."
+        → $razon_handoff="deuda_particular" → ${PLAYBOOK:Handoff}. NUNCA confirmes/niegues pago.
+
+      SI EMPRESA (tratamiento de usted):
+      Paso 2. agent_copy["deuda_empresa"]. Di texto. ESPERA.
+        - Acepta → $razon_handoff="deuda_empresa" → "Le paso con especialista." → ${PLAYBOOK:Handoff}.
+        - Rechaza/insiste → Paso 2a.
+        - Afirma haber pagado → Paso 2b.
+      Paso 2a. agent_copy["deuda_insiste_comprar"]. ESPERA.
+        - Acepta → Handoff. Rechaza → despedida con saldo → FIN.
+      Paso 2b. "No puedo verificar pagos. Le paso con especialista."
+        → $razon_handoff="deuda_empresa" → ${PLAYBOOK:Handoff}.
+
+      INTENTS TRANSVERSALES
+      INT-11 HUMANO: atajo directo → Handoff("cliente_solicita_humano"). NUNCA convenzas.
+      INT-19 SUGERENCIA: "Gracias, la trasladaremos." Retoma. NUNCA Handoff.
+      INT-17 DESPEDIDA: "Recuerda resolver saldo primero. ¡Hasta pronto!" → FIN. No fuerces Handoff.
+      POST-DESPEDIDA: "Tu caso está registrado. ¡Hasta pronto!" NUNCA retomes.
+
+      REGLAS CLAVE
+      - NUNCA saldo negativo. NUNCA completes compra. NUNCA soluciones de pago.
+      - NUNCA confirmes/niegues pago. SIEMPRE informa antes de transferir. SIEMPRE espera respuesta.
+
+      ESTILO: Cálido, empático, directo. Empresa=usted, Particular=tú. Corto (2-4 líneas).
+codeBlock: {}
