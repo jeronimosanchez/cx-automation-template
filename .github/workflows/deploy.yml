@@ -1,17 +1,22 @@
-# Sprint 4, Task 3 — Deploy automatico a Petal CX al hacer push a main.
+# Sprint 5 closure — Smart deploy a Petal CX al hacer push a main.
 #
-# IMPORTANTE: este workflow NO se ejecutara hasta que la Fase B del
-# Sprint 4 este completa (WIF configurado en GCP + Variables en GitHub).
-# Sin esa configuracion el step `google-github-actions/auth` fallara.
-# Ver `docs/setup-cicd.md` para los pasos manuales que activan el flow.
+# Reemplaza al deploy.yml de Sprint 4 (que corria los 4 push_*.py siempre).
+# Tras Sprint 5 hay 11 recursos exportables; este workflow:
+#   1) detecta que carpeta(s) de definitions/ cambiaron en el commit;
+#   2) corre solo los push_*.py de los recursos afectados, en orden topologico;
+#   3) crea version snapshot al final solo si hubo cambios reales (audit log limpio).
 #
-# Decisiones tecnicas (Sprint 4):
+# Si un commit no toca definitions/ (docs, README, src/, .github/), el job
+# `deploy` se skipea entero — 0 segundos en CX, 0 snapshots inflando el manifest.
+#
+# Decisiones tecnicas (heredadas de Sprint 4):
 #   - WIF (Workload Identity Federation), NO Service Account Key.
 #   - concurrency: 1 (last-write-wins, sin race conditions, S60).
 #   - cancel-in-progress: false (NO cortar deploys a medias en main).
-#   - Solo recursos modernos (Sprint 2) en deploy automatico. Recursos
-#     NLU clasico (Sprint 3) y Environments/Versions (Sprint 4) se
-#     activaran progresivamente conforme aparezcan agentes que los usen.
+#
+# Orden topologico de los push steps (parent antes que child):
+#   agent_config -> entity_types -> intents -> webhooks -> generators -> tools
+#   -> flows -> pages -> playbooks -> examples -> environments
 #
 # Trigger: push a main.
 name: Deploy to Petal CX
@@ -20,8 +25,6 @@ on:
   push:
     branches: [main]
 
-# Concurrencia 1 por rama. cancel-in-progress=false: si llega otro push
-# mientras hay deploy en curso, espera (NO cancela).
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
@@ -31,8 +34,87 @@ permissions:
   id-token: write   # CRITICO: WIF requiere id-token writable
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: detect-changes
+  # Sin auth, sin Python. Solo path filtering. ~5s.
+  # ---------------------------------------------------------------------------
+  detect-changes:
+    name: Detect changed resources in definitions/
+    runs-on: ubuntu-latest
+    outputs:
+      agent_config:  ${{ steps.filter.outputs.agent_config }}
+      entity_types:  ${{ steps.filter.outputs.entity_types }}
+      intents:       ${{ steps.filter.outputs.intents }}
+      webhooks:      ${{ steps.filter.outputs.webhooks }}
+      generators:    ${{ steps.filter.outputs.generators }}
+      tools:         ${{ steps.filter.outputs.tools }}
+      flows:         ${{ steps.filter.outputs.flows }}
+      pages:         ${{ steps.filter.outputs.pages }}
+      playbooks:     ${{ steps.filter.outputs.playbooks }}
+      examples:      ${{ steps.filter.outputs.examples }}
+      environments:  ${{ steps.filter.outputs.environments }}
+      any:           ${{ steps.filter.outputs.any }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # paths-filter compara HEAD vs HEAD~1 (push event)
+
+      - name: Detect paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            agent_config:
+              - 'definitions/agent.yaml'
+            entity_types:
+              - 'definitions/entity_types/**'
+            intents:
+              - 'definitions/intents/**'
+            webhooks:
+              - 'definitions/webhooks/**'
+            generators:
+              - 'definitions/generators/**'
+            tools:
+              - 'definitions/tools/**'
+            flows:
+              - 'definitions/flows/**'
+            pages:
+              - 'definitions/pages/**'
+            playbooks:
+              - 'definitions/playbooks/**'
+            examples:
+              - 'definitions/examples/**'
+            environments:
+              - 'definitions/environments/**'
+            any:
+              - 'definitions/**'
+
+      - name: Summary
+        run: |
+          echo "Changed resources detected (true = will deploy):"
+          echo "  agent_config:   ${{ steps.filter.outputs.agent_config }}"
+          echo "  entity_types:   ${{ steps.filter.outputs.entity_types }}"
+          echo "  intents:        ${{ steps.filter.outputs.intents }}"
+          echo "  webhooks:       ${{ steps.filter.outputs.webhooks }}"
+          echo "  generators:     ${{ steps.filter.outputs.generators }}"
+          echo "  tools:          ${{ steps.filter.outputs.tools }}"
+          echo "  flows:          ${{ steps.filter.outputs.flows }}"
+          echo "  pages:          ${{ steps.filter.outputs.pages }}"
+          echo "  playbooks:      ${{ steps.filter.outputs.playbooks }}"
+          echo "  examples:       ${{ steps.filter.outputs.examples }}"
+          echo "  environments:   ${{ steps.filter.outputs.environments }}"
+          echo "  any (any def/): ${{ steps.filter.outputs.any }}"
+
+  # ---------------------------------------------------------------------------
+  # Job 2: deploy
+  # Solo corre si hubo cambios en definitions/. Cada push step se salta con
+  # su propio condicional, asi solo se ejerce lo que cambio.
+  # ---------------------------------------------------------------------------
   deploy:
     name: Deploy YAMLs to floristeria-petal-digital
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -58,22 +140,58 @@ jobs:
       - name: Verify auth
         run: gcloud auth print-access-token > /dev/null
 
-      # ----- Recursos modernos (Sprint 2) -----
-      - name: Deploy Examples
-        run: python src/push_examples.py --all
-
-      - name: Deploy Playbooks
-        run: python src/push_playbooks.py --all
-
-      - name: Deploy Tools
-        run: python src/push_tools.py --all
+      # ----- Push steps en ORDEN TOPOLOGICO -----
+      # Cada uno solo corre si su filtro detecto cambios en su carpeta.
 
       - name: Deploy Agent Config
+        if: needs.detect-changes.outputs.agent_config == 'true'
         run: python src/push_agent_config.py
 
+      - name: Deploy Entity Types
+        if: needs.detect-changes.outputs.entity_types == 'true'
+        run: python src/push_entity_types.py --all
+
+      - name: Deploy Intents
+        if: needs.detect-changes.outputs.intents == 'true'
+        run: python src/push_intents.py --all
+
+      - name: Deploy Webhooks
+        if: needs.detect-changes.outputs.webhooks == 'true'
+        run: python src/push_webhooks.py --all
+
+      - name: Deploy Generators
+        if: needs.detect-changes.outputs.generators == 'true'
+        run: python src/push_generators.py --all
+
+      - name: Deploy Tools
+        if: needs.detect-changes.outputs.tools == 'true'
+        run: python src/push_tools.py --all
+
+      - name: Deploy Flows
+        if: needs.detect-changes.outputs.flows == 'true'
+        run: python src/push_flows.py --all
+
+      - name: Deploy Pages
+        if: needs.detect-changes.outputs.pages == 'true'
+        run: python src/push_pages.py --all
+
+      - name: Deploy Playbooks
+        if: needs.detect-changes.outputs.playbooks == 'true'
+        run: python src/push_playbooks.py --all
+
+      - name: Deploy Examples
+        if: needs.detect-changes.outputs.examples == 'true'
+        run: python src/push_examples.py --all
+
+      - name: Deploy Environments
+        if: needs.detect-changes.outputs.environments == 'true'
+        run: python src/push_environments.py --all
+
       # ----- Snapshot inmutable post-deploy -----
-      # displayName es REQUERIDO por la API (no se auto-genera). run_number
-      # es monotonico por workflow, garantiza unicidad dentro del flow.
+      # Solo se crea si hubo cambios reales en definitions/ (`any == true`,
+      # garantizado por el `if` del job). Esto mantiene el manifest de
+      # versions limpio: cada ci-N representa un estado deployado real.
+      # displayName es REQUERIDO por la API. run_number es monotonico.
       - name: Create Version snapshot
         run: |
           python src/push_versions.py \
