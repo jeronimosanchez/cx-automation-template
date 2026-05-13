@@ -37,7 +37,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 
 ## 2. Estado actual
 
-**Commit HEAD:** `2c34559`
+**Commit HEAD:** `166a87b`
 
 ### Sprints
 
@@ -47,7 +47,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 | Sprint 2 | ✅ | Playbooks, Tools, Agent Config, idempotencia |
 | Sprint 3 | ✅ | Flows, Pages, Intents, Entity Types, Webhooks, Generators |
 | Sprint 4 | ✅ | CI/CD GitHub Actions + WIF, Environments, Versions, autopilot |
-| Sprint 5 | ⏳ | Migración de artefactos reales de Petal — pendiente |
+| Sprint 5 | ✅ | Migración real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX) |
 
 ### Bugs resueltos en S58-S59 (no reintroducir)
 
@@ -59,9 +59,9 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 
 ### Pendientes inmediatos
 
-- Sprint 5 — migración de artefactos reales de Petal.
 - TT-01-03 — siguiente tarea de la cadena de setup.
 - EP-02 — orquestador central de las 4 líneas y su `CLAUDE.md` global.
+- Deuda técnica anotada en S60: reconciliar `push_playbooks.py` (usa `PATCH+updateMask`) con §3.8 (Full Update obligatorio en `europe-west1`).
 
 ---
 
