@@ -1,0 +1,42 @@
+displayName: Default Start Flow
+description: A start flow created along with the agent
+transitionRoutes:
+- intent: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/intents/00000000-0000-0000-0000-000000000000
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - ¡Hola!
+        - ¡Hey!
+        - ¡Buenos días!
+  name: f71cd841-490e-421c-a7aa-3f414576d52f
+eventHandlers:
+- event: sys.no-match-default
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - Ups, no he entendido a que te refieres.
+        - ¿Podrías repetirlo, por favor?
+        - ¿Disculpa?
+        - ¿Decías?
+        - ¿Cómo?
+  name: 5e495b8d-9476-48e5-a5ef-9738e6e571ce
+- event: sys.no-input-default
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - Ups, no he entendido a que te refieres.
+        - ¿Podrías repetirlo, por favor?
+        - ¿Disculpa?
+        - ¿Decías?
+        - ¿Cómo?
+  name: 20dfda42-45c3-4928-8695-2858f167f1c2
+nluSettings:
+  modelType: MODEL_TYPE_ADVANCED
+  classificationThreshold: 0.3
+multiLanguageSettings:
+  enableMultiLanguageDetection: true
+  supportedResponseLanguageCodes:
+  - es
