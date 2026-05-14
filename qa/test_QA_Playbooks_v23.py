@@ -244,7 +244,7 @@ TESTS = [
 
     {"id": "TC-C36", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "Urgencia sin ocasión",
-     "turns": [{"user": "Necesito flores para mañana", "checks": ["ocasion|motivo|tipo|flor"]}],
+     "turns": [{"user": "Necesito flores para mañana", "checks": ["ocasion|motivo|tipo|flor|mente|especial"]}],
      "not_expected": []},
 
     {"id": "TC-C37", "type": "EDGE", "group": "COMPRA-ZG",
