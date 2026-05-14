@@ -210,7 +210,7 @@ __marimo__/
 # Sesiones y artefactos locales de Claude Code
 .claude/
 
-# Reports timestamped (validate_api, audit, ...)
+# Reports timestamped (validate_api, audit, QA Sprint 6 runner, ...)
 reports/
 validation_report_*.txt
 audit_legacy_examples_*.txt

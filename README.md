@@ -8,10 +8,10 @@ Provee:
   - **NLU clasico Flow-based (Sprint 3)**: Flows, Pages, Intents, Entity Types, Webhooks, Generators.
   - **Deploy / lifecycle (Sprint 4)**: Environments, Versions.
 - Scripts agnosticos al agente con flujo idempotente `LIST -> diff -> PATCH/POST` (`GET -> diff -> PATCH` para el agente; `POST-only` para Versions inmutables).
-- Suite de tests unitarios (`pytest`) sin red — 241 tests al cierre de Sprint 4.
-- QA con Promptfoo + custom provider Python que llama a `detectIntent`.
+- Suite de tests unitarios (`pytest`) sin red — 432 tests al cierre de Sprint 6.
+- **QA con runner real (Sprint 6)**: `qa/test_QA_Playbooks_v23.py` ejecuta 29 TCs end-to-end contra el Default Environment de CX vía `detectIntent`, con publicación de reportes HTML + TXT en GitHub Pages.
 - Validacion de capacidades de la API (`src/validate_api.py`) — usado para descubrir limites / comportamientos antes de codificarlos.
-- **CI/CD GitHub Actions (Sprint 4)** con WIF: deploy automatico tras push a `main`, QA Promptfoo en PRs.
+- **CI/CD GitHub Actions (Sprint 4)** con WIF: deploy automatico tras push a `main`, QA en `workflow_dispatch` + PRs (Sprint 6).
 
 Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codigo.
 
@@ -65,16 +65,16 @@ Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codig
 │   ├── test_push_generators.py
 │   ├── test_push_environments.py
 │   └── test_push_versions.py
-├── .github/workflows/              # CI/CD (Sprint 4)
+├── .github/workflows/              # CI/CD (Sprint 4 + 6)
 │   ├── deploy.yml                  #   push a main → deploy + Version snapshot
-│   └── qa.yml                      #   push a feature/** + PR → Promptfoo eval
-├── qa/                             # Promptfoo + custom provider
-│   ├── promptfoo_provider.py
-│   ├── promptfooconfig.yaml
-│   └── README.md
-├── reports/                        # outputs timestamped (gitignored)
+│   └── qa.yml                      #   workflow_dispatch + push feature/** + PR → 29 TCs + GitHub Pages (Sprint 6)
+├── qa/                             # Runner QA (Sprint 6)
+│   ├── test_QA_Playbooks_v23.py    #   29 TCs end-to-end contra Default Environment de CX
+│   └── _legacy_promptfoo/          #   skeleton Promptfoo Sprint 1 archivado (reactivacion: EP-QA-04)
+├── reports/                        # outputs HTML + TXT (gitignored, generados en CI o local)
 ├── docs/                           # documentacion ampliada
-│   └── setup-cicd.md               #   guia paso a paso Fase B (humana, Sprint 4)
+│   ├── setup-cicd.md               #   guia paso a paso Fase B Sprint 4 (WIF + Variables)
+│   └── setup-qa.md                 #   guia paso a paso Fase B Sprint 6 (GitHub Pages + email)
 ├── requirements.txt
 └── .gitignore
 ```
@@ -91,7 +91,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Deps: `requests`, `google-auth`, `pyyaml` (runtime), `pytest` (tests). Promptfoo NO esta aqui — se instala via npm en `qa/`.
+Deps: `requests`, `google-auth`, `pyyaml` (runtime), `pytest` (tests). El runner QA del Sprint 6 (`qa/test_QA_Playbooks_v23.py`) solo necesita `requests`.
 
 ### 2. gcloud
 
@@ -103,14 +103,21 @@ gcloud config set project <PROJECT_ID>
 
 El `<PROJECT_ID>` debe coincidir con `project:` en `definitions/agent.yaml`.
 
-### 3. Promptfoo (opcional, solo QA)
+### 3. QA local (opcional)
 
 ```bash
-cd qa/
-npm install
+# Listar los 29 TCs sin ejecutar
+python qa/test_QA_Playbooks_v23.py --list
+
+# Ejecutar todos (3 runs por TC por default, output en ~/petal-qa/)
+python qa/test_QA_Playbooks_v23.py
+
+# Subset
+python qa/test_QA_Playbooks_v23.py --type REG
+python qa/test_QA_Playbooks_v23.py --test TC-C29 --runs 1
 ```
 
-Ver `qa/README.md`.
+Reportes públicos del último run en CI: ver `docs/setup-qa.md`.
 
 ---
 
@@ -244,12 +251,23 @@ pytest tests/ -q          # quiet (objetivo: <10s)
 
 Sin red. Sin auth. Mock de `requests` con `unittest.mock`.
 
-### QA con Promptfoo
+### QA — runner real (Sprint 6)
 
 ```bash
-cd qa/
-PROMPTFOO_PYTHON=../.venv/bin/python ./node_modules/.bin/promptfoo eval
+# Listar los 29 TCs
+python qa/test_QA_Playbooks_v23.py --list
+
+# Ejecutar todos (por default 3 runs/TC, output a ~/petal-qa/)
+python qa/test_QA_Playbooks_v23.py
+
+# Subset por tipo o por TC
+python qa/test_QA_Playbooks_v23.py --type REG          # solo regresión
+python qa/test_QA_Playbooks_v23.py --type EDGE         # solo metodología
+python qa/test_QA_Playbooks_v23.py --test TC-C29 --runs 1
 ```
+
+En CI el script detecta `GITHUB_ACTIONS=true` y escribe a `./reports/`. Los reportes se publican en
+`https://jeronimosanchez.github.io/cx-automation-template/qa/qa_latest.{html,txt}` tras cada run a `main`. Ver `docs/setup-qa.md`.
 
 ---
 
@@ -352,7 +370,7 @@ Sprint 4 introduce dos workflows GitHub Actions con autenticacion via **Workload
 
 | Workflow | Trigger | Que hace |
 |---|---|---|
-| `.github/workflows/qa.yml` | push a `feature/**` o PR a `main` | `promptfoo eval` contra Default Environment, bloquea merge si falla. `cancel-in-progress: true` (cortar QA stale). |
+| `.github/workflows/qa.yml` | `workflow_dispatch` + push `feature/**` + PR a `main` (Sprint 6) | Ejecuta los 29 TCs de `qa/test_QA_Playbooks_v23.py` contra Default Environment, sube artifact con reportes y publica HTML + TXT a GitHub Pages (rama `gh-pages`, ruta `/qa/`). `continue-on-error: true` en fase 1 (no bloquea merge). `cancel-in-progress: true`. |
 | `.github/workflows/deploy.yml` | push a `main` (post-merge) | Deploy de Examples / Playbooks / Tools / Agent Config + creacion de Version snapshot. `concurrency: 1` con `cancel-in-progress: false` (no cortar deploys). |
 
 Los workflows referencian dos GitHub Variables (NO secrets): `GCP_WIF_PROVIDER` y `GCP_SERVICE_ACCOUNT`. Hasta que esten configuradas, los workflows fallan limpio en `google-github-actions/auth@v2` — no tocan Petal.
@@ -367,9 +385,10 @@ Los workflows referencian dos GitHub Variables (NO secrets): `GCP_WIF_PROVIDER` 
 - **Sprint 2** ✅ — `diff.py` puro + tests, idempotencia en `push_examples`, modulos nuevos `push_playbooks` / `push_tools` / `push_agent_config`, suite pytest sin red.
 - **Sprint 3** ✅ — Cobertura NLU clasico Flow-based: `push_flows`, `push_pages`, `push_intents`, `push_entity_types`, `push_webhooks`, `push_generators`. Validacion completa diferida a un proyecto Flow-based real (Petal es Playbook-only).
 - **Sprint 4** ✅ — CI/CD GitHub Actions con WIF, modulos `push_environments` y `push_versions` (immutable), workflows `deploy.yml` + `qa.yml`, guia humana `docs/setup-cicd.md`.
-- **Sprint 5+** — Activar Fase B humana, primer deploy real a Petal, migracion legacy de Examples.
+- **Sprint 5** ✅ — Migracion real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX).
+- **Sprint 6** ✅ — Integracion del runner QA real (`test_QA_Playbooks_v23.py`, 29 TCs) en el pipeline ACT contra Default Environment + publicacion de reportes en GitHub Pages. Promptfoo skeleton archivado en `qa/_legacy_promptfoo/` (reactivacion: EP-QA-04).
 
 ---
 
-*Estado al 8-may-2026: Sprint 4 entregado (template cubre 11/11 recursos top-level CX + CI/CD listo para activar). Ver `📋 Claude Code Reports` en Notion para logs de ejecucion autonoma.*
+*Estado al 14-may-2026: Sprint 6 SHIPPED — template cubre 12/12 recursos top-level CX + CI/CD + QA real con reportes públicos. Pendiente: Fáse B humana del Sprint 6 (`docs/setup-qa.md`). Ver `📋 Claude Code Reports` en Notion para logs de ejecucion autonoma.*
 
