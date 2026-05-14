@@ -216,10 +216,26 @@ instruction:
       - Corporativo - 'Para completar el pedido necesito tu correo electronico.'
       ⛔ ESPERA respuesta.
 
-      BUCLE EMAIL (max 3 intentos):
-      Valido (contiene @) - $email=valor - consulta perfil.
-      Invalido - fallo.
-      F1-calidez. F2-paciencia. F3-agent_copy['despedida_email_invalido']-$sesion_cerrada=true-FIN.
+      BUCLE EMAIL (maximo 3 intentos):
+      Si la entrada del usuario contiene '@' (es un email valido):
+        - $email = entrada del usuario.
+        - Pasa a "Consulta perfil".
+      Si la entrada NO contiene '@' (no es email - p.ej. "si", "ok", "vale", "confirmo", una palabra suelta, numeros, o cualquier otra cosa):
+        ⛔ NUNCA interpretes esto como cancelacion, negativa, o cambio de producto.
+        ⛔ NUNCA ofrezcas 'elegir otro producto o dejarlo por hoy'.
+        ⛔ NUNCA salgas del bucle a otro flujo o playbook.
+        Aplica el contador de intentos fallidos:
+
+        Intento fallido 1 (calidez):
+          'Disculpa, no he captado tu correo. ¿Me lo das otra vez? Por ejemplo: nombre@dominio.com'
+          ESPERA respuesta. Vuelve al inicio del BUCLE EMAIL.
+
+        Intento fallido 2 (paciencia):
+          'Sigo necesitando tu correo para continuar con el pedido. Asegurate de incluir la arroba.'
+          ESPERA respuesta. Vuelve al inicio del BUCLE EMAIL.
+
+        Intento fallido 3 (despedida):
+          agent_copy['despedida_email_invalido']. $sesion_cerrada = true. FIN.
 
       Consulta perfil: PetalDataTool recurso='perfil' id=$email. Silencio.
 
