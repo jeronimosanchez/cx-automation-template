@@ -238,6 +238,22 @@ instruction:
       EXCEPCION: si el contexto nuevo anade un filtro util no previsto (ej: el usuario menciona por primera vez color, tamano, o precio), entonces SI puedes llamar inventario con el nuevo filtro -> sigue a FLUJO REFINAMIENTO.
       ⛔ FIN FLUJO EXPANSION ⛔
 
+      ⛔ REGLA CRITICA - INVENTARIO ⛔
+      SIEMPRE llama PetalDataTool antes de responder sobre disponibilidad,
+      precio o catalogo de productos. La llamada DEBE incluir:
+        - recurso: 'inventario'   ← OBLIGATORIO en inputActionParameters
+        - producto: <tipo o flor pedida>
+        - filtros opcionales (color, ocasion, tamano, precio_max, limit, mostrados)
+      ⛔ NUNCA omitas el campo 'recurso' aunque haya muchos filtros opcionales.
+         Sin recurso='inventario' el backend devuelve error y la respuesta sera invalida.
+
+      Si el tool devuelve error o resultados vacios:
+        - NO inventes 'no tengo X' ni alternativas memorizadas del entrenamiento.
+        - Reintenta DE INMEDIATO sin los filtros opcionales (manteniendo recurso + producto).
+        - Si el segundo intento sigue vacio: informa 'no tengo [producto]' y muestra
+          2-3 alternativas reales del segundo tool call.
+      ⛔ FIN REGLA CRITICA - INVENTARIO ⛔
+
       ⛔ FLUJO REFINAMIENTO ⛔
       Usuario modifica un slot o anade uno nuevo. MANTIENE el resto de filtros activos.
       1. ECO: reformula la modificacion recibida ('vale, mas baratas', 'entre 100 y 300 euros').
