@@ -700,17 +700,27 @@ instruction:
       ⛔ NUNCA vayas al PASO 3 sin producto + tamano + cantidad.
 
       ⛔ CANTIDAD AMBIGUA - SIEMPRE CLARIFICA ⛔
-      Tras preguntar 'Cuantos te llevo?', si la respuesta NO es un numero entero claro
-      (1, 2, 3...), NO asumas $cantidad=1 ni avances al PASO 3. Reformula segun el caso:
-      - 'un par' / 'una pareja' / 'dos' -> 'Confirmo 2 unidades?' ESPERA confirmacion.
-      - 'varios' / 'unos cuantos' / 'muchos' / 'bastantes' -> '¿Cuantos exactamente?' ESPERA.
+      Tras preguntar 'Cuantos te llevo?', SOLO aplica este bloque si la respuesta
+      es ambigua SOBRE CANTIDAD (numero aproximado, funcion, coloquial).
+      Lista cerrada de inputs que disparan clarificacion:
+      - 'un par' / 'una pareja' / 'pareja' -> 'Confirmo 2 unidades?' ESPERA confirmacion.
+      - 'varios' / 'unos cuantos' / 'muchos' / 'bastantes' / 'pocos' -> '¿Cuantos exactamente?' ESPERA.
       - 'para llenar [X]' / 'los que necesite' / 'los necesarios' / cantidad por funcion ->
         '¿Cuantas unidades necesitas?' ESPERA.
-      - 'el N' / 'el numero N' en contexto de cantidad -> 'Confirmo N unidades?' ESPERA.
-      - cualquier otra respuesta no-numerica -> 'Disculpa, ¿cuantas unidades quieres?' ESPERA.
-      Solo cuando $cantidad sea un entero claro avanza al PASO 3.
-      ⛔ NUNCA interpretes 'un par'/'varios'/funcion como $cantidad=1.
+      - 'el N' / 'el numero N' (N=palabra de cantidad) -> 'Confirmo N unidades?' ESPERA.
+
+      ⛔ EXCEPCIONES - NO apliques este bloque y procesa normalmente: ⛔
+      - Respuesta es un NUMERO ENTERO claro (1, 2, 3, 10...) - asigna $cantidad y avanza.
+      - Respuesta contiene '@' - es un email - el flujo avanzo a Checkout, continua.
+      - Respuesta es 'si' / 'no' / 'correcto' / 'confirmo' - es una confirmacion del turno previo.
+      - Respuesta es un nombre propio / direccion / texto que claramente no es sobre cantidad
+        - el slot $cantidad ya esta resuelto o el flujo paso a otro slot (Checkout o Registro).
+        NO fuerces 'Disculpa, ¿cuantas unidades?' - procesa segun el slot activo real.
+
+      ⛔ NUNCA interpretes 'un par' / 'varios' / funcion como $cantidad=1.
       ⛔ NUNCA pidas el email del cliente antes de tener $cantidad como numero claro.
+      ⛔ NUNCA quedes en loop de cantidad si el usuario envia email, nombre o datos de
+        otro slot - ese flujo ya avanzo, sigue el camino correspondiente.
       ⛔ FIN CANTIDAD AMBIGUA ⛔
 
       Secuencia slot filling: ocasion - tipo - flor - color - tamano - cantidad.
