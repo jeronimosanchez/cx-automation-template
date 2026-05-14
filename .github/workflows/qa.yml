@@ -1,39 +1,40 @@
-# Sprint 4, Task 4 — QA automatica con Promptfoo.
+# Sprint 6 — QA Petal con runner real (test_QA_Playbooks_v23.py, 29 TCs).
 #
-# IMPORTANTE: este workflow NO se ejecutara hasta que la Fase B del
-# Sprint 4 este completa (WIF configurado en GCP + Variables en GitHub).
-# Ver `docs/setup-cicd.md`.
+# Sustituye el skeleton Promptfoo del Sprint 1 (archivado en qa/_legacy_promptfoo/).
+# Ejecuta los 29 TCs contra el Default Environment de CX (environments/-)
+# y publica reportes HTML + TXT en GitHub Pages (rama gh-pages, ruta /qa/).
 #
-# Decisiones tecnicas (Sprint 4):
-#   - Trigger: push a feature/* + pull_request a main.
-#   - cancel-in-progress: true (si llega push nuevo, cancelar QA en curso).
-#   - Promptfoo se ejecuta contra Default Environment (NO Production)
-#     para no afectar usuarios reales. detectIntent del Default Env
-#     equivale al estado "draft" del agente.
-#   - WIF para auth a GCP, igual que deploy.yml.
+# Trigger principal: workflow_dispatch (manual, para fase 1).
+# Trigger pasivo: push a feature/** y PR a main quedan habilitados pero
+# el step de QA es continue-on-error (informativo, no bloquea merge).
 #
-# Trigger: push a feature/* o PR a main.
-name: QA Promptfoo
+# Auth: WIF (igual que deploy.yml). 0 SA keys.
+# Concurrencia: 1 por rama, cancel-in-progress=true (no acumular QA stale).
+#
+# Decisión Sprint 6: el primer run lo dispara Jero manualmente desde Actions
+# tras activar GitHub Pages (Fáse B documentada en docs/setup-qa.md).
+#
+# Referencia: EP-QA-02 (ACT_Backlog).
+name: QA Petal
 
 on:
+  workflow_dispatch:
   push:
     branches: ['feature/**']
   pull_request:
     branches: [main]
 
-# Concurrencia 1 por rama. cancel-in-progress=true: cortar QA en curso si
-# llega un push nuevo (las QA son lentas; mejor cancelar la stale).
 concurrency:
   group: qa-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
-  id-token: write   # CRITICO: WIF requiere id-token writable
+  contents: write   # Necesario para push a gh-pages
+  id-token: write   # WIF requiere id-token writable
 
 jobs:
   qa:
-    name: Run Promptfoo eval against Default Environment
+    name: Run 29 TCs against Default Environment + publish to GitHub Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -44,16 +45,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install Python deps
         run: pip install -r requirements.txt
-
-      - name: Install Promptfoo
-        run: npm install -g promptfoo
 
       - name: Auth to GCP via WIF
         uses: google-github-actions/auth@v2
@@ -67,6 +60,26 @@ jobs:
       - name: Verify auth
         run: gcloud auth print-access-token > /dev/null
 
-      - name: Run Promptfoo eval
-        working-directory: qa
-        run: promptfoo eval
+      - name: Run QA (29 TCs)
+        id: qa_run
+        continue-on-error: true
+        run: python qa/test_QA_Playbooks_v23.py --runs 1
+
+      - name: Upload reports as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-reports-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish reports to GitHub Pages
+        if: always() && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./reports
+          destination_dir: qa
+          keep_files: true
+          commit_message: "qa: reporte ${{ github.run_id }} (${{ github.sha }})"

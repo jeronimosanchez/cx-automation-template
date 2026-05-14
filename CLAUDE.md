@@ -37,7 +37,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 
 ## 2. Estado actual
 
-**Commit HEAD:** `166a87b`
+**Commit HEAD:** `f3d8384` (pre-Sprint 6)
 
 ### Sprints
 
@@ -48,6 +48,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 | Sprint 3 | ✅ | Flows, Pages, Intents, Entity Types, Webhooks, Generators |
 | Sprint 4 | ✅ | CI/CD GitHub Actions + WIF, Environments, Versions, autopilot |
 | Sprint 5 | ✅ | Migración real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX) |
+| Sprint 6 | ✅ | Integración runner QA real (`test_QA_Playbooks_v23.py`, 29 TCs) en pipeline ACT contra Default Environment + publicación de reportes en GitHub Pages. Promptfoo skeleton archivado en `qa/_legacy_promptfoo/` |
 
 ### Bugs resueltos en S58-S59 (no reintroducir)
 
@@ -59,8 +60,10 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 
 ### Pendientes inmediatos
 
+- **Fáse B Sprint 6** — pasos manuales en `docs/setup-qa.md` (activar GitHub Pages, permisos workflow Read+Write, verificar email, primer run E2E).
 - TT-01-03 — siguiente tarea de la cadena de setup.
 - EP-02 — orquestador central de las 4 líneas y su `CLAUDE.md` global.
+- EP-QA-02 — cerrar tras validación Fáse B del Sprint 6.
 - Deuda técnica anotada en S60: reconciliar `push_playbooks.py` (usa `PATCH+updateMask`) con §3.8 (Full Update obligatorio en `europe-west1`).
 
 ---
@@ -94,8 +97,9 @@ Cuando se modifica un área, hay otras que deben actualizarse en el mismo cambio
 | `tests/` | `qa.yml` · README |
 | `.github/workflows/` | `docs/setup-cicd.md` · comandos de monitoreo |
 | `qa/` | `qa.yml` · README |
-| `docs/` | README · `deploy.yml` |
-| `reports/` | config Promptfoo · `.gitignore` |
+| `qa/test_QA_Playbooks_v23.py` | `qa.yml` · Default Environment de CX · GitHub Pages (`docs/setup-qa.md`) |
+| `docs/` | README · `deploy.yml` · `docs/setup-qa.md` (Sprint 6) |
+| `reports/` | `qa.yml` · `.gitignore` (no committear) |
 | `requirements.txt` | cualquier script que use la librería nueva |
 
 **Regla pendiente (Sprint 5):** añadir test automático que verifique que todas las librerías importadas en `src/` están declaradas en `requirements.txt`.
