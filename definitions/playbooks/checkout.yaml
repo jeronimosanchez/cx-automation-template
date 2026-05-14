@@ -3,6 +3,8 @@ goal: compra
 playbookType: ROUTINE
 referencedTools:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+referencedPlaybooks:
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
 inputParameterDefinitions:
 - name: producto
   description: Nombre del producto confirmado por el cliente
@@ -229,7 +231,7 @@ instruction:
       EMAIL NO ENCONTRADO:
       agent_copy['email_no_encontrado']. ESPERA.
       1. Otro email(@) - $email=nuevo - consulta perfil de nuevo.
-      2. Registrarse - Invoca Registro_Task pasando email=$email.
+      2. Registrarse - Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
          Cuando vuelve, lee los outputs:
          - Si $razon_handoff tiene valor - Handoff pasando $razon_handoff y $modo_tono.
          - Si $sesion_cerrada=true - FIN.
