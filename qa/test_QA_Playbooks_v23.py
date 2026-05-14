@@ -133,7 +133,6 @@ TESTS = [
          {"user": "Quiero comprar un ramo de rosas rojas para un cumpleanos", "checks": ["rosas|Ramo|rosa"]},
          {"user": "El mediano", "checks": ["M|mediano|cantidad|cuantos|confirma"]},
          {"user": "1", "checks": ["confirma|resumen|Rosas|Ramo|email|correo"]},
-         {"user": "Si, confirmo", "checks": ["email|correo"]},
          {"user": "nuevoreg04_r{RUN}@test.com", "checks": ["encontr|registr|otro|cuenta"]},
          {"user": "Si, registrame con ese", "checks": ["nombre|registr|datos|empezar|como"]},
          {"user": "Laura", "checks": ["apellido"]},

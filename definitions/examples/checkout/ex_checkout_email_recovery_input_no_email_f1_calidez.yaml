@@ -1,0 +1,82 @@
+playbook: Checkout
+id: 079e2abd-38ee-4b37-9452-9c73c351c301
+displayName: 'Checkout Ex02 — Email recovery: input no-email → F1 calidez → reintenta'
+description: 'Demuestra el BUCLE EMAIL del PASO 0 cuando el usuario envia algo que no es email. El agente aplica F1 (calidez), pide email otra vez, el usuario lo envia, el flujo continua.'
+actions:
+- agentUtterance:
+    text: Perfecto, para completar tu pedido necesito tu correo electronico.
+- userUtterance:
+    text: Si, confirmo
+- agentUtterance:
+    text: 'Disculpa, no he captado tu correo. ¿Me lo das otra vez? Por ejemplo: nombre@dominio.com'
+- userUtterance:
+    text: ana@email.com
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      id: ana@email.com
+      recurso: perfil
+    outputActionParameters:
+      '200':
+        resultados:
+        - id_cliente: '101'
+          nombre: Ana
+          apellidos: Garcia
+          email: ana@email.com
+          tipo: particular
+          direccion: Calle Mayor 10, 28001 Madrid
+          estado_pago: Al dia
+          saldo: '0'
+        ok: true
+        count: 1
+        recurso: perfil
+- agentUtterance:
+    text: |-
+      Ana, te resumo tu pedido:
+
+      Producto: 1 x Ramo de Rosas Rojas — M
+      Precio: 37€
+      Entrega en: Calle Mayor 10, 28001 Madrid
+
+      ¿Confirmo el pedido?
+- userUtterance:
+    text: Si, confirmo
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: petaldatatool
+    inputActionParameters:
+      direccion_entrega: Calle Mayor 10, 28001 Madrid
+      nombre: Ana
+      apellidos: Garcia
+      recurso: pedidos
+      accion: crear
+      id: '101'
+      producto: Ramo de Rosas Rojas — M
+      cantidad: '1'
+      precio_total: '37'
+      motivo_compra: Regalo
+    outputActionParameters:
+      '200':
+        id_pedido: PED-0099
+        recurso: pedidos
+        ok: true
+- agentUtterance:
+    text: '¡Pedido confirmado, Ana! Referencia: PED-0099. (Compra simulada, sin cobro real). ¡Esperamos que lo disfrutes!'
+playbookInput:
+  precedingConversationSummary: 'Compra acaba de transferir el pedido a Checkout (1 x Ramo de Rosas Rojas M, 37€, ocasion Regalo). Checkout entra al PASO 0 sin id_cliente.'
+  actionParameters:
+    nombre_cliente: ''
+    ocasion_detectada: Regalo
+    producto: Ramo de Rosas Rojas — M
+    id_cliente: ''
+    cantidad: '1'
+    precio_estimado: '37'
+playbookOutput:
+  executionSummary: 'Usuario envio entrada no-email en T1 ("Si, confirmo"). Agente aplico F1 (calidez), reformulo la peticion sin abandonar el bucle. Usuario envio email valido. Perfil encontrado (count=1, cliente Ana). Checkout completo el pedido con PED-0099.'
+  actionParameters:
+    nombre_cliente: Ana
+    id_cliente: '101'
+    recien_registrado: 'false'
+conversationState: OUTPUT_STATE_OK
+languageCode: es
