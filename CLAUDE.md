@@ -171,6 +171,51 @@ Si cualquier gate AUTO falla, parar inmediatamente y reportar a Jero. No intenta
 
 ---
 
+Los 7 gates anteriores aplican al momento de un commit autónomo. Las sub-secciones siguientes regulan los permisos por defecto durante toda la sesión, haya o no commit autónomo en curso.
+
+### 8.1 Permisos por defecto (sin pedir aprobación)
+
+**Lectura y análisis**
+- Verbos read-only de `gh`, `gcloud`, `git`, y MCP Notion read-only.
+- `curl -s` GET a cualquier API (CX, GitHub, googleapis, etc.).
+- `python3 -c` con `import / open / print / requests.get`.
+- `gcloud auth print-access-token`.
+- `source .venv` para activar entorno.
+- Escritura en `/tmp/` como paso intermedio de análisis.
+- Medición de tokens con `tiktoken` si está disponible (su instalación cae en §8.2).
+- Lectura de archivos del repo (YAML, JSON, scripts).
+
+**Monitorización**
+- `gh run view`, `gh run list` y similares para estado de workflows.
+- Bucles de espera observando runs de CI/CD sin disparar acciones.
+
+**Documentación**
+- WebFetch a URLs públicas de docs (cloud.google.com, googleapis.com, docs.anthropic.com, etc.).
+
+### 8.2 Gate obligatorio (parar y pedir aprobación)
+
+**Escritura contra APIs**
+- `curl -X POST/PATCH/DELETE` o `requests.patch/post/delete`.
+- Cualquier `PATCH` a la API de CX **aunque sea no-op** — los probes con `updateMask` inválido también cuentan, porque la intención de mutar cruza el gate.
+
+**Escritura en el repo o despliegue**
+- Escribir/modificar archivos del repo (`definitions/`, `src/`, `qa/`, `.github/`, `CLAUDE.md`, etc.).
+- `git push`, `gh pr create`, `gh pr merge`, `gh pr review`.
+- `gcloud run deploy`, cualquier mutación sobre GCP, IAM o GitHub Secrets.
+- Instalación de dependencias en el entorno (`pip install`, `npm install`, etc.).
+
+### 8.3 Excepción: patrón "lanza" / "dale"
+
+Cuando Jero dice **"lanza"** o **"dale"** tras un análisis aprobado en la misma conversación, el ciclo completo (edit → PR → merge --admin → deploy → QA → diff) se ejecuta **sin gates intermedios** de §8.2 *escritura en el repo o despliegue*.
+
+Condiciones para activarse:
+- Análisis previo aprobado en la misma conversación.
+- El alcance del ciclo está descrito antes de "lanza" / "dale".
+
+No cubre las áreas listadas en §7 (Constraints): IAM, agente Petal en producción tocado fuera del CI/CD, GitHub Secrets, petal-sheet-api. Esos mantienen gate aunque Jero diga "lanza".
+
+---
+
 ## 9. Referencias técnicas y protocolo de arranque
 
 ### Identificadores
