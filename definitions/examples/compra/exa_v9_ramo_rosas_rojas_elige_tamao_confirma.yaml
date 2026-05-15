@@ -1,6 +1,7 @@
 playbook: Compra
 id: 608439a5-daa9-4d14-a14b-c1fc96b02d1d
 displayName: 'ExA v9: Ramo rosas rojas → elige tamaño → confirma'
+description: Compra happy path — filtros combinados, 3 resultados, usuario elige tamaño.
 actions:
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
