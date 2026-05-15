@@ -4,7 +4,7 @@ displayName: 'ExC v9: Consulta precio tulipanes → no compra'
 actions:
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
-    action: petaldatatool
+    action: consultarDatos
     inputActionParameters:
       producto: tulipanes
       recurso: inventario

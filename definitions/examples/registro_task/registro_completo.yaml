@@ -5,7 +5,7 @@ description: Registro_Task Example 1 — Registro completo con verificación
 actions:
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
-    action: petaldatatool
+    action: consultarDatos
     inputActionParameters:
       clave: bienvenida_nuevo_cliente
       accion: leer
@@ -78,7 +78,7 @@ actions:
 
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
-    action: petaldatatool
+    action: consultarDatos
     inputActionParameters:
       ciudad: Madrid
       calle: Paseo del Prado 22
