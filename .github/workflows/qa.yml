@@ -4,9 +4,13 @@
 # Ejecuta los 29 TCs contra el Default Environment de CX (environments/-)
 # y publica reportes HTML + TXT en GitHub Pages (rama gh-pages, ruta /qa/).
 #
-# Trigger principal: workflow_dispatch (manual, para fase 1).
-# Trigger pasivo: push a feature/** y PR a main quedan habilitados pero
-# el step de QA es continue-on-error (informativo, no bloquea merge).
+# Triggers:
+# - workflow_dispatch: manual.
+# - workflow_run: automático tras deploy exitoso a CX (post-merge a main).
+#   Esto garantiza que QA testea la versión RECIÉN desplegada, no la anterior.
+# - push a feature/** y PR a main: informativo, no bloquea merge.
+#   NOTA: el QA de PRs testea la versión en producción, no los cambios del PR,
+#   porque detectIntent llama al agente live y el PR aún no está desplegado.
 #
 # Auth: WIF (igual que deploy.yml). 0 SA keys.
 # Concurrencia: 1 por rama, cancel-in-progress=true (no acumular QA stale).
@@ -19,6 +23,9 @@ name: QA Petal
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy to Petal CX"]
+    types: [completed]
   push:
     branches: ['feature/**']
   pull_request:
@@ -33,8 +40,46 @@ permissions:
   id-token: write   # WIF requiere id-token writable
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Job 0: decide si QA debe correr.
+  # Para workflow_run (post-deploy): solo si deploy fue exitoso Y tocó definitions/.
+  # Para el resto (manual, PR, feature push): siempre corre.
+  # ---------------------------------------------------------------------------
+  check:
+    name: Check if QA needed
+    runs-on: ubuntu-latest
+    outputs:
+      run_qa: ${{ steps.decide.outputs.run_qa }}
+    steps:
+      - name: Decide
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+              echo "run_qa=false" >> "$GITHUB_OUTPUT"
+              echo "Deploy failed — skipping QA"
+              exit 0
+            fi
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            CHANGED=$(gh api "repos/${{ github.repository }}/commits/${SHA}" \
+              --jq '[.files[].filename | select(startswith("definitions/"))] | length')
+            if [ "$CHANGED" -gt 0 ]; then
+              echo "run_qa=true" >> "$GITHUB_OUTPUT"
+              echo "definitions/ changed (${CHANGED} files) — running QA"
+            else
+              echo "run_qa=false" >> "$GITHUB_OUTPUT"
+              echo "No definitions/ changes — skipping QA"
+            fi
+          else
+            echo "run_qa=true" >> "$GITHUB_OUTPUT"
+          fi
+
   qa:
-    name: Run 29 TCs against Default Environment + publish to GitHub Pages
+    needs: check
+    if: needs.check.outputs.run_qa == 'true'
+    name: Run 31 TCs against Default Environment + publish to GitHub Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
