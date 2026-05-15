@@ -312,18 +312,18 @@ TESTS = [
     # Agente improvisa "no tengo X" con alternativas que no son del producto pedido.
     # =====================================================
     {"id": "TC-DECO-01", "type": "EDGE", "group": "COMPRA-INV",
-     "name": "Margaritas para decorar — debe encontrar margaritas reales (no Tulipanes/Narcisos/Astromelias)",
+     "name": "Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla)",
      "turns": [
          {"user": "quiero un ramo de margaritas para decorar mi recibidor",
-          "checks": ["Ramo de Margarita|Cesta.{0,20}Margarita"]},
+          "checks": ["Margarita.{0,40}--.{0,5}[SMLX]|Margarita.{0,80}euros"]},
      ],
      "not_expected": ["no tengo.{0,40}margarit", "no tenemos.{0,40}margarit"]},
 
     {"id": "TC-DECO-02", "type": "EDGE", "group": "COMPRA-INV",
-     "name": "Rosas para decorar — debe encontrar rosas reales (no falso positivo del eco)",
+     "name": "Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla)",
      "turns": [
          {"user": "quiero un ramo de rosas para decorar mi salon",
-          "checks": ["Ramo de Rosa|Rosa.{0,10}Roj|Rosa.{0,10}Blanc|Rosa.{0,10}Rosa|Rosa.{0,10}Multi"]},
+          "checks": ["Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,80}euros"]},
      ],
      "not_expected": ["no tengo.{0,40}rosa", "no tenemos.{0,40}rosa"]},
 ]
