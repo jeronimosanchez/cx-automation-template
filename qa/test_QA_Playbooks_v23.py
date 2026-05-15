@@ -303,6 +303,29 @@ TESTS = [
          {"user": "Mmm no sé", "checks": ["cambiar|dejar|algo|modificar"]},
      ],
      "not_expected": ["email|correo|checkout"]},
+
+    # =====================================================
+    # ANTI-REGRESION — DECORACION / INVENTARIO (S60, 15 may 2026)
+    # Origen: repro brief S60. Ver qa/repro_margaritas_20260515.txt
+    # Bug raiz: tool call con tipo='ramo' (minuscula) + ocasion=Decoracion
+    # no encuentra Ramo de Margaritas (Decoracion en Categoria_Uso, no en Ocasion).
+    # Agente improvisa "no tengo X" con alternativas que no son del producto pedido.
+    # =====================================================
+    {"id": "TC-DECO-01", "type": "EDGE", "group": "COMPRA-INV",
+     "name": "Margaritas para decorar — debe encontrar margaritas reales",
+     "turns": [
+         {"user": "quiero un ramo de margaritas para decorar mi recibidor",
+          "checks": ["margarit"]},
+     ],
+     "not_expected": ["no tengo.{0,40}margarit", "no tenemos.{0,40}margarit"]},
+
+    {"id": "TC-DECO-02", "type": "EDGE", "group": "COMPRA-INV",
+     "name": "Rosas para decorar — debe encontrar rosas reales",
+     "turns": [
+         {"user": "quiero un ramo de rosas para decorar mi salon",
+          "checks": ["rosa"]},
+     ],
+     "not_expected": ["no tengo.{0,40}rosa", "no tenemos.{0,40}rosa"]},
 ]
 
 
