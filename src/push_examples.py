@@ -175,20 +175,21 @@ def create_example(cfg, headers, parent, body, dry_run=False):
     return False
 
 
-def patch_example(cfg, headers, name, payload, update_mask, dry_run=False):
-    """PATCH parcial con updateMask. payload es el sub-dict de campos
-    cambiados; update_mask es la lista de paths con notacion punto.
+def patch_example(cfg, headers, name, full_body, changed_fields, dry_run=False):
+    """Full Update (PATCH sin updateMask).
+
+    europe-west1 rechaza PATCH parcial con updateMask en Examples
+    (mismo bug que Playbooks, ver CLAUDE.md §3.8). Solucion: enviar
+    el body local completo sin updateMask.
     """
     short = name.split("/")[-1]
-    mask_str = ",".join(update_mask)
-    print(f"  ✏️  PATCH {short} mask=[{mask_str}]")
+    print(f"  ✏️  PATCH {short} (full update, changed=[{','.join(changed_fields)}])")
     if dry_run:
         print("     (dry-run, no se envia PATCH)")
         return True
-    params = {"updateMask": mask_str}
     r = requests.patch(
         f"{base_url(cfg)}/{name}",
-        headers=headers, params=params, json=payload,
+        headers=headers, json=full_body,
     )
     if r.status_code == 200:
         print("     ✅ Actualizado")
@@ -247,8 +248,8 @@ def upsert_example(cfg, headers, parent, body, example_id, remote_examples, dry_
     ok = patch_example(
         cfg, headers,
         name=remote["name"],
-        payload=result.patch_payload,
-        update_mask=result.update_mask,
+        full_body=body,
+        changed_fields=result.update_mask,
         dry_run=dry_run,
     )
     return "updated" if ok else "failed"
