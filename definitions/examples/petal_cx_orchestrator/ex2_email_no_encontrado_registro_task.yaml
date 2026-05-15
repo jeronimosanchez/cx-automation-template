@@ -7,7 +7,7 @@ actions:
     text: noexiste@test.com
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
-    action: petaldatatool
+    action: consultarDatos
     inputActionParameters:
       id: noexiste@test.com
       recurso: perfil
@@ -19,7 +19,7 @@ actions:
         ok: true
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
-    action: petaldatatool
+    action: consultarDatos
     inputActionParameters:
       recurso: agent_copy
       clave: email_no_encontrado
