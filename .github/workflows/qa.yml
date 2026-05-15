@@ -74,12 +74,66 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Prepare timestamped report for GitHub Pages
+        if: always() && github.ref == 'refs/heads/main'
+        env:
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          STAMP=$(date -u +%Y%m%d_%H%M%S)
+          echo "STAMP=${STAMP}" >> "$GITHUB_ENV"
+
+          mkdir -p gh_publish/${STAMP}
+          cp reports/* gh_publish/${STAMP}/ 2>/dev/null || true
+
+          SUMMARY=$(grep -h "Total:" reports/*.txt 2>/dev/null | head -1 || echo "—")
+          SHORT=${SHA:0:7}
+
+          curl -sfL "https://raw.githubusercontent.com/${REPO}/gh-pages/qa/index.html" \
+            -o /tmp/old_index.html 2>/dev/null || true
+
+          python3 - "$STAMP" "$SHORT" "$SUMMARY" /tmp/old_index.html gh_publish/index.html <<'PYEOF'
+          import sys, os, html as h
+
+          stamp, sha, summary, old_path, out_path = sys.argv[1:6]
+          summary = h.escape(summary)
+
+          new_row = f'<tr><td>{stamp}</td><td><code>{sha}</code></td><td>{summary}</td><td><a href="{stamp}/">Ver</a></td></tr>'
+
+          if os.path.exists(old_path) and os.path.getsize(old_path) > 0:
+              with open(old_path) as f:
+                  content = f.read()
+              content = content.replace('<!-- RUNS -->', new_row + '\n<!-- RUNS -->')
+          else:
+              content = f"""<!DOCTYPE html>
+          <html lang="es"><head><meta charset="utf-8"><title>Petal QA</title>
+          <style>
+          body {{ font-family: system-ui, sans-serif; max-width: 900px; margin: 2em auto; padding: 0 1em; }}
+          h1 {{ color: #2d5016; }}
+          table {{ border-collapse: collapse; width: 100%; }}
+          th, td {{ border: 1px solid #ddd; padding: 8px 12px; text-align: left; }}
+          tr:nth-child(even) {{ background: #f9f9f9; }}
+          th {{ background: #4a7c59; color: #fff; }}
+          a {{ color: #2d7d46; }}
+          code {{ background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }}
+          </style></head><body>
+          <h1>Petal QA — Historico de runs</h1>
+          <table><thead><tr><th>Fecha (UTC)</th><th>Commit</th><th>Resultado</th><th>Reporte</th></tr></thead>
+          <tbody>
+          {new_row}
+          <!-- RUNS -->
+          </tbody></table></body></html>"""
+
+          with open(out_path, 'w') as f:
+              f.write(content)
+          PYEOF
+
       - name: Publish reports to GitHub Pages
         if: always() && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./reports
+          publish_dir: ./gh_publish
           destination_dir: qa
           keep_files: true
-          commit_message: "qa: reporte ${{ github.run_id }} (${{ github.sha }})"
+          commit_message: "qa: reporte ${{ env.STAMP }} (${{ github.sha }})"
