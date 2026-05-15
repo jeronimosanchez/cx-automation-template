@@ -4,9 +4,13 @@
 # Ejecuta los 29 TCs contra el Default Environment de CX (environments/-)
 # y publica reportes HTML + TXT en GitHub Pages (rama gh-pages, ruta /qa/).
 #
-# Trigger principal: workflow_dispatch (manual, para fase 1).
-# Trigger pasivo: push a feature/** y PR a main quedan habilitados pero
-# el step de QA es continue-on-error (informativo, no bloquea merge).
+# Triggers:
+# - workflow_dispatch: manual.
+# - workflow_run: automático tras deploy exitoso a CX (post-merge a main).
+#   Esto garantiza que QA testea la versión RECIÉN desplegada, no la anterior.
+# - push a feature/** y PR a main: informativo, no bloquea merge.
+#   NOTA: el QA de PRs testea la versión en producción, no los cambios del PR,
+#   porque detectIntent llama al agente live y el PR aún no está desplegado.
 #
 # Auth: WIF (igual que deploy.yml). 0 SA keys.
 # Concurrencia: 1 por rama, cancel-in-progress=true (no acumular QA stale).
@@ -19,6 +23,9 @@ name: QA Petal
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy to Petal CX"]
+    types: [completed]
   push:
     branches: ['feature/**']
   pull_request:
@@ -34,7 +41,8 @@ permissions:
 
 jobs:
   qa:
-    name: Run 29 TCs against Default Environment + publish to GitHub Pages
+    name: Run 31 TCs against Default Environment + publish to GitHub Pages
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
