@@ -210,8 +210,8 @@ def test_upsert_example_updated_when_remote_differs():
     mp.assert_not_called()
     mpa.assert_called_once()
     kwargs = mpa.call_args.kwargs
-    assert "updateMask" in kwargs["params"]
-    assert "actions" in kwargs["params"]["updateMask"]
+    assert "params" not in kwargs
+    assert kwargs["json"] == body
     assert mpa.call_args.args[0].endswith("/examples/ex-uuid")
 
 
@@ -274,11 +274,11 @@ def test_upsert_example_with_rename_uses_id_match():
         action = upsert_example(CFG, HEADERS, PARENT_PB, body,
                                 example_id="stable-uuid", remote_examples=remote_examples,
                                 dry_run=False)
-    # No crea duplicado:
     mp.assert_not_called()
-    # PATCH al remoto encontrado por id (displayName diferente):
     assert action == "updated"
-    assert "displayName" in mpa.call_args.kwargs["params"]["updateMask"]
+    kwargs = mpa.call_args.kwargs
+    assert "params" not in kwargs
+    assert kwargs["json"] == body
 
 
 # ============================================================
@@ -394,16 +394,17 @@ def test_create_example_dry_run_skips_post():
     mp.assert_not_called()
 
 
-def test_patch_example_sends_update_mask():
+def test_patch_example_sends_full_body_without_update_mask():
     with patch("src.push_examples.requests.patch") as mpa:
         mpa.return_value = _resp(200, {})
         ok = patch_example(
             CFG, HEADERS,
             name="projects/.../examples/abc",
-            payload={"actions": ["new"]},
-            update_mask=["actions"],
+            full_body={"actions": ["new"]},
+            changed_fields=["actions"],
             dry_run=False,
         )
     assert ok is True
     kwargs = mpa.call_args.kwargs
-    assert kwargs["params"]["updateMask"] == "actions"
+    assert "params" not in kwargs
+    assert kwargs["json"] == {"actions": ["new"]}
