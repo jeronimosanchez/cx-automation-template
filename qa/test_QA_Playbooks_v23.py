@@ -304,18 +304,18 @@ TESTS = [
     # Agente improvisa "no tengo X" con alternativas que no son del producto pedido.
     # =====================================================
     {"id": "TC-DECO-01", "type": "EDGE", "group": "COMPRA-INV",
-     "name": "Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla)",
+     "name": "Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –)",
      "turns": [
          {"user": "quiero un ramo de margaritas para decorar mi recibidor",
-          "checks": ["Margarita.{0,40}--.{0,5}[SMLX]|Margarita.{0,80}euros"]},
+          "checks": ["Margarita.{0,40}--.{0,5}[SMLX]|Margarita.{0,40}—.{0,5}[SMLX]|Margarita.{0,40}–.{0,5}[SMLX]|Margarita.{0,80}euros"]},
      ],
      "not_expected": ["no tengo.{0,40}margarit", "no tenemos.{0,40}margarit"]},
 
     {"id": "TC-DECO-02", "type": "EDGE", "group": "COMPRA-INV",
-     "name": "Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla)",
+     "name": "Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)",
      "turns": [
          {"user": "quiero un ramo de rosas para decorar mi salon",
-          "checks": ["Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,80}euros"]},
+          "checks": ["Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros"]},
      ],
      "not_expected": ["no tengo.{0,40}rosa", "no tenemos.{0,40}rosa"]},
 ]
@@ -379,6 +379,22 @@ def _split_check_detail(d):
     return status, msg
 
 
+import unicodedata
+
+
+def _strip_accents(s):
+    """Elimina tildes/diacríticos de un string para matching case+accent-insensitive.
+    'ocasión' → 'ocasion', 'cumpleaños' → 'cumpleanos', 'política' → 'politica'.
+
+    Resuelve falsos negativos donde el agente responde con tilde y el regex del
+    test no la incluye (ej. check 'ocasion' vs respuesta 'ocasión').
+    """
+    if not s:
+        return s
+    return "".join(c for c in unicodedata.normalize("NFD", s)
+                   if unicodedata.category(c) != "Mn")
+
+
 def check_turn(response_text, checks, not_expected):
     """Evalúa la respuesta del AGENTE contra checks positivos y negativos.
 
@@ -386,19 +402,28 @@ def check_turn(response_text, checks, not_expected):
       - 'OK: Agente dijo [X]'           → regla positiva cumplida
       - 'FAIL: Agente debía decir [X]'  → regla positiva fallada
       - 'FAIL: Agente NO debía decir [X]' → regla negativa fallada
+
+    Matching insensible a tildes: la respuesta y los patrones se normalizan con
+    NFD antes de aplicar re.search. Garantiza que 'ocasion' matchea 'ocasión'.
+    Los mensajes de detalles preservan el patrón ORIGINAL (con/sin tildes) para
+    legibilidad en el HTML.
     """
     results = {"pass": True, "details": []}
+    response_norm = _strip_accents(response_text)
     for check_str in checks:
         patterns = check_str.split("|")
-        found = any(re.search(p, response_text, re.IGNORECASE) for p in patterns)
+        patterns_norm = [_strip_accents(p) for p in patterns]
+        found = any(re.search(pn, response_norm, re.IGNORECASE) for pn in patterns_norm)
         if not found:
             results["pass"] = False
             results["details"].append(f"FAIL: Agente debía decir [{check_str}]")
         else:
-            matched = [p for p in patterns if re.search(p, response_text, re.IGNORECASE)]
+            matched = [p for p, pn in zip(patterns, patterns_norm)
+                       if re.search(pn, response_norm, re.IGNORECASE)]
             results["details"].append(f"OK: Agente dijo [{matched[0]}]")
     for neg in not_expected:
-        if re.search(neg, response_text, re.IGNORECASE):
+        neg_norm = _strip_accents(neg)
+        if re.search(neg_norm, response_norm, re.IGNORECASE):
             results["pass"] = False
             results["details"].append(f"FAIL: Agente NO debía decir [{neg}]")
     return results
