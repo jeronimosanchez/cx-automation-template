@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-05-15 21:16",
+  "ts_file": "20260515_2116",
+  "total": 31,
+  "pass": 18,
+  "inst": 0,
+  "fail": 13,
+  "pct": 58,
+  "runs_per_tc": 1,
+  "versions": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "qa_script": "v23"
+  },
+  "backfilled": true
+}
