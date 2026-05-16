@@ -44,6 +44,20 @@ REGISTRO_VERSION = "v7 (Task)"
 RUNS = 3
 RUN_ID = str(int(time.time()))[-6:]
 
+# Leyenda de grupos para tooltips en chips de filtro (US-QA-06-07 v2: tooltip en vez de panel)
+GROUP_LEGEND = {
+    "G1": "Info de negocio (horario, dirección)",
+    "G2": "Info de catálogo (precio, qué hay)",
+    "G3": "Recomendación / sugerencia",
+    "G4": "Saludo",
+    "G5": "Compra directa con producto concreto",
+    "G6": "Consulta de perfil que requiere identificación (saldo, etc.)",
+    "G7": "Registro / onboarding cliente nuevo",
+    "ESP": "Espontáneo (email fuera de flujo, pedir humano)",
+    "COMPRA-ZG": "Compra Zona Gris (casos ambiguos)",
+    "COMPRA-INV": "Compra Inventario (bugs específicos de catálogo)",
+}
+
 IS_CLOUD_SHELL = os.environ.get("CLOUD_SHELL") == "true" or os.path.exists("/google/devshell")
 IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
 
@@ -667,7 +681,9 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .dl{{display:inline-block;font-size:11px;padding:5px 14px;border-radius:5px;background:#c8f06022;color:#c8f060;border:1px solid #c8f06044;cursor:pointer;margin-bottom:16px;text-decoration:none}}
 .dl:hover{{background:#c8f06033}}
 .filter-bar{{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}}
-.fbtn{{font-size:11px;padding:4px 12px;border-radius:5px;background:#1a1a1a;border:1px solid #282828;color:#777;cursor:pointer;transition:all .15s}}
+.fbtn{{font-size:11px;padding:4px 12px;border-radius:5px;background:#1a1a1a;border:1px solid #282828;color:#777;cursor:pointer;transition:all .15s;position:relative}}
+.fbtn[data-legend]:hover::after{{content:attr(data-legend);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1f1f1f;color:#c8f060;padding:6px 10px;border-radius:4px;font-size:11px;white-space:nowrap;border:1px solid #444;z-index:10;pointer-events:none;font-weight:normal;box-shadow:0 2px 8px rgba(0,0,0,.4)}}
+.fbtn[data-legend]:hover::before{{content:"";position:absolute;bottom:calc(100% + 1px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#444;z-index:10;pointer-events:none}}
 .fbtn:hover{{border-color:#444;color:#ccc}}.fbtn.active{{border-color:#c8f060;color:#c8f060;background:#c8f06011}}
 .t{{background:#141414;border:1px solid #222;border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color .2s}}
 .t:hover{{border-color:#333}}
@@ -808,31 +824,10 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <div class="fbtn" onclick="filterByType('NEW')">Registro</div>
 <div class="fbtn" onclick="filterByType('EDGE')">Metodolog\u00eda</div>"""
     for g in groups:
-        h += f'\n<div class="fbtn" onclick="filterByGroup(\'{g}\')">{g}</div>'
+        legend = GROUP_LEGEND.get(g, "")
+        legend_attr = f' data-legend="{esc(legend)}" title="{esc(legend)}"' if legend else ""
+        h += f'\n<div class="fbtn"{legend_attr} onclick="filterByGroup(\'{g}\')">{g}</div>'
     h += "\n</div>\n"
-    # Leyenda de grupos (US-QA-06-07): colapsable con significado de G1...G7, ESP, COMPRA-*
-    h += """<details class="grupos-legend"><summary>📖 ¿Qué significa cada grupo?</summary>
-<table class="legend-table">
-<thead><tr><th>Grupo</th><th>Significado</th></tr></thead>
-<tbody>
-<tr><td><code>G1</code></td><td>Info de negocio (horario, dirección)</td></tr>
-<tr><td><code>G2</code></td><td>Info de catálogo (precio, qué hay)</td></tr>
-<tr><td><code>G3</code></td><td>Recomendación / sugerencia</td></tr>
-<tr><td><code>G4</code></td><td>Saludo</td></tr>
-<tr><td><code>G5</code></td><td>Compra directa con producto concreto</td></tr>
-<tr><td><code>G6</code></td><td>Consulta de perfil que requiere identificación (saldo, etc.)</td></tr>
-<tr><td><code>G7</code></td><td>Registro / onboarding cliente nuevo</td></tr>
-<tr><td><code>G5&gt;CK&gt;REG</code></td><td>Flujo compuesto: Compra → Checkout → Registro</td></tr>
-<tr><td><code>G6&gt;SALDO</code></td><td>G6 ejecutado con email válido</td></tr>
-<tr><td><code>G7&gt;ERR / &gt;CANCEL / &gt;POST</code></td><td>Variantes de G7 (error, cancelación, post-registro)</td></tr>
-<tr><td><code>ESP</code></td><td>Espontáneo (email fuera de flujo, pedir humano)</td></tr>
-<tr><td><code>COMPRA-ZG</code></td><td>Compra Zona Gris (casos ambiguos)</td></tr>
-<tr><td><code>COMPRA-INV</code></td><td>Compra Inventario (bugs específicos de catálogo)</td></tr>
-</tbody>
-</table>
-<p class="legend-note">Los grupos G1-G7 corresponden a <code>$grupo_intent</code> que el Orquestador asigna al inicio. Los compuestos marcan transiciones entre playbooks.</p>
-</details>
-"""
 
     for r in results:
         sb = {"PASS": "sb-pass", "FAIL": "sb-fail", "INESTABLE": "sb-inst", "QUOTA_ERROR": "sb-quota"}.get(r["status"], "sb-inst")
@@ -963,7 +958,7 @@ async function openHistorial(){
     const data=await Promise.all(allMetas.map(async item=>{
       try{
         const m=await fetch(item.file.download_url).then(r=>r.json());
-        if(item.parent){m._url=`${item.parent}/qa_latest.html`;}
+        if(item.parent){m._url=`../${item.parent}/qa_latest.html`;}
         else{m._url=item.file.name.replace('.meta.json','.html');}
         return m;
       }catch(_){return null;}
