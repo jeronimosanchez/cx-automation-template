@@ -1,0 +1,32 @@
+playbook: Petal CX Orchestrator
+id: b4a333ea-312f-4bd4-98d4-703e9a57ecd5
+displayName: EX5b — G1 Horario apertura (business)
+description: Pregunta genérica de horario. Usa clave=horario_apertura.
+actions:
+- userUtterance:
+    text: ¿A qué hora abrís?
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      recurso: business
+      clave: horario_apertura
+    outputActionParameters:
+      '200':
+        recurso: business
+        count: 1
+        ok: true
+        resultados:
+        - Variable: horario_apertura
+          Valor: 'Lunes-Sabado 9:00-20:00'
+          Descripcion: Horario de atencion al publico
+          Impacto en el Diseño CX: Intent frecuente. Respuesta determinista desde Sheet.
+- agentUtterance:
+    text: >-
+      Nuestro horario es de lunes a sábado de 9:00 a 20:00.
+      ¿Hay algo más en lo que pueda ayudarte?
+playbookOutput:
+  executionSummary: Consulta horario generico resuelta con business/horario_apertura.
+  actionParameters: {}
+conversationState: OUTPUT_STATE_OK
+languageCode: es
