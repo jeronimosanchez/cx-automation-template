@@ -378,21 +378,36 @@ def extract_response(result):
     return " ".join(texts), playbook, params
 
 
+def _split_check_detail(d):
+    """Split 'OK: msg' or 'FAIL: msg' into (status, msg). Tolera prefijos de longitud variable."""
+    parts = d.split(": ", 1)
+    status = parts[0]
+    msg = parts[1] if len(parts) > 1 else d
+    return status, msg
+
+
 def check_turn(response_text, checks, not_expected):
+    """Evalúa la respuesta del AGENTE contra checks positivos y negativos.
+
+    Prefijos consistentes (los checks SIEMPRE evalúan al agente, nunca al usuario):
+      - 'OK: Agente dijo [X]'           → regla positiva cumplida
+      - 'FAIL: Agente debía decir [X]'  → regla positiva fallada
+      - 'FAIL: Agente NO debía decir [X]' → regla negativa fallada
+    """
     results = {"pass": True, "details": []}
     for check_str in checks:
         patterns = check_str.split("|")
         found = any(re.search(p, response_text, re.IGNORECASE) for p in patterns)
         if not found:
             results["pass"] = False
-            results["details"].append(f"FAIL: esperaba [{check_str}]")
+            results["details"].append(f"FAIL: Agente debía decir [{check_str}]")
         else:
             matched = [p for p in patterns if re.search(p, response_text, re.IGNORECASE)]
-            results["details"].append(f"OK: encontrado [{matched[0]}]")
+            results["details"].append(f"OK: Agente dijo [{matched[0]}]")
     for neg in not_expected:
         if re.search(neg, response_text, re.IGNORECASE):
             results["pass"] = False
-            results["details"].append(f"FAIL: NO deberia contener [{neg}]")
+            results["details"].append(f"FAIL: Agente NO debía decir [{neg}]")
     return results
 
 
@@ -465,12 +480,172 @@ def print_result(r):
             if gi:
                 print(f"    $grupo_intent: {gi}")
             for d in t["checks"]["details"]:
-                prefix = "      OK" if d.startswith("OK") else "      FAIL"
-                print(f"    {prefix}: {d[4:]}")
+                status, msg = _split_check_detail(d)
+                print(f"      {status}: {msg}")
 
 
 def esc(s):
     return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+# ============================================================
+# Análisis enriquecido por TC (EP-QA-06): carga desde qa/tc_analysis/*.md
+# ============================================================
+
+TC_ANALYSIS_DIR = Path(__file__).parent / "tc_analysis"
+
+
+def _parse_frontmatter(text):
+    """Parse YAML front-matter simple. Devuelve (meta_dict, body_str)."""
+    meta = {}
+    body = text
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end > 0:
+            fm = text[3:end].strip()
+            for line in fm.split("\n"):
+                if ":" in line:
+                    k, _, v = line.partition(":")
+                    meta[k.strip()] = v.strip()
+            body = text[end + 4:].lstrip("\n")
+    return meta, body
+
+
+def _load_tc_analysis(tc_id):
+    """Lee qa/tc_analysis/{tc_id}.md → {meta, turnos: {1: md, 2: md...}} o None."""
+    path = TC_ANALYSIS_DIR / f"{tc_id}.md"
+    if not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8")
+    meta, body = _parse_frontmatter(text)
+    turnos = {}
+    parts = re.split(r"^##\s+T(\d+)\s*$", body, flags=re.MULTILINE)
+    if len(parts) > 1:
+        for i in range(1, len(parts), 2):
+            try:
+                turnos[int(parts[i])] = parts[i + 1].strip()
+            except (ValueError, IndexError):
+                pass
+    return {"meta": meta, "turnos": turnos, "body": body}
+
+
+def _load_resumen():
+    """Lee qa/tc_analysis/_resumen.md → str (markdown) o None."""
+    path = TC_ANALYSIS_DIR / "_resumen.md"
+    if not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8")
+    _, body = _parse_frontmatter(text)
+    return body
+
+
+def _md_to_html(text):
+    """Conversión Markdown → HTML mínima para análisis MD (bold/italic/code/links/listas/tablas/headings)."""
+    if not text:
+        return ""
+    # Escape HTML primero (luego re-insertamos las etiquetas que generamos)
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    lines = text.split("\n")
+    out = []
+    in_table = False
+    table_buf = []
+    in_list = False
+
+    def flush_table():
+        if not table_buf:
+            return ""
+        # Detectar header (primera fila) y separador (segunda con ---)
+        rows = table_buf
+        if len(rows) < 2:
+            return "\n".join(rows)
+        # Es tabla MD si la 2ª fila tiene "---"
+        if not re.match(r"^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$", rows[1]):
+            return "\n".join(rows)
+        header_cells = [c.strip() for c in rows[0].strip("|").split("|")]
+        body_rows = rows[2:]
+        html = '<table class="md-table"><thead><tr>'
+        for c in header_cells:
+            html += f"<th>{_md_inline(c)}</th>"
+        html += "</tr></thead><tbody>"
+        for row in body_rows:
+            cells = [c.strip() for c in row.strip("|").split("|")]
+            html += "<tr>"
+            for c in cells:
+                html += f"<td>{_md_inline(c)}</td>"
+            html += "</tr>"
+        html += "</tbody></table>"
+        return html
+
+    for line in lines:
+        stripped = line.strip()
+        # Tablas (líneas con |)
+        if "|" in stripped and stripped.startswith("|"):
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            in_table = True
+            table_buf.append(stripped)
+            continue
+        elif in_table:
+            out.append(flush_table())
+            table_buf = []
+            in_table = False
+        # Headings
+        if stripped.startswith("### "):
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            out.append(f"<h4>{_md_inline(stripped[4:])}</h4>")
+            continue
+        if stripped.startswith("## "):
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            out.append(f"<h3>{_md_inline(stripped[3:])}</h3>")
+            continue
+        if stripped.startswith("# "):
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            out.append(f"<h2>{_md_inline(stripped[2:])}</h2>")
+            continue
+        # Listas
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            if not in_list:
+                out.append("<ul>")
+                in_list = True
+            out.append(f"<li>{_md_inline(stripped[2:])}</li>")
+            continue
+        # Línea vacía → cierra lista, separador de párrafo
+        if not stripped:
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            out.append("")
+            continue
+        # Párrafo
+        if in_list:
+            out.append("</ul>")
+            in_list = False
+        out.append(f"<p>{_md_inline(stripped)}</p>")
+    if in_list:
+        out.append("</ul>")
+    if in_table:
+        out.append(flush_table())
+    return "\n".join(out)
+
+
+def _md_inline(text):
+    """Aplica formato inline de markdown: **bold**, *italic*, `code`, [texto](url)."""
+    # Bold **text** (antes que italic para no canibalizar **)
+    text = re.sub(r"\*\*([^\*\n]+)\*\*", r"<strong>\1</strong>", text)
+    # Italic *text*
+    text = re.sub(r"(?<![\*])\*([^\*\n]+)\*(?![\*])", r"<em>\1</em>", text)
+    # Inline code `text`
+    text = re.sub(r"`([^`\n]+)`", r"<code>\1</code>", text)
+    # Links [text](url)
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', text)
+    return text
 
 
 def generate_html(results, ts, txt_file):
@@ -530,6 +705,76 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .turn-params{{font-size:11px;color:#666;font-family:'DM Mono',monospace;margin-top:4px}}
 .turn-params span{{color:#f59e0b}}
 .turn-check{{margin-top:6px;font-size:11px}}.turn-check.ok{{color:#22c55e}}.turn-check.fail{{color:#ef4444}}
+.turn-agent.has-fail{{border-left:3px solid #ef4444;padding-left:10px;margin-left:-2px}}
+.turn-agent.has-ok{{border-left:3px solid #22c55e;padding-left:10px;margin-left:-2px}}
+.veredicto{{margin:10px 0 14px;padding:10px 12px;background:#1a1612;border-radius:6px;border-left:3px solid #c8f060}}
+.veredicto .v-lbl{{font-size:10px;color:#c8f060;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}}
+.veredicto .v-txt{{font-size:13px;color:#ddd;line-height:1.55}}
+.veredicto .v-tipo{{font-size:11px;color:#888;font-family:'DM Mono',monospace;margin-top:6px}}
+.veredicto .v-tipo span{{color:#f59e0b}}
+.ta-table{{width:100%;border-collapse:collapse;margin:8px 0}}
+.ta-table th,.ta-table td{{vertical-align:top;border:1px solid #1e1e1e;padding:8px 10px}}
+.ta-table th{{background:#111;color:#888;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;text-align:left}}
+.ta-th-turno{{background:#1a1a1a !important;color:#c8f060 !important;font-family:'DM Mono',monospace}}
+.ta-col-left{{width:42%;background:#0e0e0e}}
+.ta-col-right{{width:58%;background:#111}}
+.ta-run-block{{margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #222}}
+.ta-run-block:last-child{{border-bottom:none;margin-bottom:0;padding-bottom:0}}
+.ta-run-tag{{display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;background:#222;color:#888;font-family:'DM Mono',monospace;margin-bottom:4px}}
+.ta-run-tag.ok{{background:#22c55e22;color:#22c55e}}.ta-run-tag.fail{{background:#ef444422;color:#ef4444}}
+.ta-user{{color:#8b8bf5;font-size:12px;margin-bottom:6px}}
+.ta-user .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;display:block;margin-bottom:2px}}
+.ta-agent{{color:#aaa;font-size:12px;line-height:1.5;margin-bottom:6px}}
+.ta-agent .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#c8f060;display:block;margin-bottom:2px}}
+.ta-checks{{margin-top:4px}}
+.ta-checks .turn-check{{margin-top:2px;font-size:10px}}
+.ta-right h2,.ta-right h3,.ta-right h4{{color:#c8f060;font-size:12px;font-weight:600;margin:8px 0 4px}}
+.ta-right h2{{font-size:14px}}.ta-right h4{{font-size:11px;color:#888}}
+.ta-right p{{font-size:12px;color:#bbb;line-height:1.6;margin:4px 0}}
+.ta-right ul{{margin:4px 0 4px 16px}}
+.ta-right li{{font-size:12px;color:#bbb;line-height:1.55;margin:2px 0}}
+.ta-right code{{background:#222;color:#c8f060;padding:1px 5px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}}
+.ta-right strong{{color:#ddd}}
+.ta-right em{{color:#aaa;font-style:italic}}
+.ta-right a{{color:#c8f060;text-decoration:none}}.ta-right a:hover{{text-decoration:underline}}
+.ta-right .md-table{{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}}
+.ta-right .md-table th,.ta-right .md-table td{{border:1px solid #1e1e1e;padding:5px 7px;text-align:left}}
+.ta-right .md-table th{{background:#1a1a1a;color:#c8f060;font-weight:600}}
+.ta-right .md-table tr:nth-child(even){{background:#0e0e0e}}
+.resumen-section{{margin:32px 0 16px;padding:18px 20px;background:#141414;border:1px solid #222;border-radius:8px;border-left:3px solid #c8f060}}
+.resumen-section h2,.resumen-section h3,.resumen-section h4{{color:#c8f060;margin:14px 0 8px}}
+.resumen-section h2{{font-size:18px;font-weight:600}}
+.resumen-section h3{{font-size:14px;font-weight:600;color:#bbb}}
+.resumen-section h4{{font-size:12px;color:#888}}
+.resumen-section p{{font-size:13px;color:#bbb;line-height:1.6;margin:6px 0}}
+.resumen-section ul{{margin:6px 0 10px 18px}}
+.resumen-section li{{font-size:13px;color:#bbb;line-height:1.55;margin:3px 0}}
+.resumen-section code{{background:#222;color:#c8f060;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
+.resumen-section strong{{color:#ddd}}
+.resumen-section em{{color:#aaa;font-style:italic}}
+.resumen-section .md-table{{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}}
+.resumen-section .md-table th,.resumen-section .md-table td{{border:1px solid #222;padding:8px 10px;text-align:left;vertical-align:top}}
+.resumen-section .md-table th{{background:#1a1a1a;color:#c8f060;font-weight:600}}
+.resumen-section .md-table tr:nth-child(even){{background:#0e0e0e}}
+.actions-bar{{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}}
+.modal{{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:100;display:flex;align-items:center;justify-content:center}}
+.modal.hidden{{display:none}}
+.modal-overlay{{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7)}}
+.modal-content{{position:relative;background:#141414;border:1px solid #333;border-radius:8px;padding:24px;max-width:880px;width:90%;max-height:80vh;overflow-y:auto}}
+.modal-content h2{{color:#c8f060;font-size:18px;margin-bottom:14px}}
+.modal-close{{position:absolute;top:10px;right:14px;background:none;border:none;color:#888;font-size:24px;cursor:pointer;line-height:1}}
+.modal-close:hover{{color:#fff}}
+.hist-table{{width:100%;border-collapse:collapse;font-size:12px}}
+.hist-table th,.hist-table td{{border:1px solid #222;padding:8px 10px;text-align:left}}
+.hist-table th{{background:#1a1a1a;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}}
+.hist-table td.ok{{color:#22c55e;font-weight:600}}
+.hist-table td.inst{{color:#f59e0b;font-weight:600}}
+.hist-table td.fail{{color:#ef4444;font-weight:600}}
+.hist-table tr:hover{{background:#1a1a1a}}
+.hist-table tr.current{{background:#c8f06011}}
+.hist-table tr.current td:first-child::after{{content:" ★";color:#c8f060}}
+.hist-table a{{color:#c8f060;text-decoration:none}}.hist-table a:hover{{text-decoration:underline}}
+.hist-loading{{padding:30px;text-align:center;color:#888}}
 .hidden{{display:none!important}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
@@ -546,7 +791,10 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <div class="card c-pct"><div class="n">{pct}%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:{bar_g}%"></div><div class="bar-y" style="width:{bar_y}%"></div><div class="bar-r" style="width:{bar_r}%"></div></div>
+<div class="actions-bar">
 <a class="dl" href="{txt_file}" download>\u2b07 TXT para Claude</a>
+<a class="dl" onclick="openHistorial()" style="cursor:pointer">\U0001f4ca Hist\u00f3rico</a>
+</div>
 <div class="filter-bar">
 <div class="fbtn" onclick="filterBy('all')">Todos</div>
 <div class="fbtn" onclick="filterBy('PASS')">\u2705 Pass</div>
@@ -567,22 +815,132 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <div class="th-left"><span class="tid">{r['id']}</span><span class="tname">{esc(r['name'])}</span><span class="tgroup">{r['group']}</span><span class="truns">{r['pass_count']}/{r['total_runs']}</span></div>
 <div style="display:flex;gap:5px;align-items:center">{badge}<span class="arrow">\u25b6</span></div>
 </div><div class="tbody">\n"""
-        for ri, run in enumerate(r["runs"]):
-            h += f'<div class="run-header {"rp" if run["pass"] else "rf"}">{"✅" if run["pass"] else "❌"} Run {ri+1}</div>\n'
-            for t in run["turns"]:
-                gi = t["params"].get("grupo_intent", "")
-                gi_html = f'<div class="turn-params">$grupo_intent: <span>{gi}</span></div>' if gi else ""
-                checks_html = "".join(f'<div class="turn-check {"ok" if d.startswith("OK") else "fail"}">{"✅" if d.startswith("OK") else "❌"} {esc(d[4:])}</div>' for d in t["checks"]["details"])
-                h += f"""<div class="turn"><div class="turn-num">Turno {t['turn']}{" ⚠️" if not t["checks"]["pass"] else ""}</div>
+        analysis = _load_tc_analysis(r["id"])
+        if analysis:
+            # === Render enriquecido con análisis manual (qa/tc_analysis/{TC-ID}.md) ===
+            meta = analysis["meta"]
+            veredicto = meta.get("veredicto", "")
+            tipo_clas = meta.get("tipo", "")
+            if veredicto:
+                h += '<div class="veredicto"><div class="v-lbl">Veredicto</div>'
+                h += f'<div class="v-txt">{_md_inline(esc(veredicto))}</div>'
+                if tipo_clas:
+                    h += f'<div class="v-tipo">Tipo: <span>{esc(tipo_clas)}</span></div>'
+                h += '</div>\n'
+            n_turns = max((len(run["turns"]) for run in r["runs"]), default=0)
+            for tn in range(1, n_turns + 1):
+                runs_at_turn = []
+                for ri, run in enumerate(r["runs"]):
+                    if tn - 1 < len(run["turns"]):
+                        runs_at_turn.append((ri, run, run["turns"][tn - 1]))
+                if not runs_at_turn:
+                    continue
+                turn_analysis_md = analysis["turnos"].get(tn, "")
+                turn_analysis_html = _md_to_html(turn_analysis_md) if turn_analysis_md else '<p><em>Sin análisis para este turno.</em></p>'
+                user_text = esc(runs_at_turn[0][2]["user"])
+                left_html = f'<div class="ta-user"><span class="lbl">Usuario (T{tn})</span>{user_text}</div>'
+                for ri, run, t in runs_at_turn:
+                    run_pass = t["checks"]["pass"]
+                    run_tag_cls = "ok" if run_pass else "fail"
+                    run_tag_icon = "✅" if run_pass else "❌"
+                    run_tag = f'<span class="ta-run-tag {run_tag_cls}">Run {ri+1} · {run_tag_icon}</span>'
+                    gi = t["params"].get("grupo_intent", "")
+                    gi_html = f'<div class="turn-params">$grupo_intent: <span>{esc(gi)}</span></div>' if gi else ""
+                    has_fail = any(d.startswith("FAIL") for d in t["checks"]["details"])
+                    agent_cls = "has-fail" if has_fail else "has-ok"
+                    checks_html = ""
+                    for d in t["checks"]["details"]:
+                        st, msg = _split_check_detail(d)
+                        c_cls = "ok" if st == "OK" else "fail"
+                        c_icon = "✅" if st == "OK" else "❌"
+                        checks_html += f'<div class="turn-check {c_cls}">{c_icon} {esc(msg)}</div>'
+                    left_html += f'<div class="ta-run-block">{run_tag}<div class="ta-agent {agent_cls}"><span class="lbl">Agente</span>{esc(t["agent"])}{gi_html}<div class="ta-checks">{checks_html}</div></div></div>'
+                h += '<table class="ta-table"><tr>'
+                h += f'<th colspan="2" class="ta-th-turno">Turno {tn}</th></tr><tr>'
+                h += f'<td class="ta-col-left">{left_html}</td>'
+                h += f'<td class="ta-col-right"><div class="ta-right">{turn_analysis_html}</div></td>'
+                h += '</tr></table>\n'
+        else:
+            # === Render clásico (TCs sin análisis manual) — checks dentro de turn-agent ===
+            for ri, run in enumerate(r["runs"]):
+                h += f'<div class="run-header {"rp" if run["pass"] else "rf"}">{"✅" if run["pass"] else "❌"} Run {ri+1}</div>\n'
+                for t in run["turns"]:
+                    gi = t["params"].get("grupo_intent", "")
+                    gi_html = f'<div class="turn-params">$grupo_intent: <span>{esc(gi)}</span></div>' if gi else ""
+                    has_fail = any(d.startswith("FAIL") for d in t["checks"]["details"])
+                    agent_cls = "has-fail" if has_fail else "has-ok"
+                    checks_html = ""
+                    for d in t["checks"]["details"]:
+                        st, msg = _split_check_detail(d)
+                        c_cls = "ok" if st == "OK" else "fail"
+                        c_icon = "✅" if st == "OK" else "❌"
+                        checks_html += f'<div class="turn-check {c_cls}">{c_icon} {esc(msg)}</div>'
+                    h += f"""<div class="turn"><div class="turn-num">Turno {t['turn']}{" ⚠️" if not t["checks"]["pass"] else ""}</div>
 <div class="turn-user"><div class="label">Usuario</div><div class="text">{esc(t['user'])}</div></div>
-<div class="turn-agent"><div class="label">Agente</div><div class="text">{esc(t['agent'])}</div></div>
-{gi_html}{checks_html}</div>\n"""
+<div class="turn-agent {agent_cls}"><div class="label">Agente</div><div class="text">{esc(t['agent'])}</div>{checks_html}</div>
+{gi_html}</div>\n"""
         h += "</div></div>\n"
-    h += """<script>
+    # Resumen agrupado por causa (carga qa/tc_analysis/_resumen.md si existe)
+    resumen_md = _load_resumen()
+    if resumen_md:
+        h += f'<div class="resumen-section">{_md_to_html(resumen_md)}</div>\n'
+        h += "</div></div>\n"
+    # Modal Histórico (US-QA-06-06): tabla de runs anteriores con métricas
+    h += """
+<div id="historial-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeHistorial()"></div>
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeHistorial()">&times;</button>
+    <h2>Histórico de QA Runs</h2>
+    <div id="hist-loading" class="hist-loading">Cargando histórico...</div>
+    <table id="hist-table" class="hist-table hidden">
+      <thead><tr><th>Fecha/hora</th><th>Total</th><th>Pass</th><th>Inestables</th><th>Fail</th><th>Tasa</th><th>Reporte</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+<script>
 function toggle(el){el.nextElementSibling.classList.toggle('open');el.querySelector('.arrow').classList.toggle('open')}
 function filterBy(s){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>{if(s==='all'){t.classList.remove('hidden')}else{t.classList.toggle('hidden',t.dataset.status!==s)}});if(s!=='all')document.querySelectorAll('.card[data-filter="'+s+'"]').forEach(c=>c.classList.add('active'))}
 function filterByGroup(g){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
 function filterByType(tp){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',t.dataset.type!==tp))}
+
+const REPO_API='https://api.github.com/repos/jeronimosanchez/cx-automation-template/contents/qa?ref=gh-pages';
+async function openHistorial(){
+  const modal=document.getElementById('historial-modal');
+  const loading=document.getElementById('hist-loading');
+  const table=document.getElementById('hist-table');
+  modal.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  loading.textContent='Cargando histórico...';
+  table.classList.add('hidden');
+  try{
+    const list=await fetch(REPO_API).then(r=>r.json());
+    if(!Array.isArray(list)) throw new Error('No se pudo listar archivos');
+    const metas=list.filter(f=>f.type==='file' && f.name.endsWith('.meta.json'));
+    if(metas.length===0){loading.textContent='No hay metadatos históricos disponibles (esperar próximos runs).'; return;}
+    const data=await Promise.all(metas.map(async f=>{
+      try{const m=await fetch(f.download_url).then(r=>r.json()); m._name=f.name.replace('.meta.json','.html'); return m;}
+      catch(_){return null;}
+    }));
+    const rows=data.filter(Boolean).sort((a,b)=>(b.ts_file||'').localeCompare(a.ts_file||''));
+    const currentTs=document.title.match(/\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}/);
+    const tbody=table.querySelector('tbody');
+    tbody.innerHTML='';
+    rows.forEach(m=>{
+      const tr=document.createElement('tr');
+      if(currentTs && m.timestamp===currentTs[0]) tr.classList.add('current');
+      tr.innerHTML=`<td>${m.timestamp||'?'}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${m._name}">Ver</a></td>`;
+      tbody.appendChild(tr);
+    });
+    loading.classList.add('hidden');
+    table.classList.remove('hidden');
+  }catch(e){
+    loading.textContent='Error cargando histórico: '+e.message;
+  }
+}
+function closeHistorial(){document.getElementById('historial-modal').classList.add('hidden')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeHistorial()});
 </script></body></html>"""
     return h
 
@@ -645,16 +1003,31 @@ def generate_reports(results):
     out_dir.mkdir(parents=True, exist_ok=True)
     txt_path = out_dir / f"qa_{ts_file}.txt"
     html_path = out_dir / f"qa_{ts_file}.html"
+    meta_path = out_dir / f"qa_{ts_file}.meta.json"
+    pct_val = int((n_pass / total) * 100) if total else 0
+    meta = {
+        "timestamp": ts, "ts_file": ts_file,
+        "total": total, "pass": n_pass, "inst": n_inst, "fail": n_fail,
+        "pct": pct_val, "runs_per_tc": RUNS,
+        "versions": {
+            "orquestador": ORQ_VERSION, "compra": COMPRA_VERSION,
+            "checkout": CHECKOUT_VERSION, "registro": REGISTRO_VERSION,
+            "script": SCRIPT_VERSION,
+        },
+    }
     with open(txt_path, "w", encoding="utf-8") as f: f.write(generate_txt(results, ts))
     with open(html_path, "w", encoding="utf-8") as f: f.write(generate_html(results, ts, txt_path.name))
-    print(f"\n  TXT: {txt_path}\n  HTML: {html_path}")
+    with open(meta_path, "w", encoding="utf-8") as f: json.dump(meta, f, indent=2, ensure_ascii=False)
+    print(f"\n  TXT: {txt_path}\n  HTML: {html_path}\n  META: {meta_path}")
     if IS_CI:
         # Latest copies sin timestamp, para URL fija publicada en GitHub Pages.
         latest_txt = out_dir / "qa_latest.txt"
         latest_html = out_dir / "qa_latest.html"
+        latest_meta = out_dir / "qa_latest.meta.json"
         with open(latest_txt, "w", encoding="utf-8") as f: f.write(generate_txt(results, ts))
         with open(latest_html, "w", encoding="utf-8") as f: f.write(generate_html(results, ts, latest_txt.name))
-        print(f"  TXT (latest): {latest_txt}\n  HTML (latest): {latest_html}")
+        with open(latest_meta, "w", encoding="utf-8") as f: json.dump(meta, f, indent=2, ensure_ascii=False)
+        print(f"  TXT (latest): {latest_txt}\n  HTML (latest): {latest_html}\n  META (latest): {latest_meta}")
         return
     if IS_CLOUD_SHELL:
         subprocess.run("fuser -k 8080/tcp 2>/dev/null", shell=True, capture_output=True)
