@@ -402,6 +402,129 @@ TESTS = [
           "checks": ["M|mediano|cu.ntos|cantidad|euro|37"]},
      ],
      "not_expected": ["confirma.{0,30}es correcto"]},
+
+    # =====================================================
+    # TIER 2 — EDGE CASES ADICIONALES (16 may, sesion post-Met-S63)
+    # 13 TCs de robustez/escalacion/casos limite. Cortos (1-3 turnos).
+    # =====================================================
+
+    # --- Tier 2A: alta probabilidad (>40%) ---
+
+    {"id": "TC-ROBUSTEZ-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Robustez parser — input en MAYUSCULAS sin acentos",
+     "turns": [
+         {"user": "QUIERO ROSAS ROJAS PARA CUMPLEANOS",
+          "checks": ["rosa|ramo|opcion|tamano"]},
+     ],
+     "not_expected": ["no entiendo|disculpa.{0,30}no"]},
+
+    {"id": "TC-STOCK-EXCESO-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "TT-25 — cantidad > stock disponible, agente debe avisar",
+     "turns": [
+         {"user": "quiero un ramo de rosas rojas pequeño",
+          "checks": ["rosa|ramo|opcion|tamano|S"]},
+         {"user": "el pequeño",
+          "checks": ["cu.ntos|cantidad"]},
+         {"user": "50",
+          "checks": ["stock|disponible|solo|quedan|menos|tengo|prefieres|continuamos"]},
+     ],
+     "not_expected": ["pedido confirmado|checkout|email"]},
+
+    {"id": "TC-URGENCIA-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Entrega urgente — clarifica plazo o redirige",
+     "turns": [
+         {"user": "necesito un ramo de rosas para hoy a las 6",
+          "checks": ["rosa|ramo|entrega|plazo|hoy|disponible|simulad|opcion|tamano"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-FRUSTRACION-LEX-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Lexico negativo del usuario — agente reconoce frustracion",
+     "turns": [
+         {"user": "quiero rosas",
+          "checks": ["rosa|ramo|opcion|tamano|ocasion"]},
+         {"user": "esto no funciona, que desastre",
+          "checks": ["disculp|entend|alternativ|equipo|persona|propong|reformul|tipo"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-MULTI-SLOT-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Parseo multi-info en un solo input — extraccion robusta",
+     "turns": [
+         {"user": "hola, quiero un ramo de rosas rojas maximo 40 euros para mi boda",
+          "checks": ["rosa|ramo|boda|euro|opcion|tamano"]},
+     ],
+     "not_expected": ["no entiendo|ocasion.*especial.{0,40}\\?"]},
+
+    # --- Tier 2B: media probabilidad (20-30%) ---
+
+    {"id": "TC-DESPEDIDA-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Despedida abrupta — cierre amable sin pedido completo",
+     "turns": [
+         {"user": "quiero rosas",
+          "checks": ["rosa|ramo|opcion|tamano|ocasion"]},
+         {"user": "déjalo, gracias",
+          "checks": ["pronto|hasta|gracias|otro momento|ayudar|algo mas|entendido"]},
+     ],
+     "not_expected": ["email|correo|checkout"]},
+
+    {"id": "TC-DIR-CUSTOM-01", "type": "EDGE", "group": "G5>CK",
+     "name": "Override direccion habitual — cliente identificado pide otra direccion",
+     "turns": [
+         {"user": "mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa",
+          "checks": ["rosa|ramo|oficina|otra direcc|nueva direcc|Ana|opcion"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-MULTI-PRODUCTO-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Pedido multi-item — agente maneja uno por uno o explica limitacion",
+     "turns": [
+         {"user": "quiero un ramo de rosas y un centro de mesa para una boda",
+          "checks": ["ramo|centro|rosa|primero|empez|opcion|uno"]},
+     ],
+     "not_expected": []},
+
+    # --- Tier 2C: baja probabilidad (<20%) ---
+
+    {"id": "TC-MOROSO-01", "type": "EDGE", "group": "G6>DEUDA",
+     "name": "Cliente con deuda detectada — handoff a Gestion_Deuda",
+     "turns": [
+         {"user": "mi email es pedro.moroso@test.com quiero comprar rosas",
+          "checks": ["deud|pago|pendiente|equipo|persona|gestion|saldo|email|verific"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-DEVOLUCION-01", "type": "EDGE", "group": "G6",
+     "name": "Solicitud de devolucion — out-of-scope, deriva a Handoff",
+     "turns": [
+         {"user": "quiero devolver mi pedido",
+          "checks": ["devolucion|equipo|persona|humano|reclamacion|email|correo|contacto|gestion"]},
+     ],
+     "not_expected": ["claro, te devuelvo|procesado"]},
+
+    {"id": "TC-SIGNOS-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Input solo signos de puntuacion — robustez",
+     "turns": [
+         {"user": "???",
+          "checks": ["entend|aclar|pregunta|ayudar|claro|repite|escribe|cuent"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-INSULTO-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Lexico abusivo — agente mantiene tono profesional, no repite",
+     "turns": [
+         {"user": "esto es una mierda, que porqueria",
+          "checks": ["disculp|lament|entend|equipo|persona|propong|reformul|ayudar"]},
+     ],
+     "not_expected": ["mierda|porqueria"]},
+
+    {"id": "TC-IMPOSIBLE-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Peticion fuera de scope — descuento del 50%",
+     "turns": [
+         {"user": "hacedme un descuento del 50%",
+          "checks": ["no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar"]},
+     ],
+     "not_expected": ["50%.{0,30}aplicado|claro, descuento"]},
 ]
 
 
