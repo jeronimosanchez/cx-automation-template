@@ -318,6 +318,90 @@ TESTS = [
           "checks": ["Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros"]},
      ],
      "not_expected": ["no tengo.{0,40}rosa", "no tenemos.{0,40}rosa"]},
+
+    # =====================================================
+    # TIER 1 — NUEVOS HAPPY PATHS Y EDGE CASES (16 may, sesion post-Met-S63)
+    # 8 TCs alta probabilidad de uso real: modos de tono no cubiertos,
+    # refinamiento, cambio de opinion, frustracion, variantes S/M/L.
+    # =====================================================
+
+    {"id": "TC-FUNERAL-01", "type": "NEW", "group": "G5",
+     "name": "Modo solemne — corona para funeral",
+     "turns": [
+         {"user": "necesito una corona para un funeral",
+          "checks": ["corona|funebr|ceremonia|pesame|familia|opciones|tipo|encaja"]},
+     ],
+     "not_expected": ["mira,|genial|fenomenal|🌸"]},
+
+    {"id": "TC-PRESUPUESTO-01", "type": "NEW", "group": "G5",
+     "name": "Presupuesto duro — precio_max explicito",
+     "turns": [
+         {"user": "quiero rosas maximo 30 euros",
+          "checks": ["rosa|ramo|opcion|euro|22|25|presupuesto"]},
+     ],
+     "not_expected": ["132|premium.{0,30}euros"]},
+
+    {"id": "TC-COLOR-01", "type": "NEW", "group": "G5",
+     "name": "Compra con color especifico no-rojo (tulipanes blancos)",
+     "turns": [
+         {"user": "quiero tulipanes blancos",
+          "checks": ["Tulipan|tulipan|blanc|euro|opcion"]},
+     ],
+     "not_expected": ["no tengo.{0,40}tulipan"]},
+
+    {"id": "TC-REFINAR-01", "type": "NEW", "group": "G5",
+     "name": "Refinamiento de precio mid-flow — mas baratas",
+     "turns": [
+         {"user": "quiero un ramo de rosas para cumpleaños",
+          "checks": ["ramo|rosa|opcion|tamano|euro"]},
+         {"user": "mas baratas",
+          "checks": ["rosa|ramo|euro|22|menos|menor|opcion"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-BODA-01", "type": "NEW", "group": "G5",
+     "name": "Modo Boda — ramo nupcial",
+     "turns": [
+         {"user": "quiero un ramo de novia para mi boda",
+          "checks": ["ramo|novia|boda|opcion|encaja|propongo"]},
+     ],
+     "not_expected": ["🌸"]},
+
+    {"id": "TC-CAMBIO-OP-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Cambio de opinion mid-flow — usuario abandona tras seleccionar",
+     "turns": [
+         {"user": "quiero rosas rojas para cumpleaños",
+          "checks": ["rosa|ramo|opcion|tamano"]},
+         {"user": "el mediano",
+          "checks": ["cu.ntos|cantidad|M|37"]},
+         {"user": "uy, mejor no, dejalo",
+          "checks": ["pronto|hasta|gracias|otro momento|ayudar|algo mas|entendido"]},
+     ],
+     "not_expected": ["email|correo|checkout|direccion|confirma"]},
+
+    {"id": "TC-FRUSTRACION-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Multiples rechazos consecutivos — debe escalar o reformular",
+     "turns": [
+         {"user": "quiero rosas",
+          "checks": ["rosa|ramo|opcion|tamano|ocasion"]},
+         {"user": "no me gustan",
+          "checks": ["otra|alternativ|otras|propongo|encaja|tipo"]},
+         {"user": "tampoco me convencen, dame otras",
+          "checks": ["otra|alternativ|propongo|tipo|ocasion|equipo|persona"]},
+         {"user": "ninguna me gusta",
+          "checks": ["equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-VARIANTES-SML-01", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial",
+     "turns": [
+         {"user": "quiero un ramo de rosas rojas para cumpleaños",
+          "checks": ["ramo|rosa|opcion|tamano|S|M|L|X"]},
+         {"user": "la mediana",
+          "checks": ["M|mediano|cu.ntos|cantidad|euro|37"]},
+     ],
+     "not_expected": ["confirma.{0,30}es correcto"]},
 ]
 
 
