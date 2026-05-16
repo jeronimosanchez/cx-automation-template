@@ -1,5 +1,5 @@
 playbook: Petal CX Orchestrator
-id: 0b7cfbfd-3623-4258-92d3-f4e626bcaa2b
+id: ef90bc68-6138-46a9-8d9b-08b5de371ece
 displayName: EX08b — G3 Sin ocasión → transfiere Compra directo
 description: Query genérica sin ocasión. NO explores en Orquestador — captura y transfiere.
 actions:
