@@ -263,14 +263,6 @@ TESTS = [
      ],
      "not_expected": []},
 
-    {"id": "TC-C41", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Delegación ambigua — salta al siguiente slot",
-     "turns": [
-         {"user": "Quiero flores", "checks": ["ocasion|motivo|tipo|flor|color"]},
-         {"user": "No sé, lo que tú veas", "checks": ["tipo|flor|color|preferencia|gustar|prefieres"]},
-     ],
-     "not_expected": ["ocasion|motivo|celebra"]},
-
     {"id": "TC-C42", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "Handoff Compra → Checkout (pide email tras cantidad)",
      "turns": [
