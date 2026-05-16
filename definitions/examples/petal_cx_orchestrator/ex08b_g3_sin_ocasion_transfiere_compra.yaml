@@ -1,0 +1,16 @@
+playbook: Petal CX Orchestrator
+id: c9ccb4f4-92df-456a-a6ef-a01cabddfe2f
+displayName: EX08b — G3 Sin ocasión → transfiere Compra directo
+description: Query genérica sin ocasión. NO explores en Orquestador — captura y transfiere.
+actions:
+- userUtterance:
+    text: Quiero flores
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: G3 sin ocasion — transfiere a Compra sin preguntar.
+  actionParameters:
+    grupo_intent: G3
+    intencion_inicial: Quiero flores
+    modo_tono: estandar
+languageCode: es
