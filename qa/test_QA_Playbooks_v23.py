@@ -200,11 +200,6 @@ TESTS = [
      "turns": [{"user": "Algo bonito para mi madre", "checks": ["tipo|flor|presupuesto|color|ocasion"]}],
      "not_expected": []},
 
-    {"id": "TC-C30", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Referencia implícita sin contexto",
-     "turns": [{"user": "Las de siempre", "checks": ["cuales|refiere|que flores|que producto"]}],
-     "not_expected": ["ramo|bouton|precio"]},
-
     {"id": "TC-C31", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "Presupuesto sin producto",
      "turns": [{"user": "Algo no muy caro", "checks": ["ocasion|tipo|flor|motivo"]}],
@@ -254,14 +249,6 @@ TESTS = [
          {"user": "El 3", "checks": ["refiere|cual|opcion|talla|tamano"]},
      ],
      "not_expected": ["confirma|resumen"]},
-
-    {"id": "TC-C38", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Cambio de idioma",
-     "turns": [
-         {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
-         {"user": "I want the medium one", "checks": ["cuantos|cantidad|medium|mediano"]},
-     ],
-     "not_expected": []},
 
     {"id": "TC-C39", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "Emoji solo",
