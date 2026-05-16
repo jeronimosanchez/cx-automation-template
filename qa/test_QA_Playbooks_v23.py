@@ -344,12 +344,23 @@ def detect_intent(token, session_id, text):
     url = f"{BASE}/{AGENT}/environments/-/sessions/{session_id}:detectIntent"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "x-goog-user-project": PROJECT}
     body = {"queryInput": {"text": {"text": text}, "languageCode": "es"}}
-    try:
-        resp = requests.post(url, headers=headers, json=body, timeout=30)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    time.sleep(1.5)  # Throttle: LLM quota limit in europe-west1
+    for attempt in range(3):
+        try:
+            resp = requests.post(url, headers=headers, json=body, timeout=30)
+            if resp.status_code == 200:
+                return resp.json()
+            # Quota exhausted — retry after backoff
+            if "quota" in resp.text.lower() or "FailedPrecondition" in resp.text:
+                wait = 5 * (attempt + 1)
+                time.sleep(wait)
+                continue
+            # Other 4xx — not retryable
+            return {"error": f"{resp.status_code}: {resp.text[:200]}", "is_quota_error": False}
+        except Exception as e:
+            return {"error": str(e), "is_quota_error": False}
+    # All retries exhausted — quota error
+    return {"error": f"QUOTA_EXHAUSTED after 3 retries: {resp.status_code}", "is_quota_error": True}
 
 
 def extract_response(result):
@@ -388,10 +399,13 @@ def check_turn(response_text, checks, not_expected):
 def run_single(token, test, run_num=1):
     session_id = str(uuid.uuid4())
     all_pass = True
+    has_quota_error = False
     turn_results = []
     for i, turn in enumerate(test["turns"]):
         user_text = turn["user"].replace("{RUN}", f"{RUN_ID}_{run_num}")
         result = detect_intent(token, session_id, user_text)
+        if result.get("is_quota_error"):
+            has_quota_error = True
         response_text, playbook, params = extract_response(result)
         checks = turn.get("checks", [])
         not_exp = test.get("not_expected", []) if i == 0 else []
@@ -403,7 +417,7 @@ def run_single(token, test, run_num=1):
             "agent": response_text[:500], "playbook": playbook,
             "params": params, "checks": turn_check
         })
-    return {"pass": all_pass, "turns": turn_results}
+    return {"pass": all_pass, "turns": turn_results, "quota_error": has_quota_error}
 
 
 def run_test(token, test, num_runs):
@@ -412,22 +426,29 @@ def run_test(token, test, num_runs):
         r = run_single(token, test, run_num + 1)
         runs.append(r)
     pass_count = sum(1 for r in runs if r["pass"])
-    if pass_count == num_runs:
+    quota_errors = sum(1 for r in runs if r.get("quota_error"))
+    valid_runs = num_runs - quota_errors
+    if valid_runs == 0:
+        status = "QUOTA_ERROR"
+    elif pass_count == valid_runs:
         status = "PASS"
-    elif pass_count == 0:
+    elif pass_count == 0 and quota_errors == 0:
         status = "FAIL"
+    elif pass_count == 0 and quota_errors > 0:
+        status = "QUOTA_ERROR"
     else:
         status = "INESTABLE"
     return {
         "id": test["id"], "name": test["name"], "type": test["type"],
         "group": test["group"], "status": status,
         "pass_count": pass_count, "total_runs": num_runs,
+        "valid_runs": valid_runs, "quota_errors": quota_errors,
         "runs": runs
     }
 
 
 def print_result(r):
-    icons = {"PASS": "\u2705", "FAIL": "\u274c", "INESTABLE": "\u26a0\ufe0f"}
+    icons = {"PASS": "\u2705", "FAIL": "\u274c", "INESTABLE": "\u26a0\ufe0f", "QUOTA_ERROR": "\u26a1"}
     emoji = icons.get(r["status"], "?")
     print(f"\n{'='*60}")
     print(f"{r['id']} [{r['type']}] [{r['group']}] \u2014 {r['name']}")
@@ -597,16 +618,24 @@ def generate_reports(results):
     n_pass = sum(1 for r in results if r["status"] == "PASS")
     n_inst = sum(1 for r in results if r["status"] == "INESTABLE")
     n_fail = sum(1 for r in results if r["status"] == "FAIL")
+    n_quota = sum(1 for r in results if r["status"] == "QUOTA_ERROR")
     print(f"\n{'='*60}\nRESUMEN QA\n{'='*60}")
     print(f"Scripts: Orq {ORQ_VERSION} | Compra {COMPRA_VERSION} | Checkout {CHECKOUT_VERSION} | Registro {REGISTRO_VERSION}")
     print(f"Fecha: {ts} | Runs: {RUNS}/TC")
-    print(f"Total: {total} | \u2705 PASS: {n_pass} | \u26a0\ufe0f INESTABLE: {n_inst} | \u274c FAIL: {n_fail}\n{'='*60}")
-    if n_fail > 0 or n_inst > 0:
+    print(f"Total: {total} | \u2705 PASS: {n_pass} | \u26a0\ufe0f INESTABLE: {n_inst} | \u274c FAIL: {n_fail}", end="")
+    if n_quota > 0:
+        print(f" | \u26a1 QUOTA_ERROR: {n_quota}", end="")
+    print(f"\n{'='*60}")
+    if n_fail > 0 or n_inst > 0 or n_quota > 0:
         print("\nNO PASS:")
         for r in results:
             if r["status"] != "PASS":
-                icon = "\u274c" if r["status"] == "FAIL" else "\u26a0\ufe0f"
-                print(f"  {icon} {r['id']} [{r['group']}] \u2014 {r['name']}: {r['status']} ({r['pass_count']}/{r['total_runs']})")
+                icons = {"FAIL": "\u274c", "INESTABLE": "\u26a0\ufe0f", "QUOTA_ERROR": "\u26a1"}
+                icon = icons.get(r["status"], "?")
+                suffix = ""
+                if r.get("quota_errors", 0) > 0:
+                    suffix = f" [quota errors: {r['quota_errors']}/{r['total_runs']}]"
+                print(f"  {icon} {r['id']} [{r['group']}] \u2014 {r['name']}: {r['status']} ({r['pass_count']}/{r['total_runs']}){suffix}")
     if IS_CI:
         out_dir = Path("./reports")
     elif IS_CLOUD_SHELL:
