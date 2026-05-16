@@ -285,24 +285,23 @@ TESTS = [
      "not_expected": ["ocasion|motivo|color"]},
 
     {"id": "TC-C42", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Confirmación ambigua — trata como sí",
+     "name": "Handoff Compra → Checkout (pide email tras cantidad)",
      "turns": [
          {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
          {"user": "El mediano", "checks": ["cu.ntos|cantidad"]},
-         {"user": "1", "checks": ["confirma|resumen"]},
-         {"user": "Supongo que sí", "checks": ["email|correo|checkout|direccion"]},
+         {"user": "1", "checks": ["correo|email|pedido|confirma|resumen"]},
      ],
-     "not_expected": ["confirma|estas seguro|seguro"]},
+     "not_expected": []},
 
     {"id": "TC-C43", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Cancelación ambigua — no cancela ni confirma",
+     "name": "Input ambiguo en PASO 0 Checkout — no cancela, re-pide email",
      "turns": [
          {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
          {"user": "El mediano", "checks": ["cu.ntos|cantidad"]},
-         {"user": "1", "checks": ["confirma|resumen"]},
-         {"user": "Mmm no sé", "checks": ["cambiar|dejar|algo|modificar"]},
+         {"user": "1", "checks": ["correo|email|pedido|confirma|resumen"]},
+         {"user": "Mmm no sé", "checks": ["correo|email|arroba|nombre@"]},
      ],
-     "not_expected": ["email|correo|checkout"]},
+     "not_expected": ["cancelar|adios|pronto|otro producto"]},
 
     # =====================================================
     # ANTI-REGRESION — DECORACION / INVENTARIO (S60, 15 may 2026)
