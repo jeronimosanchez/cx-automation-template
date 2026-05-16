@@ -258,14 +258,33 @@ instruction:
       Si acepta - reclasifica como G5.
       ZG-4: verbo existencia (tener, hay) - G2. Verbo accion (quiero, ponme) - G5.
 
+      ⛔ REGLA ANTI-G3-FALSO-POSITIVO (FIX TC-DECO-02, v66): SIEMPRE G5 (no G3), aunque haya 'para X' en el utterance, si SE CUMPLE CUALQUIERA DE:
+      - producto concreto del listado FLORES (rosas, tulipanes, margaritas, peonias, lirios, claveles, gerberas, orquideas, hortensias, girasoles, crisantemos, narcisos, azucenas, calas, fresias, dalias, iris, ranunculos, jacintos, gladiolos)
+      - tipo concreto (ramo, corona, centro, planta, bouquet, ramillete)
+      - ambos.
+
+      Ejemplos que SON G5 (aunque digan 'para X'):
+      - 'quiero un ramo de rosas para decorar mi salon' - G5 (ramo + rosas)
+      - 'quiero un ramo de tulipanes para mi tia' - G5 (ramo + tulipanes)
+      - 'necesito margaritas para una velada' - G5 (margaritas)
+      - 'una corona para el funeral' - G5 (corona)
+      - 'centro de mesa para un evento' - G5 (centro)
+
+      Comportamiento al transferir desde estos casos:
+      - Si 'para X' matchea OCASION conocida (decorar/casa/jardin→Decoracion, regalo/cumpleanos→Regalo, etc.): asigna $ocasion_detectada normalmente.
+      - Si 'para X' NO matchea ninguna OCASION (ej. 'para una velada', 'para sorprender a alguien', 'para un detalle'): deja $ocasion_detectada vacio. NO BLOQUEAR. Compra preguntara si lo necesita.
+
+      G3 SOLO aplica cuando NO hay producto concreto NI tipo concreto.
+
       G3 RECOMENDACION (pedir_recomendacion, query generica 'quiero flores para...', 'quiero un ramo bonito', 'algo para sorprender', 'un detalle')
       ⛔ NO explores en el Orquestador. Captura y transfiere.
-      ⛔ APLICA AQUI cuando el utterance tiene palabra de producto o accion pero NO tiene ocasion clara ni producto concreto con tamano.
-      Ejemplos que caen en G3:
-      - 'Quiero un ramo bonito' - G3 ($ocasion_detectada vacio, Compra preguntara).
-      - 'Dame un detalle para sorprender' - G3.
-      - 'Algo bonito' - G3.
-      - 'Quiero flores para alguien especial' - G3.
+      ⛔ APLICA AQUI cuando el utterance tiene palabra de accion (quiero/necesito/dame) pero NO tiene producto concreto del listado FLORES NI tipo concreto (ramo/corona/centro/planta). Si tiene producto o tipo, NO ES G3 - es G5 por la regla ANTI-G3-FALSO-POSITIVO de arriba.
+      Ejemplos que caen en G3 (NI producto del listado FLORES NI tipo concreto):
+      - 'Algo bonito' - G3 (sin tipo, sin producto).
+      - 'Dame un detalle para sorprender' - G3 (sin tipo, sin producto).
+      - 'Quiero flores para alguien especial' - G3 (palabra 'flores' generica, no producto concreto del listado).
+      - 'Necesito un regalo para mi madre' - G3 (sin tipo, sin producto).
+      ⛔ ATENCION: si el utterance dice 'quiero un ramo X' o 'quiero rosas X' o 'una corona Y', NO es G3 - aplica REGLA ANTI-G3-FALSO-POSITIVO de arriba y reclasifica como G5.
       - Captura $ocasion_detectada del utterance (incluye receptor a ocasion).
       - Captura $precio_max del utterance si lo menciona.
       - Captura $modo_tono del utterance (ya detectado antes).
