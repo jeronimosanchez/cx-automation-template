@@ -640,11 +640,13 @@ def generate_html(results, ts, txt_file):
     n_pass = sum(1 for r in results if r["status"] == "PASS")
     n_inst = sum(1 for r in results if r["status"] == "INESTABLE")
     n_fail = sum(1 for r in results if r["status"] == "FAIL")
+    n_quota = sum(1 for r in results if r["status"] == "QUOTA_ERROR")
     pct = int((n_pass / total) * 100) if total else 0
     bar_g = f"{(n_pass/total)*100:.1f}" if total else "0"
     bar_y = f"{(n_inst/total)*100:.1f}" if total else "0"
     bar_r = f"{(n_fail/total)*100:.1f}" if total else "0"
     groups = sorted(set(r["group"].split(">")[0] for r in results))
+    quota_card = f'<div class="card c-quota" data-filter="QUOTA_ERROR" onclick="filterBy(\'QUOTA_ERROR\')"><div class="n">{n_quota}</div><div class="l">Quota</div></div>' if n_quota > 0 else ''
     h = f"""<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <title>QA Petal {ts}</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
@@ -659,7 +661,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .card{{background:#1a1a1a;border-radius:8px;padding:12px 18px;flex:1;text-align:center;cursor:pointer;transition:all .2s;border:1px solid transparent}}
 .card:hover{{border-color:#444}}.card.active{{border-color:#c8f060}}
 .card .n{{font-size:28px;font-weight:600}}.card .l{{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px}}
-.card.c-pass .n{{color:#22c55e}}.card.c-fail .n{{color:#ef4444}}.card.c-total .n{{color:#c8f060}}.card.c-inst .n{{color:#f59e0b}}.card.c-pct .n{{color:#888}}
+.card.c-pass .n{{color:#22c55e}}.card.c-fail .n{{color:#ef4444}}.card.c-total .n{{color:#c8f060}}.card.c-inst .n{{color:#f59e0b}}.card.c-quota .n{{color:#f97316}}.card.c-pct .n{{color:#888}}
 .bar{{background:#1a1a1a;border-radius:6px;height:8px;margin-bottom:20px;overflow:hidden;display:flex}}
 .bar-g{{background:#22c55e}}.bar-y{{background:#f59e0b}}.bar-r{{background:#ef4444}}
 .dl{{display:inline-block;font-size:11px;padding:5px 14px;border-radius:5px;background:#c8f06022;color:#c8f060;border:1px solid #c8f06044;cursor:pointer;margin-bottom:16px;text-decoration:none}}
@@ -669,7 +671,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .fbtn:hover{{border-color:#444;color:#ccc}}.fbtn.active{{border-color:#c8f060;color:#c8f060;background:#c8f06011}}
 .t{{background:#141414;border:1px solid #222;border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color .2s}}
 .t:hover{{border-color:#333}}
-.t.sb-pass{{border-left:3px solid #22c55e}}.t.sb-fail{{border-left:3px solid #ef4444}}.t.sb-inst{{border-left:3px solid #f59e0b}}
+.t.sb-pass{{border-left:3px solid #22c55e}}.t.sb-fail{{border-left:3px solid #ef4444}}.t.sb-inst{{border-left:3px solid #f59e0b}}.t.sb-quota{{border-left:3px solid #f97316}}
 .th{{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}}
 .th:hover{{background:#1a1a1a}}
 .th-left{{display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
@@ -678,7 +680,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .tgroup{{font-size:10px;padding:2px 6px;border-radius:3px;background:#333;color:#999;font-family:'DM Mono',monospace}}
 .truns{{font-size:10px;color:#777;font-family:'DM Mono',monospace}}
 .b{{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:.3px}}
-.b-p{{background:#22c55e22;color:#22c55e}}.b-f{{background:#ef444422;color:#ef4444}}.b-i{{background:#f59e0b22;color:#f59e0b}}
+.b-p{{background:#22c55e22;color:#22c55e}}.b-f{{background:#ef444422;color:#ef4444}}.b-i{{background:#f59e0b22;color:#f59e0b}}.b-q{{background:#f9731622;color:#f97316}}
 .arrow{{transition:transform .2s;color:#555;font-size:14px}}.arrow.open{{transform:rotate(90deg)}}
 .tbody{{display:none;padding:0 14px 14px;border-top:1px solid #1e1e1e}}.tbody.open{{display:block}}
 .run-header{{font-size:11px;font-weight:600;color:#888;margin:12px 0 6px;padding:4px 8px;background:#111;border-radius:4px;font-family:'DM Mono',monospace}}
@@ -789,7 +791,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <div class="card c-pass" data-filter="PASS" onclick="filterBy('PASS')"><div class="n">{n_pass}</div><div class="l">Pass</div></div>
 <div class="card c-inst" data-filter="INESTABLE" onclick="filterBy('INESTABLE')"><div class="n">{n_inst}</div><div class="l">Inestable</div></div>
 <div class="card c-fail" data-filter="FAIL" onclick="filterBy('FAIL')"><div class="n">{n_fail}</div><div class="l">Fail</div></div>
-<div class="card c-pct"><div class="n">{pct}%</div><div class="l">Tasa</div></div>
+{quota_card}<div class="card c-pct"><div class="n">{pct}%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:{bar_g}%"></div><div class="bar-y" style="width:{bar_y}%"></div><div class="bar-r" style="width:{bar_r}%"></div></div>
 <div class="actions-bar">
@@ -801,6 +803,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <div class="fbtn" onclick="filterBy('PASS')">\u2705 Pass</div>
 <div class="fbtn" onclick="filterBy('INESTABLE')">\u26a0\ufe0f Inestable</div>
 <div class="fbtn" onclick="filterBy('FAIL')">\u274c Fail</div>
+<div class="fbtn" onclick="filterBy('QUOTA_ERROR')">\u26a1 Quota</div>
 <div class="fbtn" onclick="filterByType('REG')">Regresi\u00f3n</div>
 <div class="fbtn" onclick="filterByType('NEW')">Registro</div>
 <div class="fbtn" onclick="filterByType('EDGE')">Metodolog\u00eda</div>"""
@@ -832,8 +835,8 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 """
 
     for r in results:
-        sb = {"PASS": "sb-pass", "FAIL": "sb-fail", "INESTABLE": "sb-inst"}[r["status"]]
-        bc = {"PASS": "b-p", "FAIL": "b-f", "INESTABLE": "b-i"}[r["status"]]
+        sb = {"PASS": "sb-pass", "FAIL": "sb-fail", "INESTABLE": "sb-inst", "QUOTA_ERROR": "sb-quota"}.get(r["status"], "sb-inst")
+        bc = {"PASS": "b-p", "FAIL": "b-f", "INESTABLE": "b-i", "QUOTA_ERROR": "b-q"}.get(r["status"], "b-i")
         badge = f'<span class="b {bc}">{r["status"]}</span>'
         h += f"""<div class="t {sb}" data-status="{r['status']}" data-group="{r['group']}" data-type="{r['type']}">
 <div class="th" onclick="toggle(this)">
