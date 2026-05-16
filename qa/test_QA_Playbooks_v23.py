@@ -775,6 +775,20 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .hist-table tr.current td:first-child::after{{content:" ★";color:#c8f060}}
 .hist-table a{{color:#c8f060;text-decoration:none}}.hist-table a:hover{{text-decoration:underline}}
 .hist-loading{{padding:30px;text-align:center;color:#888}}
+.grupos-legend{{margin:8px 0 16px;background:#141414;border:1px solid #222;border-radius:8px;padding:0}}
+.grupos-legend summary{{cursor:pointer;padding:10px 14px;font-size:12px;color:#c8f060;font-weight:500;list-style:none;user-select:none}}
+.grupos-legend summary::-webkit-details-marker{{display:none}}
+.grupos-legend summary::before{{content:"▶ ";color:#555;font-size:10px;margin-right:4px}}
+.grupos-legend[open] summary::before{{content:"▼ "}}
+.grupos-legend[open] summary{{border-bottom:1px solid #1e1e1e}}
+.legend-table{{width:100%;border-collapse:collapse;margin:0}}
+.legend-table th{{background:#1a1a1a;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;text-align:left;font-weight:600}}
+.legend-table td{{padding:8px 14px;font-size:12px;border-top:1px solid #1e1e1e}}
+.legend-table td:first-child{{width:160px;color:#c8f060;font-family:'DM Mono',monospace;font-size:11px}}
+.legend-table code{{background:#222;color:#c8f060;padding:1px 5px;border-radius:3px;font-size:11px}}
+.legend-table tr:nth-child(even){{background:#0e0e0e}}
+.legend-note{{font-size:11px;color:#666;padding:10px 14px;border-top:1px solid #1e1e1e;margin:0}}
+.backfilled-tag{{font-size:9px;background:#444;color:#bbb;padding:1px 5px;border-radius:3px;margin-left:6px;text-transform:uppercase;letter-spacing:.3px;font-family:'DM Mono',monospace}}
 .hidden{{display:none!important}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
@@ -806,6 +820,30 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
     for g in groups:
         h += f'\n<div class="fbtn" onclick="filterByGroup(\'{g}\')">{g}</div>'
     h += "\n</div>\n"
+    # Leyenda de grupos (US-QA-06-07): colapsable con significado de G1...G7, ESP, COMPRA-*
+    h += """<details class="grupos-legend"><summary>📖 ¿Qué significa cada grupo?</summary>
+<table class="legend-table">
+<thead><tr><th>Grupo</th><th>Significado</th></tr></thead>
+<tbody>
+<tr><td><code>G1</code></td><td>Info de negocio (horario, dirección)</td></tr>
+<tr><td><code>G2</code></td><td>Info de catálogo (precio, qué hay)</td></tr>
+<tr><td><code>G3</code></td><td>Recomendación / sugerencia</td></tr>
+<tr><td><code>G4</code></td><td>Saludo</td></tr>
+<tr><td><code>G5</code></td><td>Compra directa con producto concreto</td></tr>
+<tr><td><code>G6</code></td><td>Consulta de perfil que requiere identificación (saldo, etc.)</td></tr>
+<tr><td><code>G7</code></td><td>Registro / onboarding cliente nuevo</td></tr>
+<tr><td><code>G5&gt;CK&gt;REG</code></td><td>Flujo compuesto: Compra → Checkout → Registro</td></tr>
+<tr><td><code>G6&gt;SALDO</code></td><td>G6 ejecutado con email válido</td></tr>
+<tr><td><code>G7&gt;ERR / &gt;CANCEL / &gt;POST</code></td><td>Variantes de G7 (error, cancelación, post-registro)</td></tr>
+<tr><td><code>ESP</code></td><td>Espontáneo (email fuera de flujo, pedir humano)</td></tr>
+<tr><td><code>COMPRA-ZG</code></td><td>Compra Zona Gris (casos ambiguos)</td></tr>
+<tr><td><code>COMPRA-INV</code></td><td>Compra Inventario (bugs específicos de catálogo)</td></tr>
+</tbody>
+</table>
+<p class="legend-note">Los grupos G1-G7 corresponden a <code>$grupo_intent</code> que el Orquestador asigna al inicio. Los compuestos marcan transiciones entre playbooks.</p>
+</details>
+"""
+
     for r in results:
         sb = {"PASS": "sb-pass", "FAIL": "sb-fail", "INESTABLE": "sb-inst"}[r["status"]]
         bc = {"PASS": "b-p", "FAIL": "b-f", "INESTABLE": "b-i"}[r["status"]]
@@ -917,20 +955,40 @@ async function openHistorial(){
   try{
     const list=await fetch(REPO_API).then(r=>r.json());
     if(!Array.isArray(list)) throw new Error('No se pudo listar archivos');
-    const metas=list.filter(f=>f.type==='file' && f.name.endsWith('.meta.json'));
-    if(metas.length===0){loading.textContent='No hay metadatos históricos disponibles (esperar próximos runs).'; return;}
-    const data=await Promise.all(metas.map(async f=>{
-      try{const m=await fetch(f.download_url).then(r=>r.json()); m._name=f.name.replace('.meta.json','.html'); return m;}
-      catch(_){return null;}
+    // Archivos .meta.json directos en /qa/
+    const directMetas=list.filter(f=>f.type==='file' && f.name.endsWith('.meta.json')).map(f=>({file:f, parent:null}));
+    // Subcarpetas con formato YYYYMMDD_HHMMSS
+    const dirs=list.filter(f=>f.type==='dir' && /^\\d{8}_\\d{6}$/.test(f.name));
+    // Para cada subcarpeta, buscar qa_latest.meta.json o qa_*.meta.json dentro
+    const subMetaResults=(await Promise.all(dirs.map(async d=>{
+      try{
+        const subList=await fetch(d.url).then(r=>r.json());
+        const latest=subList.find(f=>f.name==='qa_latest.meta.json') || subList.find(f=>f.name.endsWith('.meta.json'));
+        if(latest) return {file:latest, parent:d.name};
+      }catch(_){return null;}
+      return null;
+    }))).filter(Boolean);
+    const allMetas=[...directMetas, ...subMetaResults];
+    if(allMetas.length===0){loading.textContent='No hay metadatos históricos disponibles (esperar próximos runs).'; return;}
+    const data=await Promise.all(allMetas.map(async item=>{
+      try{
+        const m=await fetch(item.file.download_url).then(r=>r.json());
+        if(item.parent){m._url=`${item.parent}/qa_latest.html`;}
+        else{m._url=item.file.name.replace('.meta.json','.html');}
+        return m;
+      }catch(_){return null;}
     }));
-    const rows=data.filter(Boolean).sort((a,b)=>(b.ts_file||'').localeCompare(a.ts_file||''));
+    // Dedupe por ts_file, prefiriendo el primero
+    const seen=new Set();
+    const rows=data.filter(Boolean).filter(m=>{const k=m.ts_file||m._url; if(seen.has(k))return false; seen.add(k); return true;}).sort((a,b)=>(b.ts_file||'').localeCompare(a.ts_file||''));
     const currentTs=document.title.match(/\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}/);
     const tbody=table.querySelector('tbody');
     tbody.innerHTML='';
     rows.forEach(m=>{
       const tr=document.createElement('tr');
       if(currentTs && m.timestamp===currentTs[0]) tr.classList.add('current');
-      tr.innerHTML=`<td>${m.timestamp||'?'}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${m._name}">Ver</a></td>`;
+      const backfilled=m.backfilled?' <span class="backfilled-tag">retroactivo</span>':'';
+      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${m._url}">Ver</a></td>`;
       tbody.appendChild(tr);
     });
     loading.classList.add('hidden');
