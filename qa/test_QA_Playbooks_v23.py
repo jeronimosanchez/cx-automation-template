@@ -737,21 +737,31 @@ def _parse_frontmatter(text):
 
 
 def _load_tc_analysis(tc_id):
-    """Lee qa/tc_analysis/{tc_id}.md → {meta, turnos: {1: md, 2: md...}} o None."""
+    """Lee qa/tc_analysis/{tc_id}.md → {meta, turnos, recomendacion} o None.
+
+    Secciones reconocidas en el MD:
+      - Front-matter YAML (entre ---): meta (status, tipo, estimacion...)
+      - ## T1, ## T2...: análisis técnico por turno (va en columna derecha)
+      - ## Recomendación (o Recomendacion sin tilde): acción a tomar (banda inferior)
+    """
     path = TC_ANALYSIS_DIR / f"{tc_id}.md"
     if not path.exists():
         return None
     text = path.read_text(encoding="utf-8")
     meta, body = _parse_frontmatter(text)
+    # Extraer sección Recomendación (acepta con y sin tilde)
+    rec_match = re.search(r"^##\s+Recomendaci[oó]n\s*$(.+?)(?=^##\s|\Z)", body, flags=re.MULTILINE | re.DOTALL)
+    recomendacion = rec_match.group(1).strip() if rec_match else ""
+    body_sin_rec = re.sub(r"^##\s+Recomendaci[oó]n\s*$.*?(?=^##\s|\Z)", "", body, flags=re.MULTILINE | re.DOTALL)
     turnos = {}
-    parts = re.split(r"^##\s+T(\d+)\s*$", body, flags=re.MULTILINE)
+    parts = re.split(r"^##\s+T(\d+)\s*$", body_sin_rec, flags=re.MULTILINE)
     if len(parts) > 1:
         for i in range(1, len(parts), 2):
             try:
                 turnos[int(parts[i])] = parts[i + 1].strip()
             except (ValueError, IndexError):
                 pass
-    return {"meta": meta, "turnos": turnos, "body": body}
+    return {"meta": meta, "turnos": turnos, "body": body, "recomendacion": recomendacion}
 
 
 def _load_resumen():
@@ -936,11 +946,21 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .turn-check{{margin-top:6px;font-size:11px}}.turn-check.ok{{color:#22c55e}}.turn-check.fail{{color:#ef4444}}
 .turn-agent.has-fail{{border-left:3px solid #ef4444;padding-left:10px;margin-left:-2px}}
 .turn-agent.has-ok{{border-left:3px solid #22c55e;padding-left:10px;margin-left:-2px}}
-.veredicto{{margin:10px 0 14px;padding:10px 12px;background:#1a1612;border-radius:6px;border-left:3px solid #c8f060}}
-.veredicto .v-lbl{{font-size:10px;color:#c8f060;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}}
-.veredicto .v-txt{{font-size:13px;color:#ddd;line-height:1.55}}
-.veredicto .v-tipo{{font-size:11px;color:#888;font-family:'DM Mono',monospace;margin-top:6px}}
-.veredicto .v-tipo span{{color:#f59e0b}}
+/* Tag de tipo en header del TC (sustituye al veredicto) */
+.tipo-tag{{font-size:10px;padding:2px 8px;border-radius:3px;background:#f9731622;color:#f97316;font-family:'DM Mono',monospace;font-weight:600}}
+/* Banda de recomendación al final del TC */
+.recomendacion{{margin:14px 0 4px;padding:14px 16px;background:#0c1f0c;border:1px solid #1e3a1e;border-left:4px solid #22c55e;border-radius:6px}}
+.rec-header{{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}}
+.rec-icon{{font-size:18px}}
+.rec-title{{color:#22c55e;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px}}
+.rec-tag{{display:inline-block;font-size:10px;padding:2px 8px;border-radius:3px;background:#22c55e22;color:#22c55e;font-family:'DM Mono',monospace;font-weight:600}}
+.rec-content p{{font-size:13px;color:#cce;line-height:1.6;margin:4px 0}}
+.rec-content ul{{margin:6px 0 6px 20px}}
+.rec-content li{{font-size:13px;color:#cce;line-height:1.55;margin:4px 0}}
+.rec-content code{{background:#1a2e1a;color:#86efac;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
+.rec-content strong{{color:#86efac;font-weight:600}}
+.rec-content h2,.rec-content h3,.rec-content h4{{color:#22c55e;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px}}
+.rec-content h4:first-child{{margin-top:0}}
 .ta-table{{width:100%;border-collapse:collapse;margin:8px 0}}
 .ta-table th,.ta-table td{{vertical-align:top;border:1px solid #1e1e1e;padding:8px 10px}}
 .ta-table th{{background:#111;color:#888;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;text-align:left}}
@@ -951,19 +971,28 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .ta-run-block:last-child{{border-bottom:none;margin-bottom:0;padding-bottom:0}}
 .ta-run-tag{{display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;background:#222;color:#888;font-family:'DM Mono',monospace;margin-bottom:4px}}
 .ta-run-tag.ok{{background:#22c55e22;color:#22c55e}}.ta-run-tag.fail{{background:#ef444422;color:#ef4444}}
-.ta-user{{color:#8b8bf5;font-size:12px;margin-bottom:6px}}
-.ta-user .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;display:block;margin-bottom:2px}}
-.ta-agent{{color:#aaa;font-size:12px;line-height:1.5;margin-bottom:6px}}
-.ta-agent .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#c8f060;display:block;margin-bottom:2px}}
+/* Convención de colores en bloques User/Agent:
+   - Texto conversacional (lo que dice cada uno): #ddd (igual para los dos)
+   - Label USUARIO: violeta #8b8bf5
+   - Label AGENTE: violeta #8b8bf5 + subrayado (distinguir sin saturar con colores)
+   - El color verde-lima queda reservado para el header "TURNO" (estructural)
+*/
+.ta-user{{color:#ddd;font-size:13px;margin-bottom:6px;line-height:1.5}}
+.ta-user .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;display:block;margin-bottom:2px}}
+.ta-agent{{color:#ddd;font-size:13px;line-height:1.5;margin-bottom:6px}}
+.ta-agent .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;text-decoration:underline;text-underline-offset:3px;display:block;margin-bottom:2px}}
 .ta-checks{{margin-top:4px}}
 .ta-checks .turn-check{{margin-top:2px;font-size:10px}}
-.ta-right h2,.ta-right h3,.ta-right h4{{color:#c8f060;font-size:12px;font-weight:600;margin:8px 0 4px}}
-.ta-right h2{{font-size:14px}}.ta-right h4{{font-size:11px;color:#888}}
-.ta-right p{{font-size:12px;color:#bbb;line-height:1.6;margin:4px 0}}
+/* Análisis técnico (columna derecha): texto en #ddd (coherente con user/agent), code en gris-azul */
+.ta-right h2,.ta-right h3{{color:#c8f060;font-size:12px;font-weight:600;margin:10px 0 4px}}
+.ta-right h2{{font-size:14px}}
+.ta-right h4{{font-size:10px;color:#888;font-weight:600;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px}}
+.ta-right h4:first-child{{margin-top:0}}
+.ta-right p{{font-size:13px;color:#ddd;line-height:1.6;margin:4px 0}}
 .ta-right ul{{margin:4px 0 4px 16px}}
-.ta-right li{{font-size:12px;color:#bbb;line-height:1.55;margin:2px 0}}
-.ta-right code{{background:#222;color:#c8f060;padding:1px 5px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}}
-.ta-right strong{{color:#ddd}}
+.ta-right li{{font-size:13px;color:#ddd;line-height:1.55;margin:2px 0}}
+.ta-right code{{background:#1f2937;color:#cbd5e1;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
+.ta-right strong{{color:#fff;font-weight:600}}
 .ta-right em{{color:#aaa;font-style:italic}}
 .ta-right a{{color:#c8f060;text-decoration:none}}.ta-right a:hover{{text-decoration:underline}}
 .ta-right .md-table{{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}}
@@ -1057,23 +1086,23 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
         sb = {"PASS": "sb-pass", "FAIL": "sb-fail", "INESTABLE": "sb-inst", "QUOTA_ERROR": "sb-quota"}.get(r["status"], "sb-inst")
         bc = {"PASS": "b-p", "FAIL": "b-f", "INESTABLE": "b-i", "QUOTA_ERROR": "b-q"}.get(r["status"], "b-i")
         badge = f'<span class="b {bc}">{r["status"]}</span>'
+        # Tag de tipo en el header (sustituye al veredicto)
+        _analysis_peek = _load_tc_analysis(r["id"])
+        tipo_tag_html = ""
+        if _analysis_peek:
+            _tipo = _analysis_peek["meta"].get("tipo", "")
+            if _tipo:
+                tipo_tag_html = f'<span class="tipo-tag">{esc(_tipo)}</span>'
         h += f"""<div class="t {sb}" data-status="{r['status']}" data-group="{r['group']}" data-type="{r['type']}">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><span class="tid">{r['id']}</span><span class="tname">{esc(r['name'])}</span><span class="tgroup">{r['group']}</span><span class="truns">{r['pass_count']}/{r['total_runs']}</span></div>
+<div class="th-left"><span class="tid">{r['id']}</span><span class="tname">{esc(r['name'])}</span><span class="tgroup">{r['group']}</span><span class="truns">{r['pass_count']}/{r['total_runs']}</span>{tipo_tag_html}</div>
 <div style="display:flex;gap:5px;align-items:center">{badge}<span class="arrow">\u25b6</span></div>
 </div><div class="tbody">\n"""
-        analysis = _load_tc_analysis(r["id"])
+        analysis = _analysis_peek
         if analysis:
             # === Render enriquecido con análisis manual (qa/tc_analysis/{TC-ID}.md) ===
-            meta = analysis["meta"]
-            veredicto = meta.get("veredicto", "")
-            tipo_clas = meta.get("tipo", "")
-            if veredicto:
-                h += '<div class="veredicto"><div class="v-lbl">Veredicto</div>'
-                h += f'<div class="v-txt">{_md_inline(esc(veredicto))}</div>'
-                if tipo_clas:
-                    h += f'<div class="v-tipo">Tipo: <span>{esc(tipo_clas)}</span></div>'
-                h += '</div>\n'
+            # Ya NO renderizamos un bloque "veredicto" arriba: el análisis técnico vive
+            # en columna derecha, y la recomendación va en banda inferior al final del TC.
             n_turns = max((len(run["turns"]) for run in r["runs"]), default=0)
             for tn in range(1, n_turns + 1):
                 runs_at_turn = []
@@ -1107,6 +1136,17 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                 h += f'<td class="ta-col-left">{left_html}</td>'
                 h += f'<td class="ta-col-right"><div class="ta-right">{turn_analysis_html}</div></td>'
                 h += '</tr></table>\n'
+            # Banda de RECOMENDACIÓN al final del TC (solo si hay sección Recomendación en el MD)
+            recomendacion_md = analysis.get("recomendacion", "")
+            if recomendacion_md:
+                rec_tipo = analysis["meta"].get("tipo", "")
+                rec_estim = analysis["meta"].get("estimacion", "")
+                rec_tag_html = ""
+                if rec_tipo or rec_estim:
+                    parts = [p for p in [rec_tipo, rec_estim] if p]
+                    rec_tag_html = f'<span class="rec-tag">{esc(" · ".join(parts))}</span>'
+                h += f'<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span>{rec_tag_html}</div>'
+                h += f'<div class="rec-content">{_md_to_html(recomendacion_md)}</div></div>\n'
         else:
             # === Render clásico (TCs sin análisis manual) — checks dentro de turn-agent ===
             for ri, run in enumerate(r["runs"]):
