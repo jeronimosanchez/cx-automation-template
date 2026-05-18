@@ -26,7 +26,7 @@ v21 — 14 abril 2026: +14 TCs metodología Compra (zona gris, edges)
 v20 — 14 abril 2026: Registro v12, Checkout v32, Orq v56, Compra v17
 """
 
-import argparse, json, sys, subprocess, requests, uuid, os, time, re, webbrowser, platform
+import argparse, json, sys, subprocess, requests, uuid, os, time, re, webbrowser, platform, shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -565,8 +565,9 @@ def detect_intent(token, session_id, text):
 
 def extract_response(result):
     texts, playbook, params = [], "unknown", {}
+    trace = {}  # info extra de la API (playbook, actions, intent, etc.) — US-QA-09 trace capture
     if "error" in result:
-        return f"ERROR: {result['error']}", "error", {}
+        return f"ERROR: {result['error']}", "error", {}, {}
     qr = result.get("queryResult", {})
     for msg in qr.get("responseMessages", []):
         if "text" in msg:
@@ -575,7 +576,30 @@ def extract_response(result):
     if info:
         playbook = info.split("/")[-1] if "/" in info else info
     params = qr.get("parameters", {})
-    return " ".join(texts), playbook, params
+    # Capturar trace: playbook actual, intent matched, examples/tools si la API los expone
+    trace["currentPlaybook"] = playbook
+    if "match" in qr:
+        m = qr["match"]
+        if "intent" in m and isinstance(m["intent"], dict):
+            trace["intent"] = m["intent"].get("displayName", "")
+        if "matchType" in m:
+            trace["matchType"] = m["matchType"]
+        if "confidence" in m:
+            trace["confidence"] = m["confidence"]
+    # currentPage (en CX-Flows clásico; en Playbooks suele venir vacío pero por si acaso)
+    if "currentPage" in qr:
+        cp = qr["currentPage"]
+        if isinstance(cp, dict):
+            trace["currentPage"] = cp.get("displayName", "")
+    # executionSequence / actions (Conversational Agents Playbooks)
+    if "executionSequence" in qr:
+        trace["executionSequence"] = qr["executionSequence"]
+    if "actions" in qr:
+        trace["actions"] = qr["actions"]
+    # responseUtterances (algunos endpoints lo devuelven)
+    if "diagnosticInfo" in qr:
+        trace["diagnosticInfo_keys"] = list(qr["diagnosticInfo"].keys()) if isinstance(qr["diagnosticInfo"], dict) else None
+    return " ".join(texts), playbook, params, trace
 
 
 def _split_check_detail(d):
@@ -646,7 +670,7 @@ def run_single(token, test, run_num=1):
         result = detect_intent(token, session_id, user_text)
         if result.get("is_quota_error"):
             has_quota_error = True
-        response_text, playbook, params = extract_response(result)
+        response_text, playbook, params, trace = extract_response(result)
         checks = turn.get("checks", [])
         not_exp = test.get("not_expected", []) if i == 0 else []
         turn_check = check_turn(response_text, checks, not_exp)
@@ -655,7 +679,8 @@ def run_single(token, test, run_num=1):
         turn_results.append({
             "turn": i + 1, "user": user_text,
             "agent": response_text[:500], "playbook": playbook,
-            "params": params, "checks": turn_check
+            "params": params, "checks": turn_check,
+            "trace": trace,  # US-QA-09: capturar trace del API para análisis profundo
         })
     return {"pass": all_pass, "turns": turn_results, "quota_error": has_quota_error}
 
@@ -762,6 +787,56 @@ def _load_tc_analysis(tc_id):
             except (ValueError, IndexError):
                 pass
     return {"meta": meta, "turnos": turnos, "body": body, "recomendacion": recomendacion}
+
+
+def _extract_flow_table(turno_md):
+    """Extrae las filas de la tabla 'Turnos vs Problemas detectados' del análisis manual.
+
+    Devuelve lista de dicts [{step, problem}] o None si no hay tabla.
+    Reconoce tablas Markdown con headers que contienen 'Quién'+'Acción'+'Problema'.
+    """
+    if not turno_md:
+        return None
+    # Buscar tabla con headers Quién / Acción / Problema
+    lines = turno_md.split("\n")
+    table_start = None
+    for i, line in enumerate(lines):
+        norm = _strip_accents(line.lower())
+        if "|" in line and "quien" in norm and "accion" in norm and "problema" in norm:
+            table_start = i
+            break
+    if table_start is None:
+        return None
+    # Header line, separator line, then data rows
+    rows = []
+    for line in lines[table_start + 2:]:
+        line = line.strip()
+        if not line.startswith("|"):
+            break
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if len(cells) < 4:
+            continue
+        # cells: [#, Quién, Acción/Texto, Problema detectado]
+        num, quien, accion, problema = cells[0], cells[1], cells[2], cells[3]
+        step = f"<strong>{quien}</strong>: {accion}" if quien else accion
+        if num and num != "-":
+            step = f'<span style="color:#666;margin-right:6px">{num}</span>' + step
+        rows.append({"step": step, "problem": problema})
+    return rows if rows else None
+
+
+def _md_inline_to_html(text):
+    """Conversión inline de Markdown a HTML (negrita, cursiva, code) para celdas de tabla."""
+    if not text:
+        return ""
+    # **bold**
+    text = re.sub(r"\*\*([^\*]+)\*\*", r"<strong>\1</strong>", text)
+    # *italic* o _italic_
+    text = re.sub(r"(?<!\*)\*([^\*]+)\*(?!\*)", r"<em>\1</em>", text)
+    text = re.sub(r"_([^_]+)_", r"<em>\1</em>", text)
+    # `code`
+    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+    return text
 
 
 def _load_resumen():
@@ -883,7 +958,133 @@ def _md_inline(text):
     return text
 
 
-def generate_html(results, ts, txt_file):
+def _compute_metodologia_kpis(results):
+    """Calcula KPIs de QA desde los results para la modal Metodología.
+
+    Devuelve dict con: flakiness, orquestador, compra, cobertura_grupos, cobertura_modos.
+    """
+    total = len(results)
+    # 1. FLAKINESS
+    inestables = [r for r in results if r["status"] == "INESTABLE"]
+    flak_pct = round(100 * len(inestables) / total, 1) if total else 0
+    flak_tcs = [r["id"] for r in inestables]
+    # 2. ORQUESTADOR — % TCs donde grupo_intent observado coincide con grupo declarado del TC
+    orq_total = 0
+    orq_ok = 0
+    orq_errors = []
+    for r in results:
+        if not r["runs"]:
+            continue
+        # Tomar primer turno del primer run (T1 es donde el Orquestador clasifica)
+        try:
+            t1 = r["runs"][0]["turns"][0]
+        except (IndexError, KeyError):
+            continue
+        params = t1.get("params") or {}
+        gi_observed = params.get("grupo_intent", "")
+        gi_expected = r.get("group", "")
+        if not gi_expected:
+            continue
+        orq_total += 1
+        # Match exacto O el observado contiene el esperado (G5 puede ser COMPRA-INV/ZG en sub-estados)
+        if gi_observed == gi_expected or gi_expected in gi_observed:
+            orq_ok += 1
+        else:
+            orq_errors.append({"tc": r["id"], "expected": gi_expected, "observed": gi_observed or "(vacío)"})
+    orq_pct = round(100 * orq_ok / orq_total, 1) if orq_total else 0
+    # 3. COMPRA — slot-filling rate (% turnos con cada slot)
+    turnos_total = 0
+    n_producto = 0
+    n_ocasion = 0
+    n_modo = 0
+    for r in results:
+        for run in r["runs"]:
+            for turn in run["turns"]:
+                turnos_total += 1
+                params = turn.get("params") or {}
+                if params.get("producto"):
+                    n_producto += 1
+                if params.get("ocasion_detectada"):
+                    n_ocasion += 1
+                if params.get("modo_tono"):
+                    n_modo += 1
+    pct_producto = round(100 * n_producto / turnos_total, 1) if turnos_total else 0
+    pct_ocasion = round(100 * n_ocasion / turnos_total, 1) if turnos_total else 0
+    pct_modo = round(100 * n_modo / turnos_total, 1) if turnos_total else 0
+    # 4. COBERTURA GRUPOS — qué grupos del Orquestador tienen TCs
+    grupos_esperados = ["G1", "G2", "G3", "G4", "G5", "G6", "G7"]
+    grupos_nombre = {
+        "G1": "Saludo", "G2": "Info negocio", "G3": "Consulta",
+        "G4": "Gestión pedido", "G5": "Compra", "G6": "Queja", "G7": "Registro"
+    }
+    grupos_count = {g: 0 for g in grupos_esperados}
+    for r in results:
+        grupo = r.get("group", "")
+        # Mapear sub-grupos al principal (COMPRA-INV/ZG → G5, G7-ERR/CANCEL/etc → G7)
+        if grupo.startswith("G5") or grupo.startswith("COMPRA"):
+            grupos_count["G5"] += 1
+        elif grupo.startswith("G7"):
+            grupos_count["G7"] += 1
+        elif grupo in grupos_count:
+            grupos_count[grupo] += 1
+    cobertura_grupos = []
+    for g in grupos_esperados:
+        c = grupos_count[g]
+        status = "ok" if c >= 3 else ("low" if c >= 1 else "missing")
+        cobertura_grupos.append({"grupo": g, "nombre": grupos_nombre[g], "count": c, "status": status})
+    grupos_ok = sum(1 for g in cobertura_grupos if g["status"] == "ok")
+    pct_grupos = round(100 * grupos_ok / len(grupos_esperados), 0)
+    # 5. COBERTURA MODOS DE TONO — qué modos se han usado
+    modos_observados = {}
+    for r in results:
+        for run in r["runs"]:
+            for turn in run["turns"]:
+                params = turn.get("params") or {}
+                modo = params.get("modo_tono", "")
+                if modo:
+                    modos_observados[modo] = modos_observados.get(modo, 0) + 1
+    # Modos esperados según petal_cx_orchestrator.yaml líneas 157, 167-170, 192-195
+    # Solo hay 3 modos definidos en el sistema: estandar (default), solemne (funeral), corporativo (oficina/empresa)
+    modos_esperados = ["estandar", "solemne", "corporativo"]
+    cobertura_modos = []
+    for m in modos_esperados:
+        c = modos_observados.get(m, 0)
+        status = "ok" if c >= 1 else "missing"
+        cobertura_modos.append({"modo": m, "count": c, "status": status})
+    # Modos NO esperados pero observados (info útil)
+    for m in modos_observados:
+        if m not in modos_esperados:
+            cobertura_modos.append({"modo": m, "count": modos_observados[m], "status": "extra"})
+    modos_ok = sum(1 for m in cobertura_modos if m["status"] == "ok")
+    pct_modos = round(100 * modos_ok / len(modos_esperados), 0)
+    return {
+        "flakiness": {"pct": flak_pct, "count": len(inestables), "total": total, "tcs": flak_tcs},
+        "orquestador": {"pct": orq_pct, "ok": orq_ok, "total": orq_total, "errors": orq_errors[:5]},
+        "compra": {"producto": pct_producto, "ocasion": pct_ocasion, "modo_tono": pct_modo, "turnos": turnos_total},
+        "cobertura_grupos": {"items": cobertura_grupos, "pct": pct_grupos, "ok": grupos_ok, "total": len(grupos_esperados)},
+        "cobertura_modos": {"items": cobertura_modos, "pct": pct_modos, "ok": modos_ok, "total": len(modos_esperados)},
+    }
+
+
+def _load_previous_meta(out_dir=None):
+    """Lee el meta.json del run anterior (penúltimo qa_*.meta.json) para cálculo de regresión.
+
+    Devuelve dict con métricas previas o None si no hay run anterior.
+    """
+    try:
+        from pathlib import Path
+        if out_dir is None:
+            out_dir = Path.home() / "petal-qa"
+        metas = sorted(out_dir.glob("qa_*.meta.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if len(metas) < 2:
+            return None  # solo hay 1 (el actual) o ninguno
+        prev = json.load(open(metas[1]))  # penúltimo
+        return prev
+    except Exception:
+        return None
+
+
+def generate_html(results, ts, txt_file, logs_dir_name=None):
     total = len(results)
     n_pass = sum(1 for r in results if r["status"] == "PASS")
     n_inst = sum(1 for r in results if r["status"] == "INESTABLE")
@@ -914,7 +1115,10 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .bar-g{{background:#22c55e}}.bar-y{{background:#f59e0b}}.bar-r{{background:#ef4444}}
 .dl{{display:inline-block;font-size:11px;padding:5px 14px;border-radius:5px;background:#c8f06022;color:#c8f060;border:1px solid #c8f06044;cursor:pointer;margin-bottom:16px;text-decoration:none}}
 .dl:hover{{background:#c8f06033}}
-.filter-bar{{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}}
+.filter-bar{{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}}
+.filter-row{{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0;border-bottom:1px solid #1a1a1a}}
+.filter-row:last-child{{border-bottom:none}}
+.filter-label{{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#666;font-weight:700;min-width:80px;font-family:'DM Mono',monospace}}
 .fbtn{{font-size:11px;padding:4px 12px;border-radius:5px;background:#1a1a1a;border:1px solid #282828;color:#777;cursor:pointer;transition:all .15s;position:relative}}
 .fbtn[data-legend]:hover::after{{content:attr(data-legend);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1f1f1f;color:#c8f060;padding:6px 10px;border-radius:4px;font-size:11px;white-space:nowrap;border:1px solid #444;z-index:10;pointer-events:none;font-weight:normal;box-shadow:0 2px 8px rgba(0,0,0,.4)}}
 .fbtn[data-legend]:hover::before{{content:"";position:absolute;bottom:calc(100% + 1px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#444;z-index:10;pointer-events:none}}
@@ -950,16 +1154,28 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .tipo-tag{{font-size:10px;padding:2px 8px;border-radius:3px;background:#f9731622;color:#f97316;font-family:'DM Mono',monospace;font-weight:600}}
 /* Banda de recomendación al final del TC */
 .recomendacion{{margin:14px 0 4px;padding:14px 16px;background:#0c1f0c;border:1px solid #1e3a1e;border-left:4px solid #22c55e;border-radius:6px}}
+.recomendacion.fail{{background:#1f0e0c;border-color:#3a1e1e;border-left-color:#ef4444}}
+.recomendacion.fail .rec-title{{color:#fca5a5}}
+.recomendacion.fail .rec-icon{{filter:none}}
+.recomendacion.pass{{background:#0c1f0c;border-color:#1e3a1e;border-left-color:#22c55e}}
 .rec-header{{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}}
 .rec-icon{{font-size:18px}}
 .rec-title{{color:#22c55e;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px}}
 .rec-tag{{display:inline-block;font-size:10px;padding:2px 8px;border-radius:3px;background:#22c55e22;color:#22c55e;font-family:'DM Mono',monospace;font-weight:600}}
-.rec-content p{{font-size:13px;color:#cce;line-height:1.6;margin:4px 0}}
-.rec-content ul{{margin:6px 0 6px 20px}}
-.rec-content li{{font-size:13px;color:#cce;line-height:1.55;margin:4px 0}}
-.rec-content code{{background:#1a2e1a;color:#86efac;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
+.rec-content p{{font-size:11px;color:#cce;line-height:1.5;margin:3px 0}}
+.rec-content ul{{margin:4px 0 4px 16px}}
+.rec-content li{{font-size:11px;color:#cce;line-height:1.45;margin:2px 0}}
+.rec-content code{{background:#1a2e1a;color:#86efac;padding:1px 4px;border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}}
 .rec-content strong{{color:#86efac;font-weight:600}}
-.rec-content h2,.rec-content h3,.rec-content h4{{color:#22c55e;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px}}
+.rec-content h2,.rec-content h3,.rec-content h4{{color:#22c55e;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 3px}}
+.rec-content .md-table{{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}}
+.rec-content .md-table th,.rec-content .md-table td{{border:1px solid #1a3a1a;padding:5px 7px;text-align:left;vertical-align:top}}
+.rec-content .md-table th{{background:#0c1f0c;color:#86efac;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}}
+.rec-content .md-table tr:nth-child(even){{background:#0a1a0a}}
+.solucion-recomendada{{margin:0 0 10px;padding:10px 12px;background:#1a2e1a;border:1px solid #22c55e44;border-left:4px solid #22c55e;border-radius:5px}}
+.solucion-recomendada .sr-label{{display:block;font-size:10px;color:#86efac;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:4px;font-family:'DM Mono',monospace}}
+.solucion-recomendada .sr-title{{font-size:14px;color:#fff;font-weight:600;margin-bottom:4px}}
+.solucion-recomendada .sr-why{{font-size:11px;color:#cce;line-height:1.5;margin-top:6px}}
 .rec-content h4:first-child{{margin-top:0}}
 .ta-table{{width:100%;border-collapse:collapse;margin:8px 0}}
 .ta-table th,.ta-table td{{vertical-align:top;border:1px solid #1e1e1e;padding:8px 10px}}
@@ -967,6 +1183,10 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .ta-th-turno{{background:#1a1a1a !important;color:#c8f060 !important;font-family:'DM Mono',monospace}}
 .ta-col-left{{width:42%;background:#0e0e0e}}
 .ta-col-right{{width:58%;background:#111}}
+.ta-run-header{{font-size:14px;font-weight:700;padding:8px 10px;margin:8px 0 0;background:#1a1a1a;border:1px solid #222;border-bottom:none;border-radius:6px 6px 0 0;color:#ddd;font-family:'DM Mono',monospace;letter-spacing:.5px}}
+.ta-run-header.ok{{color:#22c55e;border-color:#22c55e33}}.ta-run-header.fail{{color:#ef4444;border-color:#ef444433}}
+.ta-run-header + .ta-table{{border-radius:0;margin-top:0}}
+.ta-run-header + .ta-table th{{border-top:none}}
 .ta-run-block{{margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #222}}
 .ta-run-block:last-child{{border-bottom:none;margin-bottom:0;padding-bottom:0}}
 .ta-run-tag{{display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;background:#222;color:#888;font-family:'DM Mono',monospace;margin-bottom:4px}}
@@ -978,19 +1198,53 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
    - El color verde-lima queda reservado para el header "TURNO" (estructural)
 */
 .ta-user{{color:#ddd;font-size:13px;margin-bottom:6px;line-height:1.5}}
-.ta-user .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;display:block;margin-bottom:2px}}
+.ta-user .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;display:block;margin-bottom:2px;font-style:normal}}
+.ta-user .ta-text{{font-style:italic;color:#ddd}}
 .ta-agent{{color:#ddd;font-size:13px;line-height:1.5;margin-bottom:6px}}
-.ta-agent .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;text-decoration:underline;text-underline-offset:3px;display:block;margin-bottom:2px}}
+.ta-agent .lbl{{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;text-decoration:underline;text-underline-offset:3px;display:block;margin-bottom:2px;font-style:normal}}
+.ta-agent .ta-text{{font-style:italic;color:#ddd}}
 .ta-checks{{margin-top:4px}}
 .ta-checks .turn-check{{margin-top:2px;font-size:10px}}
+.log-btn{{display:inline-block;font-size:14px;padding:2px 6px;margin-right:8px;background:#1a1a1a;border:1px solid #333;border-radius:4px;text-decoration:none;cursor:pointer;transition:all .15s}}
+.log-btn:hover{{background:#222;border-color:#c8f060}}
+.ta-bullets{{margin:4px 0 4px 16px;padding:0;list-style:disc}}
+.ta-bullets li{{font-size:11px;line-height:1.4;margin:1px 0;word-break:break-word;font-family:'DM Mono',monospace}}
+.ta-bullets.ok{{color:#22c55e}}.ta-bullets.ok li{{color:#22c55e}}
+.ta-bullets.fail{{color:#ef4444}}.ta-bullets.fail li{{color:#ef4444}}
+.ta-detail{{margin:6px 0 10px;border:1px solid #1f1f1f;border-radius:5px;background:#0d0d0d}}
+.ta-detail summary{{padding:8px 12px;cursor:pointer;color:#aaa;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.3px;list-style:none;user-select:none;display:flex;justify-content:space-between;align-items:center}}
+.ta-detail summary::-webkit-details-marker{{display:none}}
+.ta-detail summary:hover{{color:#c8f060;background:#101010}}
+.ta-detail .ta-detail-icon{{display:inline-block;transition:transform .15s;color:#666;font-size:10px}}
+.ta-detail[open] .ta-detail-icon{{transform:rotate(90deg);color:#c8f060}}
+.ta-detail .ta-flow-table{{margin:0;border-top:1px solid #1f1f1f}}
+.ta-flow-table{{width:100%;border-collapse:collapse;margin:6px 0;font-size:12px}}
+.ta-flow-table td{{padding:6px 8px;border-bottom:1px solid #1e1e1e;vertical-align:top}}
+.ta-flow-table tr:last-child td{{border-bottom:none}}
+.ta-flow-table .col-step{{width:62%;color:#ddd}}
+.ta-flow-table .col-problem{{width:38%;color:#aaa;font-size:11px;border-left:1px solid #1e1e1e;padding-left:10px}}
+.ta-flow-table code{{background:#1f2937;color:#cbd5e1;padding:1px 4px;border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}}
+.ta-flow-table em{{color:#ddd;font-style:italic}}
+.trace-step{{margin:6px 0;padding:6px 10px;border-radius:4px;font-size:12px;line-height:1.5}}
+.trace-user{{background:#1a1a2e;border-left:3px solid #8b8bf5;color:#ddd}}
+.trace-agent{{background:#1a1a1a;border-left:3px solid #c8f060;color:#ddd}}
+.trace-action{{background:transparent;color:#aaa;padding:4px 10px 4px 24px;font-style:italic}}
+.trace-arrow{{color:#666;margin-right:4px}}
+.trace-lbl{{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;margin-bottom:2px}}
+.trace-agent .trace-lbl{{color:#8b8bf5;text-decoration:underline;text-underline-offset:3px}}
+.trace-text{{color:#ddd;font-style:italic}}
 /* Análisis técnico (columna derecha): texto en #ddd (coherente con user/agent), code en gris-azul */
 .ta-right h2,.ta-right h3{{color:#c8f060;font-size:12px;font-weight:600;margin:10px 0 4px}}
 .ta-right h2{{font-size:14px}}
-.ta-right h4{{font-size:10px;color:#888;font-weight:600;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px}}
+.ta-right h4{{font-size:10px;color:#c8f060;font-weight:600;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px}}
 .ta-right h4:first-child{{margin-top:0}}
 .ta-right p{{font-size:13px;color:#ddd;line-height:1.6;margin:4px 0}}
-.ta-right ul{{margin:4px 0 4px 16px}}
+.ta-right ul,.ta-right ol{{margin:6px 0 6px 18px}}
 .ta-right li{{font-size:13px;color:#ddd;line-height:1.55;margin:2px 0}}
+.ta-right .manual-analysis ol li{{margin:10px 0;line-height:1.6}}
+.ta-right .manual-analysis ul li{{margin:6px 0}}
+.diag-block{{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}}
+.diag-header{{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}}
 .ta-right code{{background:#1f2937;color:#cbd5e1;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
 .ta-right strong{{color:#fff;font-weight:600}}
 .ta-right em{{color:#aaa;font-style:italic}}
@@ -999,6 +1253,19 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .ta-right .md-table th,.ta-right .md-table td{{border:1px solid #1e1e1e;padding:5px 7px;text-align:left}}
 .ta-right .md-table th{{background:#1a1a1a;color:#c8f060;font-weight:600}}
 .ta-right .md-table tr:nth-child(even){{background:#0e0e0e}}
+.diag-manual-block{{margin:12px 0 4px;padding:12px 14px;background:#0c0c0e;border:1px solid #1f1f2a;border-left:3px solid #c8f060;border-radius:6px}}
+.diag-manual-block h2,.diag-manual-block h3{{color:#c8f060;font-size:12px;font-weight:600;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace}}
+.diag-manual-block h4{{color:#aaa;font-size:11px;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}}
+.diag-manual-block p{{font-size:13px;color:#ddd;line-height:1.6;margin:4px 0}}
+.diag-manual-block ul{{margin:6px 0 6px 20px}}
+.diag-manual-block li{{font-size:13px;color:#ddd;line-height:1.55;margin:4px 0}}
+.diag-manual-block code{{background:#1f2937;color:#cbd5e1;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
+.diag-manual-block strong{{color:#fff;font-weight:600}}
+.diag-manual-block em{{color:#aaa;font-style:italic}}
+.diag-manual-block .md-table{{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}}
+.diag-manual-block .md-table th,.diag-manual-block .md-table td{{border:1px solid #1e1e1e;padding:6px 9px;text-align:left;vertical-align:top}}
+.diag-manual-block .md-table th{{background:#1a1a1a;color:#c8f060;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px}}
+.diag-manual-block .md-table tr:nth-child(even){{background:#0e0e0e}}
 .resumen-section{{margin:32px 0 16px;padding:18px 20px;background:#141414;border:1px solid #222;border-radius:8px;border-left:3px solid #c8f060}}
 .resumen-section h2,.resumen-section h3,.resumen-section h4{{color:#c8f060;margin:14px 0 8px}}
 .resumen-section h2{{font-size:18px;font-weight:600}}
@@ -1022,6 +1289,41 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .modal-content h2{{color:#c8f060;font-size:18px;margin-bottom:14px}}
 .modal-close{{position:absolute;top:10px;right:14px;background:none;border:none;color:#888;font-size:24px;cursor:pointer;line-height:1}}
 .modal-close:hover{{color:#fff}}
+.modal-metodologia{{max-width:760px}}
+.modal-sub{{color:#888;font-size:11px;font-family:'DM Mono',monospace;margin-bottom:18px;letter-spacing:.3px}}
+.kpi-section{{margin:18px 0;padding:14px 16px;background:#0d0d0d;border:1px solid #1f1f1f;border-radius:6px;position:relative}}
+.kpi-section h3[data-legend]{{cursor:help;position:relative;display:inline-block}}
+.kpi-section h3[data-legend]:hover::after{{content:attr(data-legend);position:absolute;top:calc(100% + 6px);left:0;background:#1f1f1f;color:#ddd;padding:10px 14px;border-radius:5px;font-size:11px;line-height:1.5;border:1px solid #444;z-index:1000;width:340px;white-space:normal;font-family:'Inter',-apple-system,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.5);font-weight:normal;letter-spacing:normal;text-transform:none}}
+.kpi-section h3[data-legend]:hover::before{{content:"";position:absolute;top:calc(100% - 1px);left:20px;border:6px solid transparent;border-bottom-color:#444;z-index:1000}}
+.kpi-section h3{{color:#c8f060;font-size:13px;margin:0 0 10px;font-family:'DM Mono',monospace;letter-spacing:.3px}}
+.kpi-section h4{{color:#aaa;font-size:11px;margin:12px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}}
+.kpi-section p{{color:#ddd;font-size:12px;line-height:1.5;margin:4px 0}}
+.kpi-section ul{{margin:4px 0 4px 18px;padding:0}}
+.kpi-section li{{color:#ddd;font-size:12px;line-height:1.5;margin:2px 0}}
+.kpi-section code{{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}}
+.kpi-sub{{color:#888 !important;font-size:11px !important;font-style:italic}}
+.kpi-action{{color:#aaa !important;font-size:11px !important}}
+.kpi-no-data{{color:#666 !important;font-size:11px !important;text-align:center;padding:10px 0}}
+.kpi-flak h3{{color:#fbbf24}}
+.kpi-component{{margin:10px 0 14px;padding-left:8px;border-left:2px solid #1f1f1f}}
+.kpi-bar-row{{display:flex;align-items:center;gap:8px;margin:3px 0;position:relative;cursor:help}}
+.kpi-bar-row[data-legend]:hover::after{{content:attr(data-legend);position:absolute;bottom:calc(100% + 8px);left:0;background:#1f1f1f;color:#ddd;padding:10px 14px;border-radius:5px;font-size:11px;line-height:1.5;border:1px solid #444;z-index:1000;width:340px;white-space:normal;font-family:'Inter',-apple-system,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.5)}}
+.kpi-bar-row[data-legend]:hover::before{{content:"";position:absolute;bottom:calc(100% + 2px);left:30px;border:6px solid transparent;border-top-color:#444;z-index:1000}}
+.kpi-label{{flex:0 0 180px;font-size:11px;color:#ccc}}
+.kpi-bar{{flex:1;height:8px;background:#1a1a1a;border-radius:4px;overflow:hidden}}
+.kpi-bar-fill{{height:100%;background:linear-gradient(90deg,#22c55e,#86efac);border-radius:4px;transition:width .3s}}
+.kpi-value{{flex:0 0 50px;text-align:right;font-size:11px;color:#c8f060;font-family:'DM Mono',monospace;font-weight:600}}
+.kpi-cobertura{{width:100%;border-collapse:collapse;font-size:11px;margin:4px 0}}
+.kpi-cobertura td{{padding:4px 8px;border-bottom:1px solid #1a1a1a;color:#ddd}}
+.kpi-cobertura td:nth-child(2){{color:#aaa;width:30%}}
+.kpi-cobertura td:nth-child(3){{color:#888;width:18%;text-align:right;font-size:10px}}
+.kpi-regr{{width:100%;border-collapse:collapse;font-size:12px}}
+.kpi-regr td{{padding:6px 10px;border-bottom:1px solid #1a1a1a;color:#ddd}}
+.kpi-regr td:first-child{{color:#888;width:30%;font-size:11px}}
+.delta-up{{color:#22c55e !important;font-weight:600}}
+.delta-down{{color:#ef4444 !important;font-weight:600}}
+.delta-neutral{{color:#888 !important;font-weight:600}}
+/* fbtn-modal: usa estilo idéntico a fbtn normal (sin highlight) */
 .hist-table{{width:100%;border-collapse:collapse;font-size:12px}}
 .hist-table th,.hist-table td{{border:1px solid #222;padding:8px 10px;text-align:left}}
 .hist-table th{{background:#1a1a1a;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}}
@@ -1050,7 +1352,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .hidden{{display:none!important}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
-<p class="sub">{ts} \u00b7 {RUNS} runs/TC \u00b7 {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
+<p class="sub">{ts} · {RUNS} runs/TC · {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
 <div class="hdr">
 <div><b>Orquestador:</b> {ORQ_VERSION}</div><div><b>Compra:</b> {COMPRA_VERSION}</div><div><b>Checkout:</b> {CHECKOUT_VERSION}</div>
 <div><b>Registro:</b> {REGISTRO_VERSION}</div><div><b>QA Script:</b> {SCRIPT_VERSION}</div><div><b>Tests:</b> {total} \u00d7 {RUNS} runs</div>
@@ -1064,23 +1366,27 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 </div>
 <div class="bar"><div class="bar-g" style="width:{bar_g}%"></div><div class="bar-y" style="width:{bar_y}%"></div><div class="bar-r" style="width:{bar_r}%"></div></div>
 <div class="actions-bar">
-<a class="dl" href="{txt_file}" download>\u2b07 TXT para Claude</a>
 <a class="dl" onclick="openHistorial()" style="cursor:pointer">\U0001f4ca Hist\u00f3rico</a>
 </div>
 <div class="filter-bar">
-<div class="fbtn" onclick="filterBy('all')">Todos</div>
-<div class="fbtn" onclick="filterBy('PASS')">\u2705 Pass</div>
-<div class="fbtn" onclick="filterBy('INESTABLE')">\u26a0\ufe0f Inestable</div>
-<div class="fbtn" onclick="filterBy('FAIL')">\u274c Fail</div>
-<div class="fbtn" onclick="filterBy('QUOTA_ERROR')">\u26a1 Quota</div>
-<div class="fbtn" onclick="filterByType('REG')">Regresi\u00f3n</div>
-<div class="fbtn" onclick="filterByType('NEW')">Registro</div>
-<div class="fbtn" onclick="filterByType('EDGE')">Metodolog\u00eda</div>"""
+<div class="filter-row">
+<span class="filter-label">Resultado</span>
+<div class="fbtn" data-legend="Mostrar todos los test cases" onclick="filterBy('all')">Todos</div>
+<div class="fbtn" data-legend="TCs que pasan todos los checks en todos los runs" onclick="filterBy('PASS')">\u2705 Pass</div>
+<div class="fbtn" data-legend="TCs que pasan en algunos runs pero no en todos (flakiness)" onclick="filterBy('INESTABLE')">\u26a0\ufe0f Inestable</div>
+<div class="fbtn" data-legend="TCs que fallan en todos los runs" onclick="filterBy('FAIL')">\u274c Fail</div>
+<div class="fbtn" data-legend="TCs no ejecutables por l\u00edmite de cuota de la API" onclick="filterBy('QUOTA_ERROR')">\u26a1 Quota</div>
+</div>
+<div class="filter-row">
+<span class="filter-label">Categor\u00eda</span>
+<div class="fbtn" data-legend="Regresi\u00f3n: TCs que vigilan bugs ya corregidos para que no vuelvan" onclick="filterByType('REG')">Regresi\u00f3n</div>
+<div class="fbtn" data-legend="Registro: TCs del flujo de alta de usuario (email, nombre, datos)" onclick="filterByType('NEW')">Registro</div>
+<div class="fbtn fbtn-modal" data-legend="Ver KPIs de calidad QA: flakiness, salud de Orquestador y Compra, cobertura del suite, regresi\u00f3n vs run anterior" onclick="openMetodologia()">Metodolog\u00eda (KPIs)</div>"""
     for g in groups:
         legend = GROUP_LEGEND.get(g, "")
         legend_attr = f' data-legend="{esc(legend)}" title="{esc(legend)}"' if legend else ""
         h += f'\n<div class="fbtn"{legend_attr} onclick="filterByGroup(\'{g}\')">{g}</div>'
-    h += "\n</div>\n"
+    h += "\n</div>\n</div>\n"
 
     for r in results:
         sb = {"PASS": "sb-pass", "FAIL": "sb-fail", "INESTABLE": "sb-inst", "QUOTA_ERROR": "sb-quota"}.get(r["status"], "sb-inst")
@@ -1093,85 +1399,346 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
             _tipo = _analysis_peek["meta"].get("tipo", "")
             if _tipo:
                 tipo_tag_html = f'<span class="tipo-tag">{esc(_tipo)}</span>'
+        # Bot\u00f3n de log JSON (US-QA-09: an\u00e1lisis basado en log)
+        log_btn_html = ""
+        if logs_dir_name:
+            log_url = f'{logs_dir_name}/{r["id"]}.json'
+            log_btn_html = f'<a class="log-btn" href="{log_url}" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a>'
         h += f"""<div class="t {sb}" data-status="{r['status']}" data-group="{r['group']}" data-type="{r['type']}">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><span class="tid">{r['id']}</span><span class="tname">{esc(r['name'])}</span><span class="tgroup">{r['group']}</span><span class="truns">{r['pass_count']}/{r['total_runs']}</span>{tipo_tag_html}</div>
+<div class="th-left">{log_btn_html}<span class="tid">{r['id']}</span><span class="tname">{esc(r['name'])}</span><span class="tgroup">{r['group']}</span><span class="truns">{r['pass_count']}/{r['total_runs']}</span>{tipo_tag_html}</div>
 <div style="display:flex;gap:5px;align-items:center">{badge}<span class="arrow">\u25b6</span></div>
 </div><div class="tbody">\n"""
         analysis = _analysis_peek
-        if analysis:
-            # === Render enriquecido con análisis manual (qa/tc_analysis/{TC-ID}.md) ===
-            # Ya NO renderizamos un bloque "veredicto" arriba: el análisis técnico vive
-            # en columna derecha, y la recomendación va en banda inferior al final del TC.
-            n_turns = max((len(run["turns"]) for run in r["runs"]), default=0)
-            for tn in range(1, n_turns + 1):
-                runs_at_turn = []
-                for ri, run in enumerate(r["runs"]):
-                    if tn - 1 < len(run["turns"]):
-                        runs_at_turn.append((ri, run, run["turns"][tn - 1]))
-                if not runs_at_turn:
-                    continue
-                turn_analysis_md = analysis["turnos"].get(tn, "")
-                turn_analysis_html = _md_to_html(turn_analysis_md) if turn_analysis_md else '<p><em>Sin análisis para este turno.</em></p>'
-                user_text = esc(runs_at_turn[0][2]["user"])
-                left_html = f'<div class="ta-user"><span class="lbl">Usuario (T{tn})</span>{user_text}</div>'
-                for ri, run, t in runs_at_turn:
-                    run_pass = t["checks"]["pass"]
-                    run_tag_cls = "ok" if run_pass else "fail"
-                    run_tag_icon = "✅" if run_pass else "❌"
-                    run_tag = f'<span class="ta-run-tag {run_tag_cls}">Run {ri+1} · {run_tag_icon}</span>'
-                    gi = t["params"].get("grupo_intent", "")
-                    gi_html = f'<div class="turn-params">$grupo_intent: <span>{esc(gi)}</span></div>' if gi else ""
-                    has_fail = any(d.startswith("FAIL") for d in t["checks"]["details"])
-                    agent_cls = "has-fail" if has_fail else "has-ok"
-                    checks_html = ""
-                    for d in t["checks"]["details"]:
-                        st, msg = _split_check_detail(d)
-                        c_cls = "ok" if st == "OK" else "fail"
-                        c_icon = "✅" if st == "OK" else "❌"
-                        checks_html += f'<div class="turn-check {c_cls}">{c_icon} {esc(msg)}</div>'
-                    left_html += f'<div class="ta-run-block">{run_tag}<div class="ta-agent {agent_cls}"><span class="lbl">Agente</span>{esc(t["agent"])}{gi_html}<div class="ta-checks">{checks_html}</div></div></div>'
+        # === RENDER UNIFICADO ===
+        # Mismo template para todos los TCs (con o sin .md manual).
+        # Izquierda: solo datos crudos (user + agent).
+        # Derecha: flujo inline + evaluación + diagnóstico.
+        # Si hay .md manual: se inserta como diagnóstico enriquecido + recomendación.
+        _gi_map = {"G1": "Saludo/despedida", "G2": "Info negocio", "G3": "Consulta generica",
+                   "G4": "Gestion pedido", "G5": "Compra directa", "G6": "Queja/incidencia",
+                   "G7": "Fuera de scope", "COMPRA-INV": "Compra con inventario",
+                   "COMPRA-ZG": "Compra zona geografica", "ESP": "Caso especial"}
+        _gi_to_playbook = {
+            "G1": "Orquestador (saludo)", "G2": "Orquestador (info)",
+            "G3": "Orquestador (consulta)", "G4": "Checkout (gestion pedido)",
+            "G5": "Compra (busqueda y venta)", "G6": "Orquestador (queja)",
+            "G7": "Registro (alta usuario)", "COMPRA-INV": "Compra > tool buscar_inventario",
+            "COMPRA-ZG": "Compra > tool zona_geografica", "ESP": "Orquestador (caso especial)",
+        }
+        _gi_to_file = {
+            "G5": "definitions/playbooks/compra.yaml", "COMPRA-INV": "definitions/playbooks/compra.yaml",
+            "COMPRA-ZG": "definitions/playbooks/compra.yaml", "G4": "definitions/playbooks/checkout.yaml",
+            "G7": "definitions/playbooks/registro.yaml",
+            "G1": "definitions/playbooks/petal_cx_orchestrator.yaml",
+            "G2": "definitions/playbooks/petal_cx_orchestrator.yaml",
+            "G3": "definitions/playbooks/petal_cx_orchestrator.yaml",
+            "G6": "definitions/playbooks/petal_cx_orchestrator.yaml",
+            "ESP": "definitions/playbooks/petal_cx_orchestrator.yaml",
+        }
+        fail_actions_all = []
+        for ri, run in enumerate(r["runs"]):
+            run_pass = run["pass"]
+            run_icon = "\u2705" if run_pass else "\u274c"
+            run_cls = "ok" if run_pass else "fail"
+            h += f'<div class="ta-run-header {run_cls}">{run_icon} Run {ri+1}</div>\n'
+            for tn_idx, t in enumerate(run["turns"]):
+                tn = tn_idx + 1
+                params = t.get("params") or {}
+                gi = params.get("grupo_intent", "")
+                # Trace real (dict desde la API de CX) y playbook real
+                trace = t.get("trace") if isinstance(t.get("trace"), dict) else {}
+                real_playbook = t.get("playbook", "") or trace.get("currentPlaybook", "")
+                has_fail = any(d.startswith("FAIL") for d in t["checks"]["details"])
+                # Slots reservados (no son grupo_intent ni internos) que muestran info útil
+                slot_keys_to_show = [k for k in params.keys() if k not in ("grupo_intent", "intencion_inicial") and params.get(k)]
+                # --- IZQUIERDA: solo datos crudos ---
+                left_html = f'<div class="ta-user"><span class="lbl">Usuario (T{tn})</span><span class="ta-text">"{esc(t["user"])}"</span></div>'
+                left_html += f'<div class="ta-agent {"has-fail" if has_fail else "has-ok"}"><span class="lbl">Agente</span><span class="ta-text">"{esc(t["agent"])}"</span></div>'
+                # --- DERECHA: flujo inline + evaluacion + diagnostico ---
+                # Si hay análisis manual con tabla Turnos vs Problemas → usar inline
+                turno_md_for_flow = analysis["turnos"].get(tn, "") if analysis else ""
+                manual_flow_rows = _extract_flow_table(turno_md_for_flow) if turno_md_for_flow else None
+                rp = []
+                # SIEMPRE plegable: "Análisis detallado del flujo" (PASS y FAIL, con o sin MD manual)
+                rp.append(f'<details class="ta-detail">')
+                rp.append(f'<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>')
+                rp.append(f'<div class="ta-detail-content">')
+                if manual_flow_rows:
+                    # CASO A: tabla manual del MD
+                    rp.append(f'<table class="ta-flow-table">')
+                    for row in manual_flow_rows:
+                        rp.append(f'<tr>')
+                        rp.append(f'<td class="col-step">{_md_inline_to_html(row["step"])}</td>')
+                        rp.append(f'<td class="col-problem">{_md_inline_to_html(row["problem"])}</td>')
+                        rp.append(f'</tr>')
+                    rp.append(f'</table>')
+                else:
+                    # CASO B: auto trace desde grupo_intent + slots
+                    has_useful_data = bool((real_playbook and real_playbook != "unknown") or params or gi)
+                    # USUARIO box dentro del details
+                    rp.append(f'<div class="trace-step trace-user">')
+                    rp.append(f'<span class="trace-lbl">Usuario (T{tn})</span>')
+                    rp.append(f'<div class="trace-text">"{esc(t["user"][:140])}"</div>')
+                    rp.append(f'</div>')
+                    if has_useful_data:
+                        if real_playbook and real_playbook != "unknown":
+                            rp.append(f'<div class="trace-step trace-action">')
+                            rp.append(f'<span class="trace-arrow">v</span> Playbook activo: <strong>{esc(real_playbook)}</strong> <span style="color:#666;font-size:10px">(real)</span>')
+                            rp.append(f'</div>')
+                        if gi:
+                            gi_desc = _gi_map.get(gi, "")
+                            playbook_inferred = _gi_to_playbook.get(gi, "Orquestador")
+                            gi_title = f' title="{esc(gi_desc)}"' if gi_desc else ""
+                            rp.append(f'<div class="trace-step trace-action">')
+                            rp.append(f'<span class="trace-arrow">v</span> Orquestador clasifica: <code{gi_title}>{esc(gi)}</code> · <em>{esc(gi_desc)}</em> <span style="color:#666;font-size:10px">(real)</span>')
+                            rp.append(f'</div>')
+                            if not (real_playbook and real_playbook != "unknown") and gi not in ("G1", "G2", "G3", "G6", "ESP"):
+                                rp.append(f'<div class="trace-step trace-action">')
+                                rp.append(f'<span class="trace-arrow">v</span> Handoff: <strong>{esc(playbook_inferred)}</strong> <span style="color:#666;font-size:10px">(inferido)</span>')
+                                rp.append(f'</div>')
+                        intent_match = trace.get("intent", "")
+                        if intent_match:
+                            rp.append(f'<div class="trace-step trace-action">')
+                            rp.append(f'<span class="trace-arrow">v</span> Intent matched: <code>{esc(intent_match)}</code>')
+                            rp.append(f'</div>')
+                        if slot_keys_to_show:
+                            slots_text = ", ".join(f'<code>{esc(k)}={esc(str(params[k])[:50])}</code>' for k in slot_keys_to_show[:5])
+                            rp.append(f'<div class="trace-step trace-action">')
+                            rp.append(f'<span class="trace-arrow">v</span> Slots completados: {slots_text} <span style="color:#666;font-size:10px">(real)</span>')
+                            rp.append(f'</div>')
+                    else:
+                        rp.append(f'<div class="trace-step trace-action" style="color:#666"><span class="trace-arrow">v</span> <em>Sin trace ni grupo_intent capturado en este turno</em></div>')
+                    # AGENTE box dentro del details
+                    rp.append(f'<div class="trace-step trace-agent">')
+                    rp.append(f'<span class="trace-lbl">Agente</span>')
+                    agent_short = t["agent"][:240] + ("..." if len(t["agent"]) > 240 else "")
+                    rp.append(f'<div class="trace-text">"{esc(agent_short)}"</div>')
+                    rp.append(f'</div>')
+                rp.append(f'</div>')  # cierre ta-detail-content
+                rp.append(f'</details>')
+                # Evaluacion
+                ok_msgs = []
+                fail_msgs = []
+                for d in t["checks"]["details"]:
+                    st, msg = _split_check_detail(d)
+                    if st == "OK":
+                        ok_msgs.append(msg)
+                    else:
+                        fail_msgs.append(msg)
+                rp.append(f'<h4>Evaluacion</h4>')
+                if not has_fail:
+                    rp.append(f'<p style="color:#22c55e">\u2705 Turno superado</p>')
+                    rp.append(f'<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>')
+                    rp.append('<ul class="ta-bullets ok">')
+                    for c in ok_msgs:
+                        rp.append(f'<li>{esc(c)}</li>')
+                    rp.append('</ul>')
+                else:
+                    rp.append(f'<p style="color:#ef4444">\u274c Turno no superado</p>')
+                    if ok_msgs:
+                        rp.append('<ul class="ta-bullets ok">')
+                        for c in ok_msgs:
+                            rp.append(f'<li>{esc(c)}</li>')
+                        rp.append('</ul>')
+                    if fail_msgs:
+                        rp.append('<ul class="ta-bullets fail">')
+                        for c in fail_msgs:
+                            rp.append(f'<li>{esc(c)}</li>')
+                        rp.append('</ul>')
+                # Diagnostico MANUAL: solo en el último run, en la columna derecha (no se duplica)
+                turn_analysis_md = analysis["turnos"].get(tn, "") if analysis else ""
+                is_last_run = (ri == len(r["runs"]) - 1)
+                if turn_analysis_md and is_last_run:
+                    # Quitar solo: header "### Turnos vs Problemas..." + las filas de la tabla (líneas con |)
+                    md_sin_tabla = re.sub(
+                        r"###?\s*Turnos\s+vs\s+Problemas[^\n]*\n(?:\s*\|[^\n]*\n)+",
+                        "", turn_analysis_md, flags=re.IGNORECASE
+                    ).strip()
+                    if md_sin_tabla:
+                        rp.append(f'<div class="diag-block">')
+                        rp.append(f'<h4 class="diag-header">Diagnóstico ({esc(r["id"])})</h4>')
+                        rp.append(f'<div class="manual-analysis">{_md_to_html(md_sin_tabla)}</div>')
+                        rp.append(f'</div>')
+                elif has_fail and not turn_analysis_md:
+                    rp.append(f'<h4>Diagnostico (auto)</h4>')
+                    playbook_inferred = _gi_to_playbook.get(gi, "Orquestador") if gi else "Orquestador"
+                    playbook_file = _gi_to_file.get(gi, "") if gi else ""
+                    for c in fail_msgs:
+                        c_norm = _strip_accents(c).lower()
+                        if "debia decir" in c_norm or "deberia decir" in c_norm:
+                            rp.append(f'<p style="color:#aaa;font-size:13px"><strong>Turno {tn}</strong> · Playbook implicado: <code>{esc(playbook_inferred)}</code>')
+                            if playbook_file:
+                                rp.append(f' · Archivo: <code>{esc(playbook_file)}</code>')
+                            rp.append(f'</p>')
+                            rp.append(f'<p style="color:#aaa;font-size:12px">El check requiere que el agente mencione una palabra del regex pero su respuesta no la contiene. Posibles causas:</p>')
+                            rp.append(f'<ul class="ta-bullets" style="color:#aaa;font-size:12px"><li style="color:#aaa">El playbook <code>{esc(playbook_inferred)}</code> no tiene regla para este escenario (revisar seccion <code>CASOS ESPECIALES</code>)</li>')
+                            rp.append(f'<li style="color:#aaa">Falta un Example que cubra este input (revisar <code>definitions/examples/</code>)</li>')
+                            rp.append(f'<li style="color:#aaa">El regex del check es demasiado estricto (revisar <code>qa/test_QA_Playbooks_v23.py</code> linea del TC <code>{esc(r["id"])}</code>)</li></ul>')
+                        elif "no debia" in c_norm or "no deberia" in c_norm:
+                            rp.append(f'<p style="color:#aaa;font-size:13px"><strong>Turno {tn}</strong> · Playbook implicado: <code>{esc(playbook_inferred)}</code></p>')
+                            rp.append(f'<p style="color:#aaa;font-size:12px">El agente menciona palabras que el test prohibe.</p>')
+                        else:
+                            rp.append(f'<p style="color:#aaa;font-size:12px"><strong>Turno {tn}:</strong> Check fallido: {esc(c)}.</p>')
+                    fail_actions_all.append({"turno": tn, "msgs": fail_msgs, "user": t["user"][:100], "gi": gi})
+                turn_analysis_html = "\n".join(rp)
                 h += '<table class="ta-table"><tr>'
                 h += f'<th colspan="2" class="ta-th-turno">Turno {tn}</th></tr><tr>'
                 h += f'<td class="ta-col-left">{left_html}</td>'
                 h += f'<td class="ta-col-right"><div class="ta-right">{turn_analysis_html}</div></td>'
                 h += '</tr></table>\n'
-            # Banda de RECOMENDACIÓN al final del TC (solo si hay sección Recomendación en el MD)
-            recomendacion_md = analysis.get("recomendacion", "")
-            if recomendacion_md:
-                rec_tipo = analysis["meta"].get("tipo", "")
-                rec_estim = analysis["meta"].get("estimacion", "")
-                rec_tag_html = ""
-                if rec_tipo or rec_estim:
-                    parts = [p for p in [rec_tipo, rec_estim] if p]
-                    rec_tag_html = f'<span class="rec-tag">{esc(" · ".join(parts))}</span>'
-                h += f'<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span>{rec_tag_html}</div>'
-                h += f'<div class="rec-content">{_md_to_html(recomendacion_md)}</div></div>\n'
-        else:
-            # === Render clásico (TCs sin análisis manual) — checks dentro de turn-agent ===
-            for ri, run in enumerate(r["runs"]):
-                h += f'<div class="run-header {"rp" if run["pass"] else "rf"}">{"✅" if run["pass"] else "❌"} Run {ri+1}</div>\n'
-                for t in run["turns"]:
-                    gi = t["params"].get("grupo_intent", "")
-                    gi_html = f'<div class="turn-params">$grupo_intent: <span>{esc(gi)}</span></div>' if gi else ""
-                    has_fail = any(d.startswith("FAIL") for d in t["checks"]["details"])
-                    agent_cls = "has-fail" if has_fail else "has-ok"
-                    checks_html = ""
-                    for d in t["checks"]["details"]:
-                        st, msg = _split_check_detail(d)
-                        c_cls = "ok" if st == "OK" else "fail"
-                        c_icon = "✅" if st == "OK" else "❌"
-                        checks_html += f'<div class="turn-check {c_cls}">{c_icon} {esc(msg)}</div>'
-                    h += f"""<div class="turn"><div class="turn-num">Turno {t['turn']}{" ⚠️" if not t["checks"]["pass"] else ""}</div>
-<div class="turn-user"><div class="label">Usuario</div><div class="text">{esc(t['user'])}</div></div>
-<div class="turn-agent {agent_cls}"><div class="label">Agente</div><div class="text">{esc(t['agent'])}</div>{checks_html}</div>
-{gi_html}</div>\n"""
+        # (El diagnóstico manual ahora se renderiza en la columna derecha del último run — sin bloque full-width)
+        # Banda de recomendacion: prefiere manual (.md), si no auto
+        recomendacion_md = analysis.get("recomendacion", "") if analysis else ""
+        if recomendacion_md:
+            # Tag simplificado: solo el tipo (el coste y la solución recomendada ya están en la callout debajo)
+            rec_tipo = analysis["meta"].get("tipo", "")
+            rec_tag_html = f'<span class="rec-tag">{esc(rec_tipo)}</span>' if rec_tipo else ""
+            h += f'<div class="recomendacion"><div class="rec-header"><span class="rec-icon">\U0001f4a1</span><span class="rec-title">Recomendacion / Accion</span>{rec_tag_html}</div>'
+            h += f'<div class="rec-content">{_md_to_html(recomendacion_md)}</div></div>\n'
+        elif r["status"] == "FAIL":
+            # Plantilla vacía con estructura — se rellena cuando se hace análisis manual
+            h += '<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">\U0001f4a1</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div>'
+            h += '<div class="rec-content">'
+            h += '<div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777">'
+            h += '<span class="sr-label" style="color:#888">Solución recomendada</span>'
+            h += '<div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div>'
+            h += f'<div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza {esc(r["id"])}"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div>'
+            h += '</div>'
+            h += '<h4 style="color:#888">Soluciones evaluadas</h4>'
+            h += '<p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p>'
+            h += '<h4 style="color:#888">Plan de acción</h4>'
+            h += '<p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p>'
+            h += '</div></div>\n'
+        elif r["status"] == "PASS":
+            # Mismo template estructural que FAIL pero en verde, con contenido apropiado para test que pasa
+            h += '<div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">\u2713</span><span class="rec-title">Recomendaci\u00f3n / Acci\u00f3n</span><span class="rec-tag">Test correcto</span></div>'
+            h += '<div class="rec-content">'
+            h += '<div class="solucion-recomendada">'
+            h += '<span class="sr-label">Soluci\u00f3n recomendada</span>'
+            h += '<div class="sr-title" style="color:#86efac">No requiere acciones</div>'
+            h += '<div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div>'
+            h += '</div>'
+            h += '<h4>Soluciones evaluadas</h4>'
+            h += '<p>No aplica \u2014 el test pasa. Mantener vigilancia en pr\u00f3ximos QA runs para detectar regresiones.</p>'
+            h += '<h4>Plan de acci\u00f3n</h4>'
+            h += '<p>Ninguno. Si en alg\u00fan run futuro pasa a FAIL o INESTABLE, se generar\u00e1 an\u00e1lisis con causa ra\u00edz y soluciones.</p>'
+            h += '</div></div>\n'
         h += "</div></div>\n"
     # Resumen agrupado por causa (carga qa/tc_analysis/_resumen.md si existe)
     resumen_md = _load_resumen()
     if resumen_md:
         h += f'<div class="resumen-section">{_md_to_html(resumen_md)}</div>\n'
         h += "</div></div>\n"
+    # Modal METODOLOGÍA — KPIs de QA (flakiness, salud, cobertura, regresión)
+    kpis = _compute_metodologia_kpis(results)
+    prev_meta = _load_previous_meta()
+    # Regresión vs run anterior
+    regr_html = ""
+    if prev_meta:
+        curr_pct = int((n_pass / total) * 100) if total else 0
+        prev_pct = prev_meta.get("pct", 0)
+        prev_pass = prev_meta.get("pass", 0)
+        prev_total = prev_meta.get("total", 0)
+        delta = curr_pct - prev_pct
+        delta_str = f"+{delta}" if delta >= 0 else str(delta)
+        delta_cls = "delta-up" if delta > 0 else ("delta-down" if delta < 0 else "delta-neutral")
+        regr_html = f"""
+        <div class="kpi-section">
+          <h3>📈 Regresión vs run anterior</h3>
+          <table class="kpi-regr">
+            <tr><td>Run actual</td><td>{esc(ts)}</td><td><strong>PASS {curr_pct}%</strong> ({n_pass}/{total})</td></tr>
+            <tr><td>Run anterior</td><td>{esc(prev_meta.get("timestamp", "?"))}</td><td>PASS {prev_pct}% ({prev_pass}/{prev_total})</td></tr>
+            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="{delta_cls}"><strong>{delta_str}%</strong></td></tr>
+          </table>
+        </div>"""
+    else:
+        regr_html = """
+        <div class="kpi-section">
+          <h3>📈 Regresión vs run anterior</h3>
+          <p class="kpi-no-data"><em>Sin datos del run anterior (este es el primero o no se encontró meta.json previo).</em></p>
+        </div>"""
+    # Flakiness
+    flak_tcs_str = ", ".join(kpis["flakiness"]["tcs"]) if kpis["flakiness"]["tcs"] else "—"
+    flak_html = f"""
+    <div class="kpi-section kpi-flak">
+      <h3 data-legend="Un TC es INESTABLE cuando pasa en algunos runs pero falla en otros. Indica que el sistema no es determinístico — la misma entrada produce resultados distintos. Umbral aceptable: <10%. Si es alto, los tests no son fiables.">Flakiness: {kpis["flakiness"]["pct"]}% <span class="kpi-sub">({kpis["flakiness"]["count"]} TCs INESTABLE de {kpis["flakiness"]["total"]})</span></h3>
+      <p>TCs flaky: <code>{esc(flak_tcs_str)}</code></p>
+      <p class="kpi-action">Acción si alto: re-correr con <code>--runs 5</code> para confirmar.</p>
+    </div>"""
+    # Salud componentes
+    orq_errors_html = ""
+    if kpis["orquestador"]["errors"]:
+        items = "".join(f'<li><code>{esc(e["tc"])}</code> — esperaba <code>{esc(e["expected"])}</code>, observó <code>{esc(e["observed"])}</code></li>' for e in kpis["orquestador"]["errors"])
+        orq_errors_html = f'<p class="kpi-sub">Errores:</p><ul>{items}</ul>'
+    salud_html = f"""
+    <div class="kpi-section">
+      <h3>🏥 Salud de componentes críticos</h3>
+      <div class="kpi-component">
+        <h4>Orquestador</h4>
+        <div class="kpi-bar-row" data-legend="Cada TC declara su grupo_intent esperado (ej. G5, COMPRA-INV). El Orquestador clasifica el input del usuario en el primer turno. Este % indica cuántos TCs aciertan la clasificación esperada. Si baja: el Orquestador está fallando al clasificar inputs.">
+          <span class="kpi-label">Clasificación correcta</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{kpis["orquestador"]["pct"]}%"></div></div>
+          <span class="kpi-value">{kpis["orquestador"]["pct"]}%</span>
+        </div>
+        <p class="kpi-sub">{kpis["orquestador"]["ok"]}/{kpis["orquestador"]["total"]} TCs clasifican el grupo_intent esperado</p>
+        {orq_errors_html}
+      </div>
+      <div class="kpi-component">
+        <h4>Compra (slot-filling)</h4>
+        <div class="kpi-bar-row" data-legend="% de turnos donde Compra extrajo el slot 'producto' del utterance del usuario (ej. 'rosas rojas', 'tulipanes'). Si baja: el Compra no está identificando qué producto pide el usuario.">
+          <span class="kpi-label">Producto extraído</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{kpis["compra"]["producto"]}%"></div></div>
+          <span class="kpi-value">{kpis["compra"]["producto"]}%</span>
+        </div>
+        <div class="kpi-bar-row" data-legend="% de turnos donde Compra detectó la ocasión (Regalo, Decoracion, Funebre, etc.) del input del usuario. Si baja: el playbook no infiere la intención de uso.">
+          <span class="kpi-label">Ocasión detectada</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{kpis["compra"]["ocasion"]}%"></div></div>
+          <span class="kpi-value">{kpis["compra"]["ocasion"]}%</span>
+        </div>
+        <div class="kpi-bar-row" data-legend="% de turnos donde se asignó modo_tono (estandar/solemne/corporativo). El Orquestador detecta esto en el primer utterance del usuario. Si baja: la detección de tono está fallando.">
+          <span class="kpi-label">Modo_tono asignado</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{kpis["compra"]["modo_tono"]}%"></div></div>
+          <span class="kpi-value">{kpis["compra"]["modo_tono"]}%</span>
+        </div>
+        <p class="kpi-sub">Sobre {kpis["compra"]["turnos"]} turnos totales</p>
+      </div>
+    </div>"""
+    # Cobertura grupos
+    grupos_rows = ""
+    icon_map = {"ok": "✅", "low": "⚠️", "missing": "❌", "extra": "➕"}
+    label_map = {"ok": "cubierto", "low": "baja cobertura", "missing": "FALTA cubrir", "extra": "extra"}
+    for g in kpis["cobertura_grupos"]["items"]:
+        grupos_rows += f'<tr><td><code>{esc(g["grupo"])}</code> {esc(g["nombre"])}</td><td>{icon_map.get(g["status"],"")} {label_map.get(g["status"],"")}</td><td>{g["count"]} TC{"s" if g["count"]!=1 else ""}</td></tr>'
+    modos_rows = ""
+    for m in kpis["cobertura_modos"]["items"]:
+        modos_rows += f'<tr><td><code>{esc(m["modo"])}</code></td><td>{icon_map.get(m["status"],"")} {label_map.get(m["status"],"")}</td><td>{m["count"]} TC{"s" if m["count"]!=1 else ""}</td></tr>'
+    cobertura_html = f"""
+    <div class="kpi-section">
+      <h3>🎯 Cobertura del test suite</h3>
+      <div class="kpi-component">
+        <h4>Grupos del Orquestador (clasificación del input) — {kpis["cobertura_grupos"]["ok"]}/{kpis["cobertura_grupos"]["total"]} cubiertos ({kpis["cobertura_grupos"]["pct"]}%)</h4>
+        <table class="kpi-cobertura">{grupos_rows}</table>
+      </div>
+      <div class="kpi-component">
+        <h4>Modos de tono (cómo modula el agente la respuesta) — {kpis["cobertura_modos"]["ok"]}/{kpis["cobertura_modos"]["total"]} cubiertos ({kpis["cobertura_modos"]["pct"]}%)</h4>
+        <table class="kpi-cobertura">{modos_rows}</table>
+      </div>
+    </div>"""
+    h += f"""
+<div id="metodologia-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeMetodologia()"></div>
+  <div class="modal-content modal-metodologia">
+    <button class="modal-close" onclick="closeMetodologia()">&times;</button>
+    <h2>📊 Metodología de evaluación QA</h2>
+    <p class="modal-sub">{total} test cases · {n_pass} PASS · {n_inst} INESTABLE · {n_fail} FAIL · {ts}</p>
+    {flak_html}
+    {salud_html}
+    {regr_html}
+    {cobertura_html}
+  </div>
+</div>
+"""
     # Modal Histórico (US-QA-06-06): tabla de runs anteriores con métricas
     h += """
 <div id="historial-modal" class="modal hidden">
@@ -1247,7 +1814,9 @@ async function openHistorial(){
   }
 }
 function closeHistorial(){document.getElementById('historial-modal').classList.add('hidden')}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeHistorial()});
+function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
+function closeMetodologia(){document.getElementById('metodologia-modal').classList.add('hidden')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();}});
 </script></body></html>"""
     return h
 
@@ -1311,6 +1880,7 @@ def generate_reports(results):
     txt_path = out_dir / f"qa_{ts_file}.txt"
     html_path = out_dir / f"qa_{ts_file}.html"
     meta_path = out_dir / f"qa_{ts_file}.meta.json"
+    logs_dir = out_dir / f"qa_{ts_file}_logs"
     pct_val = int((n_pass / total) * 100) if total else 0
     meta = {
         "timestamp": ts, "ts_file": ts_file,
@@ -1322,19 +1892,48 @@ def generate_reports(results):
             "script": SCRIPT_VERSION,
         },
     }
+    # Guardar logs JSON por TC (US-QA-09: análisis basado en log) — para investigación profunda
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    for r in results:
+        log_data = {
+            "tc_id": r["id"], "tc_name": r["name"],
+            "group": r["group"], "type": r["type"],
+            "status": r["status"], "pass_count": r["pass_count"], "total_runs": r["total_runs"],
+            "ts": ts, "ts_file": ts_file,
+            "runs": [{
+                "run_id": ri + 1, "pass": run["pass"],
+                "turns": [{
+                    "turn": turn["turn"], "user": turn["user"], "agent": turn["agent"],
+                    "playbook": turn.get("playbook", ""),  # US-QA-09: playbook activo
+                    "params": turn["params"], "checks": turn["checks"],
+                    "trace": turn.get("trace", {}),  # US-QA-09: trace del API
+                } for turn in run["turns"]],
+            } for ri, run in enumerate(r["runs"])],
+            "metadata": meta["versions"],
+        }
+        log_path = logs_dir / f'{r["id"]}.json'
+        with open(log_path, "w", encoding="utf-8") as f: json.dump(log_data, f, indent=2, ensure_ascii=False)
     with open(txt_path, "w", encoding="utf-8") as f: f.write(generate_txt(results, ts))
-    with open(html_path, "w", encoding="utf-8") as f: f.write(generate_html(results, ts, txt_path.name))
+    with open(html_path, "w", encoding="utf-8") as f: f.write(generate_html(results, ts, txt_path.name, logs_dir_name=logs_dir.name))
     with open(meta_path, "w", encoding="utf-8") as f: json.dump(meta, f, indent=2, ensure_ascii=False)
-    print(f"\n  TXT: {txt_path}\n  HTML: {html_path}\n  META: {meta_path}")
+    print(f"\n  TXT: {txt_path}\n  HTML: {html_path}\n  META: {meta_path}\n  LOGS: {logs_dir}/ ({len(results)} archivos)")
     if IS_CI:
         # Latest copies sin timestamp, para URL fija publicada en GitHub Pages.
         latest_txt = out_dir / "qa_latest.txt"
         latest_html = out_dir / "qa_latest.html"
         latest_meta = out_dir / "qa_latest.meta.json"
+        latest_logs_dir = out_dir / "qa_latest_logs"
         with open(latest_txt, "w", encoding="utf-8") as f: f.write(generate_txt(results, ts))
-        with open(latest_html, "w", encoding="utf-8") as f: f.write(generate_html(results, ts, latest_txt.name))
+        with open(latest_html, "w", encoding="utf-8") as f: f.write(generate_html(results, ts, latest_txt.name, logs_dir_name=latest_logs_dir.name))
         with open(latest_meta, "w", encoding="utf-8") as f: json.dump(meta, f, indent=2, ensure_ascii=False)
-        print(f"  TXT (latest): {latest_txt}\n  HTML (latest): {latest_html}\n  META (latest): {latest_meta}")
+        # Copiar logs JSON a qa_latest_logs/ para URL fija
+        latest_logs_dir.mkdir(parents=True, exist_ok=True)
+        for r in results:
+            src = logs_dir / f'{r["id"]}.json'
+            dst = latest_logs_dir / f'{r["id"]}.json'
+            if src.exists():
+                shutil.copy2(src, dst)
+        print(f"  TXT (latest): {latest_txt}\n  HTML (latest): {latest_html}\n  META (latest): {latest_meta}\n  LOGS (latest): {latest_logs_dir}/")
         return
     if IS_CLOUD_SHELL:
         subprocess.run("fuser -k 8080/tcp 2>/dev/null", shell=True, capture_output=True)
@@ -1352,7 +1951,7 @@ def generate_reports(results):
 def main():
     global RUNS
     parser = argparse.ArgumentParser(description="QA Petal v23 \u2014 29 tests")
-    parser.add_argument("--test", help="Ejecutar solo un TC (ej: TC-C29)")
+    parser.add_argument("--test", help="Ejecutar TC(s). Uno: TC-C29. Varios: TC-C29,TC-C30,TC-DECO-02")
     parser.add_argument("--type", help="Filtrar: REG, NEW, EDGE")
     parser.add_argument("--runs", type=int, default=3, help="Runs por TC (default 3)")
     parser.add_argument("--list", action="store_true", help="Listar TCs")
@@ -1364,8 +1963,11 @@ def main():
         return
     tests = TESTS
     if args.test:
-        tests = [t for t in TESTS if t["id"] == args.test]
-        if not tests: print(f"TC {args.test} no encontrado."); return
+        wanted = [tid.strip() for tid in args.test.split(",")]
+        tests = [t for t in TESTS if t["id"] in wanted]
+        missing = [tid for tid in wanted if tid not in {t["id"] for t in tests}]
+        if missing: print(f"TCs no encontrados: {', '.join(missing)}"); return
+        if not tests: print(f"TCs {args.test} no encontrados."); return
     elif args.type:
         tests = [t for t in TESTS if t["type"] == args.type]
         if not tests: print(f"Tipo {args.type} no encontrado."); return
