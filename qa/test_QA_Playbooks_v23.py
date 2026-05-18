@@ -387,11 +387,11 @@ TESTS = [
          {"user": "no me gustan",
           "checks": ["otra|alternativ|otras|propongo|encaja|tipo"]},
          {"user": "tampoco me convencen, dame otras",
-          "checks": ["otra|alternativ|propongo|tipo|ocasion|equipo|persona"]},
+          "checks": ["propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano"]},
          {"user": "ninguna me gusta",
           "checks": ["equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion"]},
      ],
-     "not_expected": []},
+     "not_expected": ["Tienes algún color en mente.{0,80}Tienes algún color en mente"]},
 
     {"id": "TC-VARIANTES-SML-01", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial",
@@ -434,7 +434,7 @@ TESTS = [
      "name": "Entrega urgente — clarifica plazo o redirige",
      "turns": [
          {"user": "necesito un ramo de rosas para hoy a las 6",
-          "checks": ["rosa|ramo|entrega|plazo|hoy|disponible|simulad|opcion|tamano"]},
+          "checks": ["hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"]},
      ],
      "not_expected": []},
 
@@ -480,7 +480,7 @@ TESTS = [
      "name": "Pedido multi-item — agente maneja uno por uno o explica limitacion",
      "turns": [
          {"user": "quiero un ramo de rosas y un centro de mesa para una boda",
-          "checks": ["ramo|centro|rosa|primero|empez|opcion|uno"]},
+          "checks": ["centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto"]},
      ],
      "not_expected": []},
 
