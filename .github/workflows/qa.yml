@@ -143,12 +143,14 @@ jobs:
           stamp, sha, summary, old_path, out_path = sys.argv[1:6]
           summary = h.escape(summary)
 
-          new_row = f'<tr><td>{stamp}</td><td><code>{sha}</code></td><td>{summary}</td><td><a href="{stamp}/">Ver</a></td></tr>'
+          # Link directo al HTML del run (no a la carpeta, que no tiene index.html → 404)
+          new_row = f'<tr><td>{stamp}</td><td><code>{sha}</code></td><td>{summary}</td><td><a href="{stamp}/qa_latest.html">Ver</a></td></tr>'
 
           if os.path.exists(old_path) and os.path.getsize(old_path) > 0:
               with open(old_path) as f:
                   content = f.read()
-              content = content.replace('<!-- RUNS -->', new_row + '\n<!-- RUNS -->')
+              # Insertar nueva fila DESPUÉS del placeholder → siempre arriba (orden DESC, más reciente primero)
+              content = content.replace('<!-- RUNS -->', '<!-- RUNS -->\n' + new_row)
           else:
               content = f"""<!DOCTYPE html>
           <html lang="es"><head><meta charset="utf-8"><title>Petal QA</title>
@@ -165,8 +167,8 @@ jobs:
           <h1>Petal QA — Historico de runs</h1>
           <table><thead><tr><th>Fecha (UTC)</th><th>Commit</th><th>Resultado</th><th>Reporte</th></tr></thead>
           <tbody>
-          {new_row}
           <!-- RUNS -->
+          {new_row}
           </tbody></table></body></html>"""
 
           with open(out_path, 'w') as f:
