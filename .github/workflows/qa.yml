@@ -129,7 +129,7 @@ jobs:
           echo "STAMP=${STAMP}" >> "$GITHUB_ENV"
 
           mkdir -p gh_publish/${STAMP}
-          cp reports/* gh_publish/${STAMP}/ 2>/dev/null || true
+          cp -r reports/* gh_publish/${STAMP}/ 2>/dev/null || true
 
           SUMMARY=$(grep -h "Total:" reports/*.txt 2>/dev/null | head -1 || echo "—")
           SHORT=${SHA:0:7}
