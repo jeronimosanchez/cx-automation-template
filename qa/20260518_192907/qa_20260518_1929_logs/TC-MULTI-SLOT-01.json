@@ -1,0 +1,55 @@
+{
+  "tc_id": "TC-MULTI-SLOT-01",
+  "tc_name": "Parseo multi-info en un solo input — extraccion robusta",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-18 19:29",
+  "ts_file": "20260518_1929",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "hola, quiero un ramo de rosas rojas maximo 40 euros para mi boda",
+          "agent": "Mira, no tengo ramos de rosas rojas para boda por debajo de 40 euros, pero tengo este Ramo Dama Honor Lirios — M (5 tallos, 30€) que queda muy bien. ¿Te gusta o miramos otras opciones?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "Ramo de Rosas Rojas",
+            "modo_tono": "estandar",
+            "grupo_intent": "G5",
+            "intencion_inicial": "ramo de rosas rojas maximo 40 euros para mi boda",
+            "ocasion_detectada": "Boda",
+            "precio_max": 40
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
