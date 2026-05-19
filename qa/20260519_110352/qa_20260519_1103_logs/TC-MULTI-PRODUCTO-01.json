@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-MULTI-PRODUCTO-01",
+  "tc_name": "Pedido multi-item — agente maneja uno por uno o explica limitacion",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-05-19 11:03",
+  "ts_file": "20260519_1103",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas y un centro de mesa para una boda",
+          "agent": "Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero un ramo de rosas y un centro de mesa para una boda",
+            "ocasion_detectada": "Boda",
+            "modo_tono": "estandar",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
