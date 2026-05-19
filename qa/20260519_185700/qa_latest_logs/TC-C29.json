@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-C29",
+  "tc_name": "Ambigüedad total sin datos",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-19 11:50",
+  "ts_file": "20260519_1150",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo bonito para mi madre",
+          "agent": "Fenomenal, un regalo para tu madre. Mira, tengo opciones que suelen gustar. Echa un vistazo:\n\n Mira, para tu madre tengo estas opciones que suelen gustar:\n\n*   Ramo de Peonías Coral — M (15 flores, 35€)\n*   Ramo de Girasoles Amarillo — M (10 flores, 20€)\n*   Ramo de Gerberas Amarillo — M (10 flores, 18€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "intencion_inicial": "Algo bonito para mi madre",
+            "ocasion_detectada": "Regalo",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [flor]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
