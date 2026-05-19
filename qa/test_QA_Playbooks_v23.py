@@ -1579,19 +1579,8 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                 # Diagnostico MANUAL: solo en el último run, en la columna derecha (no se duplica)
                 turn_analysis_md = analysis["turnos"].get(tn, "") if analysis else ""
                 is_last_run = (ri == len(r["runs"]) - 1)
-                if turn_analysis_md and is_last_run:
-                    # Quitar solo: header "### Turnos vs Problemas..." + las filas de la tabla (líneas con |)
-                    md_sin_tabla = re.sub(
-                        r"###?\s*Turnos\s+vs\s+Problemas[^\n]*\n(?:\s*\|[^\n]*\n)+",
-                        "", turn_analysis_md, flags=re.IGNORECASE
-                    ).strip()
-                    if md_sin_tabla:
-                        rp.append(f'<div class="diag-block">')
-                        rp.append(f'<h4 class="diag-header">Diagnóstico ({esc(r["id"])})</h4>')
-                        rp.append(f'<div class="manual-analysis">{_md_to_html(md_sin_tabla)}</div>')
-                        rp.append(f'</div>')
-                elif has_fail and not turn_analysis_md:
-                    # DIAGNÓSTICO determinístico: datos reales del log (sin texto hardcodeado)
+                # 1) BLOQUE DETERMINÍSTICO: siempre que haya fail, mostrar datos reales del log
+                if has_fail:
                     rp.append(f'<h4>Diagnóstico</h4>')
                     playbook_inferred = _gi_to_playbook.get(gi, "Orquestador") if gi else "Orquestador"
                     grupo_expected = r.get("group", "")
@@ -1614,10 +1603,25 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                     agent_preview = t["agent"][:200] + ("…" if len(t["agent"]) > 200 else "")
                     rp.append(f'<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"{esc(agent_preview)}"</em></li>')
                     rp.append(f'</ul>')
+                    if not turn_analysis_md:
+                        # Solo añadir a la cola de Optimizar si NO hay análisis manual aún
+                        fail_actions_all.append({"turno": tn, "msgs": fail_msgs, "user": t["user"][:100], "gi": gi})
+                # 2) BLOQUE MANUAL (.md): si existe y es el último run, se añade DEBAJO del determinístico
+                if turn_analysis_md and is_last_run:
+                    # Quitar solo: header "### Turnos vs Problemas..." + las filas de la tabla (líneas con |)
+                    md_sin_tabla = re.sub(
+                        r"###?\s*Turnos\s+vs\s+Problemas[^\n]*\n(?:\s*\|[^\n]*\n)+",
+                        "", turn_analysis_md, flags=re.IGNORECASE
+                    ).strip()
+                    if md_sin_tabla:
+                        rp.append(f'<div class="diag-block">')
+                        rp.append(f'<h4 class="diag-header">Causa raíz ({esc(r["id"])})</h4>')
+                        rp.append(f'<div class="manual-analysis">{_md_to_html(md_sin_tabla)}</div>')
+                        rp.append(f'</div>')
+                elif has_fail and not turn_analysis_md:
                     # CAUSA RAÍZ — placeholder pendiente análisis (lo rellena Claude vía Optimizar)
                     rp.append(f'<h4>Causa raíz</h4>')
                     rp.append(f'<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p>')
-                    fail_actions_all.append({"turno": tn, "msgs": fail_msgs, "user": t["user"][:100], "gi": gi})
                 turn_analysis_html = "\n".join(rp)
                 h += '<table class="ta-table"><tr>'
                 h += f'<th colspan="2" class="ta-th-turno">Turno {tn}</th></tr><tr>'
