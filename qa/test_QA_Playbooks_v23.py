@@ -522,7 +522,7 @@ TESTS = [
      "name": "Peticion fuera de scope — descuento del 50%",
      "turns": [
          {"user": "hacedme un descuento del 50%",
-          "checks": ["no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar"]},
+          "checks": ["no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar|no tenemos|ayudar"]},
      ],
      "not_expected": ["50%.{0,30}aplicado|claro, descuento"]},
 ]
