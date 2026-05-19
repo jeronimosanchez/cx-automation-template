@@ -1262,6 +1262,11 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .ta-right .manual-analysis ul li{{margin:6px 0}}
 .diag-block{{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}}
 .diag-header{{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}}
+.badge{{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}}
+.badge-auto{{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}}
+.badge-llm{{background:#1a2818;color:#c8f060;border:1px solid #2a4818}}
+.panel-close{{color:#888 !important;font-size:14px;padding:4px 10px !important}}
+.panel-close:hover{{color:#fff !important;background:#222}}
 .ta-right code{{background:#1f2937;color:#cbd5e1;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
 .ta-right strong{{color:#fff;font-weight:600}}
 .ta-right em{{color:#aaa;font-style:italic}}
@@ -1383,14 +1388,15 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 </div>
 <div class="bar"><div class="bar-g" style="width:{bar_g}%"></div><div class="bar-y" style="width:{bar_y}%"></div><div class="bar-r" style="width:{bar_r}%"></div></div>
 <div class="actions-bar">
-<a id="btn-delete" class="dl dl-disabled" onclick="deleteOptimizePanel()" style="cursor:not-allowed">\U0001f5d1 Borrar optimizaci\u00f3n</a>
+<a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">\U0001f5d1 Borrar an\u00e1lisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">\u2699 Optimizar</a>
 <a class="dl" onclick="openHistorial()" style="cursor:pointer">\U0001f4ca Hist\u00f3rico</a>
 </div>
 <div id="optimize-panel" class="optimize-panel hidden">
   <div class="optimize-panel-header">
-    <span class="optimize-panel-title">TCs en FAIL \u2014 selecciona los que quieras optimizar</span>
+    <span id="optimize-panel-title" class="optimize-panel-title">TCs en FAIL \u2014 selecciona los que quieras optimizar</span>
     <a id="btn-run" class="dl dl-disabled" onclick="runOptimize()" style="cursor:not-allowed">\u25b6 Run</a>
+    <a class="dl panel-close" onclick="closePanel()" style="cursor:pointer" title="Cerrar panel">\u2715</a>
     <span id="btn-run-feedback" class="run-feedback"></span>
   </div>
   <table class="optimize-table">
@@ -1581,7 +1587,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                 is_last_run = (ri == len(r["runs"]) - 1)
                 # 1) BLOQUE DETERMINÍSTICO: siempre que haya fail, mostrar datos reales del log
                 if has_fail:
-                    rp.append(f'<h4>Diagnóstico</h4>')
+                    rp.append(f'<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>')
                     playbook_inferred = _gi_to_playbook.get(gi, "Orquestador") if gi else "Orquestador"
                     grupo_expected = r.get("group", "")
                     grupo_match_ok = (gi == grupo_expected) or (grupo_expected and grupo_expected in (gi or ""))
@@ -1614,8 +1620,8 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                         "", turn_analysis_md, flags=re.IGNORECASE
                     ).strip()
                     if md_sin_tabla:
-                        rp.append(f'<div class="diag-block">')
-                        rp.append(f'<h4 class="diag-header">Causa raíz ({esc(r["id"])})</h4>')
+                        rp.append(f'<div class="diag-block" data-tcid="{esc(r["id"])}">')
+                        rp.append(f'<h4 class="diag-header">Causa raíz ({esc(r["id"])}) <span class="badge badge-llm">✨ LLM</span></h4>')
                         rp.append(f'<div class="manual-analysis">{_md_to_html(md_sin_tabla)}</div>')
                         rp.append(f'</div>')
                 elif has_fail and not turn_analysis_md:
@@ -1858,7 +1864,7 @@ function closeHistorial(){document.getElementById('historial-modal').classList.a
 function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
 function closeMetodologia(){document.getElementById('metodologia-modal').classList.add('hidden')}
 
-// === Optimizar / Delete / Run ===
+// === Optimizar / Borrar análisis / Run ===
 // Activar botón Optimizar si hay TCs en FAIL en el DOM
 function initOptimizeButton(){
   var fails = document.querySelectorAll('.t[data-status="FAIL"]');
@@ -1869,11 +1875,39 @@ function initOptimizeButton(){
     btn.style.cursor = 'pointer';
   }
 }
+// Activar botón Borrar análisis si hay bloques LLM aplicados en el DOM
+function initDeleteButton(){
+  var analyses = document.querySelectorAll('.diag-block[data-tcid]');
+  var btn = document.getElementById('btn-delete');
+  if (!btn) return;
+  if (analyses.length > 0){
+    btn.classList.remove('dl-disabled');
+    btn.style.cursor = 'pointer';
+  }
+}
+// Set panel mode: 'optimize' (FAIL TCs, generate prompt) o 'delete' (TCs con .md, generate rm commands)
+function setPanelMode(mode){
+  var title = document.getElementById('optimize-panel-title');
+  var run = document.getElementById('btn-run');
+  var thead = document.querySelector('#optimize-panel thead tr');
+  if (mode === 'optimize'){
+    title.textContent = 'TCs en FAIL — selecciona los que quieras optimizar';
+    run.textContent = '▶ Run';
+    run.setAttribute('onclick', 'runOptimize()');
+    thead.innerHTML = '<th></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
+  } else {
+    title.textContent = 'TCs con análisis LLM aplicado — selecciona los que quieras borrar';
+    run.textContent = '\U0001f5d1 Borrar seleccionados';
+    run.setAttribute('onclick', 'runDelete()');
+    thead.innerHTML = '<th></th><th>ID</th><th>Análisis</th>';
+  }
+}
 function openOptimizePanel(){
   var btn = document.getElementById('btn-optimize');
   if (btn.classList.contains('dl-disabled')) return;
   var panel = document.getElementById('optimize-panel');
   if (!panel) return;
+  setPanelMode('optimize');
   // Construir tabla desde el DOM
   var tbody = document.getElementById('optimize-tbody');
   tbody.innerHTML = '';
@@ -1913,10 +1947,33 @@ function openOptimizePanel(){
   document.querySelectorAll('.opt-check').forEach(function(cb){
     cb.addEventListener('change', updateRunButton);
   });
-  // Activar Delete
-  var del = document.getElementById('btn-delete');
-  del.classList.remove('dl-disabled');
-  del.style.cursor = 'pointer';
+  updateRunButton();
+}
+function openDeletePanel(){
+  var btn = document.getElementById('btn-delete');
+  if (btn.classList.contains('dl-disabled')) return;
+  var panel = document.getElementById('optimize-panel');
+  if (!panel) return;
+  setPanelMode('delete');
+  // Construir tabla con TCs que tienen análisis LLM aplicado
+  var tbody = document.getElementById('optimize-tbody');
+  tbody.innerHTML = '';
+  var blocks = document.querySelectorAll('.diag-block[data-tcid]');
+  var seen = {};
+  blocks.forEach(function(b){
+    var tid = b.getAttribute('data-tcid');
+    if (seen[tid]) return;
+    seen[tid] = true;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><input type="checkbox" class="opt-check" data-tid="' + tid + '"></td>' +
+                   '<td>' + tid + '</td>' +
+                   '<td>Causa raíz LLM aplicada</td>';
+    tbody.appendChild(tr);
+  });
+  panel.classList.remove('hidden');
+  document.querySelectorAll('.opt-check').forEach(function(cb){
+    cb.addEventListener('change', updateRunButton);
+  });
   updateRunButton();
 }
 function updateRunButton(){
@@ -2000,15 +2057,36 @@ function runOptimize(){
     fb.classList.add('visible');
   });
 }
-function deleteOptimizePanel(){
-  var btn = document.getElementById('btn-delete');
-  if (btn.classList.contains('dl-disabled')) return;
+function runDelete(){
+  var run = document.getElementById('btn-run');
+  if (run.classList.contains('dl-disabled')) return;
+  var checked = document.querySelectorAll('.opt-check:checked');
+  if (checked.length === 0) return;
+  // Extraer TS de la URL (formato: /qa/<TS>/qa_latest.html)
+  var m = window.location.pathname.match(/\\/qa\\/([0-9_]+)\\//);
+  var ts = m ? m[1] : '<TS>';
+  var P = '\\n';
+  var cmd = '# Borrar análisis LLM seleccionados + regenerar + publicar' + P;
+  checked.forEach(function(cb){
+    cmd += 'rm qa/tc_analysis/' + cb.dataset.tid + '.md' + P;
+  });
+  cmd += 'python3 qa/regenerate_html.py --ts ' + ts + ' --out /tmp/qa.html' + P;
+  cmd += './qa/publish_html.sh /tmp/qa.html ' + ts + P;
+  navigator.clipboard.writeText(cmd).then(function(){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✓ Copiado — pega en terminal';
+    fb.classList.add('visible');
+    setTimeout(function(){ fb.classList.remove('visible'); }, 3000);
+  }).catch(function(err){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✗ Error al copiar: ' + err.message;
+    fb.classList.add('visible');
+  });
+}
+function closePanel(){
   var panel = document.getElementById('optimize-panel');
   panel.classList.add('hidden');
   document.getElementById('optimize-tbody').innerHTML = '';
-  // Resetear Delete a desactivado
-  btn.classList.add('dl-disabled');
-  btn.style.cursor = 'not-allowed';
   // Resetear Run a desactivado
   var run = document.getElementById('btn-run');
   run.classList.add('dl-disabled');
@@ -2019,10 +2097,11 @@ function deleteOptimizePanel(){
   fb.classList.remove('visible');
 }
 // Init al cargar
-document.addEventListener('DOMContentLoaded', initOptimizeButton);
-if (document.readyState !== 'loading') initOptimizeButton();
+function initButtons(){ initOptimizeButton(); initDeleteButton(); }
+document.addEventListener('DOMContentLoaded', initButtons);
+if (document.readyState !== 'loading') initButtons();
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();closePanel();}});
 </script></body></html>"""
     return h
 
