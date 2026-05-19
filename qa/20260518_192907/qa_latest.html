@@ -3634,7 +3634,7 @@ Incl..."</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook (escalación tardía) + Test calibración fina</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -3697,23 +3697,40 @@ Incl..."</div>
 <table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 3</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T3)</span><span class="ta-text">"tampoco me convencen, dame otras"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, te busco otras. ¿Dime para quién es y yo me encargo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
 <summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T3)</span>
-<div class="trace-text">"tampoco me convencen, dame otras"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=rosas</code> <span style="color:#666;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Claro, te busco otras. ¿Dime para quién es y yo me encargo?"</div>
-</div>
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero rosas"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Compra</strong>: Extrae slots: <code>producto=rosas</code>, <code>grupo_intent=G5</code>. Responde <em>"¿Para qué ocasión las quieres?"</em></td>
+<td class="col-problem">✅ Correcto. Pregunta legítima de refinamiento (PASO 1 de Compra: slot filling)</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>User</strong>: <em>"no me gustan"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Responde <em>"¿No te gustan las rosas? Sin problema, cuéntame para quién es y te propongo algo."</em></td>
+<td class="col-problem">✅ Acusa recibo + ofrece refinamiento</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>User</strong>: <em>"tampoco me convencen, dame otras"</em> (2º rechazo consecutivo)</td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">6</span><strong>Compra</strong>: Responde <em>"Claro, te busco otras. ¿Dime para quién es y yo me encargo?"</em></td>
+<td class="col-problem">🔴 <strong>Bug</strong>: el agente debería escalar (handoff a humano) tras 2 rechazos consecutivos. En cambio, sigue insistiendo en refinar. La frase es bienintencionada pero <strong>no aporta valor nuevo</strong> (ya pidió la ocasión en T2).</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">7</span><strong>User</strong>: <em>"ninguna me gusta"</em> (3º rechazo)</td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">8</span><strong>Compra</strong>: Finalmente escala: <em>"Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia..."</em></td>
+<td class="col-problem">✅ Handoff correcto, pero <strong>TARDÍO</strong> (debería haber sido en T3, no T4)</td>
+</tr>
+</table>
 </div>
 </details>
 <h4>Evaluacion</h4>
@@ -3721,14 +3738,16 @@ Incl..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]</li>
 </ul>
-<h4>Diagnostico (auto)</h4>
-<p style="color:#aaa;font-size:13px"><strong>Turno 3</strong> · Playbook implicado: <code>Compra (busqueda y venta)</code>
- · Archivo: <code>definitions/playbooks/compra.yaml</code>
-</p>
-<p style="color:#aaa;font-size:12px">El check requiere que el agente mencione una palabra del regex pero su respuesta no la contiene. Posibles causas:</p>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px"><li style="color:#aaa">El playbook <code>Compra (busqueda y venta)</code> no tiene regla para este escenario (revisar seccion <code>CASOS ESPECIALES</code>)</li>
-<li style="color:#aaa">Falta un Example que cubra este input (revisar <code>definitions/examples/</code>)</li>
-<li style="color:#aaa">El regex del check es demasiado estricto (revisar <code>qa/test_QA_Playbooks_v23.py</code> linea del TC <code>TC-FRUSTRACION-01</code>)</li></ul></div></td></tr></table>
+<div class="diag-block">
+<h4 class="diag-header">Diagnóstico (TC-FRUSTRACION-01)</h4>
+<div class="manual-analysis"><h4>Causa raíz (descompuesta en 2 capas)</h4>
+
+<p>1. <strong>Playbook Compra — falta regla de escalación temprana</strong>: el playbook no tiene una regla explícita de <em>"si usuario rechaza N veces consecutivas, escalar al equipo humano"</em>. El agente intenta refinar indefinidamente hasta que el usuario explícitamente dice <em>"ninguna me gusta"</em> (T4). El bug es que en T3 ya hay 2 rechazos consecutivos (T2 + T3) y eso debería ser señal suficiente para escalar.</p>
+
+<p>2. <strong>Test calibrado finamente, pero correctamente</strong>: el regex de T3 (<code>propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano</code>) exige que el agente proponga alternativas concretas o escale. El agente dice <em>"te busco otras"</em> y <em>"yo me encargo"</em> — semánticamente similar pero NO matchea palabras concretas del regex. Este FAIL es <strong>legítimo</strong>: el test detecta correctamente que el agente no escala cuando debería.</p>
+
+<p><strong>Limitación del análisis</strong>: con los datos del JSON solo vemos <code>params</code> finales (no la traza interna del playbook). No sabemos si Compra tiene una variable <code>rechazos_consecutivos</code> o similar que debería incrementarse — probablemente no, lo que confirma la causa raíz.</p></div>
+</div></div></td></tr></table>
 <table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"ninguna me gusta"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
 <summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
@@ -3757,7 +3776,50 @@ Incl..."</div>
 <ul class="ta-bullets ok">
 <li>Agente dijo [equipo]</li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook (escalación tardía) + Test calibración fina</span></div><div class="rec-content"><h4>Solución recomendada: #7 — Combinar #1 + #3 (Regla escalación + Example ancla)</h4>
+
+<p>🟢 <strong>9/10</strong> · ~1h total · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: fix estructural en playbook (escalación tras 2 rechazos) + ancla determinística en Example que muestre el comportamiento esperado. Reduce flakiness entre runs. Demuestra empatía del agente sin alargar conversaciones infructuosas. UX significativamente mejor.</p>
+
+<h4>Soluciones evaluadas (ordenadas por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>7</td><td><strong>Combinar #1 + #3</strong> (Regla escalación tras 2 rechazos + Example ancla)</td><td>🟢 9/10</td><td>—</td><td><strong>RECOMENDADO</strong>. Fix estructural + ancla determinística. Resuelve el bug real y reduce flakiness del LLM. Patrón validado en otros TCs (Checkout, Registro). ~1h.</td></tr><tr><td>1</td><td><strong>Fix Playbook Compra: añadir regla <code>ESCALACIÓN TEMPRANA</code> en <code>CASOS ESPECIALES</code></strong>. Si usuario rechaza ≥2 veces consecutivas (ej. "no me gusta", "ninguna me convence"), escalar al equipo humano con <code>razon_handoff=frustracion_usuario</code></td><td>🟢 8.5/10</td><td>—</td><td>Bug fix directo. Sin Example, el LLM puede ejecutar la regla de forma inconsistente entre runs. ~30 min.</td></tr><tr><td>3</td><td><strong>Fix Examples: añadir <code>EX-FRUSTRACION-ESCALADA</code></strong> mostrando comportamiento: T1 propuesta → T2 alternativa → T3 escalación con handoff</td><td>🟢 8/10 complementario</td><td>—</td><td>Reduce flakiness. NO resuelve el bug del playbook por sí solo. <strong>Multiplicador</strong> de #1. ~20 min.</td></tr><tr><td>2</td><td><strong>Fix Test: ampliar regex T3</strong> para aceptar `busco</td><td>encargo<code> además de </code>propongo</td><td>alternativ</td><td>equipo`</td><td>🟡 6/10</td><td>—</td><td>Hace que el test pase pero <strong>enmascara el bug</strong>. El agente seguiría sin escalar a tiempo. Solo aceptable si combinamos con #1 (ampliar regex Y arreglar playbook). ~5 min.</td></tr><tr><td>4</td><td><strong>Tracking explícito de rechazos en <code>params</code></strong>: añadir contador <code>n_rechazos</code> que el playbook actualiza por turno</td><td>🟡 6/10</td><td>Refactor params en Compra</td><td>Solución más robusta pero requiere refactor. Permite escalación basada en estado, no en NLP. ~2h + tests.</td></tr><tr><td>5</td><td><strong>Detectar frustración semánticamente</strong> (sentiment analysis del usuario) y escalar cuando detecte negatividad</td><td>🟡 5/10</td><td>Tool externa o LLM extra</td><td>Sobre-ingeniería. El playbook actual ya escala correctamente cuando el usuario insiste, solo le falta hacerlo antes. ~3-5h + dependencia externa.</td></tr><tr><td>6</td><td><strong>No hacer nada</strong> (aceptar FAIL como deuda técnica)</td><td>🔴 2/10</td><td>—</td><td>El test seguirá fallando. Pierde señal de regresión real. El bug del agente (escalación tardía) seguirá afectando UX. NO recomendado.</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #7)</h4>
+
+<p>1. <strong>Editar <code>definitions/playbooks/compra.yaml</code></strong> → sección <code># CASOS ESPECIALES</code>. Añadir bloque <code>ESCALACIÓN TEMPRANA</code>:</p>
+<ul>
+<li>Trigger: usuario expresa rechazo ≥2 veces consecutivas (frases como "no me gusta", "no me convence", "ninguna me sirve", "dame otras")</li>
+<li>Acción: escalar inmediatamente con <code>razon_handoff=frustracion_usuario</code> (sin pedir más refinamiento)</li>
+<li>Mensaje: <em>"Veo que las opciones no te encajan. Te paso con mi equipo, ellos podrán darte una atención más personalizada."</em></li>
+</ul>
+
+<p>2. <strong>Crear Example <code>EX-FRUSTRACION-ESCALADA</code></strong> en <code>definitions/examples/</code>:</p>
+<ul>
+<li>Input simulado de 3 turnos con rechazos progresivos</li>
+<li>Output esperado: T1 oferta inicial → T2 alternativa → T3 escalación con handoff (NO T4)</li>
+</ul>
+
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code>:</p>
+<ul>
+<li>TC-FRUSTRACION-01 debe pasar mostrando escalación en T3 (no T4)</li>
+<li>Verificar que el handoff incluye <code>razon_handoff</code> y que el mensaje del agente menciona "equipo" o "humano"</li>
+</ul>
+
+<p><strong>Coste total</strong>: ~1h (playbook 30 min + example 20 min + QA 10 min).</p>
+
+<h4>Nota: ¿por qué este caso es interesante para QA?</h4>
+
+<p>Este TC ilustra una sutileza importante:</p>
+
+<ul>
+<li><strong>El agente NO está roto</strong> — termina escalando correctamente en T4</li>
+<li><strong>Pero la UX es subóptima</strong> — un cliente frustrado en T3 ya está cerca de abandonar. Esperar a T4 puede perder el lead</li>
+<li><strong>El test endurecido detecta esa sutileza</strong> — exige escalación temprana</li>
+</ul>
+
+<p>Es un buen ejemplo de <strong>calidad conversacional avanzada</strong>: no basta con que el agente "haga lo correcto eventualmente", debe hacerlo <strong>en el turno adecuado</strong> para minimizar fricción.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
