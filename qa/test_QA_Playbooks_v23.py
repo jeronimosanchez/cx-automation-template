@@ -1879,6 +1879,9 @@ function openOptimizePanel(){
     // failed check: primer .turn-check.fail (render clásico) o primer .ta-bullets.fail li (render v3)
     var checkEl = tc.querySelector('.turn-check.fail') || tc.querySelector('.ta-bullets.fail li');
     var checkTxt = checkEl ? checkEl.textContent.trim() : '';
+    // URL al log JSON completo (del botón JSON del TC)
+    var logBtn = tc.querySelector('.log-btn');
+    var jsonUrl = logBtn ? logBtn.getAttribute('href') : '';
     // group (extra metadato)
     var group = tc.getAttribute('data-group') || '';
     var tr = document.createElement('tr');
@@ -1891,6 +1894,7 @@ function openOptimizePanel(){
     tr.querySelector('input').dataset.user = userTxt;
     tr.querySelector('input').dataset.agent = agentTxt;
     tr.querySelector('input').dataset.check = checkTxt;
+    tr.querySelector('input').dataset.jsonurl = jsonUrl;
     tbody.appendChild(tr);
   });
   panel.classList.remove('hidden');
@@ -1921,19 +1925,59 @@ function runOptimize(){
   if (run.classList.contains('dl-disabled')) return;
   var checked = document.querySelectorAll('.opt-check:checked');
   if (checked.length === 0) return;
-  var prompt = 'Eres un experto en Dialogflow CX Playbooks con Gemini como LLM.\\n' +
-               'Analiza los siguientes TCs en FAIL del agente Petal (floristería) y propón el fix más conservador — preferiblemente ajustar el check del test antes que cambiar el playbook, salvo que el agente esté claramente equivocado.\\n\\n';
+  var P = '\\n';
+  var prompt = 'Eres un experto en Dialogflow CX Playbooks con Gemini como LLM, ayudando a optimizar el agente Petal (floristería) desplegado en Dialogflow CX.' + P + P;
+  prompt += 'Analiza los siguientes TCs en FAIL y devuelve para cada uno un análisis estructurado en Markdown con el formato EXACTO que se indica al final.' + P + P;
+  prompt += '==== DATOS DE LOS TCs ====' + P + P;
   checked.forEach(function(cb){
-    prompt += 'TC: ' + cb.dataset.tid + ' — ' + cb.dataset.tname + '\\n' +
-              'Grupo: ' + cb.dataset.group + '\\n' +
-              'Usuario dijo: ' + cb.dataset.user + '\\n' +
-              'Agente respondió: ' + cb.dataset.agent + '\\n' +
-              'Check que falló: ' + cb.dataset.check + '\\n\\n';
+    prompt += 'TC: ' + cb.dataset.tid + ' — ' + cb.dataset.tname + P +
+              'Grupo: ' + cb.dataset.group + P +
+              'Usuario dijo: \"' + cb.dataset.user + '\"' + P +
+              'Agente respondió (primeros 120 chars): \"' + cb.dataset.agent + '\"' + P +
+              'Check que falló: ' + cb.dataset.check + P +
+              'Log JSON completo: ' + cb.dataset.jsonurl + P + P;
   });
-  prompt += 'Para cada TC indica:\\n' +
-            '1. ¿Falso negativo (check mal escrito) o bug real del agente?\\n' +
-            '2. Fix propuesto (texto exacto del check corregido O cambio en el playbook)\\n' +
-            '3. Riesgo: BAJO / MEDIO / ALTO\\n';
+  prompt += '==== FORMATO DE RESPUESTA ====' + P + P;
+  prompt += 'Para CADA TC, devuelve un bloque Markdown con esta estructura EXACTA (que se guardará en qa/tc_analysis/{TC-ID}.md):' + P + P;
+  prompt += '```markdown' + P;
+  prompt += '---' + P;
+  prompt += 'status: FAIL' + P;
+  prompt += 'tipo: <Bug Playbook | Bug Catálogo | Test mal calibrado | Falso negativo | Flakiness | Bug Tool | Bug Orquestador>' + P;
+  prompt += 'estimacion: ~<N> min (Solución #<X> recomendada)' + P;
+  prompt += '---' + P + P;
+  prompt += '## T1' + P + P;
+  prompt += '### Turnos vs Problemas detectados' + P + P;
+  prompt += '| # | Quién | Acción / Texto | Problema detectado |' + P;
+  prompt += '|---|-------|----------------|--------------------|' + P;
+  prompt += '| 1 | User | *\"texto del usuario\"* | — |' + P;
+  prompt += '| 2 | Orquestador | clasifica como Gx → handoff a Y | ✅ Correcto / ⚠️ Observación / 🔴 Problema |' + P;
+  prompt += '| 3 | Compra | extrae slots, llama tool, etc. | descripción del problema |' + P;
+  prompt += '| ... | ... | ... | ... |' + P + P;
+  prompt += '### Causa raíz (descompuesta en N capas)' + P + P;
+  prompt += '1. **Capa 1 (ej. Playbook)**: descripción concreta' + P;
+  prompt += '2. **Capa 2 (ej. Catálogo)**: descripción concreta' + P + P;
+  prompt += '## Recomendación' + P + P;
+  prompt += '### Solución recomendada: #<N> — <título>' + P + P;
+  prompt += '🟢 **<score>/10** · ~<tiempo> · <dependencias o \"Sin dependencias externas\">' + P + P;
+  prompt += '**Por qué**: razonamiento conciso' + P + P;
+  prompt += '### Soluciones evaluadas (ordenadas por score)' + P + P;
+  prompt += '| # | Solución | Score | Dependencias | Por qué este scoring |' + P;
+  prompt += '|---|----------|-------|--------------|----------------------|' + P;
+  prompt += '| <N> | **<solución>** | 🟢 <X>/10 | <deps o "—"> | <razonamiento> |' + P;
+  prompt += '| ... (7 soluciones, ordenadas DESC por score) |' + P + P;
+  prompt += '### Plan de acción (Solución #<N>)' + P + P;
+  prompt += '1. **Acción concreta** → archivo a editar' + P;
+  prompt += '2. **Acción concreta** → archivo' + P;
+  prompt += '3. **Re-ejecutar QA** con `--runs 3`' + P + P;
+  prompt += '**Coste total**: ~<tiempo>' + P;
+  prompt += '```' + P + P;
+  prompt += '==== REGLAS ====' + P;
+  prompt += '- SIEMPRE 7 soluciones por TC, scores 1-10' + P;
+  prompt += '- Emojis: 🟢 (8-10), 🟡 (5-7), 🔴 (1-4)' + P;
+  prompt += '- "Dependencias" concreto (ej. "Aprobación de negocio", "Redeploy backend") o "—" si no hay' + P;
+  prompt += '- Si quieres más contexto, descarga el log JSON de cada TC (URL arriba) — incluye conversación completa, params, slots y trace' + P;
+  prompt += '- Prefiere fix más conservador: ajustar el check antes que cambiar playbook, salvo que el agente esté claramente equivocado' + P;
+  prompt += '- Sé honesto en "Por qué este scoring" — incluye trade-offs reales' + P;
   navigator.clipboard.writeText(prompt).then(function(){
     var fb = document.getElementById('btn-run-feedback');
     fb.textContent = '✓ Copiado — pega en Claude';
