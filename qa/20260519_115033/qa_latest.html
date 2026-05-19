@@ -164,6 +164,11 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .ta-right .manual-analysis ul li{margin:6px 0}
 .diag-block{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}
 .diag-header{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}
+.badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}
+.badge-auto{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}
+.badge-llm{background:#1a2818;color:#c8f060;border:1px solid #2a4818}
+.panel-close{color:#888 !important;font-size:14px;padding:4px 10px !important}
+.panel-close:hover{color:#fff !important;background:#222}
 .ta-right code{background:#1f2937;color:#cbd5e1;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}
 .ta-right strong{color:#fff;font-weight:600}
 .ta-right em{color:#aaa;font-style:italic}
@@ -285,14 +290,15 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div>
 <div class="bar"><div class="bar-g" style="width:85.7%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:12.2%"></div></div>
 <div class="actions-bar">
-<a id="btn-delete" class="dl dl-disabled" onclick="deleteOptimizePanel()" style="cursor:not-allowed">🗑 Borrar optimización</a>
+<a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">🗑 Borrar análisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
 <a class="dl" onclick="openHistorial()" style="cursor:pointer">📊 Histórico</a>
 </div>
 <div id="optimize-panel" class="optimize-panel hidden">
   <div class="optimize-panel-header">
-    <span class="optimize-panel-title">TCs en FAIL — selecciona los que quieras optimizar</span>
+    <span id="optimize-panel-title" class="optimize-panel-title">TCs en FAIL — selecciona los que quieras optimizar</span>
     <a id="btn-run" class="dl dl-disabled" onclick="runOptimize()" style="cursor:not-allowed">▶ Run</a>
+    <a class="dl panel-close" onclick="closePanel()" style="cursor:pointer" title="Cerrar panel">✕</a>
     <span id="btn-run-feedback" class="run-feedback"></span>
   </div>
   <table class="optimize-table">
@@ -3384,7 +3390,7 @@ Incluye factu..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [Margarita.{0,40}--.{0,5}[SMLX]|Margarita.{0,40}—.{0,5}[SMLX]|Margarita.{0,40}–.{0,5}[SMLX]|Margarita.{0,80}euros]</li>
 </ul>
-<h4>Diagnóstico</h4>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-INV</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=ramo de margaritas</code>, <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code></li>
@@ -3445,7 +3451,7 @@ Incluye factu..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros]</li>
 </ul>
-<h4>Diagnóstico</h4>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-INV</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>ocasion_detectada=Decoracion</code>, <code>producto=ramo de rosas</code></li>
@@ -3549,7 +3555,7 @@ Incluye factu..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]</li>
 </ul>
-<h4>Diagnóstico</h4>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code>, <code>modo_tono=estandar</code></li>
@@ -3590,7 +3596,7 @@ Incluye factu..."</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — clarifica plazo o redirige</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — clarifica plazo o redirige</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -3603,28 +3609,29 @@ Incluye factu..."</div>
 ¿Alguno te convence?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
 <summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<table class="ta-flow-table">
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"necesito un ramo de rosas para hoy a las 6"</em></td>
-<td class="col-problem">—</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica como <code>G5</code> (compra) y extrae <code>producto=rosas</code></td>
-<td class="col-problem">✅ Clasificación correcta. ⚠️ NO extrae slot de urgencia/fecha (<code>fecha<em>entrega</code>, <code>hora</em>entrega</code>, <code>urgencia</code> — ninguno presente)</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Playbook Compra</strong>: Procede directamente a mostrar catálogo de rosas (3 opciones: Morado/Amarillo/Blanco M)</td>
-<td class="col-problem">🔴 Ignora la información temporal del usuario ("hoy a las 6"). No clarifica plazo de entrega ni redirige al equipo</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"Claro, tenemos ramos de rosas en varios colores y tamaños. Por ejemplo: \[lista\] ¿Alguno te convence?"</em></td>
-<td class="col-problem">🔴 Respuesta inadecuada: el usuario tiene una restricción dura (entrega hoy) y el agente la ignora completamente. Si compra y la entrega no es posible, se genera frustración / posible cancelación</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: Regex pide: `hoy.{0,40}no \</td>
-<td class="col-problem">plazo \</td>
-</tr>
-</table>
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"necesito un ramo de rosas para hoy a las 6"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=rosas</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Claro, tenemos ramos de rosas en varios colores y tamaños. Por ejemplo:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguno te convence?"</div>
+</div>
 </div>
 </details>
 <h4>Evaluacion</h4>
@@ -3632,7 +3639,7 @@ Incluye factu..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</li>
 </ul>
-<h4>Diagnóstico</h4>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>producto=rosas</code></li>
@@ -3643,42 +3650,9 @@ Incluye factu..."</div>
 *   Ramo de Rosas Amarillo — M (12 flores, 25€)
 *   Ramo de Rosas Blanco — M (12 …"</em></li>
 </ul>
-<div class="diag-block">
-<h4 class="diag-header">Causa raíz (TC-URGENCIA-01)</h4>
-<div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
-
-<p>1. <strong>Playbook Compra (capa principal)</strong>: no tiene CASOS ESPECIALES para "petición con restricción temporal". El playbook entra directo en modo "buscar producto → mostrar catálogo" sin chequear primero si la petición tiene urgencia/plazo que el negocio no puede cumplir.</p>
-<p>2. <strong>Orquestador</strong>: clasifica bien como G5 (compra) y extrae <code>producto</code>, pero NO extrae slot de urgencia/fecha. Sin slot, el playbook ni siquiera puede saber que hay una restricción temporal.</p>
-<p>3. <strong>Política de negocio</strong>: no hay regla explícita sobre qué hacer ante peticiones urgentes. Asumiendo que actualmente Petal no soporta same-day delivery, la respuesta correcta es informar plazo real (24-48h) y/o redirigir al equipo si el cliente insiste.</p></div>
-</div></div></td></tr></table>
-<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Playbook Compra: añadir CASOS ESPECIALES "petición con urgencia/plazo"</h4>
-
-<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
-
-<p><strong>Por qué</strong>: bug real del agente, no del test. El check ya es generoso (7 patterns). La solución más conservadora y de mayor impacto es añadir una regla en el Playbook Compra para detectar palabras temporales (hoy, mañana, urgente, a las X, ahora, ya) y responder ANTES de mostrar catálogo con: "Actualmente las entregas se gestionan en 24-48h. Si necesitas algo urgente, te paso con mi equipo". Encaja con el patrón ya usado en otros CASOS ESPECIALES del playbook.</p>
-
-<h4>Soluciones evaluadas (ordenadas por score)</h4>
-
-<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Playbook Compra: CASOS ESPECIALES "urgencia/plazo"</strong> — detectar palabras temporales y clarificar plazo o redirigir antes de catálogo</td><td>🟢 9/10</td><td>—</td><td><strong>RECOMENDADO</strong>. Fix de raíz, sin dependencias, en el lugar correcto (Playbook). Patrón ya usado en otros casos especiales. ~15 min.</td></tr><tr><td>3</td><td><strong>Combinar #1 + #2</strong> (Playbook + Orquestador slot)</td><td>🟢 8.5/10</td><td>Tests Orquestador</td><td>Solución más robusta: orquestador extrae <code>urgencia</code> como slot, playbook lo lee. Más limpio arquitectónicamente pero ~40 min y toca 2 capas.</td></tr><tr><td>2</td><td><strong>Orquestador: extraer slot <code>urgencia</code> o <code>fecha_entrega</code></strong></td><td>🟢 8/10</td><td>Tests Orquestador</td><td>Captura la info temporal en params. Necesita complemento en playbook para reaccionar. Solo no resuelve el bug. ~30 min.</td></tr><tr><td>4</td><td><strong>Examples: añadir <code>EX-URGENCIA-01</code></strong> anclando <em>"necesito hoy"</em> → <em>"actualmente entrega es 24h"</em></td><td>🟢 7/10 complementario</td><td>—</td><td>Refuerza determinismo del LLM. Multiplicador de #1, no sustituto. ~10 min.</td></tr><tr><td>6</td><td><strong>Backend: implementar same-day delivery real</strong></td><td>🟡 5/10</td><td>Negocio + backend + logística</td><td>Sobre-ingeniería para un MVP. Solo válido si negocio decide ofrecer same-day como producto. Días/semanas.</td></tr><tr><td>5</td><td><strong>Test: relajar regex</strong> para aceptar respuestas que solo muestren catálogo</td><td>🔴 3/10</td><td>—</td><td>Falso fix. El agente está mal: ignora restricción dura del usuario. Relajar el test pierde señal de regresión real. NO recomendado.</td></tr><tr><td>7</td><td><strong>No hacer nada</strong> (aceptar FAIL como deuda técnica permanente)</td><td>🔴 2/10</td><td>—</td><td>Test seguirá fallando, pierde señal. Riesgo de frustración real con clientes. NO recomendado.</td></tr></tbody></table>
-
-<h4>Plan de acción (Solución #1)</h4>
-
-<p>1. <strong>Editar Playbook Compra</strong> (<code>definitions/playbooks/Compra/instruction.md</code> o equivalente) → añadir bloque:</p>
-<p>```</p>
-<h4>CASOS ESPECIALES</h4>
-
-<ul>
-<li><strong>Petición con urgencia/plazo concreto</strong> (palabras clave: "hoy", "mañana", "ahora", "urgente", "ya", "a las HH", "antes de HH"):</li>
-</ul>
-<p>ANTES de mostrar catálogo, responde:</p>
-<p>"Actualmente las entregas se gestionan en 24-48h. Si necesitas algo urgente,</p>
-<p>puedo pasarte con mi equipo para que vean qué pueden hacer."</p>
-<p>Si el usuario insiste → handoff al equipo (razón: <code>urgencia_no_cubierta</code>).</p>
-<p>```</p>
-<p>2. <strong>Commit + push</strong> → CI auto-corre <code>Deploy to Petal CX</code> + <code>QA Petal</code>.</p>
-<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable y descartar flakiness.</p>
-
-<p><strong>Coste total</strong>: ~15 min (edit + commit + verificación post-merge).</p></div></div>
+<h4>Causa raíz</h4>
+<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -3717,7 +3691,7 @@ Incluye factu..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto]</li>
 </ul>
-<h4>Diagnóstico</h4>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Boda</code>, <code>modo_tono=estandar</code></li>
@@ -3732,31 +3706,22 @@ Incluye factu..."</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-IMPOSIBLE-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-IMPOSIBLE-01</span><span class="tname">Peticion fuera de scope — descuento del 50%</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Test mal calibrado</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-IMPOSIBLE-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-IMPOSIBLE-01</span><span class="tname">Peticion fuera de scope — descuento del 50%</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
 <table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"hacedme un descuento del 50%"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Ahora mismo no tenemos descuentos del 50%. ¿Hay algo más en lo que pueda ayudarte?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
 <summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<table class="ta-flow-table">
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"hacedme un descuento del 50%"</em></td>
-<td class="col-problem">—</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: NO captura <code>grupo_intent</code> en este turno (params vacío observado en el log)</td>
-<td class="col-problem">⚠️ Input ambiguo entre G3/G7, no clasifica claramente</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Agente</strong>: <em>"Ahora mismo no tenemos descuentos del 50%. ¿Hay algo más en lo que pueda ayudarte?"</em></td>
-<td class="col-problem">🟡 Respuesta CORRECTA del agente — declina educadamente + ofrece ayuda</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Test (check)</strong>: Regex pide: `no puedo \</td>
-<td class="col-problem">disculp \</td>
-</tr>
-</table>
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"hacedme un descuento del 50%"</div>
+</div>
+<div class="trace-step trace-action" style="color:#666"><span class="trace-arrow">v</span> <em>Sin trace ni grupo_intent capturado en este turno</em></div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Ahora mismo no tenemos descuentos del 50%. ¿Hay algo más en lo que pueda ayudarte?"</div>
+</div>
 </div>
 </details>
 <h4>Evaluacion</h4>
@@ -3764,39 +3729,15 @@ Incluye factu..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar]</li>
 </ul>
-<h4>Diagnóstico</h4>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
 <li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar]</code></li>
 <li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Ahora mismo no tenemos descuentos del 50%. ¿Hay algo más en lo que pueda ayudarte?"</em></li>
 </ul>
-<div class="diag-block">
-<h4 class="diag-header">Causa raíz (TC-IMPOSIBLE-01)</h4>
-<div class="manual-analysis"><h4>Causa raíz (descompuesta en 2 capas)</h4>
-
-<p>1. <strong>Test mal calibrado</strong>: el regex original cubrió un set limitado de respuestas válidas pero olvidó variantes muy comunes (<code>"no tenemos"</code>, <code>"ayudar"</code>). El agente responde naturalmente y queda fuera del regex.</p>
-<p>2. <strong>Mejora secundaria del agente (no crítica)</strong>: podría explicar política de precios o programa de fidelización en vez de un simple "no tenemos", pero su respuesta actual ya es aceptable.</p></div>
-</div></div></td></tr></table>
-<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Test mal calibrado</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Extender regex con frases naturales que el agente sí usa</h4>
-
-<p>🟢 <strong>9/10</strong> · ~2 min · Sin dependencias externas</p>
-
-<p><strong>Por qué</strong>: el agente ya responde bien, solo hay que enseñarle al test a reconocer las frases que usa. Cambio de 1 línea en <code>qa/test_QA_Playbooks_v23.py</code>. Riesgo cero. Encaja con la regla "fix conservador: ajustar check antes que playbook".</p>
-
-<h4>Soluciones evaluadas (ordenadas por score)</h4>
-
-<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Test: extender regex</strong> añadiendo `no tenemos\</td><td>descuento\</td><td>ayudar` a las palabras actuales</td><td>🟢 9/10</td><td>—</td><td><strong>RECOMENDADO</strong>. Resuelve el falso negativo en 2 min. Agente ya responde bien. Riesgo cero.</td></tr><tr><td>4</td><td><strong>Combinar #1 + #2</strong> (regex + Example ancla)</td><td>🟢 8.5/10</td><td>—</td><td>Test pasa Y refuerza determinismo del agente. Patrón estándar. ~12 min.</td></tr><tr><td>2</td><td><strong>Examples: añadir <code>EX-IMPOSIBLE-01</code></strong> que ancle respuesta a "no puedo / disculp"</td><td>🟢 7/10 complementario</td><td>—</td><td>Reduce flakiness entre runs. NO resuelve el bug del test por sí solo. Multiplicador de #1. ~10 min.</td></tr><tr><td>3</td><td><strong>Playbook Compra: añadir CASOS ESPECIALES</strong> con regla "peticiones imposibles" (descuentos no autorizados)</td><td>🟡 7/10</td><td>—</td><td>Mejora calidad explicativa del agente (mencionar política/fidelización). Pero el agente actual ya es aceptable. ~30 min.</td></tr><tr><td>5</td><td><strong>Backend: derivar al equipo comercial</strong> para gestionar excepciones de descuento</td><td>🟡 6/10</td><td>Negocio + backend</td><td>Sobre-ingeniería. Un cliente que pide 50% probablemente no es buen lead. Solo válido para B2B/volumen. ~2-3h.</td></tr><tr><td>6</td><td><strong>Orquestador: clasificar como G7 (fuera de scope)</strong> explícitamente</td><td>🟡 5/10</td><td>Tests Orquestador</td><td>Forzaría tratar peticiones imposibles como out-of-scope, perdiendo oportunidad de redirigir a venta. No recomendado. ~30 min.</td></tr><tr><td>7</td><td><strong>No hacer nada</strong> (aceptar FAIL como deuda técnica permanente)</td><td>🔴 2/10</td><td>—</td><td>Test seguirá fallando, pierde señal de regresión real. NO recomendado.</td></tr></tbody></table>
-
-<h4>Plan de acción (Solución #1)</h4>
-
-<p>1. <strong>Editar <code>qa/test_QA_Playbooks_v23.py</code></strong> → línea del TC-IMPOSIBLE-01:</p>
-<p>```python</p>
-<p>"checks": ["no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar|no tenemos|ayudar"]</p>
-<p>```</p>
-<p>2. <strong>Commit + push</strong> a main → CI auto-corre QA.</p>
-<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable.</p>
-
-<p><strong>Coste total</strong>: ~2 min (edit + commit + verificación post-merge).</p></div></div>
+<h4>Causa raíz</h4>
+<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-IMPOSIBLE-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
 </div></div>
 <div class="t sb-quota" data-status="QUOTA_ERROR" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -3881,7 +3822,7 @@ Incluye factu..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [stock|disponible|solo|quedan|menos|tengo|prefieres|continuamos]</li>
 </ul>
-<h4>Diagnóstico</h4>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
 <li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [stock|disponible|solo|quedan|menos|tengo|prefieres|continuamos]</code></li>
@@ -4036,7 +3977,7 @@ function closeHistorial(){document.getElementById('historial-modal').classList.a
 function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
 function closeMetodologia(){document.getElementById('metodologia-modal').classList.add('hidden')}
 
-// === Optimizar / Delete / Run ===
+// === Optimizar / Borrar análisis / Run ===
 // Activar botón Optimizar si hay TCs en FAIL en el DOM
 function initOptimizeButton(){
   var fails = document.querySelectorAll('.t[data-status="FAIL"]');
@@ -4047,11 +3988,39 @@ function initOptimizeButton(){
     btn.style.cursor = 'pointer';
   }
 }
+// Activar botón Borrar análisis si hay bloques LLM aplicados en el DOM
+function initDeleteButton(){
+  var analyses = document.querySelectorAll('.diag-block[data-tcid]');
+  var btn = document.getElementById('btn-delete');
+  if (!btn) return;
+  if (analyses.length > 0){
+    btn.classList.remove('dl-disabled');
+    btn.style.cursor = 'pointer';
+  }
+}
+// Set panel mode: 'optimize' (FAIL TCs, generate prompt) o 'delete' (TCs con .md, generate rm commands)
+function setPanelMode(mode){
+  var title = document.getElementById('optimize-panel-title');
+  var run = document.getElementById('btn-run');
+  var thead = document.querySelector('#optimize-panel thead tr');
+  if (mode === 'optimize'){
+    title.textContent = 'TCs en FAIL — selecciona los que quieras optimizar';
+    run.textContent = '▶ Run';
+    run.setAttribute('onclick', 'runOptimize()');
+    thead.innerHTML = '<th></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
+  } else {
+    title.textContent = 'TCs con análisis LLM aplicado — selecciona los que quieras borrar';
+    run.textContent = '🗑 Borrar seleccionados';
+    run.setAttribute('onclick', 'runDelete()');
+    thead.innerHTML = '<th></th><th>ID</th><th>Análisis</th>';
+  }
+}
 function openOptimizePanel(){
   var btn = document.getElementById('btn-optimize');
   if (btn.classList.contains('dl-disabled')) return;
   var panel = document.getElementById('optimize-panel');
   if (!panel) return;
+  setPanelMode('optimize');
   // Construir tabla desde el DOM
   var tbody = document.getElementById('optimize-tbody');
   tbody.innerHTML = '';
@@ -4091,10 +4060,33 @@ function openOptimizePanel(){
   document.querySelectorAll('.opt-check').forEach(function(cb){
     cb.addEventListener('change', updateRunButton);
   });
-  // Activar Delete
-  var del = document.getElementById('btn-delete');
-  del.classList.remove('dl-disabled');
-  del.style.cursor = 'pointer';
+  updateRunButton();
+}
+function openDeletePanel(){
+  var btn = document.getElementById('btn-delete');
+  if (btn.classList.contains('dl-disabled')) return;
+  var panel = document.getElementById('optimize-panel');
+  if (!panel) return;
+  setPanelMode('delete');
+  // Construir tabla con TCs que tienen análisis LLM aplicado
+  var tbody = document.getElementById('optimize-tbody');
+  tbody.innerHTML = '';
+  var blocks = document.querySelectorAll('.diag-block[data-tcid]');
+  var seen = {};
+  blocks.forEach(function(b){
+    var tid = b.getAttribute('data-tcid');
+    if (seen[tid]) return;
+    seen[tid] = true;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><input type="checkbox" class="opt-check" data-tid="' + tid + '"></td>' +
+                   '<td>' + tid + '</td>' +
+                   '<td>Causa raíz LLM aplicada</td>';
+    tbody.appendChild(tr);
+  });
+  panel.classList.remove('hidden');
+  document.querySelectorAll('.opt-check').forEach(function(cb){
+    cb.addEventListener('change', updateRunButton);
+  });
   updateRunButton();
 }
 function updateRunButton(){
@@ -4178,15 +4170,36 @@ function runOptimize(){
     fb.classList.add('visible');
   });
 }
-function deleteOptimizePanel(){
-  var btn = document.getElementById('btn-delete');
-  if (btn.classList.contains('dl-disabled')) return;
+function runDelete(){
+  var run = document.getElementById('btn-run');
+  if (run.classList.contains('dl-disabled')) return;
+  var checked = document.querySelectorAll('.opt-check:checked');
+  if (checked.length === 0) return;
+  // Extraer TS de la URL (formato: /qa/<TS>/qa_latest.html)
+  var m = window.location.pathname.match(/\/qa\/([0-9_]+)\//);
+  var ts = m ? m[1] : '<TS>';
+  var P = '\n';
+  var cmd = '# Borrar análisis LLM seleccionados + regenerar + publicar' + P;
+  checked.forEach(function(cb){
+    cmd += 'rm qa/tc_analysis/' + cb.dataset.tid + '.md' + P;
+  });
+  cmd += 'python3 qa/regenerate_html.py --ts ' + ts + ' --out /tmp/qa.html' + P;
+  cmd += './qa/publish_html.sh /tmp/qa.html ' + ts + P;
+  navigator.clipboard.writeText(cmd).then(function(){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✓ Copiado — pega en terminal';
+    fb.classList.add('visible');
+    setTimeout(function(){ fb.classList.remove('visible'); }, 3000);
+  }).catch(function(err){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✗ Error al copiar: ' + err.message;
+    fb.classList.add('visible');
+  });
+}
+function closePanel(){
   var panel = document.getElementById('optimize-panel');
   panel.classList.add('hidden');
   document.getElementById('optimize-tbody').innerHTML = '';
-  // Resetear Delete a desactivado
-  btn.classList.add('dl-disabled');
-  btn.style.cursor = 'not-allowed';
   // Resetear Run a desactivado
   var run = document.getElementById('btn-run');
   run.classList.add('dl-disabled');
@@ -4197,8 +4210,9 @@ function deleteOptimizePanel(){
   fb.classList.remove('visible');
 }
 // Init al cargar
-document.addEventListener('DOMContentLoaded', initOptimizeButton);
-if (document.readyState !== 'loading') initOptimizeButton();
+function initButtons(){ initOptimizeButton(); initDeleteButton(); }
+document.addEventListener('DOMContentLoaded', initButtons);
+if (document.readyState !== 'loading') initButtons();
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();closePanel();}});
 </script></body></html>
