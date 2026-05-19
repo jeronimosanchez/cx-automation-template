@@ -3732,8 +3732,14 @@ Incluye factu..."</div>
 <ul class="ta-bullets fail">
 <li>Agente debía decir [no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar]</li>
 </ul>
+<h4>Diagnóstico</h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Ahora mismo no tenemos descuentos del 50%. ¿Hay algo más en lo que pueda ayudarte?"</em></li>
+</ul>
 <div class="diag-block">
-<h4 class="diag-header">Diagnóstico (TC-IMPOSIBLE-01)</h4>
+<h4 class="diag-header">Causa raíz (TC-IMPOSIBLE-01)</h4>
 <div class="manual-analysis"><h4>Causa raíz (descompuesta en 2 capas)</h4>
 
 <p>1. <strong>Test mal calibrado</strong>: el regex original cubrió un set limitado de respuestas válidas pero olvidó variantes muy comunes (<code>"no tenemos"</code>, <code>"ayudar"</code>). El agente responde naturalmente y queda fuera del regex.</p>
