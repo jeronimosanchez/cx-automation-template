@@ -1591,25 +1591,32 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                         rp.append(f'<div class="manual-analysis">{_md_to_html(md_sin_tabla)}</div>')
                         rp.append(f'</div>')
                 elif has_fail and not turn_analysis_md:
-                    rp.append(f'<h4>Diagnostico (auto)</h4>')
+                    # DIAGNÓSTICO determinístico: datos reales del log (sin texto hardcodeado)
+                    rp.append(f'<h4>Diagnóstico</h4>')
                     playbook_inferred = _gi_to_playbook.get(gi, "Orquestador") if gi else "Orquestador"
-                    playbook_file = _gi_to_file.get(gi, "") if gi else ""
+                    grupo_expected = r.get("group", "")
+                    grupo_match_ok = (gi == grupo_expected) or (grupo_expected and grupo_expected in (gi or ""))
+                    # Bloque "Datos observados" (siempre con info real del TC)
+                    rp.append(f'<ul class="ta-bullets" style="color:#aaa;font-size:12px">')
+                    if gi:
+                        match_icon = "✅" if grupo_match_ok else "⚠️"
+                        rp.append(f'<li style="color:#aaa"><strong>Clasificación:</strong> {match_icon} grupo_intent observado <code>{esc(gi)}</code> (esperado: <code>{esc(grupo_expected) if grupo_expected else "—"}</code>) → playbook inferido <code>{esc(playbook_inferred)}</code></li>')
+                    else:
+                        rp.append(f'<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>{esc(grupo_expected) if grupo_expected else "—"}</code>)</li>')
+                    # Slots extraídos
+                    if slot_keys_to_show:
+                        slots_str = ", ".join(f'<code>{esc(k)}={esc(str(params[k])[:40])}</code>' for k in slot_keys_to_show[:5])
+                        rp.append(f'<li style="color:#aaa"><strong>Slots extraídos:</strong> {slots_str}</li>')
+                    # Checks fallidos con detalle
                     for c in fail_msgs:
-                        c_norm = _strip_accents(c).lower()
-                        if "debia decir" in c_norm or "deberia decir" in c_norm:
-                            rp.append(f'<p style="color:#aaa;font-size:13px"><strong>Turno {tn}</strong> · Playbook implicado: <code>{esc(playbook_inferred)}</code>')
-                            if playbook_file:
-                                rp.append(f' · Archivo: <code>{esc(playbook_file)}</code>')
-                            rp.append(f'</p>')
-                            rp.append(f'<p style="color:#aaa;font-size:12px">El check requiere que el agente mencione una palabra del regex pero su respuesta no la contiene. Posibles causas:</p>')
-                            rp.append(f'<ul class="ta-bullets" style="color:#aaa;font-size:12px"><li style="color:#aaa">El playbook <code>{esc(playbook_inferred)}</code> no tiene regla para este escenario (revisar seccion <code>CASOS ESPECIALES</code>)</li>')
-                            rp.append(f'<li style="color:#aaa">Falta un Example que cubra este input (revisar <code>definitions/examples/</code>)</li>')
-                            rp.append(f'<li style="color:#aaa">El regex del check es demasiado estricto (revisar <code>qa/test_QA_Playbooks_v23.py</code> linea del TC <code>{esc(r["id"])}</code>)</li></ul>')
-                        elif "no debia" in c_norm or "no deberia" in c_norm:
-                            rp.append(f'<p style="color:#aaa;font-size:13px"><strong>Turno {tn}</strong> · Playbook implicado: <code>{esc(playbook_inferred)}</code></p>')
-                            rp.append(f'<p style="color:#aaa;font-size:12px">El agente menciona palabras que el test prohibe.</p>')
-                        else:
-                            rp.append(f'<p style="color:#aaa;font-size:12px"><strong>Turno {tn}:</strong> Check fallido: {esc(c)}.</p>')
+                        rp.append(f'<li style="color:#aaa"><strong>Check no superado:</strong> <code>{esc(c)}</code></li>')
+                    # Agente respondió (primeros 200 chars)
+                    agent_preview = t["agent"][:200] + ("…" if len(t["agent"]) > 200 else "")
+                    rp.append(f'<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"{esc(agent_preview)}"</em></li>')
+                    rp.append(f'</ul>')
+                    # CAUSA RAÍZ — placeholder pendiente análisis (lo rellena Claude vía Optimizar)
+                    rp.append(f'<h4>Causa raíz</h4>')
+                    rp.append(f'<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p>')
                     fail_actions_all.append({"turno": tn, "msgs": fail_msgs, "user": t["user"][:100], "gi": gi})
                 turn_analysis_html = "\n".join(rp)
                 h += '<table class="ta-table"><tr>'
