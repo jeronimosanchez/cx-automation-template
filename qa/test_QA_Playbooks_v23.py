@@ -1115,6 +1115,23 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .bar-g{{background:#22c55e}}.bar-y{{background:#f59e0b}}.bar-r{{background:#ef4444}}
 .dl{{display:inline-block;font-size:11px;padding:5px 14px;border-radius:5px;background:#c8f06022;color:#c8f060;border:1px solid #c8f06044;cursor:pointer;margin-bottom:16px;text-decoration:none}}
 .dl:hover{{background:#c8f06033}}
+.dl-disabled{{background:#1a1a1a !important;color:#666 !important;border-color:#374151 !important;cursor:not-allowed !important}}
+.dl-disabled:hover{{background:#1a1a1a !important}}
+.optimize-panel{{background:#141414;border:1px solid #222;border-radius:8px;padding:16px;margin-bottom:16px}}
+.optimize-panel.hidden{{display:none}}
+.optimize-panel-header{{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}}
+.optimize-panel-title{{color:#c8f060;font-size:12px;font-family:'DM Mono',monospace;letter-spacing:.3px;flex:1}}
+.optimize-panel-header .dl{{margin-bottom:0}}
+.run-feedback{{color:#c8f060;font-size:11px;font-family:'DM Mono',monospace;opacity:0;transition:opacity .2s}}
+.run-feedback.visible{{opacity:1}}
+.optimize-table{{width:100%;border-collapse:collapse;font-size:11px}}
+.optimize-table th{{background:#1a1a1a;color:#c8f060;font-weight:600;padding:8px 10px;text-align:left;border-bottom:1px solid #222;text-transform:uppercase;letter-spacing:.3px;font-size:10px}}
+.optimize-table td{{padding:8px 10px;border-bottom:1px solid #1a1a1a;color:#ddd;vertical-align:top}}
+.optimize-table tr:hover{{background:#1a1a1a}}
+.optimize-table td:first-child{{width:30px;text-align:center}}
+.optimize-table td:nth-child(2){{font-family:'DM Mono',monospace;color:#c8f060;font-size:11px;white-space:nowrap}}
+.optimize-table td:nth-child(4),.optimize-table td:nth-child(5){{color:#aaa;font-size:10px;line-height:1.4}}
+.optimize-table input[type=checkbox]{{accent-color:#c8f060;cursor:pointer;width:14px;height:14px}}
 .filter-bar{{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}}
 .filter-row{{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0;border-bottom:1px solid #1a1a1a}}
 .filter-row:last-child{{border-bottom:none}}
@@ -1366,7 +1383,20 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 </div>
 <div class="bar"><div class="bar-g" style="width:{bar_g}%"></div><div class="bar-y" style="width:{bar_y}%"></div><div class="bar-r" style="width:{bar_r}%"></div></div>
 <div class="actions-bar">
+<a id="btn-delete" class="dl dl-disabled" onclick="deleteOptimizePanel()" style="cursor:not-allowed">\U0001f5d1 Borrar optimizaci\u00f3n</a>
+<a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">\u2699 Optimizar</a>
 <a class="dl" onclick="openHistorial()" style="cursor:pointer">\U0001f4ca Hist\u00f3rico</a>
+</div>
+<div id="optimize-panel" class="optimize-panel hidden">
+  <div class="optimize-panel-header">
+    <span class="optimize-panel-title">TCs en FAIL \u2014 selecciona los que quieras optimizar</span>
+    <a id="btn-run" class="dl dl-disabled" onclick="runOptimize()" style="cursor:not-allowed">\u25b6 Run</a>
+    <span id="btn-run-feedback" class="run-feedback"></span>
+  </div>
+  <table class="optimize-table">
+    <thead><tr><th></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th></tr></thead>
+    <tbody id="optimize-tbody"></tbody>
+  </table>
 </div>
 <div class="filter-bar">
 <div class="filter-row">
@@ -1816,6 +1846,127 @@ async function openHistorial(){
 function closeHistorial(){document.getElementById('historial-modal').classList.add('hidden')}
 function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
 function closeMetodologia(){document.getElementById('metodologia-modal').classList.add('hidden')}
+
+// === Optimizar / Delete / Run ===
+// Activar botón Optimizar si hay TCs en FAIL en el DOM
+function initOptimizeButton(){
+  var fails = document.querySelectorAll('.t[data-status="FAIL"]');
+  var btn = document.getElementById('btn-optimize');
+  if (!btn) return;
+  if (fails.length > 0){
+    btn.classList.remove('dl-disabled');
+    btn.style.cursor = 'pointer';
+  }
+}
+function openOptimizePanel(){
+  var btn = document.getElementById('btn-optimize');
+  if (btn.classList.contains('dl-disabled')) return;
+  var panel = document.getElementById('optimize-panel');
+  if (!panel) return;
+  // Construir tabla desde el DOM
+  var tbody = document.getElementById('optimize-tbody');
+  tbody.innerHTML = '';
+  var fails = document.querySelectorAll('.t[data-status="FAIL"]');
+  fails.forEach(function(tc){
+    var tid = tc.querySelector('.tid') ? tc.querySelector('.tid').textContent.trim() : '?';
+    var tname = tc.querySelector('.tname') ? tc.querySelector('.tname').textContent.trim() : '';
+    // user utterance: primer ta-user > .ta-text (o .trace-text del primer trace-user)
+    var userEl = tc.querySelector('.ta-user .ta-text') || tc.querySelector('.trace-user .trace-text') || tc.querySelector('.turn-user .text');
+    var userTxt = userEl ? userEl.textContent.trim().replace(/^"|"$/g, '') : '';
+    // agent response: primer ta-agent > .ta-text
+    var agentEl = tc.querySelector('.ta-agent .ta-text') || tc.querySelector('.trace-agent .trace-text') || tc.querySelector('.turn-agent .text');
+    var agentTxt = agentEl ? agentEl.textContent.trim().replace(/^"|"$/g, '').substring(0, 120) : '';
+    // failed check: primer .turn-check.fail (render clásico) o primer .ta-bullets.fail li (render v3)
+    var checkEl = tc.querySelector('.turn-check.fail') || tc.querySelector('.ta-bullets.fail li');
+    var checkTxt = checkEl ? checkEl.textContent.trim() : '';
+    // group (extra metadato)
+    var group = tc.getAttribute('data-group') || '';
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><input type="checkbox" class="opt-check" data-tid="' + tid + '" data-tname="' + tname.replace(/"/g, '&quot;') + '" data-group="' + group + '"></td>' +
+                   '<td>' + tid + '</td>' +
+                   '<td>' + tname + '</td>' +
+                   '<td>' + checkTxt + '</td>' +
+                   '<td>' + agentTxt + (agentTxt.length === 120 ? '…' : '') + '</td>';
+    // attach data hidden for prompt
+    tr.querySelector('input').dataset.user = userTxt;
+    tr.querySelector('input').dataset.agent = agentTxt;
+    tr.querySelector('input').dataset.check = checkTxt;
+    tbody.appendChild(tr);
+  });
+  panel.classList.remove('hidden');
+  // attach listeners to checkboxes
+  document.querySelectorAll('.opt-check').forEach(function(cb){
+    cb.addEventListener('change', updateRunButton);
+  });
+  // Activar Delete
+  var del = document.getElementById('btn-delete');
+  del.classList.remove('dl-disabled');
+  del.style.cursor = 'pointer';
+  updateRunButton();
+}
+function updateRunButton(){
+  var run = document.getElementById('btn-run');
+  if (!run) return;
+  var checked = document.querySelectorAll('.opt-check:checked');
+  if (checked.length > 0){
+    run.classList.remove('dl-disabled');
+    run.style.cursor = 'pointer';
+  } else {
+    run.classList.add('dl-disabled');
+    run.style.cursor = 'not-allowed';
+  }
+}
+function runOptimize(){
+  var run = document.getElementById('btn-run');
+  if (run.classList.contains('dl-disabled')) return;
+  var checked = document.querySelectorAll('.opt-check:checked');
+  if (checked.length === 0) return;
+  var prompt = 'Eres un experto en Dialogflow CX Playbooks con Gemini como LLM.\\n' +
+               'Analiza los siguientes TCs en FAIL del agente Petal (floristería) y propón el fix más conservador — preferiblemente ajustar el check del test antes que cambiar el playbook, salvo que el agente esté claramente equivocado.\\n\\n';
+  checked.forEach(function(cb){
+    prompt += 'TC: ' + cb.dataset.tid + ' — ' + cb.dataset.tname + '\\n' +
+              'Grupo: ' + cb.dataset.group + '\\n' +
+              'Usuario dijo: ' + cb.dataset.user + '\\n' +
+              'Agente respondió: ' + cb.dataset.agent + '\\n' +
+              'Check que falló: ' + cb.dataset.check + '\\n\\n';
+  });
+  prompt += 'Para cada TC indica:\\n' +
+            '1. ¿Falso negativo (check mal escrito) o bug real del agente?\\n' +
+            '2. Fix propuesto (texto exacto del check corregido O cambio en el playbook)\\n' +
+            '3. Riesgo: BAJO / MEDIO / ALTO\\n';
+  navigator.clipboard.writeText(prompt).then(function(){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✓ Copiado — pega en Claude';
+    fb.classList.add('visible');
+    setTimeout(function(){ fb.classList.remove('visible'); }, 3000);
+  }).catch(function(err){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✗ Error al copiar: ' + err.message;
+    fb.classList.add('visible');
+  });
+}
+function deleteOptimizePanel(){
+  var btn = document.getElementById('btn-delete');
+  if (btn.classList.contains('dl-disabled')) return;
+  var panel = document.getElementById('optimize-panel');
+  panel.classList.add('hidden');
+  document.getElementById('optimize-tbody').innerHTML = '';
+  // Resetear Delete a desactivado
+  btn.classList.add('dl-disabled');
+  btn.style.cursor = 'not-allowed';
+  // Resetear Run a desactivado
+  var run = document.getElementById('btn-run');
+  run.classList.add('dl-disabled');
+  run.style.cursor = 'not-allowed';
+  // Limpiar feedback
+  var fb = document.getElementById('btn-run-feedback');
+  fb.textContent = '';
+  fb.classList.remove('visible');
+}
+// Init al cargar
+document.addEventListener('DOMContentLoaded', initOptimizeButton);
+if (document.readyState !== 'loading') initOptimizeButton();
+
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();}});
 </script></body></html>"""
     return h
