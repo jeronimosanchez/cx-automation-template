@@ -71,6 +71,21 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: producto_2
+  description: Segundo producto confirmado en flujo multi-producto (opcional, puede estar vacio)
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: cantidad_2
+  description: Cantidad del segundo producto (opcional, solo en flujo multi-producto)
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
+- name: precio_2
+  description: Precio estimado del segundo producto (opcional, solo en flujo multi-producto)
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
 outputParameterDefinitions:
 - name: tipo_cliente
   description: tipo cliente particular vs. empresa
@@ -185,6 +200,7 @@ instruction:
       - $producto, $cantidad, $precio_estimado, $ocasion_detectada
       - $modo_tono - hereda de Compra / Orquestador
       - $id_cliente, $nombre_cliente, $Direccion_Habitual, $direccion_entrega, $tipo_cliente, $estado_pago (pueden estar vacios si viene de modo anonimo)
+      - $producto_2, $cantidad_2, $precio_2 (opcionales - solo en flujo multi-producto; si vacios, flujo mono-producto estandar)
 
       PASO 0 - IDENTIFICACION (obligatorio si no hay cliente identificado)
       ⛔ COMPROBACION OBLIGATORIA ANTES DE TODO:
@@ -340,7 +356,33 @@ instruction:
       - Solemne: 'Muy bien, $nombre_cliente. Este es el resumen:' (o 'Este es el resumen:' si no hay nombre)
       - Corporativo: 'Perfecto, $nombre_cliente. Resumen del pedido:' (o 'Resumen del pedido:' si no hay nombre)
 
-      Cuerpo segun modo:
+      ⛔ RESUMEN MULTI-PRODUCTO (si $producto_2 tiene valor) ⛔
+      Si $producto_2 NO esta vacio: calcula $total = $precio_estimado + $precio_2 (entero sin decimales).
+      - ESTANDAR:
+        '🌸 $cantidad x $producto ($precio_estimadoeuros)
+      🌸 $cantidad_2 x $producto_2 ($precio_2euros)
+      💳 Total: $totaleuros
+      📍 $direccion_entrega
+
+      Confirmamos?'
+      - SOLEMNE:
+        '🤍 $cantidad x $producto ($precio_estimadoeuros)
+      🤍 $cantidad_2 x $producto_2 ($precio_2euros)
+      💳 Total: $totaleuros
+      📍 $direccion_entrega
+
+      Lo confirmamos?'
+      - CORPORATIVO:
+        '📦 $cantidad x $producto ($precio_estimadoeuros)
+      📦 $cantidad_2 x $producto_2 ($precio_2euros)
+      💳 Total: $totaleuros
+      📍 $direccion_entrega
+      Incluye factura.
+
+      Confirmamos?'
+      ⛔ FIN RESUMEN MULTI-PRODUCTO ⛔
+
+      Cuerpo segun modo (si $producto_2 vacio — flujo mono-producto estandar):
       - ESTANDAR:
         '🌸 $cantidad x $producto
       💳 $precio_estimadoeuros
