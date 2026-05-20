@@ -477,7 +477,7 @@ TESTS = [
      "not_expected": []},
 
     {"id": "TC-MULTI-PRODUCTO-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Pedido multi-item — agente captura ambos productos y muestra resumen con total combinado",
+     "name": "Pedido multi-item — Checkout recibe ambos productos como parametros formales",
      "turns": [
          {"user": "quiero un ramo de rosas y un centro de mesa para mi casa",
           "checks": ["centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto"]},
@@ -485,6 +485,10 @@ TESTS = [
           "checks": ["morado|anotado|centro|cual"]},
          {"user": "el centro de tulipanes de 28 euros",
           "checks": ["65|sesenta.{0,5}cinco|tulipanes.{0,150}morado|morado.{0,150}tulipanes"]},
+         {"user": "si",
+          "checks": ["correo|email|completar.{0,20}pedido"]},
+         {"user": "jerosan1@gmail.com",
+          "checks": ["65|tulipanes.{0,200}morado|morado.{0,200}tulipanes"]},
      ],
      "not_expected": []},
 
