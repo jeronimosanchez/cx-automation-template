@@ -1,0 +1,82 @@
+{
+  "tc_id": "TC-FRUSTRACION-LEX-01",
+  "tc_name": "Lexico negativo del usuario — agente reconoce frustracion",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-20 18:14",
+  "ts_file": "20260520_1814",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero rosas",
+          "agent": "¿Para qué ocasión son las rosas?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "rosas",
+            "intencion_inicial": "quiero rosas",
+            "grupo_intent": "G5",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "esto no funciona, que desastre",
+          "agent": "Entiendo, disculpa la confusión. Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero rosas",
+            "producto": "rosas",
+            "razon_handoff": "frustracion_usuario",
+            "frustracion_detectada": true,
+            "modo_tono": "estandar",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [disculp]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
