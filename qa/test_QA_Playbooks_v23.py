@@ -1806,9 +1806,7 @@ function filterBy(s){document.querySelectorAll('.fbtn,.card').forEach(b=>b.class
 function filterByGroup(g){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
 function filterByType(tp){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',t.dataset.type!==tp))}
 
-// Histórico: fetch único a qa/history.json estático (publicado en gh-pages).
-// Antes hacía ~25 llamadas a GitHub API → rate limit 60 req/h sin auth.
-// Ahora: 1 fetch a ../history.json. Sin rate limit, sin latencia.
+const REPO_API='https://api.github.com/repos/jeronimosanchez/cx-automation-template/contents/qa?ref=gh-pages';
 async function openHistorial(){
   const modal=document.getElementById('historial-modal');
   const loading=document.getElementById('hist-loading');
@@ -1818,14 +1816,34 @@ async function openHistorial(){
   loading.textContent='Cargando histórico...';
   table.classList.add('hidden');
   try{
-    const rows=await fetch('../history.json',{cache:'no-cache'}).then(r=>{
-      if(!r.ok) throw new Error('history.json no disponible (HTTP '+r.status+')');
-      return r.json();
-    });
-    if(!Array.isArray(rows)||rows.length===0){
-      loading.textContent='No hay metadatos históricos disponibles.';
-      return;
-    }
+    const list=await fetch(REPO_API).then(r=>r.json());
+    if(!Array.isArray(list)) throw new Error('No se pudo listar archivos');
+    // Archivos .meta.json directos en /qa/
+    const directMetas=list.filter(f=>f.type==='file' && f.name.endsWith('.meta.json')).map(f=>({file:f, parent:null}));
+    // Subcarpetas con formato YYYYMMDD_HHMMSS
+    const dirs=list.filter(f=>f.type==='dir' && /^\\d{8}_\\d{6}$/.test(f.name));
+    // Para cada subcarpeta, buscar qa_latest.meta.json o qa_*.meta.json dentro
+    const subMetaResults=(await Promise.all(dirs.map(async d=>{
+      try{
+        const subList=await fetch(d.url).then(r=>r.json());
+        const latest=subList.find(f=>f.name==='qa_latest.meta.json') || subList.find(f=>f.name.endsWith('.meta.json'));
+        if(latest) return {file:latest, parent:d.name};
+      }catch(_){return null;}
+      return null;
+    }))).filter(Boolean);
+    const allMetas=[...directMetas, ...subMetaResults];
+    if(allMetas.length===0){loading.textContent='No hay metadatos históricos disponibles (esperar próximos runs).'; return;}
+    const data=await Promise.all(allMetas.map(async item=>{
+      try{
+        const m=await fetch(item.file.download_url).then(r=>r.json());
+        if(item.parent){m._url=`../${item.parent}/qa_latest.html`;}
+        else{m._url=item.file.name.replace('.meta.json','.html');}
+        return m;
+      }catch(_){return null;}
+    }));
+    // Dedupe por ts_file, prefiriendo el primero
+    const seen=new Set();
+    const rows=data.filter(Boolean).filter(m=>{const k=m.ts_file||m._url; if(seen.has(k))return false; seen.add(k); return true;}).sort((a,b)=>(b.ts_file||'').localeCompare(a.ts_file||''));
     const currentTs=document.title.match(/\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}/);
     const tbody=table.querySelector('tbody');
     tbody.innerHTML='';
@@ -1833,8 +1851,7 @@ async function openHistorial(){
       const tr=document.createElement('tr');
       if(currentTs && m.timestamp===currentTs[0]) tr.classList.add('current');
       const backfilled=m.backfilled?' <span class="backfilled-tag">retroactivo</span>':'';
-      const url=`../${m.dir}/qa_latest.html`;
-      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${url}">Ver</a></td>`;
+      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${m._url}">Ver</a></td>`;
       tbody.appendChild(tr);
     });
     loading.classList.add('hidden');
