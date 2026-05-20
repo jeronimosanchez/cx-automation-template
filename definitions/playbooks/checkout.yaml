@@ -423,10 +423,9 @@ instruction:
       ⛔⛔⛔ FIN FIX TT-18 ⛔⛔⛔
 
       ⛔⛔⛔ REGLA VALORES OBLIGATORIOS (FIX T17) ⛔⛔⛔
-      Antes de armar el tool call, resuelve estos dos valores — el backend devuelve 400 si llegan vacios:
-      - Cantidad: usa $cantidad. Si $cantidad esta vacio o es null, usa 1.
-      - Direccion_Entrega: usa $direccion_entrega. Si $direccion_entrega esta vacio o es null, usa $Direccion_Habitual.
-      ⛔ NUNCA envies Cantidad o Direccion_Entrega vacios. Aunque los hayas mostrado en el resumen del PASO 2, confirma que estan asignados antes de llamar al tool.
+      Antes de armar el tool call, ten claro estos valores:
+      - Cantidad: es el numero de unidades del primer producto ($cantidad). Si no lo recuerdas, usa 1.
+      - Direccion_Entrega: es la misma direccion que mostraste en el resumen del PASO 2 (campo 📍). Viene de $Direccion_Habitual. NUNCA la dejes vacia — el backend devuelve 400 si llega vacia.
       ⛔⛔⛔ FIN FIX T17 ⛔⛔⛔
 
       Usa PetalDataTool con estos parametros EXACTOS. Respeta MAYUSCULAS y guiones bajos - los nombres son case-sensitive segun el OpenAPI spec del tool:
@@ -435,9 +434,9 @@ instruction:
         ID_Cliente=$id_cliente
         Nombre_Cliente=$nombre_cliente
         Producto=$producto
-        Cantidad=$cantidad si tiene valor, si no 1
+        Cantidad=$cantidad
         Precio_Total=$precio_estimado
-        Direccion_Entrega=$direccion_entrega si tiene valor, si no $Direccion_Habitual
+        Direccion_Entrega=$Direccion_Habitual
         Motivo_Compra=$ocasion_detectada si tiene valor, si no 'No indicada'
       ⛔ NUNCA uses minusculas en los 7 parametros de arriba (ID_Cliente, Nombre_Cliente, Producto, Cantidad, Precio_Total, Direccion_Entrega, Motivo_Compra). Si los mandas en minusculas, el tool los descarta y el pedido falla con 'Direccion vacia'. Los unicos parametros en minusculas son 'recurso' y 'accion'.
       Hazlo en silencio, sin decir nada al cliente.
