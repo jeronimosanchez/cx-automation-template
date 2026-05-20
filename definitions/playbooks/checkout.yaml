@@ -418,44 +418,27 @@ instruction:
       ⛔ ESTE PASO ES OBLIGATORIO. NUNCA lo saltes. NUNCA lo combines con el PASO 4.
       ⛔ Solo llegas aqui si los tres flags del PASO 1 son OK Y el resumen esta confirmado.
 
-      ⛔⛔⛔ REGLA MOTIVO_COMPRA (FIX TT-18) ⛔⛔⛔
-      Antes de armar el tool call, determina el valor de Motivo_Compra:
-      - Si $ocasion_detectada tiene valor (Regalo, Funeral, Boda, Decoracion, Corporativo, Otro) - usa ese valor.
-      - Si $ocasion_detectada esta vacio, es None, es null o no tiene valor asignado - usa 'No indicada'.
-      ⛔ NUNCA envies el string literal 'None' al backend. NUNCA envies valores vacios.
-      ⛔ Los unicos valores permitidos para Motivo_Compra son: Regalo, Funeral, Boda, Decoracion, Corporativo, Otro, 'No indicada'.
-      ⛔⛔⛔ FIN FIX TT-18 ⛔⛔⛔
+      ⛔⛔⛔ TOOL CALL DEL PEDIDO — INSTRUCCIONES UNICAS ⛔⛔⛔
 
-      ⛔⛔⛔ REGLA VALORES OBLIGATORIOS (FIX T17) ⛔⛔⛔
-      Antes de armar el tool call, ten claro estos valores:
-      - Cantidad: es el numero de unidades del primer producto ($cantidad). Si no lo recuerdas, usa 1.
-      - Direccion_Entrega: usa $direccion_entrega. Este parametro lo asignaste en PASO 2 (FIX 1.2): por defecto vale $Direccion_Habitual, pero si el usuario pidio cambiar la direccion en el resumen, vale la nueva direccion recogida. SIEMPRE tiene valor cuando llegas aqui — si excepcionalmente esta vacio, usa $Direccion_Habitual como fallback.
-      ⛔ NUNCA envies Direccion_Entrega vacia — el backend devuelve 400.
-      ⛔⛔⛔ FIN FIX T17 ⛔⛔⛔
+      Llama a PetalDataTool con EXACTAMENTE estos 9 parametros. Los nombres son case-sensitive: 'recurso' y 'accion' en minusculas, los OTROS 7 EN MAYUSCULA con guion_bajo.
 
-      ⛔⛔⛔ CASE-SENSITIVE — REGLA ABSOLUTA ⛔⛔⛔
-      Los nombres de los 7 parametros del pedido empiezan con MAYUSCULA y llevan guion_bajo.
-      Si los envias en minusculas, el backend los descarta silenciosamente y el pedido FALLA con error 400 'Direccion vacia'.
+      Ejemplo concreto con valores reales (sustituye por los de la sesion actual):
 
-      INCORRECTO (NUNCA hagas esto):
-        id_cliente=271, nombre=Jero, producto=Ramo..., cantidad=1, precio_total=37, direccion=..., motivo=Regalo
-
-      CORRECTO (SIEMPRE haz esto):
-        ID_Cliente=271, Nombre_Cliente=Jero, Producto=Ramo..., Cantidad=1, Precio_Total=37, Direccion_Entrega=..., Motivo_Compra=Regalo
-
-      Solo 'recurso' y 'accion' van en minusculas — TODO LO DEMAS empieza con MAYUSCULA.
-      ⛔⛔⛔ FIN REGLA CASE-SENSITIVE ⛔⛔⛔
-
-      Usa PetalDataTool con estos parametros EXACTOS:
         recurso='pedidos'
         accion='crear'
-        ID_Cliente=$id_cliente
-        Nombre_Cliente=$nombre_cliente
-        Producto=$producto
-        Cantidad=$cantidad
-        Precio_Total=$precio_estimado
-        Direccion_Entrega=$direccion_entrega
-        Motivo_Compra=$ocasion_detectada si tiene valor, si no 'No indicada'
+        ID_Cliente='271'                                       (de $id_cliente)
+        Nombre_Cliente='Jero'                                  (de $nombre_cliente)
+        Producto='Ramo de Rosas Morado — M'                    (de $producto)
+        Cantidad='1'                                            (de $cantidad. Si esta vacio, usa '1')
+        Precio_Total='37'                                       (de $precio_estimado)
+        Direccion_Entrega='Calle la Cenicienta 4, 28018 Madrid' (de $direccion_entrega. Si esta vacio, usa $Direccion_Habitual)
+        Motivo_Compra='Decoracion'                              (de $ocasion_detectada. Si esta vacio, usa 'No indicada')
+
+      ⛔ JAMAS uses 'id_cliente', 'nombre', 'producto', 'cantidad', 'precio_total', 'direccion_entrega', 'motivo_compra' (todo minusculas). El backend los descarta y el pedido falla con error 400 'Direccion vacia'.
+      ⛔ JAMAS envies Direccion_Entrega vacia.
+      ⛔ JAMAS envies el string literal 'None' al backend.
+      ⛔ Motivo_Compra solo admite: Regalo, Funeral, Boda, Decoracion, Corporativo, Otro, 'No indicada'.
+
       Hazlo en silencio, sin decir nada al cliente.
       ⛔ El campo 'id_pedido' viene en el nivel raiz de la respuesta JSON.
       - Si la llamada es exitosa - almacena el campo 'id_pedido' de la raiz de la respuesta como $referencia_pedido - ve al PASO 4.
