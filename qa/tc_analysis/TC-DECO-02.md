@@ -1,7 +1,7 @@
 ---
 status: FAIL
-tipo: Bug Catálogo
-estimacion: ~2h (Solución #1 recomendada) / ~20 min si solo Solución #5
+tipo: Bug Playbook
+estimacion: ~15 min (Solución #1 recomendada)
 ---
 
 ## T1
@@ -11,42 +11,44 @@ estimacion: ~2h (Solución #1 recomendada) / ~20 min si solo Solución #5
 | # | Quién | Acción / Texto | Problema detectado |
 |---|-------|----------------|--------------------|
 | 1 | User | *"quiero un ramo de rosas para decorar mi salon"* | — |
-| 2 | Orquestador | Clasifica como G5 (compra), extrae `producto=ramo de rosas`, `ocasion_detectada=Decoracion` | ✅ Clasificación y extracción correctas. |
-| 3 | Compra | Llama al catálogo con `ocasion=Decoracion` + `producto=ramo de rosas`. Sin rosas en catálogo para Decoracion → fallback a productos genéricos de decoración | 🔴 El catálogo no devuelve ninguna Rosa para la ocasión Decoración. El playbook cae en fallback mostrando Tulipanes Mix y Hortensias sin mencionar el producto pedido. |
-| 4 | Agente | *"Mira, para decorar tu salón tengo estas opciones que suelen gustar: Ramo Primavera Tulipanes Mix — Multicolor, Ramo de Hortensias — Blanco, Ramo de Hortensias — Azul"* | 🔴 Ninguna rosa en la respuesta. El usuario pedía rosas explícitamente. El agente no reconoce la petición concreta ni explica la limitación. |
-| 5 | Test (check) | Regex: `Rosa.{0,40}--.{0,5}[SMLX]\|Rosa.{0,80}euros` | 🔴 FAIL — cero ocurrencias de "Rosa" en la respuesta. Check apropiado: TC-DECO-01 (margaritas) pasa con el mismo patrón → la ausencia de rosas es un gap real del catálogo. |
+| 2 | Orquestador | clasifica como G5, extrae `producto=ramo de rosas`, `ocasion_detectada=Decoracion` | ✅ extracción correcta |
+| 3 | Compra | llama tool catálogo filtrando por `ocasion=Decoracion` sin priorizar/validar el slot `producto=rosas` | 🔴 ignora el slot `producto` explícito |
+| 4 | Catálogo (petal-sheet-api) | devuelve productos de Decoración: Tulipanes Mix, Hortensias blancas y azules (cero rosas tagueadas como Decoración) | ⚠️ gap de datos, pero el playbook debería detectar el mismatch |
+| 5 | Compra | presenta alternativas sin reconocer que el usuario pidió rosas explícitamente ni intentar buscar rosas en otras ocasiones | 🔴 sin fallback escalonado ni copy honesto |
+| 6 | Agente | *"Mira, para decorar tu salón tengo estas opciones... Tulipanes, Hortensias..."* | 🔴 oferta opaca: no menciona que no hay rosas |
+| 7 | Test (check) | regex `Rosa.{0,40}--.{0,5}[SMLX]\|Rosa.{0,80}euros` | 🔴 FAIL — el agente nunca menciona "Rosa" en la respuesta |
 
 ### Causa raíz (descompuesta en 3 capas)
 
-1. **Catálogo (capa principal)**: no existe ningún producto de tipo "Rosa" asociado a la ocasión "Decoración" en el inventario de petal-sheet-api. TC-DECO-01 (margaritas para decorar) pasa → el pipeline funciona cuando el producto existe; aquí el catálogo devuelve vacío para rosas+decoracion.
-2. **Playbook Compra (secundaria)**: el fallback ante "sin resultados para esta ocasión" muestra alternativas genéricas sin reconocer el producto pedido. Lo correcto sería: "No tengo rosas disponibles para decoración, pero te ofrezco estas opciones similares".
-3. **Gestión de inventario (estructural)**: el catálogo es parcial por ocasión — hay flores bien cubiertas (margaritas, tulipanes, hortensias) y otras sin cobertura para ciertos contextos. Rosas + Decoracion es el gap más evidente dado que rosas sí aparecen en boda/compra genérica.
+1. **Capa 1 (Catálogo / datos)**: `petal-sheet-api` no tiene ningún producto de tipo "Rosa" tagueado con `ocasion=Decoracion`. El backend devuelve 0 rosas para ese filtro, aunque sí existen rosas para otras ocasiones (Aniversario, Cumpleaños) — validado por otros TCs PASS.
+2. **Capa 2 (Playbook Compra)**: cuando el filtro `(producto+ocasion)` devuelve resultados pero ninguno coincide con el `producto` explícito del usuario, el playbook no hace un segundo intento (relajando `ocasion` o buscando rosas en otras categorías) ni reconoce el mismatch en la respuesta. Trata los resultados parciales como válidos.
+3. **Capa 3 (UX conversacional)**: el agente no es transparente. En lugar de decir *"no tengo rosas específicas para decoración, pero estas rosas también quedan muy bien en un salón"*, muestra alternativas sin contexto. Rompe el contrato implícito con el usuario (pidió rosas, recibe tulipanes sin explicación).
 
 ## Recomendación
 
-### Solución recomendada: #1 — Catálogo: agregar productos Rosa para ocasión Decoración
+### Solución recomendada: #1 — Fallback escalonado en Playbook Compra (producto > ocasion)
 
-🟢 **9/10** · ~2h (backend + verificación) · Aprobación de negocio + redeploy petal-sheet-api
+🟢 **9/10** · ~15 min · Sin dependencias externas
 
-**Por qué**: fix de raíz. El usuario pidió rosas y el catálogo no las tiene para decoración. Agregar SKUs Rosa para Decoracion resuelve el test y la UX real. TC-DECO-01 confirma que el pipeline es correcto cuando los datos existen — aquí es un gap de datos, no de lógica.
+**Por qué**: ataca la causa raíz en la capa controlable (el playbook) sin tocar catálogo ni test. Cambia la lógica para priorizar el slot `producto` cuando es explícito: si `(producto+ocasion)` no devuelve match, hacer un segundo intento solo por `producto` y mostrar rosas con copy honesto. Aprovecha que el catálogo SÍ tiene rosas en otras ocasiones (validado por otros TCs). Reusable para cualquier mismatch producto/ocasion futuro.
 
 ### Soluciones evaluadas (ordenadas por score)
 
 | # | Solución | Score | Dependencias | Por qué este scoring |
 |---|----------|-------|--------------|----------------------|
-| 1 | **Catálogo: agregar productos Rosa — S/M/L para ocasión Decoración en petal-sheet-api** | 🟢 9/10 | Aprobación negocio + redeploy petal-sheet-api | Fix de raíz. Si los productos existen, el pipeline los muestra — TC-DECO-01 lo confirma. Única solución que resuelve test + UX real. |
-| 6 | **Combinación #1 + #5** (catálogo + playbook fallback digno) | 🟢 8/10 | Aprobación negocio + redeploy | Solución completa: datos correctos + fallback explícito para gaps futuros de inventario. ~2.5h total. |
-| 5 | **Playbook Compra: CASO ESPECIAL "producto pedido sin stock de ocasión"** → reconocer el producto explícito + explicar la limitación antes de sugerir alternativas | 🟢 8/10 | — | Mejora UX sin tocar backend. No resuelve el FAIL del test (regex pide "Rosa" en respuesta) pero elimina la respuesta engañosa actual. ~20 min. Combinable con #1. |
-| 4 | **Examples: EX-DECO-ROSAS** anclando "quiero rosas para decorar" → respuesta con rosas reales | 🟡 6/10 | Requiere #1 previo | Solo tiene efecto si el catálogo ya tiene rosas para decoración. Multiplicador, no sustituto. ~10 min. |
-| 2 | **Playbook Compra: eliminar rama especial de Decoración** y siempre respetar `producto` independientemente de la ocasión | 🟡 5/10 | — | Puede funcionar si el catálogo tiene rosas genéricas sin tag de ocasión. Riesgo: puede romper TC-DECO-01 y otros flujos de decoración. Requiere análisis de impacto previo. |
-| 3 | **Test: recalibrar check** para probar que el agente reconoce la limitación ("no tengo rosas para decoración") en lugar de exigir mostrar rosas | 🟡 5/10 | Requiere #5 previo | Solo válido si se implementa CASO ESPECIAL (#5) primero. Ajusta el test a un comportamiento alcanzable mientras el catálogo tiene el gap. No aplicar solo. |
-| 7 | **No hacer nada** (deuda técnica) | 🔴 2/10 | — | Test seguirá fallando permanentemente. UX real engañosa: usuario pide rosas, recibe tulipanes sin explicación. Solo aceptable si negocio decide que rosas-decoración no es caso de uso relevante. |
+| 1 | Fallback escalonado en Compra: si `(producto+ocasion)`=0 matches del producto explícito, reintentar solo por `producto` y mostrar con copy honesto ("no tengo rosas para decoración, pero estas...") | 🟢 9/10 | — | Resuelve causa raíz en la capa controlable, generaliza a otros productos/ocasiones, mejora UX honesta, permite que el regex haga match con "Rosa" |
+| 2 | Tag rosas existentes con `ocasion=Decoracion` en `petal-sheet-api` | 🟢 8/10 | petal-sheet-api (repo separado, fuera de scope ACT) + criterio de negocio | Fix de datos directo, pero requiere tocar backend externo y no generaliza: cada mismatch nuevo requeriría tag manual |
+| 3 | Añadir SKU "Ramo de Rosas Decoración" (S/M/L) al catálogo | 🟡 7/10 | petal-sheet-api + operaciones (foto, stock, precio, decisión negocio) | Solución de negocio, no técnica. Resuelve el TC pero no la clase de problema; coste alto y no reutilizable |
+| 4 | Añadir solo copy de transparencia ("no tengo X para Y") sin reintento | 🟡 6/10 | — | Mejora UX, pero sin reintento el agente sigue sin mostrar rosas → el regex del test seguiría en FAIL |
+| 5 | Priorizar slot `producto` sobre `ocasion` en la consulta inicial al catálogo | 🟡 5/10 | — | Resuelve este caso pero riesgo de romper TCs donde la `ocasion` es el driver principal (regalo sorpresa, condolencias, etc.). Requeriría análisis de impacto |
+| 6 | Relajar el regex del test para aceptar "rosas no disponibles para decoración" | 🔴 4/10 | — | Falsea el test: el usuario pidió rosas y el contrato es que las vea (o que se le explique claramente). Resignación, no fix |
+| 7 | Eliminar TC-DECO-02 de la suite | 🔴 1/10 | — | Esconder el bug en lugar de resolverlo; rompe el contrato del QA y la cobertura del grupo COMPRA-INV |
 
 ### Plan de acción (Solución #1)
 
-1. **Aprobación de negocio**: confirmar que "Rosa para decoración" es un caso de uso válido y qué SKUs añadir (talla S/M/L, precio, color).
-2. **Editar inventario en petal-sheet-api**: añadir filas con productos Rosa y `ocasion=Decoracion` en la hoja de cálculo.
-3. **Redeploy petal-sheet-api** en Cloud Run `europe-west1`.
-4. **Re-ejecutar QA** con `--runs 3` para confirmar PASS estable.
+1. **Editar instrucciones del Playbook Compra** para añadir fallback escalonado: si la tool catálogo devuelve resultados pero ninguno matchea el `producto` explícito del slot, reintentar la consulta solo por `producto` (sin filtrar por `ocasion`) → `definitions/playbooks/Compra/instruction.md` (o equivalente).
+2. **Añadir copy honesto** cuando el reintento sustituye los resultados originales: *"No tengo rosas específicas para decoración, pero estas rosas también quedan muy bien en un salón:"* → mismo archivo.
+3. **Push del Playbook** vía `push_playbooks.py` (Full Update obligatorio en `europe-west1`, §3.8 CLAUDE.md).
+4. **Re-ejecutar QA** con `--runs 3` para confirmar PASS estable y verificar que TC-DECO-01 (margaritas, baseline PASS) y el resto del grupo COMPRA-INV siguen verdes.
 
-**Coste total**: ~2h (decisión de negocio ~1h + edición + redeploy ~30 min + verificación ~30 min). Si solo se implementa #5 (playbook fallback): ~20 min, pero el test seguirá en FAIL.
+**Coste total**: ~15 min (10 min edición + push, 5 min QA con `--runs 3`).
