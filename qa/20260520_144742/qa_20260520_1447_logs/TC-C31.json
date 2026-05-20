@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-C31",
+  "tc_name": "Presupuesto sin producto",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-20 14:47",
+  "ts_file": "20260520_1447",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo no muy caro",
+          "agent": "Vale, te muestro opciones por debajo de 20 euros: Ramo de Girasoles Amarillo — M (10 flores, 20€), Ramo de Gerberas Amarillo — M (10 flores, 18€), Ramo de Gladiolos Rosa — M (3 tallos, 19€). ¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "precio_max": 20,
+            "grupo_intent": "G3",
+            "intencion_inicial": "Algo no muy caro"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [flor]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

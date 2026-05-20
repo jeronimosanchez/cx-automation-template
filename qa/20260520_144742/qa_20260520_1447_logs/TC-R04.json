@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-R04",
+  "tc_name": "Compra directa sin email",
+  "group": "G5",
+  "type": "REG",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-20 14:47",
+  "ts_file": "20260520_1447",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero comprar rosas rojas",
+          "agent": "Claro, rosas rojas. Mira, tengo estas opciones:\n\n*   Ramo de Rosas Rojas — M (15 flores, 37€)\n*   Ramo de Rosas Rojas — S (8 flores, 22€)\n*   Ramo de Rosas Rojas — L (26 flores, 59€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "Quiero comprar rosas rojas",
+            "modo_tono": "estandar",
+            "producto": "rosas rojas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosas]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
