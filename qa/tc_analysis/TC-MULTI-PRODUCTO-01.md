@@ -1,7 +1,7 @@
 ---
 status: FAIL
 tipo: Bug Playbook
-estimacion: ~20 min (Solución #1 recomendada)
+estimacion: ~15 min (Solución #1 recomendada)
 ---
 
 ## T1
@@ -11,48 +11,44 @@ estimacion: ~20 min (Solución #1 recomendada)
 | # | Quién | Acción / Texto | Problema detectado |
 |---|-------|----------------|--------------------|
 | 1 | User | *"quiero un ramo de rosas y un centro de mesa para una boda"* | — |
-| 2 | Orquestador | Clasifica como G5 (compra), extrae `ocasion_detectada=Boda`, `modo_tono=estandar`. NO extrae `producto`. `intencion_inicial` contiene el texto completo con ambos ítems. | ⚠️ No extrae `producto` cuando hay múltiples ítems. La señal de multi-producto (dos tipos distintos) no se reconoce ni marca como slot. |
-| 3 | Compra | Recibe G5 + `ocasion=Boda` sin slot `producto`. Infiere desde `intencion_inicial` el producto más relevante para boda (ramo de novia rosas). Ignora "centro de mesa". | 🔴 Trata la petición como mono-producto. Muestra "Ramo de Novia Rosas — L (12 flores, 45€)" y pregunta si gusta, sin mencionar el segundo ítem ni la naturaleza multi-item del pedido. |
-| 4 | Agente | *"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"* | 🔴 El segundo ítem (centro de mesa) desaparece por completo. El usuario puede sentir que el agente no le escucha. |
-| 5 | Test (check) | Regex: `centro.{0,80}ramo\|ramo.{0,80}centro\|empez.{0,20}por\|uno.{0,20}vez\|un producto` | 🔴 FAIL — el agente no menciona "centro", no indica que gestiona ítems de uno en uno, ni explica ninguna limitación. Check bien calibrado. |
+| 2 | Orquestador | clasifica como G5 (Boda), extrae `ocasion_detectada=Boda`, `modo_tono=estandar`, `producto=∅` | ⚠️ no detecta multi-item ni extrae los dos productos mencionados; el slot `producto` queda vacío sin señal de pluralidad |
+| 3 | Compra | recibe slots parciales, aplica flujo mono-producto y elige "ramo de novia rosas" inferido desde `intencion_inicial` y ocasión Boda | 🔴 ignora silenciosamente el segundo ítem (centro de mesa) |
+| 4 | Agente | *"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"* | 🔴 no reconoce los 2 productos, no propone gestionar uno a uno ni explica la limitación mono-producto |
+| 5 | Test (check) | Regex `centro.{0,80}ramo\|ramo.{0,80}centro\|empez.{0,20}por\|uno.{0,20}vez\|un producto` | 🔴 FAIL — la respuesta solo menciona el ramo, nunca el centro ni la gestión secuencial. Check bien calibrado. |
 
 ### Causa raíz (descompuesta en 3 capas)
 
-1. **Playbook Compra (capa principal)**: no tiene CASO ESPECIAL para peticiones multi-producto. Ante la presencia de "X y Y" en el mensaje (dos productos distintos), debería: (a) reconocer ambos explícitamente, (b) explicar que gestiona un producto a la vez, y (c) preguntar por cuál empezar.
-2. **Orquestador (secundaria)**: no extrae `producto` cuando hay múltiples ítems — el slot queda vacío. Sin señal de multi-producto, el Playbook Compra no puede distinguir este caso del flujo estándar y actúa en modo mono-producto.
-3. **Arquitectura de slots (estructural)**: el esquema actual (`producto`, `ocasion`, `modo_tono`) está diseñado para peticiones mono-producto. Para soportar multi-ítem correctamente se necesitaría un slot `multi_producto` o `productos_adicionales` en el orquestador.
+1. **Capa 1 (Playbook Compra)**: no existe CASO ESPECIAL para detectar petición multi-producto ("X y Y" con dos productos distintos). El playbook asume mono-producto y elige el primero/más probable sin reconocer ni mencionar el segundo.
+2. **Capa 2 (Orquestador)**: no marca `multi_item=true` ni extrae lista de productos cuando hay dos en la frase. El slot `producto` espera un único valor y al ver dos opta por dejarlo vacío, sin señal alternativa al Compra.
+3. **Capa 3 (estructural)**: la arquitectura de Petal es mono-producto end-to-end (slots, catálogo, flujo de carrito implícito). No hay convención para "lista de ítems pendientes" ni handoff secuencial entre productos dentro de una misma conversación de compra.
 
 ## Recomendación
 
-### Solución recomendada: #1 — Playbook Compra: CASO ESPECIAL "petición multi-producto"
+### Solución recomendada: #1 — CASO ESPECIAL multi-producto en Playbook Compra
 
-🟢 **8/10** · ~20 min · Sin dependencias externas
+🟢 **9/10** · ~15 min · Sin dependencias externas
 
-**Por qué**: fix conservador y directo. Mismo patrón arquitectónico que TC-URGENCIA-01 (CASOS ESPECIALES). Detectar la conjunción "X y Y" con dos tipos de producto y responder: "Perfecto, te ayudo con los dos. Empiezo por el ramo de rosas — [opciones]. Cuando terminemos, pasamos al centro de mesa." Sin cambios en orquestador ni en schema de slots.
+**Por qué**: replica el patrón arquitectónico ya validado de CASOS ESPECIALES urgencia/plazo (TC-URGENCIA-01). Es local al Playbook Compra, no toca Orquestador ni schema de slots, y resuelve el FAIL detectando "X y Y" sobre `intencion_inicial`. Bajo coste, bajo riesgo, alineado con el estilo conversacional del agente y con la regex del check.
 
 ### Soluciones evaluadas (ordenadas por score)
 
 | # | Solución | Score | Dependencias | Por qué este scoring |
 |---|----------|-------|--------------|----------------------|
-| 3 | **Combinación #1 + #2** (Playbook CASO ESPECIAL + Orquestador extrae `multi_producto`) | 🟢 8.5/10 | Tests Orquestador | Más robusto: orquestador pasa señal explícita al playbook en lugar de inferir del texto. ~50 min. Mejor arquitectura a largo plazo. |
-| 1 | **Playbook Compra: CASO ESPECIAL "petición multi-producto"** — detectar "X y Y" y gestionar uno a uno, reconociendo ambos ítems desde el primer turno | 🟢 8/10 | — | Fix de raíz accesible. Mismo patrón que CASOS ESPECIALES de urgencia. ~20 min. Resuelve test y UX real. |
-| 2 | **Orquestador: extraer `multi_producto=true`** cuando hay ≥2 ítems distintos + `productos_solicitados` como lista | 🟢 7/10 | Tests Orquestador | Solución elegante pero incompleta sola: el Playbook Compra todavía necesita lógica para reaccionar al flag. Solo tiene efecto combinado con #1. ~30 min. |
-| 4 | **Examples: EX-MULTI-01** anclando "ramo y centro de mesa para boda" → respuesta que reconoce ambos + gestiona de uno en uno | 🟡 6/10 | — | Refuerza determinismo del LLM en este input específico. ~10 min. Alcance limitado: solo inputs cercanos al ejemplo. Multiplicador de #1, no sustituto. |
-| 5 | **Playbook Compra: instrucción general** "si detectas múltiples productos en `intencion_inicial`, menciónalos todos y gestiona de uno en uno" sin CASO ESPECIAL explícito | 🟡 5/10 | — | Menos robusto que #1: instrucción general más susceptible a ser ignorada por el LLM en variaciones. Más flakiness probable. Menos trabajo inicial pero más retrabajo futuro. |
-| 6 | **Test: relajar regex** para aceptar respuesta solo al primer producto | 🔴 4/10 | — | Falso fix: el agente está ignorando el segundo ítem. Relajar el test pierde señal real. Solo válido si negocio decide que multi-producto no es un caso soportado Y el agente comunica esa limitación explícitamente. |
-| 7 | **No hacer nada** | 🔴 2/10 | — | UX real deficiente: usuario que pide dos productos ve que uno desaparece sin explicación. La frecuencia de pedidos multi-ítem en florería para eventos justifica el fix. Test seguirá fallando. |
+| 1 | **CASO ESPECIAL multi-producto en Playbook Compra**: detectar "ramo y centro", "X y Y" con 2 productos distintos sobre `intencion_inicial`; reconocer ambos explícitamente y proponer empezar por uno | 🟢 9/10 | — | Patrón ya probado (urgencia). Local, rápido, sin riesgo de regresión en flujo mono-producto. Cubre exactamente la regex del check y la UX real. |
+| 2 | **Combinación #1 + #3**: Playbook con CASO ESPECIAL + Orquestador marca `multi_item=true` y pasa lista | 🟢 8/10 | Edit Orquestador + contrato slots | Solución arquitectónica más limpia (separa detección de gestión). Mayor coste y mayor superficie de regresión. Recomendable a medio plazo. |
+| 3 | **Detección en Orquestador**: nuevo flag `multi_item=true` y `productos_solicitados=[ramo, centro]` cuando hay ≥2 productos | 🟡 7/10 | Edit Orquestador + Compra reacciona al flag | Sin lógica en Compra el flag no produce respuesta correcta. Solo aporta combinado con #1. |
+| 4 | **Instrucción genérica anti-omisión** en Playbook Compra: "si el usuario menciona varios productos, recónocelos todos antes de elegir uno" | 🟡 6/10 | — | Más flexible que el CASO ESPECIAL pero menos determinista. Gemini puede ignorarla en variaciones. Útil como red de seguridad complementaria a #1. |
+| 5 | **Few-shot example multi-producto** ("ramo y centro para boda" → respuesta correcta) sin CASO ESPECIAL explícito | 🟡 5/10 | Generar 1-2 examples nuevos | Refuerza determinismo en inputs cercanos. Alcance limitado por similitud léxica. Multiplicador útil de #1, no sustituto. |
+| 6 | **Ampliar slot `producto` a lista** y carrito implícito multi-ítem real | 🟡 5/10 | Refactor slots + catálogo lookup + carrito | Cambia el modelo de datos end-to-end. Alto impacto en 49 TCs. Anti-regresión costoso para 1 TC actual. |
+| 7 | **Recalibrar test**: aceptar respuesta mono-producto como válida y documentar limitación | 🔴 2/10 | — | Esconde el bug UX real. El usuario percibe que el agente "ignora" parte de su petición. El check refleja un comportamiento legítimamente esperado, no es falso negativo. |
 
 ### Plan de acción (Solución #1)
 
-1. **Editar Playbook Compra** (`definitions/playbooks/compra.yaml`) → añadir bloque al inicio de CASOS ESPECIALES:
-   ```
-   - **Petición multi-producto** (el usuario menciona dos o más productos distintos unidos por "y"):
-     ANTES de mostrar catálogo, reconocer ambos explícitamente:
-     "Perfecto, te ayudo con los dos. Empiezo por [primer producto] — [opciones].
-     Cuando terminemos, seguimos con [segundo producto]."
-     No mostrar catálogo genérico hasta que el usuario confirme con cuál empieza.
-   ```
-2. **Commit + push** → CI corre `Deploy to Petal CX` + `QA Petal`.
-3. **Re-ejecutar QA** con `--runs 3` para confirmar PASS estable.
+1. **Añadir CASO ESPECIAL multi-producto** al Playbook Compra (sección CASOS ESPECIALES, junto a urgencia) → `definitions/playbooks/compra.yaml`
+   - Trigger: el usuario menciona dos o más productos distintos unidos por "y" en `intencion_inicial` (p.ej. `ramo|centro|corona|bouquet|arreglo` × 2)
+   - Acción: reconocer ambos productos explícitamente y proponer secuenciar. Ejemplo de respuesta esperada:
+     *"Perfecto, te ayudo con los dos. Empiezo por el ramo y luego vemos el centro de mesa, ¿te parece? Para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te encaja?"*
+2. **Commit + push** → CI corre `Deploy to Petal CX` + `QA Petal` automáticamente
+3. **Re-ejecutar QA** con `--runs 3` para confirmar PASS estable de TC-MULTI-PRODUCTO-01 y 0 regresiones en TCs mono-producto
 
-**Coste total**: ~20 min (edit + commit + verificación post-merge).
+**Coste total**: ~15 min (10 edición + 5 validación, +2 min deploy CX)
