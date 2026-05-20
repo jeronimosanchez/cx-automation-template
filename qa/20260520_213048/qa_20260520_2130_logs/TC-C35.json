@@ -1,0 +1,52 @@
+{
+  "tc_id": "TC-C35",
+  "tc_name": "Ocasión ambigua emocional",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-20 21:30",
+  "ts_file": "20260520_2130",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Es para alguien especial",
+          "agent": "Perfecto, un regalo. Mira, para esa persona especial tengo opciones que suelen gustar. ¿Tienes algún color en mente o lo dejo en mis manos?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "intencion_inicial": "Es para alguien especial",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [regalo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
