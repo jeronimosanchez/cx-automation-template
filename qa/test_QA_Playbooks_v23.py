@@ -477,10 +477,14 @@ TESTS = [
      "not_expected": []},
 
     {"id": "TC-MULTI-PRODUCTO-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Pedido multi-item — agente maneja uno por uno o explica limitacion",
+     "name": "Pedido multi-item — agente captura ambos productos y muestra resumen con total combinado",
      "turns": [
          {"user": "quiero un ramo de rosas y un centro de mesa para una boda",
           "checks": ["centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto"]},
+         {"user": "el ramo de rosas morado",
+          "checks": ["morado|anotado|centro|cual"]},
+         {"user": "el centro de tulipanes",
+          "checks": ["65|sesenta.{0,5}cinco|tulipanes.{0,150}morado|morado.{0,150}tulipanes"]},
      ],
      "not_expected": []},
 
