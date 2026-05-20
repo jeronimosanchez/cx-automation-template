@@ -49,7 +49,7 @@ if [ -z "$BASE_TS" ]; then
   echo "  BASE_TS=$BASE_TS"
 fi
 
-NEW_TS=$(date +%Y%m%d_%H%M%S)
+NEW_TS=$(date -u +%Y%m%d_%H%M%S)
 TMP_LOGS="/tmp/rerun_${NEW_TS}_logs"
 TMP_HTML="/tmp/rerun_${NEW_TS}.html"
 TMP_GHP="/tmp/rerun_${NEW_TS}_ghpages"
