@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-05-20 22:07",
+  "ts_file": "20260520_220745",
+  "total": 49,
+  "pass": 45,
+  "inst": 0,
+  "fail": 4,
+  "pct": 91,
+  "runs_per_tc": 1,
+  "rerun_single_tc": "TC-MULTI-PRODUCTO-01",
+  "base_ts": "20260520_213840"
+}
