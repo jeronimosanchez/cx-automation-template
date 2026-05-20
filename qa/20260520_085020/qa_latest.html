@@ -276,10 +276,10 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .hidden{display:none!important}
 </style></head><body>
 <h1>QA Report — Floristería Petal</h1>
-<p class="sub">2026-05-20 08:50 · 1 runs/TC · runnervmg397c</p>
+<p class="sub">2026-05-20 08:50 · 3 runs/TC · MacBook-Air.local</p>
 <div class="hdr">
 <div><b>Orquestador:</b> v65</div><div><b>Compra:</b> v39</div><div><b>Checkout:</b> v33</div>
-<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 49 × 1 runs</div>
+<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 49 × 3 runs</div>
 </div>
 <div class="cards">
 <div class="card c-total" onclick="filterBy('all')"><div class="n">49</div><div class="l">Total</div></div>
@@ -2546,66 +2546,6 @@ De las que te mostré, ¿alguna te convence?"</div>
 </ul></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-INV" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DECO-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-02</span><span class="tname">Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header fail">❌ Run 1</div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas para decorar mi salon"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Mira, para decorar tu salón tengo estas opciones que suelen gustar:
-
-*   Ramo Primavera Tulipanes Mix — M (12 flores, 28€)
-*   Ramo de Hortensias Blanco — M (12 flores, 28€)
-*   Ramo de Hortensias Azul — M (12 flores, 28€)
-
-¿Alguna te convence?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
-<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero un ramo de rosas para decorar mi salon"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code>, <code>ocasion_detectada=Decoracion</code> <span style="color:#666;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Mira, para decorar tu salón tengo estas opciones que suelen gustar:
-
-*   Ramo Primavera Tulipanes Mix — M (12 flores, 28€)
-*   Ramo de Hortensias Blanco — M (12 flores, 28€)
-*   Ramo de Hortensias Azul — M (12 flores, 28€)
-
-¿Alguna te conve..."</div>
-</div>
-</div>
-</details>
-<h4>Evaluacion</h4>
-<p style="color:#ef4444">❌ Turno no superado</p>
-<ul class="ta-bullets fail">
-<li>Agente debía decir [Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros]</li>
-</ul>
-<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-INV</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code>, <code>ocasion_detectada=Decoracion</code></li>
-<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros]</code></li>
-<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Mira, para decorar tu salón tengo estas opciones que suelen gustar:
-
-*   Ramo Primavera Tulipanes Mix — M (12 flores, 28€)
-*   Ramo de Hortensias Blanco — M (12 flores, 28€)
-*   Ramo de Hortensias Azu…"</em></li>
-</ul>
-<h4>Causa raíz</h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-DECO-02"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FUNERAL-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FUNERAL-01</span><span class="tname">Modo solemne — corona para funeral</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
@@ -3314,50 +3254,6 @@ De las que te mostré, ¿alguna te convence?"</div>
 </ul></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — clarifica plazo o redirige</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header fail">❌ Run 1</div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo de rosas para hoy a las 6"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿De qué color te gustaría el ramo de rosas?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
-<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"necesito un ramo de rosas para hoy a las 6"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=ramo de rosas</code>, <code>modo_tono=estandar</code> <span style="color:#666;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¿De qué color te gustaría el ramo de rosas?"</div>
-</div>
-</div>
-</details>
-<h4>Evaluacion</h4>
-<p style="color:#ef4444">❌ Turno no superado</p>
-<ul class="ta-bullets fail">
-<li>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</li>
-</ul>
-<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=ramo de rosas</code>, <code>modo_tono=estandar</code></li>
-<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</code></li>
-<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"¿De qué color te gustaría el ramo de rosas?"</em></li>
-</ul>
-<h4>Causa raíz</h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-LEX-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-LEX-01</span><span class="tname">Lexico negativo del usuario — agente reconoce frustracion</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
@@ -3570,50 +3466,6 @@ Incl..."</div>
 </ul></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — agente maneja uno por uno o explica limitacion</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header fail">❌ Run 1</div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas y un centro de mesa para una boda"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
-<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero un ramo de rosas y un centro de mesa para una boda"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Boda</code>, <code>modo_tono=estandar</code> <span style="color:#666;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</div>
-</div>
-</div>
-</details>
-<h4>Evaluacion</h4>
-<p style="color:#ef4444">❌ Turno no superado</p>
-<ul class="ta-bullets fail">
-<li>Agente debía decir [centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto]</li>
-</ul>
-<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Boda</code>, <code>modo_tono=estandar</code></li>
-<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto]</code></li>
-<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</em></li>
-</ul>
-<h4>Causa raíz</h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-MULTI-PRODUCTO-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G6>DEUDA" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-MOROSO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MOROSO-01</span><span class="tname">Cliente con deuda detectada — handoff a Gestion_Deuda</span><span class="tgroup">G6>DEUDA</span><span class="truns">1/1</span></div>
@@ -3754,6 +3606,250 @@ Incl..."</div>
 </ul></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-INV" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DECO-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-02</span><span class="tname">Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">0/1</span><span class="tipo-tag">Bug Catálogo</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header fail">❌ Run 1</div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas para decorar mi salon"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Mira, para decorar tu salón tengo estas opciones que suelen gustar:
+
+*   Ramo Primavera Tulipanes Mix — M (12 flores, 28€)
+*   Ramo de Hortensias Blanco — M (12 flores, 28€)
+*   Ramo de Hortensias Azul — M (12 flores, 28€)
+
+¿Alguna te convence?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero un ramo de rosas para decorar mi salon"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica como G5 (compra), extrae <code>producto=ramo de rosas</code>, <code>ocasion_detectada=Decoracion</code></td>
+<td class="col-problem">✅ Clasificación y extracción correctas.</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Llama al catálogo con <code>ocasion=Decoracion</code> + <code>producto=ramo de rosas</code>. Sin rosas en catálogo para Decoracion → fallback a productos genéricos de decoración</td>
+<td class="col-problem">🔴 El catálogo no devuelve ninguna Rosa para la ocasión Decoración. El playbook cae en fallback mostrando Tulipanes Mix y Hortensias sin mencionar el producto pedido.</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"Mira, para decorar tu salón tengo estas opciones que suelen gustar: Ramo Primavera Tulipanes Mix — Multicolor, Ramo de Hortensias — Blanco, Ramo de Hortensias — Azul"</em></td>
+<td class="col-problem">🔴 Ninguna rosa en la respuesta. El usuario pedía rosas explícitamente. El agente no reconoce la petición concreta ni explica la limitación.</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: Regex: `Rosa.{0,40}--.{0,5}[SMLX]\</td>
+<td class="col-problem">Rosa.{0,80}euros`</td>
+</tr>
+</table>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#ef4444">❌ Turno no superado</p>
+<ul class="ta-bullets fail">
+<li>Agente debía decir [Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros]</li>
+</ul>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-INV</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code>, <code>ocasion_detectada=Decoracion</code></li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Mira, para decorar tu salón tengo estas opciones que suelen gustar:
+
+*   Ramo Primavera Tulipanes Mix — M (12 flores, 28€)
+*   Ramo de Hortensias Blanco — M (12 flores, 28€)
+*   Ramo de Hortensias Azu…"</em></li>
+</ul>
+<div class="diag-block" data-tcid="TC-DECO-02">
+<h4 class="diag-header">Causa raíz (TC-DECO-02) <span class="badge badge-llm">✨ LLM</span></h4>
+<div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
+
+<p>1. <strong>Catálogo (capa principal)</strong>: no existe ningún producto de tipo "Rosa" asociado a la ocasión "Decoración" en el inventario de petal-sheet-api. TC-DECO-01 (margaritas para decorar) pasa → el pipeline funciona cuando el producto existe; aquí el catálogo devuelve vacío para rosas+decoracion.</p>
+<p>2. <strong>Playbook Compra (secundaria)</strong>: el fallback ante "sin resultados para esta ocasión" muestra alternativas genéricas sin reconocer el producto pedido. Lo correcto sería: "No tengo rosas disponibles para decoración, pero te ofrezco estas opciones similares".</p>
+<p>3. <strong>Gestión de inventario (estructural)</strong>: el catálogo es parcial por ocasión — hay flores bien cubiertas (margaritas, tulipanes, hortensias) y otras sin cobertura para ciertos contextos. Rosas + Decoracion es el gap más evidente dado que rosas sí aparecen en boda/compra genérica.</p></div>
+</div></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Catálogo</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Catálogo: agregar productos Rosa para ocasión Decoración</h4>
+
+<p>🟢 <strong>9/10</strong> · ~2h (backend + verificación) · Aprobación de negocio + redeploy petal-sheet-api</p>
+
+<p><strong>Por qué</strong>: fix de raíz. El usuario pidió rosas y el catálogo no las tiene para decoración. Agregar SKUs Rosa para Decoracion resuelve el test y la UX real. TC-DECO-01 confirma que el pipeline es correcto cuando los datos existen — aquí es un gap de datos, no de lógica.</p>
+
+<h4>Soluciones evaluadas (ordenadas por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Catálogo: agregar productos Rosa — S/M/L para ocasión Decoración en petal-sheet-api</strong></td><td>🟢 9/10</td><td>Aprobación negocio + redeploy petal-sheet-api</td><td>Fix de raíz. Si los productos existen, el pipeline los muestra — TC-DECO-01 lo confirma. Única solución que resuelve test + UX real.</td></tr><tr><td>6</td><td><strong>Combinación #1 + #5</strong> (catálogo + playbook fallback digno)</td><td>🟢 8/10</td><td>Aprobación negocio + redeploy</td><td>Solución completa: datos correctos + fallback explícito para gaps futuros de inventario. ~2.5h total.</td></tr><tr><td>5</td><td><strong>Playbook Compra: CASO ESPECIAL "producto pedido sin stock de ocasión"</strong> → reconocer el producto explícito + explicar la limitación antes de sugerir alternativas</td><td>🟢 8/10</td><td>—</td><td>Mejora UX sin tocar backend. No resuelve el FAIL del test (regex pide "Rosa" en respuesta) pero elimina la respuesta engañosa actual. ~20 min. Combinable con #1.</td></tr><tr><td>4</td><td><strong>Examples: EX-DECO-ROSAS</strong> anclando "quiero rosas para decorar" → respuesta con rosas reales</td><td>🟡 6/10</td><td>Requiere #1 previo</td><td>Solo tiene efecto si el catálogo ya tiene rosas para decoración. Multiplicador, no sustituto. ~10 min.</td></tr><tr><td>2</td><td><strong>Playbook Compra: eliminar rama especial de Decoración</strong> y siempre respetar <code>producto</code> independientemente de la ocasión</td><td>🟡 5/10</td><td>—</td><td>Puede funcionar si el catálogo tiene rosas genéricas sin tag de ocasión. Riesgo: puede romper TC-DECO-01 y otros flujos de decoración. Requiere análisis de impacto previo.</td></tr><tr><td>3</td><td><strong>Test: recalibrar check</strong> para probar que el agente reconoce la limitación ("no tengo rosas para decoración") en lugar de exigir mostrar rosas</td><td>🟡 5/10</td><td>Requiere #5 previo</td><td>Solo válido si se implementa CASO ESPECIAL (#5) primero. Ajusta el test a un comportamiento alcanzable mientras el catálogo tiene el gap. No aplicar solo.</td></tr><tr><td>7</td><td><strong>No hacer nada</strong> (deuda técnica)</td><td>🔴 2/10</td><td>—</td><td>Test seguirá fallando permanentemente. UX real engañosa: usuario pide rosas, recibe tulipanes sin explicación. Solo aceptable si negocio decide que rosas-decoración no es caso de uso relevante.</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Aprobación de negocio</strong>: confirmar que "Rosa para decoración" es un caso de uso válido y qué SKUs añadir (talla S/M/L, precio, color).</p>
+<p>2. <strong>Editar inventario en petal-sheet-api</strong>: añadir filas con productos Rosa y <code>ocasion=Decoracion</code> en la hoja de cálculo.</p>
+<p>3. <strong>Redeploy petal-sheet-api</strong> en Cloud Run <code>europe-west1</code>.</p>
+<p>4. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable.</p>
+
+<p><strong>Coste total</strong>: ~2h (decisión de negocio ~1h + edición + redeploy ~30 min + verificación ~30 min). Si solo se implementa #5 (playbook fallback): ~20 min, pero el test seguirá en FAIL.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — clarifica plazo o redirige</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header fail">❌ Run 1</div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo de rosas para hoy a las 6"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿De qué color te gustaría el ramo de rosas?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"necesito un ramo de rosas para hoy a las 6"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica como <code>G5</code> (compra) y extrae <code>producto=rosas</code></td>
+<td class="col-problem">✅ Clasificación correcta. ⚠️ NO extrae slot de urgencia/fecha (<code>fecha<em>entrega</code>, <code>hora</em>entrega</code>, <code>urgencia</code> — ninguno presente)</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Playbook Compra</strong>: Procede directamente a mostrar catálogo de rosas (3 opciones: Morado/Amarillo/Blanco M)</td>
+<td class="col-problem">🔴 Ignora la información temporal del usuario ("hoy a las 6"). No clarifica plazo de entrega ni redirige al equipo</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"Claro, tenemos ramos de rosas en varios colores y tamaños. Por ejemplo: \[lista\] ¿Alguno te convence?"</em></td>
+<td class="col-problem">🔴 Respuesta inadecuada: el usuario tiene una restricción dura (entrega hoy) y el agente la ignora. Si compra y la entrega no es posible, frustración / posible cancelación</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: Regex pide: `hoy.{0,40}no \</td>
+<td class="col-problem">plazo \</td>
+</tr>
+</table>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#ef4444">❌ Turno no superado</p>
+<ul class="ta-bullets fail">
+<li>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</li>
+</ul>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=ramo de rosas</code>, <code>modo_tono=estandar</code></li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"¿De qué color te gustaría el ramo de rosas?"</em></li>
+</ul>
+<div class="diag-block" data-tcid="TC-URGENCIA-01">
+<h4 class="diag-header">Causa raíz (TC-URGENCIA-01) <span class="badge badge-llm">✨ LLM</span></h4>
+<div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
+
+<p>1. <strong>Playbook Compra (capa principal)</strong>: no tiene CASOS ESPECIALES para "petición con restricción temporal". El playbook entra directo en modo "buscar producto → mostrar catálogo" sin chequear primero si la petición tiene urgencia/plazo que el negocio no puede cumplir.</p>
+<p>2. <strong>Orquestador</strong>: clasifica bien como G5 (compra) y extrae <code>producto</code>, pero NO extrae slot de urgencia/fecha. Sin slot, el playbook ni siquiera puede saber que hay una restricción temporal.</p>
+<p>3. <strong>Política de negocio</strong>: no hay regla explícita sobre qué hacer ante peticiones urgentes. Asumiendo que actualmente Petal no soporta same-day delivery, la respuesta correcta es informar plazo real (24-48h) y/o redirigir al equipo si el cliente insiste.</p></div>
+</div></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Playbook Compra: añadir CASOS ESPECIALES "petición con urgencia/plazo"</h4>
+
+<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: bug real del agente, no del test. El check ya es generoso (7 patterns). La solución más conservadora y de mayor impacto es añadir una regla en el Playbook Compra para detectar palabras temporales (hoy, mañana, urgente, a las X, ahora, ya) y responder ANTES de mostrar catálogo con: "Actualmente las entregas se gestionan en 24-48h. Si necesitas algo urgente, te paso con mi equipo". Encaja con el patrón ya usado en otros CASOS ESPECIALES del playbook.</p>
+
+<h4>Soluciones evaluadas (ordenadas por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Playbook Compra: CASOS ESPECIALES "urgencia/plazo"</strong> — detectar palabras temporales y clarificar plazo o redirigir antes de catálogo</td><td>🟢 9/10</td><td>—</td><td><strong>RECOMENDADO</strong>. Fix de raíz, sin dependencias, en el lugar correcto (Playbook). Patrón ya usado en otros casos especiales. ~15 min.</td></tr><tr><td>3</td><td><strong>Combinar #1 + #2</strong> (Playbook + Orquestador slot)</td><td>🟢 8.5/10</td><td>Tests Orquestador</td><td>Solución más robusta: orquestador extrae <code>urgencia</code> como slot, playbook lo lee. Más limpio arquitectónicamente pero ~40 min y toca 2 capas.</td></tr><tr><td>2</td><td><strong>Orquestador: extraer slot <code>urgencia</code> o <code>fecha_entrega</code></strong></td><td>🟢 8/10</td><td>Tests Orquestador</td><td>Captura la info temporal en params. Necesita complemento en playbook para reaccionar. Solo no resuelve el bug. ~30 min.</td></tr><tr><td>4</td><td><strong>Examples: añadir <code>EX-URGENCIA-01</code></strong> anclando <em>"necesito hoy"</em> → <em>"actualmente entrega es 24h"</em></td><td>🟢 7/10 complementario</td><td>—</td><td>Refuerza determinismo del LLM. Multiplicador de #1, no sustituto. ~10 min.</td></tr><tr><td>6</td><td><strong>Backend: implementar same-day delivery real</strong></td><td>🟡 5/10</td><td>Negocio + backend + logística</td><td>Sobre-ingeniería para un MVP. Solo válido si negocio decide ofrecer same-day como producto. Días/semanas.</td></tr><tr><td>5</td><td><strong>Test: relajar regex</strong> para aceptar respuestas que solo muestren catálogo</td><td>🔴 3/10</td><td>—</td><td>Falso fix. El agente está mal: ignora restricción dura del usuario. Relajar el test pierde señal de regresión real. NO recomendado.</td></tr><tr><td>7</td><td><strong>No hacer nada</strong> (aceptar FAIL como deuda técnica permanente)</td><td>🔴 2/10</td><td>—</td><td>Test seguirá fallando, pierde señal. Riesgo de frustración real con clientes. NO recomendado.</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Editar Playbook Compra</strong> (<code>definitions/playbooks/Compra/instruction.md</code> o equivalente) → añadir bloque:</p>
+<p>```</p>
+<h4>CASOS ESPECIALES</h4>
+
+<ul>
+<li><strong>Petición con urgencia/plazo concreto</strong> (palabras clave: "hoy", "mañana", "ahora", "urgente", "ya", "a las HH", "antes de HH"):</li>
+</ul>
+<p>ANTES de mostrar catálogo, responde:</p>
+<p>"Actualmente las entregas se gestionan en 24-48h. Si necesitas algo urgente,</p>
+<p>puedo pasarte con mi equipo para que vean qué pueden hacer."</p>
+<p>Si el usuario insiste → handoff al equipo (razón: <code>urgencia_no_cubierta</code>).</p>
+<p>```</p>
+<p>2. <strong>Commit + push</strong> → CI auto-corre <code>Deploy to Petal CX</code> + <code>QA Petal</code>.</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable y descartar flakiness.</p>
+
+<p><strong>Coste total</strong>: ~15 min (edit + commit + verificación post-merge).</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — agente maneja uno por uno o explica limitacion</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header fail">❌ Run 1</div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas y un centro de mesa para una boda"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero un ramo de rosas y un centro de mesa para una boda"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica como G5 (compra), extrae <code>ocasion<em>detectada=Boda</code>, <code>modo</em>tono=estandar</code>. NO extrae <code>producto</code>. <code>intencion_inicial</code> contiene el texto completo con ambos ítems.</td>
+<td class="col-problem">⚠️ No extrae <code>producto</code> cuando hay múltiples ítems. La señal de multi-producto (dos tipos distintos) no se reconoce ni marca como slot.</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Recibe G5 + <code>ocasion=Boda</code> sin slot <code>producto</code>. Infiere desde <code>intencion_inicial</code> el producto más relevante para boda (ramo de novia rosas). Ignora "centro de mesa".</td>
+<td class="col-problem">🔴 Trata la petición como mono-producto. Muestra "Ramo de Novia Rosas — L (12 flores, 45€)" y pregunta si gusta, sin mencionar el segundo ítem ni la naturaleza multi-item del pedido.</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</em></td>
+<td class="col-problem">🔴 El segundo ítem (centro de mesa) desaparece por completo. El usuario puede sentir que el agente no le escucha.</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: Regex: `centro.{0,80}ramo\</td>
+<td class="col-problem">ramo.{0,80}centro\</td>
+</tr>
+</table>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#ef4444">❌ Turno no superado</p>
+<ul class="ta-bullets fail">
+<li>Agente debía decir [centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto]</li>
+</ul>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Boda</code>, <code>modo_tono=estandar</code></li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</em></li>
+</ul>
+<div class="diag-block" data-tcid="TC-MULTI-PRODUCTO-01">
+<h4 class="diag-header">Causa raíz (TC-MULTI-PRODUCTO-01) <span class="badge badge-llm">✨ LLM</span></h4>
+<div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
+
+<p>1. <strong>Playbook Compra (capa principal)</strong>: no tiene CASO ESPECIAL para peticiones multi-producto. Ante la presencia de "X y Y" en el mensaje (dos productos distintos), debería: (a) reconocer ambos explícitamente, (b) explicar que gestiona un producto a la vez, y (c) preguntar por cuál empezar.</p>
+<p>2. <strong>Orquestador (secundaria)</strong>: no extrae <code>producto</code> cuando hay múltiples ítems — el slot queda vacío. Sin señal de multi-producto, el Playbook Compra no puede distinguir este caso del flujo estándar y actúa en modo mono-producto.</p>
+<p>3. <strong>Arquitectura de slots (estructural)</strong>: el esquema actual (<code>producto</code>, <code>ocasion</code>, <code>modo_tono</code>) está diseñado para peticiones mono-producto. Para soportar multi-ítem correctamente se necesitaría un slot <code>multi_producto</code> o <code>productos_adicionales</code> en el orquestador.</p></div>
+</div></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Playbook Compra: CASO ESPECIAL "petición multi-producto"</h4>
+
+<p>🟢 <strong>8/10</strong> · ~20 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: fix conservador y directo. Mismo patrón arquitectónico que TC-URGENCIA-01 (CASOS ESPECIALES). Detectar la conjunción "X y Y" con dos tipos de producto y responder: "Perfecto, te ayudo con los dos. Empiezo por el ramo de rosas — [opciones]. Cuando terminemos, pasamos al centro de mesa." Sin cambios en orquestador ni en schema de slots.</p>
+
+<h4>Soluciones evaluadas (ordenadas por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>3</td><td><strong>Combinación #1 + #2</strong> (Playbook CASO ESPECIAL + Orquestador extrae <code>multi_producto</code>)</td><td>🟢 8.5/10</td><td>Tests Orquestador</td><td>Más robusto: orquestador pasa señal explícita al playbook en lugar de inferir del texto. ~50 min. Mejor arquitectura a largo plazo.</td></tr><tr><td>1</td><td><strong>Playbook Compra: CASO ESPECIAL "petición multi-producto"</strong> — detectar "X y Y" y gestionar uno a uno, reconociendo ambos ítems desde el primer turno</td><td>🟢 8/10</td><td>—</td><td>Fix de raíz accesible. Mismo patrón que CASOS ESPECIALES de urgencia. ~20 min. Resuelve test y UX real.</td></tr><tr><td>2</td><td><strong>Orquestador: extraer <code>multi_producto=true</code></strong> cuando hay ≥2 ítems distintos + <code>productos_solicitados</code> como lista</td><td>🟢 7/10</td><td>Tests Orquestador</td><td>Solución elegante pero incompleta sola: el Playbook Compra todavía necesita lógica para reaccionar al flag. Solo tiene efecto combinado con #1. ~30 min.</td></tr><tr><td>4</td><td><strong>Examples: EX-MULTI-01</strong> anclando "ramo y centro de mesa para boda" → respuesta que reconoce ambos + gestiona de uno en uno</td><td>🟡 6/10</td><td>—</td><td>Refuerza determinismo del LLM en este input específico. ~10 min. Alcance limitado: solo inputs cercanos al ejemplo. Multiplicador de #1, no sustituto.</td></tr><tr><td>5</td><td><strong>Playbook Compra: instrucción general</strong> "si detectas múltiples productos en <code>intencion_inicial</code>, menciónalos todos y gestiona de uno en uno" sin CASO ESPECIAL explícito</td><td>🟡 5/10</td><td>—</td><td>Menos robusto que #1: instrucción general más susceptible a ser ignorada por el LLM en variaciones. Más flakiness probable. Menos trabajo inicial pero más retrabajo futuro.</td></tr><tr><td>6</td><td><strong>Test: relajar regex</strong> para aceptar respuesta solo al primer producto</td><td>🔴 4/10</td><td>—</td><td>Falso fix: el agente está ignorando el segundo ítem. Relajar el test pierde señal real. Solo válido si negocio decide que multi-producto no es un caso soportado Y el agente comunica esa limitación explícitamente.</td></tr><tr><td>7</td><td><strong>No hacer nada</strong></td><td>🔴 2/10</td><td>—</td><td>UX real deficiente: usuario que pide dos productos ve que uno desaparece sin explicación. La frecuencia de pedidos multi-ítem en florería para eventos justifica el fix. Test seguirá fallando.</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Editar Playbook Compra</strong> (<code>definitions/playbooks/compra.yaml</code>) → añadir bloque al inicio de CASOS ESPECIALES:</p>
+<p>```</p>
+<ul>
+<li><strong>Petición multi-producto</strong> (el usuario menciona dos o más productos distintos unidos por "y"):</li>
+</ul>
+<p>ANTES de mostrar catálogo, reconocer ambos explícitamente:</p>
+<p>"Perfecto, te ayudo con los dos. Empiezo por [primer producto] — [opciones].</p>
+<p>Cuando terminemos, seguimos con [segundo producto]."</p>
+<p>No mostrar catálogo genérico hasta que el usuario confirme con cuál empieza.</p>
+<p>```</p>
+<p>2. <strong>Commit + push</strong> → CI corre <code>Deploy to Petal CX</code> + <code>QA Petal</code>.</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable.</p>
+
+<p><strong>Coste total</strong>: ~20 min (edit + commit + verificación post-merge).</p></div></div>
+</div></div>
 
 <div id="metodologia-modal" class="modal hidden">
   <div class="modal-overlay" onclick="closeMetodologia()"></div>
@@ -3803,7 +3899,11 @@ Incl..."</div>
     
         <div class="kpi-section">
           <h3>📈 Regresión vs run anterior</h3>
-          <p class="kpi-no-data"><em>Sin datos del run anterior (este es el primero o no se encontró meta.json previo).</em></p>
+          <table class="kpi-regr">
+            <tr><td>Run actual</td><td>2026-05-20 08:50</td><td><strong>PASS 93%</strong> (46/49)</td></tr>
+            <tr><td>Run anterior</td><td>2026-05-19 19:44</td><td>PASS 100% (1/1)</td></tr>
+            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-down"><strong>-7%</strong></td></tr>
+          </table>
         </div>
     
     <div class="kpi-section">
