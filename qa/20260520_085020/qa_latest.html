@@ -3703,20 +3703,20 @@ Incl..."</div>
 <td class="col-problem">—</td>
 </tr>
 <tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica como <code>G5</code> (compra) y extrae <code>producto=rosas</code></td>
-<td class="col-problem">✅ Clasificación correcta. ⚠️ NO extrae slot de urgencia/fecha (<code>fecha<em>entrega</code>, <code>hora</em>entrega</code>, <code>urgencia</code> — ninguno presente)</td>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: clasifica como G5 (Compra) → handoff a Compra, extrae <code>producto=ramo de rosas</code></td>
+<td class="col-problem">✅ Clasificación correcta, pero ⚠️ no marca la urgencia ("hoy a las 6") como señal a propagar</td>
 </tr>
 <tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Playbook Compra</strong>: Procede directamente a mostrar catálogo de rosas (3 opciones: Morado/Amarillo/Blanco M)</td>
-<td class="col-problem">🔴 Ignora la información temporal del usuario ("hoy a las 6"). No clarifica plazo de entrega ni redirige al equipo</td>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: ignora el marcador temporal "hoy a las 6" y entra directo a slot-filling (color)</td>
+<td class="col-problem">🔴 No hay CASO ESPECIAL urgencia/plazo en el Playbook Compra</td>
 </tr>
 <tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"Claro, tenemos ramos de rosas en varios colores y tamaños. Por ejemplo: \[lista\] ¿Alguno te convence?"</em></td>
-<td class="col-problem">🔴 Respuesta inadecuada: el usuario tiene una restricción dura (entrega hoy) y el agente la ignora. Si compra y la entrega no es posible, frustración / posible cancelación</td>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"¿De qué color te gustaría el ramo de rosas?"</em></td>
+<td class="col-problem">🔴 Respuesta funcional pero falsa expectativa: el usuario asume que su plazo "hoy a las 6" es viable, cuando Petal solo entrega en 24-48h</td>
 </tr>
 <tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: Regex pide: `hoy.{0,40}no \</td>
-<td class="col-problem">plazo \</td>
+<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: Regex `[hoy.{0,40}no\</td>
+<td class="col-problem">plazo\</td>
 </tr>
 </table>
 </div>
@@ -3737,38 +3737,27 @@ Incl..."</div>
 <h4 class="diag-header">Causa raíz (TC-URGENCIA-01) <span class="badge badge-llm">✨ LLM</span></h4>
 <div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
 
-<p>1. <strong>Playbook Compra (capa principal)</strong>: no tiene CASOS ESPECIALES para "petición con restricción temporal". El playbook entra directo en modo "buscar producto → mostrar catálogo" sin chequear primero si la petición tiene urgencia/plazo que el negocio no puede cumplir.</p>
-<p>2. <strong>Orquestador</strong>: clasifica bien como G5 (compra) y extrae <code>producto</code>, pero NO extrae slot de urgencia/fecha. Sin slot, el playbook ni siquiera puede saber que hay una restricción temporal.</p>
-<p>3. <strong>Política de negocio</strong>: no hay regla explícita sobre qué hacer ante peticiones urgentes. Asumiendo que actualmente Petal no soporta same-day delivery, la respuesta correcta es informar plazo real (24-48h) y/o redirigir al equipo si el cliente insiste.</p></div>
+<p>1. <strong>Capa 1 (Playbook Compra)</strong>: no existe un CASO ESPECIAL que detecte palabras de urgencia/plazo ("hoy", "ahora", "en X horas", "esta tarde", "urgente") y responda con el plazo real (24-48h) + opción de escalado a humano. El PR #83 añadía exactamente este CASO pero fue revertido en el PR #84, dejando el bug activo.</p>
+<p>2. <strong>Capa 2 (Orquestador)</strong>: clasifica G5 correctamente pero no tiene una señal/slot <code>urgencia_temporal</code> que pueda propagar a Compra para activar el camino especial. Aunque añadir esto sería deseable, no es bloqueante: Compra puede detectarlo en su propio texto de entrada.</p>
+<p>3. <strong>Capa 3 (estructural/negocio)</strong>: Petal opera con simulación de entrega 24-48h. No existe pipeline real same-day. El agente debe ser explícito sobre el plazo en lugar de dejar que el usuario asuma viabilidad de su petición temporal.</p></div>
 </div></div></td></tr></table>
-<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Playbook Compra: añadir CASOS ESPECIALES "petición con urgencia/plazo"</h4>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Playbook Compra: añadir CASOS ESPECIALES urgencia/plazo</h4>
 
-<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
+<p>🟢 <strong>9/10</strong> · ~10 min · Sin dependencias externas</p>
 
-<p><strong>Por qué</strong>: bug real del agente, no del test. El check ya es generoso (7 patterns). La solución más conservadora y de mayor impacto es añadir una regla en el Playbook Compra para detectar palabras temporales (hoy, mañana, urgente, a las X, ahora, ya) y responder ANTES de mostrar catálogo con: "Actualmente las entregas se gestionan en 24-48h. Si necesitas algo urgente, te paso con mi equipo". Encaja con el patrón ya usado en otros CASOS ESPECIALES del playbook.</p>
+<p><strong>Por qué</strong>: es exactamente el fix del PR #83 (revertido), validado conceptualmente. Localizado en un solo archivo (<code>definitions/playbooks/Compra.yaml</code>), no toca orquestador ni catálogo, coste mínimo, cubre el regex del test y mejora UX real (gestiona expectativas del cliente). El revert de #84 sugiere que hubo regresión colateral — esta vez se mete con regex de detección más estricto y se valida con <code>--runs 3</code> antes del merge.</p>
 
 <h4>Soluciones evaluadas (ordenadas por score)</h4>
 
-<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Playbook Compra: CASOS ESPECIALES "urgencia/plazo"</strong> — detectar palabras temporales y clarificar plazo o redirigir antes de catálogo</td><td>🟢 9/10</td><td>—</td><td><strong>RECOMENDADO</strong>. Fix de raíz, sin dependencias, en el lugar correcto (Playbook). Patrón ya usado en otros casos especiales. ~15 min.</td></tr><tr><td>3</td><td><strong>Combinar #1 + #2</strong> (Playbook + Orquestador slot)</td><td>🟢 8.5/10</td><td>Tests Orquestador</td><td>Solución más robusta: orquestador extrae <code>urgencia</code> como slot, playbook lo lee. Más limpio arquitectónicamente pero ~40 min y toca 2 capas.</td></tr><tr><td>2</td><td><strong>Orquestador: extraer slot <code>urgencia</code> o <code>fecha_entrega</code></strong></td><td>🟢 8/10</td><td>Tests Orquestador</td><td>Captura la info temporal en params. Necesita complemento en playbook para reaccionar. Solo no resuelve el bug. ~30 min.</td></tr><tr><td>4</td><td><strong>Examples: añadir <code>EX-URGENCIA-01</code></strong> anclando <em>"necesito hoy"</em> → <em>"actualmente entrega es 24h"</em></td><td>🟢 7/10 complementario</td><td>—</td><td>Refuerza determinismo del LLM. Multiplicador de #1, no sustituto. ~10 min.</td></tr><tr><td>6</td><td><strong>Backend: implementar same-day delivery real</strong></td><td>🟡 5/10</td><td>Negocio + backend + logística</td><td>Sobre-ingeniería para un MVP. Solo válido si negocio decide ofrecer same-day como producto. Días/semanas.</td></tr><tr><td>5</td><td><strong>Test: relajar regex</strong> para aceptar respuestas que solo muestren catálogo</td><td>🔴 3/10</td><td>—</td><td>Falso fix. El agente está mal: ignora restricción dura del usuario. Relajar el test pierde señal de regresión real. NO recomendado.</td></tr><tr><td>7</td><td><strong>No hacer nada</strong> (aceptar FAIL como deuda técnica permanente)</td><td>🔴 2/10</td><td>—</td><td>Test seguirá fallando, pierde señal. Riesgo de frustración real con clientes. NO recomendado.</td></tr></tbody></table>
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Playbook Compra: añadir CASOS ESPECIALES urgencia/plazo (detectar "hoy/ahora/urgente/en X horas" → responder con 24-48h + ofrecer humano)</strong></td><td>🟢 9/10</td><td>—</td><td>Fix localizado, ya validado conceptualmente en PR #83. Riesgo bajo si se acota el trigger con regex estricto y se valida con runs múltiples.</td></tr><tr><td>2</td><td><strong>Orquestador: nuevo slot <code>urgencia_temporal</code> + propagación a Compra que activa rama especial</strong></td><td>🟢 8/10</td><td>Cambio en Orquestador + Compra</td><td>Más limpio arquitectónicamente (separación clasificación/ejecución), pero toca 2 playbooks y requiere coordinar slots. Más coste, mismo resultado funcional.</td></tr><tr><td>3</td><td><strong>Añadir un sub-playbook <code>GestionUrgencia</code> invocado como Task desde Compra cuando detecta urgencia</strong></td><td>🟡 7/10</td><td>Nuevo playbook + push</td><td>Buena separación de responsabilidades y reutilizable (Decoración, Suscripción también podrían usarlo), pero overkill para el bug puntual y aumenta superficie de fallos.</td></tr><tr><td>4</td><td><strong>Tool <code>check_delivery_availability(fecha, hora)</code> que devuelve "no disponible same-day, próximo slot: mañana"</strong></td><td>🟡 6/10</td><td>Nuevo Tool + Webhook</td><td>Más "real" como simulación, pero introduce dependencia de Tool para un caso que se resuelve con texto estático. Sobrediseño.</td></tr><tr><td>5</td><td><strong>Añadir Intent específico <code>urgencia_entrega</code> y Page dedicada con respuesta canned</strong></td><td>🟡 5/10</td><td>Intents + Pages + Flows</td><td>Romper el patrón Playbook-centric del agente por un caso edge. Aumenta complejidad NLU sin ganancia clara.</td></tr><tr><td>6</td><td><strong>Generator dedicado que enriquezca el prompt de Compra con "considera plazo de entrega" cuando hay marcadores temporales</strong></td><td>🟡 5/10</td><td>Nuevo Generator</td><td>Posible pero opaco: depende de que el LLM "interprete" la instrucción, menos determinístico que un CASO ESPECIAL explícito.</td></tr><tr><td>7</td><td><strong>Relajar el regex del test para que pase cualquier respuesta de Compra (aceptar slot-filling como válido)</strong></td><td>🔴 2/10</td><td>—</td><td>Ocultar el bug. El TC existe precisamente porque la respuesta actual es UX-incorrecta (genera falsa expectativa). Anti-patrón.</td></tr></tbody></table>
 
 <h4>Plan de acción (Solución #1)</h4>
 
-<p>1. <strong>Editar Playbook Compra</strong> (<code>definitions/playbooks/Compra/instruction.md</code> o equivalente) → añadir bloque:</p>
-<p>```</p>
-<h4>CASOS ESPECIALES</h4>
+<p>1. <strong>Editar <code>definitions/playbooks/Compra.yaml</code></strong> → añadir bloque CASO ESPECIAL: "Si el usuario menciona urgencia temporal (hoy, ahora, urgente, esta tarde, en X horas, antes de las HH), responder: 'Para hoy mismo no podemos garantizar la entrega; nuestros pedidos se entregan en 24-48h. ¿Quieres que confirmemos para mañana o prefieres que un humano del equipo te ayude con una opción más rápida?'". Trigger con regex estricto para evitar falsos positivos en "para mañana", "para el lunes" etc.</p>
+<p>2. <strong>Revisar el diff con el PR #83 revertido</strong> → identificar qué causó el revert en #84 y blindar el nuevo CASO (regex más acotado, no interferir con otros TCs de Compra).</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable y verificar que no hay regresión en los otros TCs de COMPRA-ZG (especialmente los que mencionan fechas/plazos legítimos).</p>
 
-<ul>
-<li><strong>Petición con urgencia/plazo concreto</strong> (palabras clave: "hoy", "mañana", "ahora", "urgente", "ya", "a las HH", "antes de HH"):</li>
-</ul>
-<p>ANTES de mostrar catálogo, responde:</p>
-<p>"Actualmente las entregas se gestionan en 24-48h. Si necesitas algo urgente,</p>
-<p>puedo pasarte con mi equipo para que vean qué pueden hacer."</p>
-<p>Si el usuario insiste → handoff al equipo (razón: <code>urgencia_no_cubierta</code>).</p>
-<p>```</p>
-<p>2. <strong>Commit + push</strong> → CI auto-corre <code>Deploy to Petal CX</code> + <code>QA Petal</code>.</p>
-<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable y descartar flakiness.</p>
-
-<p><strong>Coste total</strong>: ~15 min (edit + commit + verificación post-merge).</p></div></div>
+<p><strong>Coste total</strong>: ~10 min (edit + PR + merge + deploy + rerun)</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -3785,19 +3774,19 @@ Incl..."</div>
 <td class="col-problem">—</td>
 </tr>
 <tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica como G5 (compra), extrae <code>ocasion<em>detectada=Boda</code>, <code>modo</em>tono=estandar</code>. NO extrae <code>producto</code>. <code>intencion_inicial</code> contiene el texto completo con ambos ítems.</td>
-<td class="col-problem">⚠️ No extrae <code>producto</code> cuando hay múltiples ítems. La señal de multi-producto (dos tipos distintos) no se reconoce ni marca como slot.</td>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: clasifica como G5 (Boda), extrae <code>ocasion<em>detectada=Boda</code>, <code>modo</em>tono=estandar</code>, <code>producto=∅</code></td>
+<td class="col-problem">⚠️ no detecta multi-item ni extrae los dos productos mencionados; el slot <code>producto</code> queda vacío sin señal de pluralidad</td>
 </tr>
 <tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Recibe G5 + <code>ocasion=Boda</code> sin slot <code>producto</code>. Infiere desde <code>intencion_inicial</code> el producto más relevante para boda (ramo de novia rosas). Ignora "centro de mesa".</td>
-<td class="col-problem">🔴 Trata la petición como mono-producto. Muestra "Ramo de Novia Rosas — L (12 flores, 45€)" y pregunta si gusta, sin mencionar el segundo ítem ni la naturaleza multi-item del pedido.</td>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: recibe slots parciales, aplica flujo mono-producto y elige "ramo de novia rosas" inferido desde <code>intencion_inicial</code> y ocasión Boda</td>
+<td class="col-problem">🔴 ignora silenciosamente el segundo ítem (centro de mesa)</td>
 </tr>
 <tr>
 <td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</em></td>
-<td class="col-problem">🔴 El segundo ítem (centro de mesa) desaparece por completo. El usuario puede sentir que el agente no le escucha.</td>
+<td class="col-problem">🔴 no reconoce los 2 productos, no propone gestionar uno a uno ni explica la limitación mono-producto</td>
 </tr>
 <tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: Regex: `centro.{0,80}ramo\</td>
+<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: Regex `centro.{0,80}ramo\</td>
 <td class="col-problem">ramo.{0,80}centro\</td>
 </tr>
 </table>
@@ -3819,36 +3808,32 @@ Incl..."</div>
 <h4 class="diag-header">Causa raíz (TC-MULTI-PRODUCTO-01) <span class="badge badge-llm">✨ LLM</span></h4>
 <div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
 
-<p>1. <strong>Playbook Compra (capa principal)</strong>: no tiene CASO ESPECIAL para peticiones multi-producto. Ante la presencia de "X y Y" en el mensaje (dos productos distintos), debería: (a) reconocer ambos explícitamente, (b) explicar que gestiona un producto a la vez, y (c) preguntar por cuál empezar.</p>
-<p>2. <strong>Orquestador (secundaria)</strong>: no extrae <code>producto</code> cuando hay múltiples ítems — el slot queda vacío. Sin señal de multi-producto, el Playbook Compra no puede distinguir este caso del flujo estándar y actúa en modo mono-producto.</p>
-<p>3. <strong>Arquitectura de slots (estructural)</strong>: el esquema actual (<code>producto</code>, <code>ocasion</code>, <code>modo_tono</code>) está diseñado para peticiones mono-producto. Para soportar multi-ítem correctamente se necesitaría un slot <code>multi_producto</code> o <code>productos_adicionales</code> en el orquestador.</p></div>
+<p>1. <strong>Capa 1 (Playbook Compra)</strong>: no existe CASO ESPECIAL para detectar petición multi-producto ("X y Y" con dos productos distintos). El playbook asume mono-producto y elige el primero/más probable sin reconocer ni mencionar el segundo.</p>
+<p>2. <strong>Capa 2 (Orquestador)</strong>: no marca <code>multi_item=true</code> ni extrae lista de productos cuando hay dos en la frase. El slot <code>producto</code> espera un único valor y al ver dos opta por dejarlo vacío, sin señal alternativa al Compra.</p>
+<p>3. <strong>Capa 3 (estructural)</strong>: la arquitectura de Petal es mono-producto end-to-end (slots, catálogo, flujo de carrito implícito). No hay convención para "lista de ítems pendientes" ni handoff secuencial entre productos dentro de una misma conversación de compra.</p></div>
 </div></div></td></tr></table>
-<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Playbook Compra: CASO ESPECIAL "petición multi-producto"</h4>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — CASO ESPECIAL multi-producto en Playbook Compra</h4>
 
-<p>🟢 <strong>8/10</strong> · ~20 min · Sin dependencias externas</p>
+<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
 
-<p><strong>Por qué</strong>: fix conservador y directo. Mismo patrón arquitectónico que TC-URGENCIA-01 (CASOS ESPECIALES). Detectar la conjunción "X y Y" con dos tipos de producto y responder: "Perfecto, te ayudo con los dos. Empiezo por el ramo de rosas — [opciones]. Cuando terminemos, pasamos al centro de mesa." Sin cambios en orquestador ni en schema de slots.</p>
+<p><strong>Por qué</strong>: replica el patrón arquitectónico ya validado de CASOS ESPECIALES urgencia/plazo (TC-URGENCIA-01). Es local al Playbook Compra, no toca Orquestador ni schema de slots, y resuelve el FAIL detectando "X y Y" sobre <code>intencion_inicial</code>. Bajo coste, bajo riesgo, alineado con el estilo conversacional del agente y con la regex del check.</p>
 
 <h4>Soluciones evaluadas (ordenadas por score)</h4>
 
-<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>3</td><td><strong>Combinación #1 + #2</strong> (Playbook CASO ESPECIAL + Orquestador extrae <code>multi_producto</code>)</td><td>🟢 8.5/10</td><td>Tests Orquestador</td><td>Más robusto: orquestador pasa señal explícita al playbook en lugar de inferir del texto. ~50 min. Mejor arquitectura a largo plazo.</td></tr><tr><td>1</td><td><strong>Playbook Compra: CASO ESPECIAL "petición multi-producto"</strong> — detectar "X y Y" y gestionar uno a uno, reconociendo ambos ítems desde el primer turno</td><td>🟢 8/10</td><td>—</td><td>Fix de raíz accesible. Mismo patrón que CASOS ESPECIALES de urgencia. ~20 min. Resuelve test y UX real.</td></tr><tr><td>2</td><td><strong>Orquestador: extraer <code>multi_producto=true</code></strong> cuando hay ≥2 ítems distintos + <code>productos_solicitados</code> como lista</td><td>🟢 7/10</td><td>Tests Orquestador</td><td>Solución elegante pero incompleta sola: el Playbook Compra todavía necesita lógica para reaccionar al flag. Solo tiene efecto combinado con #1. ~30 min.</td></tr><tr><td>4</td><td><strong>Examples: EX-MULTI-01</strong> anclando "ramo y centro de mesa para boda" → respuesta que reconoce ambos + gestiona de uno en uno</td><td>🟡 6/10</td><td>—</td><td>Refuerza determinismo del LLM en este input específico. ~10 min. Alcance limitado: solo inputs cercanos al ejemplo. Multiplicador de #1, no sustituto.</td></tr><tr><td>5</td><td><strong>Playbook Compra: instrucción general</strong> "si detectas múltiples productos en <code>intencion_inicial</code>, menciónalos todos y gestiona de uno en uno" sin CASO ESPECIAL explícito</td><td>🟡 5/10</td><td>—</td><td>Menos robusto que #1: instrucción general más susceptible a ser ignorada por el LLM en variaciones. Más flakiness probable. Menos trabajo inicial pero más retrabajo futuro.</td></tr><tr><td>6</td><td><strong>Test: relajar regex</strong> para aceptar respuesta solo al primer producto</td><td>🔴 4/10</td><td>—</td><td>Falso fix: el agente está ignorando el segundo ítem. Relajar el test pierde señal real. Solo válido si negocio decide que multi-producto no es un caso soportado Y el agente comunica esa limitación explícitamente.</td></tr><tr><td>7</td><td><strong>No hacer nada</strong></td><td>🔴 2/10</td><td>—</td><td>UX real deficiente: usuario que pide dos productos ve que uno desaparece sin explicación. La frecuencia de pedidos multi-ítem en florería para eventos justifica el fix. Test seguirá fallando.</td></tr></tbody></table>
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>CASO ESPECIAL multi-producto en Playbook Compra</strong>: detectar "ramo y centro", "X y Y" con 2 productos distintos sobre <code>intencion_inicial</code>; reconocer ambos explícitamente y proponer empezar por uno</td><td>🟢 9/10</td><td>—</td><td>Patrón ya probado (urgencia). Local, rápido, sin riesgo de regresión en flujo mono-producto. Cubre exactamente la regex del check y la UX real.</td></tr><tr><td>2</td><td><strong>Combinación #1 + #3</strong>: Playbook con CASO ESPECIAL + Orquestador marca <code>multi_item=true</code> y pasa lista</td><td>🟢 8/10</td><td>Edit Orquestador + contrato slots</td><td>Solución arquitectónica más limpia (separa detección de gestión). Mayor coste y mayor superficie de regresión. Recomendable a medio plazo.</td></tr><tr><td>3</td><td><strong>Detección en Orquestador</strong>: nuevo flag <code>multi_item=true</code> y <code>productos_solicitados=[ramo, centro]</code> cuando hay ≥2 productos</td><td>🟡 7/10</td><td>Edit Orquestador + Compra reacciona al flag</td><td>Sin lógica en Compra el flag no produce respuesta correcta. Solo aporta combinado con #1.</td></tr><tr><td>4</td><td><strong>Instrucción genérica anti-omisión</strong> en Playbook Compra: "si el usuario menciona varios productos, recónocelos todos antes de elegir uno"</td><td>🟡 6/10</td><td>—</td><td>Más flexible que el CASO ESPECIAL pero menos determinista. Gemini puede ignorarla en variaciones. Útil como red de seguridad complementaria a #1.</td></tr><tr><td>5</td><td><strong>Few-shot example multi-producto</strong> ("ramo y centro para boda" → respuesta correcta) sin CASO ESPECIAL explícito</td><td>🟡 5/10</td><td>Generar 1-2 examples nuevos</td><td>Refuerza determinismo en inputs cercanos. Alcance limitado por similitud léxica. Multiplicador útil de #1, no sustituto.</td></tr><tr><td>6</td><td><strong>Ampliar slot <code>producto</code> a lista</strong> y carrito implícito multi-ítem real</td><td>🟡 5/10</td><td>Refactor slots + catálogo lookup + carrito</td><td>Cambia el modelo de datos end-to-end. Alto impacto en 49 TCs. Anti-regresión costoso para 1 TC actual.</td></tr><tr><td>7</td><td><strong>Recalibrar test</strong>: aceptar respuesta mono-producto como válida y documentar limitación</td><td>🔴 2/10</td><td>—</td><td>Esconde el bug UX real. El usuario percibe que el agente "ignora" parte de su petición. El check refleja un comportamiento legítimamente esperado, no es falso negativo.</td></tr></tbody></table>
 
 <h4>Plan de acción (Solución #1)</h4>
 
-<p>1. <strong>Editar Playbook Compra</strong> (<code>definitions/playbooks/compra.yaml</code>) → añadir bloque al inicio de CASOS ESPECIALES:</p>
-<p>```</p>
+<p>1. <strong>Añadir CASO ESPECIAL multi-producto</strong> al Playbook Compra (sección CASOS ESPECIALES, junto a urgencia) → <code>definitions/playbooks/compra.yaml</code></p>
 <ul>
-<li><strong>Petición multi-producto</strong> (el usuario menciona dos o más productos distintos unidos por "y"):</li>
+<li>Trigger: el usuario menciona dos o más productos distintos unidos por "y" en <code>intencion_inicial</code> (p.ej. <code>ramo|centro|corona|bouquet|arreglo</code> × 2)</li>
+<li>Acción: reconocer ambos productos explícitamente y proponer secuenciar. Ejemplo de respuesta esperada:</li>
 </ul>
-<p>ANTES de mostrar catálogo, reconocer ambos explícitamente:</p>
-<p>"Perfecto, te ayudo con los dos. Empiezo por [primer producto] — [opciones].</p>
-<p>Cuando terminemos, seguimos con [segundo producto]."</p>
-<p>No mostrar catálogo genérico hasta que el usuario confirme con cuál empieza.</p>
-<p>```</p>
-<p>2. <strong>Commit + push</strong> → CI corre <code>Deploy to Petal CX</code> + <code>QA Petal</code>.</p>
-<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable.</p>
+<p><em>"Perfecto, te ayudo con los dos. Empiezo por el ramo y luego vemos el centro de mesa, ¿te parece? Para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te encaja?"</em></p>
+<p>2. <strong>Commit + push</strong> → CI corre <code>Deploy to Petal CX</code> + <code>QA Petal</code> automáticamente</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable de TC-MULTI-PRODUCTO-01 y 0 regresiones en TCs mono-producto</p>
 
-<p><strong>Coste total</strong>: ~20 min (edit + commit + verificación post-merge).</p></div></div>
+<p><strong>Coste total</strong>: ~15 min (10 edición + 5 validación, +2 min deploy CX)</p></div></div>
 </div></div>
 
 <div id="metodologia-modal" class="modal hidden">
