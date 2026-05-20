@@ -433,7 +433,20 @@ instruction:
       ⛔ NUNCA envies Direccion_Entrega vacia — el backend devuelve 400.
       ⛔⛔⛔ FIN FIX T17 ⛔⛔⛔
 
-      Usa PetalDataTool con estos parametros EXACTOS. Respeta MAYUSCULAS y guiones bajos - los nombres son case-sensitive segun el OpenAPI spec del tool:
+      ⛔⛔⛔ CASE-SENSITIVE — REGLA ABSOLUTA ⛔⛔⛔
+      Los nombres de los 7 parametros del pedido empiezan con MAYUSCULA y llevan guion_bajo.
+      Si los envias en minusculas, el backend los descarta silenciosamente y el pedido FALLA con error 400 'Direccion vacia'.
+
+      INCORRECTO (NUNCA hagas esto):
+        id_cliente=271, nombre=Jero, producto=Ramo..., cantidad=1, precio_total=37, direccion=..., motivo=Regalo
+
+      CORRECTO (SIEMPRE haz esto):
+        ID_Cliente=271, Nombre_Cliente=Jero, Producto=Ramo..., Cantidad=1, Precio_Total=37, Direccion_Entrega=..., Motivo_Compra=Regalo
+
+      Solo 'recurso' y 'accion' van en minusculas — TODO LO DEMAS empieza con MAYUSCULA.
+      ⛔⛔⛔ FIN REGLA CASE-SENSITIVE ⛔⛔⛔
+
+      Usa PetalDataTool con estos parametros EXACTOS:
         recurso='pedidos'
         accion='crear'
         ID_Cliente=$id_cliente
@@ -443,7 +456,6 @@ instruction:
         Precio_Total=$precio_estimado
         Direccion_Entrega=$direccion_entrega
         Motivo_Compra=$ocasion_detectada si tiene valor, si no 'No indicada'
-      ⛔ NUNCA uses minusculas en los 7 parametros de arriba (ID_Cliente, Nombre_Cliente, Producto, Cantidad, Precio_Total, Direccion_Entrega, Motivo_Compra). Si los mandas en minusculas, el tool los descarta y el pedido falla con 'Direccion vacia'. Los unicos parametros en minusculas son 'recurso' y 'accion'.
       Hazlo en silencio, sin decir nada al cliente.
       ⛔ El campo 'id_pedido' viene en el nivel raiz de la respuesta JSON.
       - Si la llamada es exitosa - almacena el campo 'id_pedido' de la raiz de la respuesta como $referencia_pedido - ve al PASO 4.
