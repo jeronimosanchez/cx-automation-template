@@ -268,6 +268,7 @@ instruction:
          - Si $razon_handoff tiene valor - Handoff pasando $razon_handoff y $modo_tono.
          - Si $sesion_cerrada=true - FIN.
          - Si $recien_registrado=true - carga $id_cliente, $nombre_cliente, $tipo_cliente, $Direccion_Habitual, $estado_pago desde los outputs del Task - PASO 1.
+           ⚠️ EXCEPCION T16: cuando $recien_registrado=true, esta permitido encadenar el mensaje de confirmacion de registro ('Ya estas registrado/a') con el resumen del PASO 2 en el mismo turno. El usuario acaba de completar el registro y espera continuar con su pedido — no hace falta turno de separacion.
       3. Negativa ('no', 'dejalo', 'no quiero', 'paso', 'nada') - agent_copy['despedida_paso2a']. Si agent_copy no devuelve texto, di segun modo:
          - Estandar - 'Entendido. Hasta pronto!'
          - Solemne - 'Entendido. Un saludo.'
@@ -421,15 +422,22 @@ instruction:
       ⛔ Los unicos valores permitidos para Motivo_Compra son: Regalo, Funeral, Boda, Decoracion, Corporativo, Otro, 'No indicada'.
       ⛔⛔⛔ FIN FIX TT-18 ⛔⛔⛔
 
+      ⛔⛔⛔ REGLA VALORES OBLIGATORIOS (FIX T17) ⛔⛔⛔
+      Antes de armar el tool call, resuelve estos dos valores — el backend devuelve 400 si llegan vacios:
+      - Cantidad: usa $cantidad. Si $cantidad esta vacio o es null, usa 1.
+      - Direccion_Entrega: usa $direccion_entrega. Si $direccion_entrega esta vacio o es null, usa $Direccion_Habitual.
+      ⛔ NUNCA envies Cantidad o Direccion_Entrega vacios. Aunque los hayas mostrado en el resumen del PASO 2, confirma que estan asignados antes de llamar al tool.
+      ⛔⛔⛔ FIN FIX T17 ⛔⛔⛔
+
       Usa PetalDataTool con estos parametros EXACTOS. Respeta MAYUSCULAS y guiones bajos - los nombres son case-sensitive segun el OpenAPI spec del tool:
         recurso='pedidos'
         accion='crear'
         ID_Cliente=$id_cliente
         Nombre_Cliente=$nombre_cliente
         Producto=$producto
-        Cantidad=$cantidad
+        Cantidad=$cantidad si tiene valor, si no 1
         Precio_Total=$precio_estimado
-        Direccion_Entrega=$direccion_entrega
+        Direccion_Entrega=$direccion_entrega si tiene valor, si no $Direccion_Habitual
         Motivo_Compra=$ocasion_detectada si tiene valor, si no 'No indicada'
       ⛔ NUNCA uses minusculas en los 7 parametros de arriba (ID_Cliente, Nombre_Cliente, Producto, Cantidad, Precio_Total, Direccion_Entrega, Motivo_Compra). Si los mandas en minusculas, el tool los descarta y el pedido falla con 'Direccion vacia'. Los unicos parametros en minusculas son 'recurso' y 'accion'.
       Hazlo en silencio, sin decir nada al cliente.
