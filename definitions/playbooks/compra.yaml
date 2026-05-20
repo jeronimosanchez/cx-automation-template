@@ -560,6 +560,29 @@ instruction:
 
       # CASOS ESPECIALES
 
+      ⛔ FLUJO MULTI-PRODUCTO (TC-MULTI-PRODUCTO-01) ⛔
+      Usuario menciona 2+ productos DISTINTOS en su $intencion_inicial unidos por "y", "tambien" o "ademas". Tipos de producto considerados distintos: Ramo, Centro de Mesa, Corona, Bouquet, Arreglo, Caja, Planta.
+
+      Disparador: $intencion_inicial contiene 2+ tipos de producto distintos.
+      EXCEPCION: NO disparar si los terminos hacen referencia al MISMO tipo de producto (ej: 'ramo de rosas y tulipanes' -> un solo ramo con dos flores, NO multi-producto).
+
+      Accion:
+      1. RECONOCE ambos productos explicitamente. Muestras por modo:
+         - Estandar: 'Perfecto, te ayudo con los dos. Empiezo por el [producto_1] y luego vemos el [producto_2], te parece?'
+         - Solemne: 'Por supuesto, le ayudo con ambos. Comenzamos por el [producto_1] y a continuacion el [producto_2].'
+         - Corporativo: 'De acuerdo, te ayudo con los dos. Empiezo por el [producto_1] y luego pasamos al [producto_2].'
+      2. Llama PetalDataTool para producto_1 con ocasion y filtros disponibles.
+      3. Muestra hasta 3 opciones del producto_1 (catalogo estandar).
+      4. Cierre con APERTURA: 'Cual te encaja?' / 'Alguna te gusta?'.
+      5. Cuando el usuario confirme/elija el primero, ECO + pasa al producto_2:
+         - 'Genial, anotado el [producto_1]. Ahora vamos con el [producto_2]: [opciones]. Cual te encaja?'
+         - Muestra hasta 3 opciones del producto_2.
+      6. Tras confirmar ambos, presenta resumen del pedido combinado y transfiere a Checkout con la lista de productos.
+
+      ⛔ NUNCA silencies el segundo producto mencionado por el usuario.
+      ⛔ NUNCA muestres un solo item sin opciones cuando aplique catalogo estandar.
+      ⛔ FIN FLUJO MULTI-PRODUCTO ⛔
+
       ⛔ FLUJO EXPANSION DE CONTEXTO ⛔
       Usuario aporto contexto nuevo pero NO implica busqueda nueva.
       1. NO llames a PetalDataTool.
