@@ -1,5 +1,62 @@
 [
   {
+    "timestamp": "2026-05-21 15:43",
+    "ts_file": "20260521_1543",
+    "total": 51,
+    "pass": 46,
+    "inst": 0,
+    "fail": 5,
+    "pct": 90,
+    "runs_per_tc": 1,
+    "versions": {
+      "orquestador": "v65",
+      "compra": "v39",
+      "checkout": "v33",
+      "registro": "v7 (Task)",
+      "script": "v23"
+    },
+    "dir": "20260521_154302"
+  },
+  {
+    "timestamp": "2026-05-21 15:07",
+    "ts_file": "20260521_150722",
+    "total": 50,
+    "pass": 46,
+    "inst": 0,
+    "fail": 4,
+    "pct": 92,
+    "runs_per_tc": 1,
+    "rerun_single_tc": "TC-URGENCIA-03",
+    "base_ts": "20260521_143113",
+    "dir": "20260521_150722"
+  },
+  {
+    "timestamp": "2026-05-21 15:07",
+    "ts_file": "20260521_150706",
+    "total": 50,
+    "pass": 46,
+    "inst": 0,
+    "fail": 4,
+    "pct": 92,
+    "runs_per_tc": 1,
+    "rerun_single_tc": "TC-URGENCIA-02",
+    "base_ts": "20260521_143113",
+    "dir": "20260521_150706"
+  },
+  {
+    "timestamp": "2026-05-21 15:06",
+    "ts_file": "20260521_150644",
+    "total": 49,
+    "pass": 46,
+    "inst": 0,
+    "fail": 3,
+    "pct": 93,
+    "runs_per_tc": 1,
+    "rerun_single_tc": "TC-URGENCIA-01",
+    "base_ts": "20260521_143113",
+    "dir": "20260521_150644"
+  },
+  {
     "timestamp": "2026-05-21 14:31",
     "ts_file": "20260521_1431",
     "total": 49,
