@@ -48,8 +48,6 @@ El TC falla antes de cualquier invocación de tool al petal-sheet-api.
 
 🟡 6. **Capa Política / Negocio** [supuesta]
 
-_(no verificado)_
-
 Petal no soporta same-day delivery (plazo mínimo 24h). La política no está documentada como knowledge explícito en el repo — vive sólo en el commit revertido `3f041df` y en la cabeza del producto. Pendiente del `epic_backlog_conversational_design.md`.
 
 🟢 7. **Capa Test** [verificada]
