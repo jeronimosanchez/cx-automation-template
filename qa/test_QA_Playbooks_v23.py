@@ -978,85 +978,113 @@ _CAPA_EMOJI_MAP = {
 }
 
 
+_ESTADO_BADGE_MAP = {
+    "verificada": ("verificada", "✓ verificada"),
+    "supuesta":   ("supuesta",   "? supuesta"),
+    "N/A":        ("na",         "N/A"),
+}
+
+
 def _postprocess_capa_blocks(html):
     """Detecta bloques de capa en el HTML renderizado del análisis ('Causa raíz')
-    y los envuelve en divs estructurados con emoji + título + estado/fuente + descripción.
+    y los envuelve en divs estructurados con header (emoji + título + badge),
+    fuente debajo, y descripción debajo.
 
-    Solo aplica cuando la línea de la capa empieza con un emoji de marca y respeta el
-    formato NUEVO:
-      🔴 N. **Capa Nombre** · estado · `fuente`        (verbose, con párrafo descripción debajo)
-      ⚪ N. **Capa Nombre** · N/A — razón breve.       (compacto, una sola línea)
+    Formato NUEVO esperado del MD:
+      🔴 N. **Capa Nombre** [verificada]
+
+      `Read X`
+
+      Descripción del problema...
+
+      ⚪ N. **Capa Nombre** [N/A]
+
+      Razón breve.
 
     Las capas en formato VIEJO (sin emoji al inicio del párrafo) se dejan intactas.
     """
     if not html:
         return html
 
-    # Patrón para una línea de capa renderizada como <p>...</p>
-    # Grupos: 1=emoji, 2=número, 3=nombre capa (texto plano dentro de <strong>),
-    #         4=resto (estado · fuente, puede contener <code>...</code>)
+    # Patrón: <p>EMOJI N. <strong>Capa Nombre</strong> [estado]</p>
+    # Grupos: 1=emoji, 2=número, 3=nombre, 4=estado (verificada/supuesta/N/A)
     capa_line_re = re.compile(
-        r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+)</strong>([^<]*(?:<code>[^<]*</code>[^<]*)*)</p>'
+        r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+?)</strong>\s*\[(verificada|supuesta|N/A)\]\s*</p>'
     )
 
-    def replace_block(match, full_html, start_idx):
-        emoji = match.group(1)
-        num = match.group(2)
-        nombre = match.group(3).strip()
-        resto = match.group(4).strip()
-        color = _CAPA_EMOJI_MAP.get(emoji, "na")
-        # Limpiar resto: si empieza con " · ", quitarlo
-        resto_clean = re.sub(r'^\s*·\s*', '', resto).strip()
+    def consume_following_blocks(full_html, start_pos):
+        """Consume <p>...</p> consecutivos hasta encontrar otra cabecera de capa o
+        salir de la sección. Devuelve (fuente_html, desc_html, end_pos).
+        - fuente_html: si el primer <p> es SOLO <code>...</code>, ese es la fuente
+        - desc_html: el resto de párrafos concatenados (sin re-wrapear en <p>)
+        """
+        fuente = ""
+        descs = []
+        pos = start_pos
+        next_p_re = re.compile(r'\s*<p>(.*?)</p>', re.DOTALL)
+        # Detectar si el siguiente bloque es otra cabecera de capa
+        header_marker_re = re.compile(r'^(🔴|🟢|🟡|⚪)\s+\d+\.\s+<strong>')
 
-        if emoji == "⚪":
-            # Compacto: una sola línea, sin descripción aparte
-            return (
-                f'<div class="capa-block capa-na capa-na-compact">'
-                f'<span class="capa-emoji">{emoji}</span>'
-                f'<span class="capa-titulo"><strong>{num}. {nombre}</strong></span>'
-                f'<span class="capa-meta">{resto_clean}</span>'
-                f'</div>'
-            ), match.end()
+        first = True
+        while True:
+            m = next_p_re.match(full_html, pos)
+            if not m:
+                break
+            inner = m.group(1)
+            # No consumir si es otra cabecera de capa
+            if header_marker_re.match(inner):
+                break
+            # Saltar "_(no verificado)_" rendered → <em>(no verificado)</em> sólo si es supuesta
+            # Lo incluimos como parte de la descripción (más explícito)
+            inner_strip = inner.strip()
+            # Si el contenido es exactamente un <code>...</code>, es la fuente (solo el primero)
+            if first and re.fullmatch(r'<code>[^<]+</code>', inner_strip):
+                fuente = inner_strip
+            else:
+                descs.append(inner_strip)
+            pos = m.end()
+            first = False
 
-        # Verbose: buscar el siguiente <p>...</p> como descripción
-        rest_html = full_html[match.end():]
-        # Saltar whitespace/newlines
-        m_next = re.match(r'\s*<p>(.*?)</p>', rest_html, re.DOTALL)
         desc_html = ""
-        consume_end = match.end()
-        if m_next:
-            inner = m_next.group(1)
-            # Solo consumirlo como descripción si NO es a su vez otra cabecera de capa
-            if not re.match(r'^(🔴|🟢|🟡|⚪)\s+\d+\.\s+<strong>', inner):
-                desc_html = inner
-                consume_end = match.end() + m_next.end()
+        if descs:
+            # Unir párrafos manteniendo separación visual
+            desc_html = "".join(f'<p class="capa-desc-p">{d}</p>' for d in descs)
+        return fuente, desc_html, pos
 
-        # Separar estado de fuente: típicamente "<estado> · <code>fuente</code>"
-        # Renderizamos resto_clean tal cual (ya contiene <code> si aplica).
-        block_html = (
+    result = []
+    last_pos = 0
+    for m in capa_line_re.finditer(html):
+        if m.start() < last_pos:
+            continue
+        result.append(html[last_pos:m.start()])
+
+        emoji = m.group(1)
+        num = m.group(2)
+        nombre = m.group(3).strip()
+        estado = m.group(4)
+        color = _CAPA_EMOJI_MAP.get(emoji, "na")
+        badge_cls, badge_txt = _ESTADO_BADGE_MAP.get(estado, ("na", estado))
+
+        fuente_html, desc_html, end_pos = consume_following_blocks(html, m.end())
+
+        block = (
             f'<div class="capa-block capa-{color}">'
             f'<div class="capa-header">'
             f'<span class="capa-emoji">{emoji}</span>'
             f'<span class="capa-titulo"><strong>{num}. {nombre}</strong></span>'
-            f'<span class="capa-meta">{resto_clean}</span>'
+            f'<span class="capa-badge capa-badge-{badge_cls}">{badge_txt}</span>'
             f'</div>'
         )
+        if fuente_html:
+            block += f'<div class="capa-fuente">{fuente_html}</div>'
         if desc_html:
-            block_html += f'<div class="capa-desc">{desc_html}</div>'
-        block_html += '</div>'
-        return block_html, consume_end
+            block += f'<div class="capa-desc">{desc_html}</div>'
+        block += '</div>'
 
-    # Sustituir de izquierda a derecha (consumiendo descripción cuando aplica)
-    result = []
-    pos = 0
-    for m in capa_line_re.finditer(html):
-        if m.start() < pos:
-            continue
-        result.append(html[pos:m.start()])
-        new_block, new_pos = replace_block(m, html, m.start())
-        result.append(new_block)
-        pos = new_pos
-    result.append(html[pos:])
+        result.append(block)
+        last_pos = end_pos
+
+    result.append(html[last_pos:])
     return "".join(result)
 
 
@@ -1378,18 +1406,24 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .diag-block{{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}}
 .diag-header{{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}}
 /* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz') */
-.capa-block{{margin:12px 0;padding:12px 16px;border-radius:6px;border-left:3px solid transparent}}
+.capa-block{{margin:14px 0;padding:14px 16px;border-radius:6px;border-left:4px solid transparent;min-height:48px}}
 .capa-block.capa-rojo{{background:rgba(255,80,80,0.07);border-left-color:#e85050}}
 .capa-block.capa-verde{{background:rgba(80,200,80,0.05);border-left-color:#5dc870}}
 .capa-block.capa-amarillo{{background:rgba(220,180,50,0.06);border-left-color:#d4b32f}}
 .capa-block.capa-na{{background:rgba(255,255,255,0.02);border-left-color:#555}}
-.capa-block.capa-na-compact{{padding:6px 16px;display:flex;align-items:center;gap:8px;font-size:13px}}
-.capa-header{{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}}
-.capa-emoji{{font-size:16px;line-height:1}}
-.capa-titulo{{font-size:14px}}
-.capa-meta{{font-size:12px;color:#999;font-style:italic}}
-.capa-meta code{{background:#2a2a2a;color:#ddd;padding:2px 6px;border-radius:3px;font-size:11px;font-style:normal;margin-left:4px}}
-.capa-desc{{color:#ddd;font-size:13px;line-height:1.6;margin-top:4px;margin-left:24px}}
+.capa-header{{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}}
+.capa-emoji{{font-size:18px;line-height:1;flex-shrink:0}}
+.capa-titulo{{flex:1;font-size:14px;color:#fff}}
+.capa-titulo strong{{color:#fff;font-weight:600}}
+.capa-badge{{padding:3px 12px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;font-family:'DM Mono',monospace;letter-spacing:.3px}}
+.capa-badge-verificada{{background:rgba(80,200,80,0.15);color:#5dc870;border:1px solid rgba(80,200,80,0.35)}}
+.capa-badge-supuesta{{background:rgba(220,180,50,0.15);color:#d4b32f;border:1px solid rgba(220,180,50,0.35)}}
+.capa-badge-na{{background:rgba(150,150,150,0.12);color:#aaa;border:1px solid rgba(150,150,150,0.3)}}
+.capa-fuente{{font-size:12px;margin-top:8px;margin-left:28px}}
+.capa-fuente code{{background:#2a2a2a;color:#ddd;padding:2px 8px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}}
+.capa-desc{{margin-top:8px;margin-left:28px}}
+.capa-desc p,.capa-desc-p{{color:#ddd;font-size:13px;line-height:1.6;margin:6px 0}}
+.capa-desc code{{background:#2a2a2a;color:#ddd;padding:1px 6px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}}
 .badge{{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}}
 .badge-auto{{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}}
 .badge-llm{{background:#1a2818;color:#c8f060;border:1px solid #2a4818}}
