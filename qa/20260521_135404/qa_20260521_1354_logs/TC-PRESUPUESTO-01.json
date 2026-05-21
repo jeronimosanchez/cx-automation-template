@@ -1,0 +1,54 @@
+{
+  "tc_id": "TC-PRESUPUESTO-01",
+  "tc_name": "Presupuesto duro — precio_max explicito",
+  "group": "G5",
+  "type": "NEW",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-21 13:54",
+  "ts_file": "20260521_1354",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero rosas maximo 30 euros",
+          "agent": "Claro, rosas con un máximo de 30 euros. Mira, tengo estas opciones:\n\nRamo de Rosas Amarillo — M (12 flores, 25€)\nRamo de Rosas Blanco — M (12 flores, 25€)\nRamo de Rosas Rosa — M (6 flores, 15€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas maximo 30 euros",
+            "precio_max": 30,
+            "producto": "rosas",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
