@@ -138,9 +138,9 @@ estimacion: ~<X> min (Solución #<N> recomendada)
 
 ### Causa raíz (descompuesta en <N> capas)
 
-1. **<Capa 1>**: <descripción concreta>
-2. **<Capa 2>**: <descripción concreta>
-3. **<Capa 3>**: <descripción concreta>
+1. **<Capa 1>** ✓ verificada (`<fuente: Read X / git log Y / gcloud logging Z>`): <descripción concreta>
+2. **<Capa 2>** ✓ verificada (`<fuente>`): <descripción concreta>
+3. **<Capa 3>** ? supuesta: <descripción concreta> _(no verificado: <razón por la que no se pudo comprobar>)_
 
 ## Recomendación
 
@@ -183,6 +183,18 @@ estimacion: ~<X> min (Solución #<N> recomendada)
 - "Dependencias" concreto o `—` (NO escribas "Sí, ya")
 - Sé honesto sobre trade-offs en "Por qué este scoring"
 - En el TIPO usa una de las categorías listadas, no inventes nuevas
+
+**[v1.1 Cambio 3] Marcado verificado vs supuesto en "Causa raíz":**
+- Cada capa lleva marca explícita: **✓ verificada** o **? supuesta**
+- **✓ verificada** requiere cita de la fuente entre paréntesis tras la marca:
+  - `Read <ruta>` — leíste el archivo y la afirmación está en él
+  - `git log --since="..." -- <ruta>` — viste el commit relevante
+  - `gh pr view <N>` — verificaste título/contenido del PR antes de citarlo
+  - `gcloud logging read '<filtro>'` — viste la entrada del log del backend
+  - `curl <URL>` — consultaste el endpoint del backend
+- **? supuesta** debe ir acompañada de `_(no verificado: <razón>)_` explicando por qué no se pudo comprobar (ej: "política de producto no documentada en repo", "información sólo en cabeza del PO")
+- **Nunca uses ✓ sin fuente** — si no puedes citar una fuente concreta, marca como `?`
+- **Nunca cites un PR (#N), commit (sha), o variable de negocio sin haberlo verificado** con `gh pr view`, `git show`, o consulta al backend respectivamente
 
 ### Paso 4 — Regenerar TODOS los HTMLs y publicar — AUTOMÁTICO
 
