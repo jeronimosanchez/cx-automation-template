@@ -1,0 +1,135 @@
+{
+  "tc_id": "TC-FRUSTRACION-01",
+  "tc_name": "Multiples rechazos consecutivos — debe escalar o reformular",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-05-21 12:50",
+  "ts_file": "20260521_1250",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero rosas",
+          "agent": "¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...\n\n",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "modo_tono": "estandar",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ocasion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "no me gustan",
+          "agent": "Entiendo, disculpa la confusión. Te busco una alternativa. ¿Tienes algún color en mente o lo dejo en mis manos?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "rosas",
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [alternativ]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "tampoco me convencen, dame otras",
+          "agent": "Entiendo, disculpa la confusión. Te busco una alternativa. ¿Tienes algún color en mente o lo dejo en mis manos?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "modo_tono": "estandar",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "user": "ninguna me gusta",
+          "agent": "Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero rosas",
+            "razon_handoff": "frustracion_usuario",
+            "modo_tono": "estandar",
+            "producto": "rosas",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [equipo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
