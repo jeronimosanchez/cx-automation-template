@@ -138,15 +138,37 @@ estimacion: ~<X> min (Solución #<N> recomendada)
 
 ### Causa raíz — evaluación de las 7 capas estándar
 
-1. **Capa Playbook** <marca> (`<fuente o motivo>`): <descripción concreta>
-2. **Capa Histórico** <marca> (`<fuente o motivo>`): <descripción concreta>
-3. **Capa Catálogo** <marca> (`<fuente o motivo>`): <descripción concreta>
-4. **Capa Orquestador** <marca> (`<fuente o motivo>`): <descripción concreta>
-5. **Capa Backend / Tool** <marca> (`<fuente o motivo>`): <descripción concreta>
-6. **Capa Política / Negocio** <marca> (`<fuente o motivo>`): <descripción concreta>
-7. **Capa Test** <marca> (`<fuente o motivo>`): <descripción concreta>
+<emoji> 1. **Capa Playbook** · <estado verbal> · `<fuente o motivo>`
+
+<descripción concreta de la capa, o se omite si N/A>
+
+<emoji> 2. **Capa Histórico** · <estado verbal> · `<fuente o motivo>`
+
+<descripción>
+
+<emoji> 3. **Capa Catálogo** · <estado verbal> · `<fuente o motivo>`
+
+<descripción>
+
+<emoji> 4. **Capa Orquestador** · <estado verbal> · `<fuente o motivo>`
+
+<descripción>
+
+<emoji> 5. **Capa Backend / Tool** · <estado verbal> · `<fuente o motivo>`
+
+<descripción>
+
+<emoji> 6. **Capa Política / Negocio** · <estado verbal> · `<fuente o motivo>`
+
+<descripción>
+
+<emoji> 7. **Capa Test** · <estado verbal> · `<fuente o motivo>`
+
+<descripción>
 
 **Resumen visual:** <N> 🔴 problema · <N> 🟢 ok · <N> 🟡 supuesta · <N> ⚪ N/A
+
+> **Importante:** para las capas marcadas ⚪ N/A, omitir el párrafo descripción y poner todo en una línea: `⚪ N. **Capa Nombre** · N/A — razón breve.`
 
 ## Recomendación
 
@@ -189,6 +211,7 @@ estimacion: ~<X> min (Solución #<N> recomendada)
 - "Dependencias" concreto o `—` (NO escribas "Sí, ya")
 - Sé honesto sobre trade-offs en "Por qué este scoring"
 - En el TIPO usa una de las categorías listadas, no inventes nuevas
+- FORMATO VERTICAL JERÁRQUICO obligatorio: cada capa con emoji al inicio + título destacado + metadata en línea separada + descripción en párrafo aparte. Las capas N/A van en una sola línea compacta.
 
 **[v1.1 Cambio 3] Las 7 capas obligatorias con marca explícita:**
 
