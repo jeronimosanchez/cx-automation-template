@@ -178,11 +178,11 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .capa-badge-verificada{background:rgba(80,200,80,0.15);color:#5dc870;border:1px solid rgba(80,200,80,0.35)}
 .capa-badge-supuesta{background:rgba(220,180,50,0.15);color:#d4b32f;border:1px solid rgba(220,180,50,0.35)}
 .capa-badge-na{background:rgba(150,150,150,0.12);color:#aaa;border:1px solid rgba(150,150,150,0.3)}
-.capa-fuente{font-size:12px;margin-top:8px;margin-left:28px}
-.capa-fuente code{background:#2a2a2a;color:#ddd;padding:2px 8px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}
-.capa-desc{margin-top:8px;margin-left:28px}
+.capa-fuente{font-size:12px;margin-top:8px;margin-left:30px}
+.capa-fuente code{display:inline-block;max-width:100%;background:#2a2a2a;color:#ddd;padding:3px 10px;border-radius:4px;font-size:11px;font-family:'DM Mono',monospace;word-break:break-word;overflow-wrap:anywhere;white-space:normal;line-height:1.5;box-sizing:border-box}
+.capa-desc{margin-top:8px;margin-left:30px}
 .capa-desc p,.capa-desc-p{color:#ddd;font-size:13px;line-height:1.6;margin:6px 0}
-.capa-desc code{background:#2a2a2a;color:#ddd;padding:1px 6px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}
+.capa-desc code{background:#2a2a2a;color:#ddd;padding:1px 6px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace;word-break:break-word;overflow-wrap:anywhere}
 .badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}
 .badge-auto{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}
 .badge-llm{background:#1a2818;color:#c8f060;border:1px solid #2a4818}
@@ -4030,7 +4030,7 @@ Confirmamos?"</div>
 
 <div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>5. Capa Backend / Tool</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">El TC falla antes de cualquier invocación de tool al petal-sheet-api.</p></div></div>
 
-<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>6. Capa Política / Negocio</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-desc"><p class="capa-desc-p">_(no verificado)_</p><p class="capa-desc-p">Petal no soporta same-day delivery (plazo mínimo 24h). La política no está documentada como knowledge explícito en el repo — vive sólo en el commit revertido <code>3f041df</code> y en la cabeza del producto. Pendiente del <code>epic_backlog_conversational_design.md</code>.</p></div></div>
+<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>6. Capa Política / Negocio</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-desc"><p class="capa-desc-p">Petal no soporta same-day delivery (plazo mínimo 24h). La política no está documentada como knowledge explícito en el repo — vive sólo en el commit revertido <code>3f041df</code> y en la cabeza del producto. Pendiente del <code>epic_backlog_conversational_design.md</code>.</p></div></div>
 
 <div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>7. Capa Test</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read qa/test_QA_Playbooks_v23.py</code></div><div class="capa-desc"><p class="capa-desc-p">El regex del check <code>hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano</code> es razonable y mide lo correcto. No es un test mal calibrado.</p></div></div></div>
 </div></div></td></tr></table>
