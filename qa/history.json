@@ -1,5 +1,36 @@
 [
   {
+    "timestamp": "2026-05-21 09:53",
+    "ts_file": "20260521_0953",
+    "total": 49,
+    "pass": 47,
+    "inst": 0,
+    "fail": 2,
+    "pct": 95,
+    "runs_per_tc": 1,
+    "versions": {
+      "orquestador": "v65",
+      "compra": "v39",
+      "checkout": "v33",
+      "registro": "v7 (Task)",
+      "script": "v23"
+    },
+    "dir": "20260521_095317"
+  },
+  {
+    "timestamp": "2026-05-21 09:46",
+    "ts_file": "20260521_094601",
+    "total": 49,
+    "pass": 47,
+    "inst": 0,
+    "fail": 2,
+    "pct": 95,
+    "runs_per_tc": 1,
+    "rerun_single_tc": "TC-URGENCIA-01",
+    "base_ts": "20260520_223358",
+    "dir": "20260521_094601"
+  },
+  {
     "timestamp": "2026-05-20 22:33",
     "ts_file": "20260520_2233",
     "total": 49,
