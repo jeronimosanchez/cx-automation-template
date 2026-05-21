@@ -204,3 +204,11 @@ Plan:
 - Confirmado que los JSONs locales viven en `~/petal-qa/qa_<TS>_logs/<TC-ID>.json` y persisten entre runs. Las suites completas viven solo en gh-pages.
 - Propuesta v1.1 con 5 cambios: fuentes verificables, local primero, marcado ✓/?, formato adaptativo, detección de patrones cruzados.
 - Pendiente: aplicar v1.1 al SKILL.md y validar contra TC-URGENCIA-01 + TC-URGENCIA-02 + TC-URGENCIA-03 (que comparten causa raíz).
+
+### 21-may-2026 (tarde) — Aplicado Cambio 2 al SKILL.md
+
+- **Cambio 2 (local primero, gh-pages fallback)** integrado en el `SKILL.md` (Paso 2).
+- Antes: `curl` siempre a gh-pages (~2-3 seg por TC, depende de propagación).
+- Después: lectura local instantánea (~0.002 seg) cuando existe; fallback a gh-pages cuando no.
+- Beneficio esperado: análisis más rápido en reruns individuales (caso habitual de iteración).
+- Pendiente de validar contra TC-URGENCIA-01 (caso testigo).
