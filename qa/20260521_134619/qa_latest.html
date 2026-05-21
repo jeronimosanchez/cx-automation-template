@@ -164,6 +164,19 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .ta-right .manual-analysis ul li{margin:6px 0}
 .diag-block{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}
 .diag-header{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}
+/* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz') */
+.capa-block{margin:12px 0;padding:12px 16px;border-radius:6px;border-left:3px solid transparent}
+.capa-block.capa-rojo{background:rgba(255,80,80,0.07);border-left-color:#e85050}
+.capa-block.capa-verde{background:rgba(80,200,80,0.05);border-left-color:#5dc870}
+.capa-block.capa-amarillo{background:rgba(220,180,50,0.06);border-left-color:#d4b32f}
+.capa-block.capa-na{background:rgba(255,255,255,0.02);border-left-color:#555}
+.capa-block.capa-na-compact{padding:6px 16px;display:flex;align-items:center;gap:8px;font-size:13px}
+.capa-header{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.capa-emoji{font-size:16px;line-height:1}
+.capa-titulo{font-size:14px}
+.capa-meta{font-size:12px;color:#999;font-style:italic}
+.capa-meta code{background:#2a2a2a;color:#ddd;padding:2px 6px;border-radius:3px;font-size:11px;font-style:normal;margin-left:4px}
+.capa-desc{color:#ddd;font-size:13px;line-height:1.6;margin-top:4px;margin-left:24px}
 .badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}
 .badge-auto{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}
 .badge-llm{background:#1a2818;color:#c8f060;border:1px solid #2a4818}
@@ -3571,13 +3584,19 @@ Revisa especial..."</div>
 <h4 class="diag-header">Causa raíz (TC-URGENCIA-01) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <div class="manual-analysis"><h4>Causa raíz — evaluación de las 7 capas estándar</h4>
 
-<p>1. <strong>Capa Playbook</strong> 🔴 problema (<code>Read compra.yaml</code>): <code>definitions/playbooks/compra.yaml</code> actualmente NO contiene un bloque de detección de urgencia temporal en el FLUJO PRINCIPAL. La única mención a "hoy" es en una sección posterior (línea 484) sobre preguntas del usuario tras mostrar opciones, no en el flujo previo al slot-filling. <strong>Es la causa directa del fail.</strong></p>
-<p>2. <strong>Capa Histórico</strong> 🔴 problema (<code>git log --since="14 days ago" -- definitions/playbooks/compra.yaml</code>): el fix existió en <code>3f041df</code> (PR #83 — "fix(playbook-compra): añade CASO ESPECIAL urgencia/plazo (TC-URGENCIA-01)"), fue revertido en <code>aca187c</code> (PR #84). Hoy se re-aplicó en <code>3e0b2d1</code> y volvió a revertirse en <code>1f95cae</code> por motivos de coordinación de la demo. <strong>La decisión de revertir es parte de la causa raíz</strong> — sin esos reverts, el bloque seguiría activo.</p>
-<p>3. <strong>Capa Catálogo</strong> ⚪ N/A: este TC no consulta inventario antes del fail (el bug ocurre en T1, antes de cualquier llamada al tool).</p>
-<p>4. <strong>Capa Orquestador</strong> 🟢 ok (<code>Read JSON trace + log del TC</code>): el Orquestador clasifica correctamente como <code>G5</code> (compra) y extrae <code>producto="ramo de rosas"</code> + <code>intencion_inicial</code> con el texto completo incluida la marca temporal. La información llega íntegra a Compra; el problema es que Compra no la procesa.</p>
-<p>5. <strong>Capa Backend / Tool</strong> ⚪ N/A: el TC falla antes de cualquier invocación de tool al petal-sheet-api.</p>
-<p>6. <strong>Capa Política / Negocio</strong> 🟡 supuesta: Petal no soporta same-day delivery (plazo mínimo 24h) _(no verificado: la política no está documentada como knowledge explícito en el repo — vive sólo en el commit revertido <code>3f041df</code> y en la cabeza del producto. Pendiente del <code>epic_backlog_conversational_design.md</code>)_.</p>
-<p>7. <strong>Capa Test</strong> 🟢 ok (<code>Read qa/test_QA_Playbooks_v23.py</code>): el regex del check <code>hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano</code> es razonable y mide lo correcto. No es un test mal calibrado.</p>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>1. Capa Playbook</strong></span><span class="capa-meta">verificada · <code>Read compra.yaml</code></span></div><div class="capa-desc"><code>definitions/playbooks/compra.yaml</code> actualmente NO contiene un bloque de detección de urgencia temporal en el FLUJO PRINCIPAL. La única mención a "hoy" es en una sección posterior (línea 484) sobre preguntas del usuario tras mostrar opciones, no en el flujo previo al slot-filling. <strong>Es la causa directa del fail.</strong></div></div>
+
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>2. Capa Histórico</strong></span><span class="capa-meta">verificada · <code>git log --since="14 days ago" -- definitions/playbooks/compra.yaml</code></span></div><div class="capa-desc">El fix existió en <code>3f041df</code> (PR #83 — "fix(playbook-compra): añade CASO ESPECIAL urgencia/plazo (TC-URGENCIA-01)"), fue revertido en <code>aca187c</code> (PR #84). Hoy se re-aplicó en <code>3e0b2d1</code> y volvió a revertirse en <code>1f95cae</code> por motivos de coordinación de la demo. <strong>La decisión de revertir es parte de la causa raíz</strong> — sin esos reverts, el bloque seguiría activo.</div></div>
+
+<div class="capa-block capa-na capa-na-compact"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>3. Capa Catálogo</strong></span><span class="capa-meta">N/A — el TC no consulta inventario antes del fail (el bug ocurre en T1, antes de cualquier llamada al tool).</span></div>
+
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>4. Capa Orquestador</strong></span><span class="capa-meta">verificada · <code>Read JSON trace + log del TC</code></span></div><div class="capa-desc">El Orquestador clasifica correctamente como <code>G5</code> (compra) y extrae <code>producto="ramo de rosas"</code> + <code>intencion_inicial</code> con el texto completo incluida la marca temporal. La información llega íntegra a Compra; el problema es que Compra no la procesa.</div></div>
+
+<div class="capa-block capa-na capa-na-compact"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>5. Capa Backend / Tool</strong></span><span class="capa-meta">N/A — el TC falla antes de cualquier invocación de tool al petal-sheet-api.</span></div>
+
+<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>6. Capa Política / Negocio</strong></span><span class="capa-meta">supuesta · _(no verificado)_</span></div><div class="capa-desc">Petal no soporta same-day delivery (plazo mínimo 24h). La política no está documentada como knowledge explícito en el repo — vive sólo en el commit revertido <code>3f041df</code> y en la cabeza del producto. Pendiente del <code>epic_backlog_conversational_design.md</code>.</div></div>
+
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>7. Capa Test</strong></span><span class="capa-meta">verificada · <code>Read qa/test_QA_Playbooks_v23.py</code></span></div><div class="capa-desc">El regex del check <code>hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano</code> es razonable y mide lo correcto. No es un test mal calibrado.</div></div>
 
 <p><strong>Resumen visual:</strong> 2 🔴 problema · 2 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A</p></div>
 </div></div></td></tr></table>
