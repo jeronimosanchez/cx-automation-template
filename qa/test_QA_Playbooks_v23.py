@@ -1396,6 +1396,19 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .legend-note{{font-size:11px;color:#666;padding:10px 14px;border-top:1px solid #1e1e1e;margin:0}}
 .backfilled-tag{{font-size:9px;background:#444;color:#bbb;padding:1px 5px;border-radius:3px;margin-left:6px;text-transform:uppercase;letter-spacing:.3px;font-family:'DM Mono',monospace}}
 .hidden{{display:none!important}}
+/* Botón "?" circular (info de capas / marcas) */
+.info-btn{{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#444;color:#ddd;border:1px solid #666;font-size:11px;cursor:pointer;margin-left:6px;padding:0;font-weight:bold;line-height:1;vertical-align:middle}}
+.info-btn:hover{{background:#666;color:#fff}}
+/* Modal info (capas / marcas) */
+.info-modal-overlay{{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;justify-content:center;align-items:center}}
+.info-modal-overlay.visible{{display:flex}}
+.info-modal{{background:#1a1a1a;border:1px solid #444;border-radius:8px;max-width:600px;width:90%;padding:24px;color:#ddd;font-size:14px;line-height:1.6;position:relative}}
+.info-modal h3{{margin-top:0;color:#fff}}
+.info-modal-close{{position:absolute;top:12px;right:12px;background:transparent;border:none;color:#888;font-size:20px;cursor:pointer;padding:0;line-height:1}}
+.info-modal-close:hover{{color:#fff}}
+.info-modal table{{width:100%;border-collapse:collapse;margin-top:8px}}
+.info-modal td{{padding:6px 8px;border-bottom:1px solid #333}}
+.info-modal code{{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
 <p class="sub">{ts} · {RUNS} runs/TC · {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
@@ -1645,12 +1658,12 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                     ).strip()
                     if md_sin_tabla:
                         rp.append(f'<div class="diag-block" data-tcid="{esc(r["id"])}">')
-                        rp.append(f'<h4 class="diag-header">Causa raíz ({esc(r["id"])}) <span class="badge badge-llm">✨ LLM</span></h4>')
+                        rp.append(f'<h4 class="diag-header">Causa raíz ({esc(r["id"])}) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal(\'capas\')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal(\'marcas\')" title="Significado de las marcas">?</button></h4>')
                         rp.append(f'<div class="manual-analysis">{_md_to_html(md_sin_tabla)}</div>')
                         rp.append(f'</div>')
                 elif has_fail and not turn_analysis_md:
                     # CAUSA RAÍZ — placeholder pendiente análisis (lo rellena Claude vía Optimizar)
-                    rp.append(f'<h4>Causa raíz</h4>')
+                    rp.append(f'<h4>Causa raíz<button class="info-btn" onclick="openInfoModal(\'capas\')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal(\'marcas\')" title="Significado de las marcas">?</button></h4>')
                     rp.append(f'<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p>')
                 turn_analysis_html = "\n".join(rp)
                 h += '<table class="ta-table"><tr>'
@@ -1822,6 +1835,38 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
       <thead><tr><th>Fecha/hora</th><th>Total</th><th>Pass</th><th>Inestables</th><th>Fail</th><th>Tasa</th><th>Reporte</th></tr></thead>
       <tbody></tbody>
     </table>
+  </div>
+</div>
+<!-- Modal: Las 7 capas estándar -->
+<div class="info-modal-overlay" id="modal-capas">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="closeInfoModal('capas')">&times;</button>
+    <h3>Las 7 capas estándar del análisis QA</h3>
+    <p>Cada análisis evalúa estas 7 capas obligatoriamente para descomponer la causa raíz del bug:</p>
+    <table>
+      <tr><td><strong>1. Playbook</strong></td><td>El código del playbook tal como está hoy</td></tr>
+      <tr><td><strong>2. Histórico</strong></td><td>Cambios recientes al playbook (commits, PRs)</td></tr>
+      <tr><td><strong>3. Catálogo</strong></td><td>Datos del Google Sheet (inventario, agent_copy)</td></tr>
+      <tr><td><strong>4. Orquestador</strong></td><td>Clasificación inicial del usuario (intent, slots)</td></tr>
+      <tr><td><strong>5. Backend / Tool</strong></td><td>Llamadas al petal-sheet-api</td></tr>
+      <tr><td><strong>6. Política / Negocio</strong></td><td>Reglas de negocio (plazos, importes, ocasiones soportadas)</td></tr>
+      <tr><td><strong>7. Test</strong></td><td>Calibración del check regex del TC</td></tr>
+    </table>
+    <p style="margin-top:16px;">Cada capa se marca con uno de los 4 estados (ver "Marca posible" para detalle).</p>
+  </div>
+</div>
+<!-- Modal: Estados posibles -->
+<div class="info-modal-overlay" id="modal-marcas">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="closeInfoModal('marcas')">&times;</button>
+    <h3>Estados posibles de cada capa</h3>
+    <table>
+      <tr><td style="width:120px;"><strong>🔴 problema</strong></td><td>Capa <em>comprobada con fuente</em>. ES causa del bug.</td></tr>
+      <tr><td><strong>🟢 ok</strong></td><td>Capa <em>comprobada con fuente</em>. NO es causa del bug.</td></tr>
+      <tr><td><strong>🟡 supuesta</strong></td><td>No se pudo comprobar (falta documentación o info externa).</td></tr>
+      <tr><td><strong>⚪ N/A</strong></td><td>Esta capa no aplica al tipo de bug analizado.</td></tr>
+    </table>
+    <p style="margin-top:16px;">Las marcas <strong>🔴</strong> y <strong>🟢</strong> requieren citar la fuente entre paréntesis (ej: <code>Read compra.yaml</code>, <code>git log</code>, <code>gh pr view</code>, <code>gcloud logging</code>, <code>curl URL</code>).</p>
   </div>
 </div>
 <script>
@@ -2109,6 +2154,14 @@ document.addEventListener('DOMContentLoaded', initButtons);
 if (document.readyState !== 'loading') initButtons();
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();closePanel();}});
+
+// Info modals (Capas / Marcas) — abiertas desde botones "?" en "Causa raíz"
+function openInfoModal(id){document.getElementById('modal-'+id).classList.add('visible');}
+function closeInfoModal(id){document.getElementById('modal-'+id).classList.remove('visible');}
+// Cerrar al hacer clic fuera de la modal
+document.addEventListener('click',function(e){if(e.target.classList&&e.target.classList.contains('info-modal-overlay')){e.target.classList.remove('visible');}});
+// Cerrar con Escape
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.info-modal-overlay.visible').forEach(function(m){m.classList.remove('visible');});}});
 </script></body></html>"""
     return h
 
