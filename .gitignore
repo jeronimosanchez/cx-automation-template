@@ -208,7 +208,10 @@ __marimo__/
 
 # === cx-automation-template (Sprint 1) ===
 # Sesiones y artefactos locales de Claude Code
-.claude/
+.claude/*
+# ...excepto la carpeta de skills, que sí se versiona (lógica reutilizable del proyecto)
+!.claude/skills/
+!.claude/skills/**
 
 # Reports timestamped (validate_api, audit, QA Sprint 6 runner, ...)
 reports/
