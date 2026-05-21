@@ -431,10 +431,26 @@ TESTS = [
      "not_expected": ["pedido confirmado|checkout|email"]},
 
     {"id": "TC-URGENCIA-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Entrega urgente — clarifica plazo o redirige",
+     "name": "Entrega urgente — variante hora numerica ('hoy a las 6')",
      "turns": [
          {"user": "necesito un ramo de rosas para hoy a las 6",
           "checks": ["hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-URGENCIA-02", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Entrega urgente — variante hora textual ('hoy a las seis de la tarde')",
+     "turns": [
+         {"user": "necesito un ramo de rosas para hoy a las seis de la tarde",
+          "checks": ["hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"]},
+     ],
+     "not_expected": []},
+
+    {"id": "TC-URGENCIA-03", "type": "EDGE", "group": "COMPRA-ZG",
+     "name": "Entrega urgente — variante sin hora ('esta tarde')",
+     "turns": [
+         {"user": "necesito un ramo de rosas para esta tarde",
+          "checks": ["hoy.{0,40}no|plazo|24h|24 horas|tarde.{0,30}no|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"]},
      ],
      "not_expected": []},
 
