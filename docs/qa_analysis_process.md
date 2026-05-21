@@ -104,12 +104,23 @@ curl -sf https://jeronimosanchez.github.io/.../qa_latest_logs/<TC-ID>.json
 
 #### Cambio 3 — Marcado ✓ verificado vs ? supuesto en el output
 
-En la sección "Causa raíz" del MD, cada capa lleva marca explícita:
+En la sección "Causa raíz" del MD se evalúan **las 7 capas obligatorias** (Playbook, Histórico, Catálogo, Orquestador, Backend/Tool, Política/Negocio, Test), cada una con uno de los 4 símbolos visuales:
+
+- 🔴 **problema** — verificada con fuente, ES causa del bug
+- 🟢 **ok** — verificada con fuente, NO es causa del bug
+- 🟡 **supuesta** — no se pudo comprobar con fuente directa
+- ⚪ **N/A** — esta capa no aplica al tipo de bug
 
 ```markdown
-1. **Capa Playbook** ✓ verificada (`Read compra.yaml línea 487`): el bloque X no existe en el código actual.
-2. **Capa Histórico** ✓ verificada (`git log`): el fix existió en `3f041df` (#83) y fue revertido en `aca187c` (#84).
-3. **Capa Política** ? supuesta: Petal probablemente no soporta same-day delivery (no verificable sin variables de negocio expuestas).
+1. **Capa Playbook** 🔴 problema (`Read compra.yaml línea 487`): el bloque X no existe en el código actual.
+2. **Capa Histórico** 🟢 ok (`git log`): el fix existió en `3f041df` (#83) y fue revertido en `aca187c` (#84).
+3. **Capa Catálogo** ⚪ N/A: este TC no consulta inventario.
+4. **Capa Orquestador** 🟢 ok (`Read orquestador.yaml`): la transferencia al sub-playbook es correcta.
+5. **Capa Backend / Tool** ⚪ N/A: el TC no invoca tool.
+6. **Capa Política / Negocio** 🟡 supuesta: Petal probablemente no soporta same-day delivery _(no verificado: variables de negocio no expuestas en repo)_.
+7. **Capa Test** 🟢 ok (`Read test_QA_Playbooks_v23.py`): el regex del check es correcto.
+
+**Resumen visual:** 1 🔴 problema · 3 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A
 ```
 
 #### Cambio 4 — Formato adaptativo de soluciones
@@ -223,3 +234,17 @@ Plan:
 - Habilita el KPI `pct_verificadas` del futuro benchmark (épica `epic_benchmark_skills_qa.md`).
 - También habilita versionar `.claude/skills/` en git (hecho en commit anterior `08d6ab9`).
 - Pendiente de validar contra TC-URGENCIA-01 (caso testigo).
+
+### 21-may-2026 (tarde) — Aplicado Cambio 3.b al SKILL.md (extensión del Cambio 3)
+
+- **Cambio 3.b** integrado en `SKILL.md`:
+  - Pasa de "N capas descriptivas" a **7 capas obligatorias estándar**: Playbook, Histórico, Catálogo, Orquestador, Backend/Tool, Política/Negocio, Test.
+  - Introduce **4 símbolos visuales distintos** (sin ambigüedad):
+    - 🔴 **problema** — verificada con fuente, ES causa del bug
+    - 🟢 **ok** — verificada con fuente, NO es causa del bug
+    - 🟡 **supuesta** — no se pudo comprobar
+    - ⚪ **N/A** — no aplica al tipo de bug
+  - Reglas reforzadas: 🔴/🟢 requieren cita de fuente, 🟡 requiere razón, ⚪ requiere justificación.
+- Beneficio: cobertura completa garantizada (no se omiten capas), código visual sin ambigüedad, auditabilidad granular.
+- Conecta con épica `epic_benchmark_skills_qa.md`: habilita el KPI `n_capas_problema` y refina `pct_verificadas`.
+- Próximo paso paralelo: Cambio 6 en `regenerate_html.py` para que el HTML del dashboard tenga modales explicativas de las 7 capas y los 4 símbolos.
