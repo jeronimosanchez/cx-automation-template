@@ -212,3 +212,14 @@ Plan:
 - Después: lectura local instantánea (~0.002 seg) cuando existe; fallback a gh-pages cuando no.
 - Beneficio esperado: análisis más rápido en reruns individuales (caso habitual de iteración).
 - Pendiente de validar contra TC-URGENCIA-01 (caso testigo).
+
+### 21-may-2026 (tarde) — Aplicado Cambio 3 al SKILL.md
+
+- **Cambio 3 (marcado ✓ verificada / ? supuesta)** integrado en `SKILL.md` (sección "Causa raíz" + reglas clave).
+- Cada capa de la causa raíz ahora obligatoriamente lleva marca:
+  - **✓ verificada** con cita de fuente (`Read X`, `git log Y`, `gh pr view N`, `gcloud logging Z`, `curl URL`)
+  - **? supuesta** con razón de por qué no se pudo verificar
+- Reglas añadidas: nunca usar ✓ sin fuente; nunca citar un PR/commit/variable de negocio sin verificación previa.
+- Habilita el KPI `pct_verificadas` del futuro benchmark (épica `epic_benchmark_skills_qa.md`).
+- También habilita versionar `.claude/skills/` en git (hecho en commit anterior `08d6ab9`).
+- Pendiente de validar contra TC-URGENCIA-01 (caso testigo).
