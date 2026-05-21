@@ -388,20 +388,6 @@ instruction:
 
       MODO DE OPERACION: Si $id_cliente tiene valor, personaliza con $nombre_cliente. Si vacio, modo anonimo.
 
-      ⛔ DETECCION URGENCIA TEMPORAL ⛔
-      Si $intencion_inicial o el input actual del usuario contiene palabras que implican entrega urgente:
-      - 'hoy', 'ahora', 'ya', 'esta tarde', 'esta noche', 'en X minutos', 'en X horas'
-      - una hora concreta del mismo dia ('a las 6', 'a las 18:00', 'para las 7', 'antes de las X')
-      - 'urgente', 'rapido', 'cuanto antes'
-      ANTES de continuar con slot-filling o busqueda de catalogo, clarifica el plazo segun $modo_tono:
-      - Estandar: 'Mira, el plazo minimo de entrega es 24h, asi que para hoy no podemos. Te valdria para mañana o un dia despues?'
-      - Solemne: 'Lamentablemente el plazo minimo de entrega disponible es de 24h. Le valdria para mañana?'
-      - Corporativo: 'El plazo minimo de entrega es 24h. Para mañana o posterior?'
-      ESPERA respuesta del usuario.
-      - Si acepta plazo (mañana o posterior) - continua el flujo normal (PASO 0).
-      - Si insiste en hoy o rechaza - $razon_handoff='cliente_solicita_humano' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $modo_tono. (Un humano puede gestionar excepciones de logistica).
-      ⛔ FIN DETECCION URGENCIA ⛔
-
       -- PASO 0 - MODO SEGUN GRUPO --
       Si $grupo_intent='G3' - PASO EXPLORAR.
       Si $grupo_intent='G5' o vacio - PASO 1.
