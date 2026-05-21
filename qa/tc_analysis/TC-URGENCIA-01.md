@@ -18,31 +18,45 @@ estimacion: ~8 min (Solución #1 recomendada)
 
 ### Causa raíz — evaluación de las 7 capas estándar
 
-🔴 1. **Capa Playbook** · verificada · `Read compra.yaml`
+**Resumen visual:** 2 🔴 problema · 2 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A
+
+🔴 1. **Capa Playbook** [verificada]
+
+`Read compra.yaml`
 
 `definitions/playbooks/compra.yaml` actualmente NO contiene un bloque de detección de urgencia temporal en el FLUJO PRINCIPAL. La única mención a "hoy" es en una sección posterior (línea 484) sobre preguntas del usuario tras mostrar opciones, no en el flujo previo al slot-filling. **Es la causa directa del fail.**
 
-🔴 2. **Capa Histórico** · verificada · `git log --since="14 days ago" -- definitions/playbooks/compra.yaml`
+🔴 2. **Capa Histórico** [verificada]
+
+`git log --since="14 days ago" -- definitions/playbooks/compra.yaml`
 
 El fix existió en `3f041df` (PR #83 — "fix(playbook-compra): añade CASO ESPECIAL urgencia/plazo (TC-URGENCIA-01)"), fue revertido en `aca187c` (PR #84). Hoy se re-aplicó en `3e0b2d1` y volvió a revertirse en `1f95cae` por motivos de coordinación de la demo. **La decisión de revertir es parte de la causa raíz** — sin esos reverts, el bloque seguiría activo.
 
-⚪ 3. **Capa Catálogo** · N/A — el TC no consulta inventario antes del fail (el bug ocurre en T1, antes de cualquier llamada al tool).
+⚪ 3. **Capa Catálogo** [N/A]
 
-🟢 4. **Capa Orquestador** · verificada · `Read JSON trace + log del TC`
+El TC no consulta inventario antes del fail (el bug ocurre en T1, antes de cualquier llamada al tool).
+
+🟢 4. **Capa Orquestador** [verificada]
+
+`Read JSON trace + log del TC`
 
 El Orquestador clasifica correctamente como `G5` (compra) y extrae `producto="ramo de rosas"` + `intencion_inicial` con el texto completo incluida la marca temporal. La información llega íntegra a Compra; el problema es que Compra no la procesa.
 
-⚪ 5. **Capa Backend / Tool** · N/A — el TC falla antes de cualquier invocación de tool al petal-sheet-api.
+⚪ 5. **Capa Backend / Tool** [N/A]
 
-🟡 6. **Capa Política / Negocio** · supuesta · _(no verificado)_
+El TC falla antes de cualquier invocación de tool al petal-sheet-api.
+
+🟡 6. **Capa Política / Negocio** [supuesta]
+
+_(no verificado)_
 
 Petal no soporta same-day delivery (plazo mínimo 24h). La política no está documentada como knowledge explícito en el repo — vive sólo en el commit revertido `3f041df` y en la cabeza del producto. Pendiente del `epic_backlog_conversational_design.md`.
 
-🟢 7. **Capa Test** · verificada · `Read qa/test_QA_Playbooks_v23.py`
+🟢 7. **Capa Test** [verificada]
+
+`Read qa/test_QA_Playbooks_v23.py`
 
 El regex del check `hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano` es razonable y mide lo correcto. No es un test mal calibrado.
-
-**Resumen visual:** 2 🔴 problema · 2 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A
 
 ## Recomendación
 
