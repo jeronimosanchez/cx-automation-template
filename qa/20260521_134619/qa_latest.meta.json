@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-05-21 13:46",
+  "ts_file": "20260521_134619",
+  "total": 49,
+  "pass": 47,
+  "inst": 0,
+  "fail": 2,
+  "pct": 95,
+  "runs_per_tc": 1,
+  "rerun_single_tc": "TC-URGENCIA-01",
+  "base_ts": "20260521_125002"
+}
