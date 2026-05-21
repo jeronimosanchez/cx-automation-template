@@ -165,18 +165,24 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .diag-block{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}
 .diag-header{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}
 /* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz') */
-.capa-block{margin:12px 0;padding:12px 16px;border-radius:6px;border-left:3px solid transparent}
+.capa-block{margin:14px 0;padding:14px 16px;border-radius:6px;border-left:4px solid transparent;min-height:48px}
 .capa-block.capa-rojo{background:rgba(255,80,80,0.07);border-left-color:#e85050}
 .capa-block.capa-verde{background:rgba(80,200,80,0.05);border-left-color:#5dc870}
 .capa-block.capa-amarillo{background:rgba(220,180,50,0.06);border-left-color:#d4b32f}
 .capa-block.capa-na{background:rgba(255,255,255,0.02);border-left-color:#555}
-.capa-block.capa-na-compact{padding:6px 16px;display:flex;align-items:center;gap:8px;font-size:13px}
-.capa-header{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-.capa-emoji{font-size:16px;line-height:1}
-.capa-titulo{font-size:14px}
-.capa-meta{font-size:12px;color:#999;font-style:italic}
-.capa-meta code{background:#2a2a2a;color:#ddd;padding:2px 6px;border-radius:3px;font-size:11px;font-style:normal;margin-left:4px}
-.capa-desc{color:#ddd;font-size:13px;line-height:1.6;margin-top:4px;margin-left:24px}
+.capa-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.capa-emoji{font-size:18px;line-height:1;flex-shrink:0}
+.capa-titulo{flex:1;font-size:14px;color:#fff}
+.capa-titulo strong{color:#fff;font-weight:600}
+.capa-badge{padding:3px 12px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;font-family:'DM Mono',monospace;letter-spacing:.3px}
+.capa-badge-verificada{background:rgba(80,200,80,0.15);color:#5dc870;border:1px solid rgba(80,200,80,0.35)}
+.capa-badge-supuesta{background:rgba(220,180,50,0.15);color:#d4b32f;border:1px solid rgba(220,180,50,0.35)}
+.capa-badge-na{background:rgba(150,150,150,0.12);color:#aaa;border:1px solid rgba(150,150,150,0.3)}
+.capa-fuente{font-size:12px;margin-top:8px;margin-left:28px}
+.capa-fuente code{background:#2a2a2a;color:#ddd;padding:2px 8px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}
+.capa-desc{margin-top:8px;margin-left:28px}
+.capa-desc p,.capa-desc-p{color:#ddd;font-size:13px;line-height:1.6;margin:6px 0}
+.capa-desc code{background:#2a2a2a;color:#ddd;padding:1px 6px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}
 .badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}
 .badge-auto{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}
 .badge-llm{background:#1a2818;color:#c8f060;border:1px solid #2a4818}
