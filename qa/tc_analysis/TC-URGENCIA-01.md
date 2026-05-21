@@ -16,11 +16,17 @@ estimacion: ~8 min (Solución #1 recomendada)
 | 4 | Compra | llama a inventario y devuelve catálogo de rosas con sus precios → *"Claro, ramos de rosas tenemos: Ramo de Rosas Morado — M (37€)..."* | 🔴 UX rota — el usuario pide entrega same-day y el agente actúa como si nada, generando falsa expectativa de que se puede entregar hoy |
 | 5 | Test (check) | regex: `hoy.{0,40}no\|plazo\|24h\|24 horas\|entrega.{0,30}simulad\|entrega.{0,30}disponible\|equipo\|humano` | 🔴 FAIL — la respuesta no contiene ningún token sobre plazo, política de entrega, ni escalado |
 
-### Causa raíz (descompuesta en 3 capas)
+### Causa raíz — evaluación de las 7 capas estándar
 
-1. **Capa 1 (Playbook Compra)** ✓ verificada: `definitions/playbooks/compra.yaml` actualmente NO contiene un bloque de detección de urgencia temporal. La única mención a "hoy" es en una sección posterior (línea 484) sobre preguntas del usuario tras mostrar opciones, pero no en el flujo principal antes de slot-filling.
-2. **Capa 2 (Histórico del playbook)** ✓ verificada en `git log`: el fix existió en `3f041df` (PR #83 — "fix(playbook-compra): añade CASO ESPECIAL urgencia/plazo (TC-URGENCIA-01)"), fue revertido en `aca187c` (PR #84). Hoy se re-aplicó en `3e0b2d1` y volvió a revertirse en `1f95cae` por motivos de coordinación de la demo. **No es una invención del análisis**: el commit del fix está disponible para recuperar.
-3. **Capa 3 (Política de producto)** ✓ verificada por comportamiento: Petal no soporta same-day delivery (plazo mínimo 24h, comprobado en el bloque del PR #83/#84). Esa restricción **no está codificada como knowledge explícito** en el repo — vive sólo en el commit revertido y en la cabeza del producto.
+1. **Capa Playbook** 🔴 problema (`Read compra.yaml`): `definitions/playbooks/compra.yaml` actualmente NO contiene un bloque de detección de urgencia temporal en el FLUJO PRINCIPAL. La única mención a "hoy" es en una sección posterior (línea 484) sobre preguntas del usuario tras mostrar opciones, no en el flujo previo al slot-filling. **Es la causa directa del fail.**
+2. **Capa Histórico** 🔴 problema (`git log --since="14 days ago" -- definitions/playbooks/compra.yaml`): el fix existió en `3f041df` (PR #83 — "fix(playbook-compra): añade CASO ESPECIAL urgencia/plazo (TC-URGENCIA-01)"), fue revertido en `aca187c` (PR #84). Hoy se re-aplicó en `3e0b2d1` y volvió a revertirse en `1f95cae` por motivos de coordinación de la demo. **La decisión de revertir es parte de la causa raíz** — sin esos reverts, el bloque seguiría activo.
+3. **Capa Catálogo** ⚪ N/A: este TC no consulta inventario antes del fail (el bug ocurre en T1, antes de cualquier llamada al tool).
+4. **Capa Orquestador** 🟢 ok (`Read JSON trace + log del TC`): el Orquestador clasifica correctamente como `G5` (compra) y extrae `producto="ramo de rosas"` + `intencion_inicial` con el texto completo incluida la marca temporal. La información llega íntegra a Compra; el problema es que Compra no la procesa.
+5. **Capa Backend / Tool** ⚪ N/A: el TC falla antes de cualquier invocación de tool al petal-sheet-api.
+6. **Capa Política / Negocio** 🟡 supuesta: Petal no soporta same-day delivery (plazo mínimo 24h) _(no verificado: la política no está documentada como knowledge explícito en el repo — vive sólo en el commit revertido `3f041df` y en la cabeza del producto. Pendiente del `epic_backlog_conversational_design.md`)_.
+7. **Capa Test** 🟢 ok (`Read qa/test_QA_Playbooks_v23.py`): el regex del check `hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano` es razonable y mide lo correcto. No es un test mal calibrado.
+
+**Resumen visual:** 2 🔴 problema · 2 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A
 
 ## Recomendación
 
