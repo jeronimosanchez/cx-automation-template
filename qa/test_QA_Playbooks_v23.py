@@ -484,7 +484,7 @@ TESTS = [
          {"user": "el ramo de rosas morado de 37 euros",
           "checks": ["morado|anotado|centro|cual"]},
          {"user": "el centro de tulipanes de 28 euros",
-          "checks": ["65|sesenta.{0,5}cinco|tulipanes.{0,150}morado|morado.{0,150}tulipanes"]},
+          "checks": ["65"]},
          {"user": "si",
           "checks": ["correo|email|completar.{0,20}pedido"]},
          {"user": "jerosan1@gmail.com",
