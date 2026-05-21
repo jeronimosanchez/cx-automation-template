@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
-<title>QA Petal regen</title>
+<title>QA Petal latest</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -274,9 +274,22 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .legend-note{font-size:11px;color:#666;padding:10px 14px;border-top:1px solid #1e1e1e;margin:0}
 .backfilled-tag{font-size:9px;background:#444;color:#bbb;padding:1px 5px;border-radius:3px;margin-left:6px;text-transform:uppercase;letter-spacing:.3px;font-family:'DM Mono',monospace}
 .hidden{display:none!important}
+/* Botón "?" circular (info de capas / marcas) */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#444;color:#ddd;border:1px solid #666;font-size:11px;cursor:pointer;margin-left:6px;padding:0;font-weight:bold;line-height:1;vertical-align:middle}
+.info-btn:hover{background:#666;color:#fff}
+/* Modal info (capas / marcas) */
+.info-modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;justify-content:center;align-items:center}
+.info-modal-overlay.visible{display:flex}
+.info-modal{background:#1a1a1a;border:1px solid #444;border-radius:8px;max-width:600px;width:90%;padding:24px;color:#ddd;font-size:14px;line-height:1.6;position:relative}
+.info-modal h3{margin-top:0;color:#fff}
+.info-modal-close{position:absolute;top:12px;right:12px;background:transparent;border:none;color:#888;font-size:20px;cursor:pointer;padding:0;line-height:1}
+.info-modal-close:hover{color:#fff}
+.info-modal table{width:100%;border-collapse:collapse;margin-top:8px}
+.info-modal td{padding:6px 8px;border-bottom:1px solid #333}
+.info-modal code{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}
 </style></head><body>
 <h1>QA Report — Floristería Petal</h1>
-<p class="sub">regen · 3 runs/TC · MacBook-Air.local</p>
+<p class="sub">latest · 3 runs/TC · MacBook-Air.local</p>
 <div class="hdr">
 <div><b>Orquestador:</b> v65</div><div><b>Compra:</b> v39</div><div><b>Checkout:</b> v33</div>
 <div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 49 × 3 runs</div>
@@ -334,7 +347,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-BODA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-BODA-01</span><span class="tname">Modo Boda — ramo nupcial</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-BODA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-BODA-01</span><span class="tname">Modo Boda — ramo nupcial</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -382,7 +395,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C29.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C29</span><span class="tname">Ambigüedad total sin datos</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C29.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C29</span><span class="tname">Ambigüedad total sin datos</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -415,7 +428,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C31.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C31</span><span class="tname">Presupuesto sin producto</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C31.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C31</span><span class="tname">Presupuesto sin producto</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -460,7 +473,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C32.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C32</span><span class="tname">Cantidad ambigua — un par</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C32.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C32</span><span class="tname">Cantidad ambigua — un par</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -564,7 +577,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C33.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C33</span><span class="tname">Cantidad ambigua — varios</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C33.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C33</span><span class="tname">Cantidad ambigua — varios</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -668,7 +681,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C34.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C34</span><span class="tname">Cantidad por función</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C34.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C34</span><span class="tname">Cantidad por función</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -772,7 +785,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C35.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C35</span><span class="tname">Ocasión ambigua emocional</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C35.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C35</span><span class="tname">Ocasión ambigua emocional</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -805,7 +818,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C36.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C36</span><span class="tname">Urgencia sin ocasión</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C36.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C36</span><span class="tname">Urgencia sin ocasión</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -833,7 +846,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C37.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C37</span><span class="tname">Input numérico fuera de contexto</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C37.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C37</span><span class="tname">Input numérico fuera de contexto</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -909,7 +922,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C39.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C39</span><span class="tname">Emoji solo</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C39.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C39</span><span class="tname">Emoji solo</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -937,7 +950,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C40.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C40</span><span class="tname">Pregunta out of scope en PASO 2</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C40.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C40</span><span class="tname">Pregunta out of scope en PASO 2</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1013,7 +1026,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C42.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C42</span><span class="tname">Handoff Compra → Checkout (pide email tras cantidad)</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C42.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C42</span><span class="tname">Handoff Compra → Checkout (pide email tras cantidad)</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1117,7 +1130,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-C43.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C43</span><span class="tname">Input ambiguo en PASO 0 Checkout — no cancela, re-pide email</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C43.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C43</span><span class="tname">Input ambiguo en PASO 0 Checkout — no cancela, re-pide email</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1249,7 +1262,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-CAMBIO-OP-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-CAMBIO-OP-01</span><span class="tname">Cambio de opinion mid-flow — usuario abandona tras seleccionar</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-CAMBIO-OP-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-CAMBIO-OP-01</span><span class="tname">Cambio de opinion mid-flow — usuario abandona tras seleccionar</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1353,7 +1366,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-COLOR-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-COLOR-01</span><span class="tname">Compra con color especifico no-rojo (tulipanes blancos)</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-COLOR-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-COLOR-01</span><span class="tname">Compra con color especifico no-rojo (tulipanes blancos)</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1393,7 +1406,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-INV" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-DECO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-01</span><span class="tname">Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DECO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-01</span><span class="tname">Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1439,7 +1452,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-INV" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-DECO-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-02</span><span class="tname">Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">1/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DECO-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-02</span><span class="tname">Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">1/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1491,7 +1504,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <li>Agente dijo [Rosa.{0,40}—.{0,5}[SMLX]]</li>
 </ul>
 <div class="diag-block" data-tcid="TC-DECO-02">
-<h4 class="diag-header">Causa raíz (TC-DECO-02) <span class="badge badge-llm">✨ LLM</span></h4>
+<h4 class="diag-header">Causa raíz (TC-DECO-02) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
 
 <p>1. <strong>Capa 1 (Catálogo / datos)</strong>: <code>petal-sheet-api</code> no tiene ningún producto de tipo "Rosa" tagueado con <code>ocasion=Decoracion</code>. El backend devuelve 0 rosas para ese filtro, aunque sí existen rosas para otras ocasiones (Aniversario, Cumpleaños) — validado por otros TCs PASS.</p>
@@ -1519,7 +1532,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-DESPEDIDA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DESPEDIDA-01</span><span class="tname">Despedida abrupta — cierre amable sin pedido completo</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DESPEDIDA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DESPEDIDA-01</span><span class="tname">Despedida abrupta — cierre amable sin pedido completo</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1583,7 +1596,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G6" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-DEVOLUCION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DEVOLUCION-01</span><span class="tname">Solicitud de devolucion — out-of-scope, deriva a Handoff</span><span class="tgroup">G6</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DEVOLUCION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DEVOLUCION-01</span><span class="tname">Solicitud de devolucion — out-of-scope, deriva a Handoff</span><span class="tgroup">G6</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1611,7 +1624,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5>CK" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-DIR-CUSTOM-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DIR-CUSTOM-01</span><span class="tname">Override direccion habitual — cliente identificado pide otra direccion</span><span class="tgroup">G5>CK</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DIR-CUSTOM-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DIR-CUSTOM-01</span><span class="tname">Override direccion habitual — cliente identificado pide otra direccion</span><span class="tgroup">G5>CK</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1647,7 +1660,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="ESP" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-E01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-E01</span><span class="tname">Hablar con humano - sin pedir email</span><span class="tgroup">ESP</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-E01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-E01</span><span class="tname">Hablar con humano - sin pedir email</span><span class="tgroup">ESP</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1676,7 +1689,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G6>SALDO" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-E04.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-E04</span><span class="tname">Consulta saldo con email valido</span><span class="tgroup">G6>SALDO</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-E04.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-E04</span><span class="tname">Consulta saldo con email valido</span><span class="tgroup">G6>SALDO</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1726,7 +1739,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-FRUSTRACION-LEX-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-LEX-01</span><span class="tname">Lexico negativo del usuario — agente reconoce frustracion</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-LEX-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-LEX-01</span><span class="tname">Lexico negativo del usuario — agente reconoce frustracion</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1790,7 +1803,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-FUNERAL-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FUNERAL-01</span><span class="tname">Modo solemne — corona para funeral</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FUNERAL-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FUNERAL-01</span><span class="tname">Modo solemne — corona para funeral</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1838,7 +1851,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-IMPOSIBLE-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-IMPOSIBLE-01</span><span class="tname">Peticion fuera de scope — descuento del 50%</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-IMPOSIBLE-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-IMPOSIBLE-01</span><span class="tname">Peticion fuera de scope — descuento del 50%</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1866,7 +1879,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-INSULTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-INSULTO-01</span><span class="tname">Lexico abusivo — agente mantiene tono profesional, no repite</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-INSULTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-INSULTO-01</span><span class="tname">Lexico abusivo — agente mantiene tono profesional, no repite</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1896,7 +1909,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G6>DEUDA" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-MOROSO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MOROSO-01</span><span class="tname">Cliente con deuda detectada — handoff a Gestion_Deuda</span><span class="tgroup">G6>DEUDA</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-MOROSO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MOROSO-01</span><span class="tname">Cliente con deuda detectada — handoff a Gestion_Deuda</span><span class="tgroup">G6>DEUDA</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1924,7 +1937,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-MULTI-SLOT-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-SLOT-01</span><span class="tname">Parseo multi-info en un solo input — extraccion robusta</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-MULTI-SLOT-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-SLOT-01</span><span class="tname">Parseo multi-info en un solo input — extraccion robusta</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1960,7 +1973,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G3" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-N01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-N01</span><span class="tname">Recomendacion - transfiere a Compra</span><span class="tgroup">G3</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-N01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-N01</span><span class="tname">Recomendacion - transfiere a Compra</span><span class="tgroup">G3</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -1993,7 +2006,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G6" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-N03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-N03</span><span class="tname">Requiere perfil - pide email</span><span class="tgroup">G6</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-N03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-N03</span><span class="tname">Requiere perfil - pide email</span><span class="tgroup">G6</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2021,7 +2034,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-PRESUPUESTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-PRESUPUESTO-01</span><span class="tname">Presupuesto duro — precio_max explicito</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-PRESUPUESTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-PRESUPUESTO-01</span><span class="tname">Presupuesto duro — precio_max explicito</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2069,7 +2082,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G1" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-R01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R01</span><span class="tname">Info negocio - horario</span><span class="tgroup">G1</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-R01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R01</span><span class="tname">Info negocio - horario</span><span class="tgroup">G1</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2097,7 +2110,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G2" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-R02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R02</span><span class="tname">Info catalogo - precio tulipanes</span><span class="tgroup">G2</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-R02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R02</span><span class="tname">Info catalogo - precio tulipanes</span><span class="tgroup">G2</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2135,7 +2148,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G4" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-R03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R03</span><span class="tname">Saludo</span><span class="tgroup">G4</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-R03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R03</span><span class="tname">Saludo</span><span class="tgroup">G4</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2163,7 +2176,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-R04.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R04</span><span class="tname">Compra directa sin email</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-R04.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R04</span><span class="tname">Compra directa sin email</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2211,7 +2224,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="ESP" data-type="REG">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-R06.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R06</span><span class="tname">Email espontaneo</span><span class="tgroup">ESP</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-R06.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-R06</span><span class="tname">Email espontaneo</span><span class="tgroup">ESP</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2239,7 +2252,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-REFINAR-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REFINAR-01</span><span class="tname">Refinamiento de precio mid-flow — mas baratas</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-REFINAR-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REFINAR-01</span><span class="tname">Refinamiento de precio mid-flow — mas baratas</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2327,7 +2340,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G7" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-REG01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG01</span><span class="tname">Registro completo happy path desde Orquestador</span><span class="tgroup">G7</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-REG01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG01</span><span class="tname">Registro completo happy path desde Orquestador</span><span class="tgroup">G7</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2533,7 +2546,7 @@ Revisa esp..."</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G7>ERR" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-REG02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG02</span><span class="tname">Registro con email invalido desde Orquestador</span><span class="tgroup">G7>ERR</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-REG02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG02</span><span class="tname">Registro con email invalido desde Orquestador</span><span class="tgroup">G7>ERR</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2601,7 +2614,7 @@ Revisa esp..."</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G7>CANCEL" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-REG03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG03</span><span class="tname">Registro cancelado a mitad desde Orquestador</span><span class="tgroup">G7>CANCEL</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-REG03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG03</span><span class="tname">Registro cancelado a mitad desde Orquestador</span><span class="tgroup">G7>CANCEL</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -2669,7 +2682,7 @@ Revisa esp..."</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5>CK>REG" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-REG04.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG04</span><span class="tname">Flujo COMPLETO: Compra → Checkout → Registro_Task → completa pedido</span><span class="tgroup">G5>CK>REG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-REG04.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG04</span><span class="tname">Flujo COMPLETO: Compra → Checkout → Registro_Task → completa pedido</span><span class="tgroup">G5>CK>REG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -3081,7 +3094,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G7>POST" data-type="NEW">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-REG06.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG06</span><span class="tname">Post-registro: Orquestador retoma y ofrece ayuda</span><span class="tgroup">G7>POST</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-REG06.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-REG06</span><span class="tname">Post-registro: Orquestador retoma y ofrece ayuda</span><span class="tgroup">G7>POST</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -3313,7 +3326,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-ROBUSTEZ-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-ROBUSTEZ-01</span><span class="tname">Robustez parser — input en MAYUSCULAS sin acentos</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-ROBUSTEZ-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-ROBUSTEZ-01</span><span class="tname">Robustez parser — input en MAYUSCULAS sin acentos</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -3361,7 +3374,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-SIGNOS-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-SIGNOS-01</span><span class="tname">Input solo signos de puntuacion — robustez</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-SIGNOS-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-SIGNOS-01</span><span class="tname">Input solo signos de puntuacion — robustez</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -3389,7 +3402,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-STOCK-EXCESO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-STOCK-EXCESO-01</span><span class="tname">TT-25 — cantidad &gt; stock disponible, agente debe avisar</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-STOCK-EXCESO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-STOCK-EXCESO-01</span><span class="tname">TT-25 — cantidad &gt; stock disponible, agente debe avisar</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -3481,7 +3494,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-VARIANTES-SML-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-VARIANTES-SML-01</span><span class="tname">TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-VARIANTES-SML-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-VARIANTES-SML-01</span><span class="tname">TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header ok">✅ Run 1</div>
@@ -3557,7 +3570,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -3651,7 +3664,7 @@ Confirmamos?"</div>
 <li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]</code></li>
 <li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Ya te mostre lo que tenemos mas afin. Probamos con otra flor o cambiamos de color?"</em></li>
 </ul>
-<h4>Causa raíz</h4>
+<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
 <table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"ninguna me gusta"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
 <summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
@@ -3685,7 +3698,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -3729,7 +3742,7 @@ Confirmamos?"</div>
 <li>Agente dijo [centro.{0,80}ramo]</li>
 </ul>
 <div class="diag-block" data-tcid="TC-MULTI-PRODUCTO-01">
-<h4 class="diag-header">Causa raíz (TC-MULTI-PRODUCTO-01) <span class="badge badge-llm">✨ LLM</span></h4>
+<h4 class="diag-header">Causa raíz (TC-MULTI-PRODUCTO-01) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
 
 <p>1. <strong>Capa 1 (Orquestador — slots mono-producto)</strong>: El esquema de slots es singular (<code>producto</code>). No existe <code>productos[]</code> ni flag <code>multi_producto_detectado</code>. La <code>intencion_inicial</code> se preserva como texto libre pero no se inspecciona para detectar conjunciones ("y", "también", "además").</p>
@@ -3808,7 +3821,7 @@ Confirmamos?"</div>
 <li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [65]</code></li>
 <li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Tu pedido: 1 x Ramo de Rosas Morado — M (37.0euros) y 1 x Centro de Mesa Tulipanes Multicolor — S (28.0euros). ¿Lo confirmo?"</em></li>
 </ul>
-<h4>Causa raíz</h4>
+<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
 <table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"si"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Perfecto, para completar tu pedido necesito tu correo electronico."</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
 <summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
@@ -3903,7 +3916,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="rerun_20260521_150644_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — variante hora numerica ('hoy a las 6')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — variante hora numerica ('hoy a las 6')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -3959,7 +3972,7 @@ Confirmamos?"</div>
 ¿Alguna te convence?"</em></li>
 </ul>
 <div class="diag-block" data-tcid="TC-URGENCIA-01">
-<h4 class="diag-header">Causa raíz (TC-URGENCIA-01) <span class="badge badge-llm">✨ LLM</span></h4>
+<h4 class="diag-header">Causa raíz (TC-URGENCIA-01) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
 
 <p>1. <strong>Capa 1 (Playbook Compra)</strong> ✓ verificada: <code>definitions/playbooks/compra.yaml</code> actualmente NO contiene un bloque de detección de urgencia temporal. La única mención a "hoy" es en una sección posterior (línea 484) sobre preguntas del usuario tras mostrar opciones, pero no en el flujo principal antes de slot-filling.</p>
@@ -4004,7 +4017,7 @@ Confirmamos?"</div>
   <div class="modal-content modal-metodologia">
     <button class="modal-close" onclick="closeMetodologia()">&times;</button>
     <h2>📊 Metodología de evaluación QA</h2>
-    <p class="modal-sub">49 test cases · 46 PASS · 0 INESTABLE · 3 FAIL · regen</p>
+    <p class="modal-sub">49 test cases · 46 PASS · 0 INESTABLE · 3 FAIL · latest</p>
     
     <div class="kpi-section kpi-flak">
       <h3 data-legend="Un TC es INESTABLE cuando pasa en algunos runs pero falla en otros. Indica que el sistema no es determinístico — la misma entrada produce resultados distintos. Umbral aceptable: <10%. Si es alto, los tests no son fiables.">Flakiness: 0.0% <span class="kpi-sub">(0 TCs INESTABLE de 49)</span></h3>
@@ -4048,9 +4061,9 @@ Confirmamos?"</div>
         <div class="kpi-section">
           <h3>📈 Regresión vs run anterior</h3>
           <table class="kpi-regr">
-            <tr><td>Run actual</td><td>regen</td><td><strong>PASS 93%</strong> (46/49)</td></tr>
-            <tr><td>Run anterior</td><td>2026-05-21 15:46</td><td>PASS 100% (1/1)</td></tr>
-            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-down"><strong>-7%</strong></td></tr>
+            <tr><td>Run actual</td><td>latest</td><td><strong>PASS 93%</strong> (46/49)</td></tr>
+            <tr><td>Run anterior</td><td>2026-05-21 17:06</td><td>PASS 0% (0/1)</td></tr>
+            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-up"><strong>+93%</strong></td></tr>
           </table>
         </div>
     
@@ -4078,6 +4091,38 @@ Confirmamos?"</div>
       <thead><tr><th>Fecha/hora</th><th>Total</th><th>Pass</th><th>Inestables</th><th>Fail</th><th>Tasa</th><th>Reporte</th></tr></thead>
       <tbody></tbody>
     </table>
+  </div>
+</div>
+<!-- Modal: Las 7 capas estándar -->
+<div class="info-modal-overlay" id="modal-capas">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="closeInfoModal('capas')">&times;</button>
+    <h3>Las 7 capas estándar del análisis QA</h3>
+    <p>Cada análisis evalúa estas 7 capas obligatoriamente para descomponer la causa raíz del bug:</p>
+    <table>
+      <tr><td><strong>1. Playbook</strong></td><td>El código del playbook tal como está hoy</td></tr>
+      <tr><td><strong>2. Histórico</strong></td><td>Cambios recientes al playbook (commits, PRs)</td></tr>
+      <tr><td><strong>3. Catálogo</strong></td><td>Datos del Google Sheet (inventario, agent_copy)</td></tr>
+      <tr><td><strong>4. Orquestador</strong></td><td>Clasificación inicial del usuario (intent, slots)</td></tr>
+      <tr><td><strong>5. Backend / Tool</strong></td><td>Llamadas al petal-sheet-api</td></tr>
+      <tr><td><strong>6. Política / Negocio</strong></td><td>Reglas de negocio (plazos, importes, ocasiones soportadas)</td></tr>
+      <tr><td><strong>7. Test</strong></td><td>Calibración del check regex del TC</td></tr>
+    </table>
+    <p style="margin-top:16px;">Cada capa se marca con uno de los 4 estados (ver "Marca posible" para detalle).</p>
+  </div>
+</div>
+<!-- Modal: Estados posibles -->
+<div class="info-modal-overlay" id="modal-marcas">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="closeInfoModal('marcas')">&times;</button>
+    <h3>Estados posibles de cada capa</h3>
+    <table>
+      <tr><td style="width:120px;"><strong>🔴 problema</strong></td><td>Capa <em>comprobada con fuente</em>. ES causa del bug.</td></tr>
+      <tr><td><strong>🟢 ok</strong></td><td>Capa <em>comprobada con fuente</em>. NO es causa del bug.</td></tr>
+      <tr><td><strong>🟡 supuesta</strong></td><td>No se pudo comprobar (falta documentación o info externa).</td></tr>
+      <tr><td><strong>⚪ N/A</strong></td><td>Esta capa no aplica al tipo de bug analizado.</td></tr>
+    </table>
+    <p style="margin-top:16px;">Las marcas <strong>🔴</strong> y <strong>🟢</strong> requieren citar la fuente entre paréntesis (ej: <code>Read compra.yaml</code>, <code>git log</code>, <code>gh pr view</code>, <code>gcloud logging</code>, <code>curl URL</code>).</p>
   </div>
 </div>
 <script>
@@ -4365,4 +4410,12 @@ document.addEventListener('DOMContentLoaded', initButtons);
 if (document.readyState !== 'loading') initButtons();
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();closePanel();}});
+
+// Info modals (Capas / Marcas) — abiertas desde botones "?" en "Causa raíz"
+function openInfoModal(id){document.getElementById('modal-'+id).classList.add('visible');}
+function closeInfoModal(id){document.getElementById('modal-'+id).classList.remove('visible');}
+// Cerrar al hacer clic fuera de la modal
+document.addEventListener('click',function(e){if(e.target.classList&&e.target.classList.contains('info-modal-overlay')){e.target.classList.remove('visible');}});
+// Cerrar con Escape
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.info-modal-overlay.visible').forEach(function(m){m.classList.remove('visible');});}});
 </script></body></html>
