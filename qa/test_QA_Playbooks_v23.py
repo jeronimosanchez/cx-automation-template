@@ -969,6 +969,97 @@ def _md_to_html(text):
     return "\n".join(out)
 
 
+# Mapeo emoji → (clase CSS, color hex). Usado por _postprocess_capa_blocks.
+_CAPA_EMOJI_MAP = {
+    "🔴": "rojo",
+    "🟢": "verde",
+    "🟡": "amarillo",
+    "⚪": "na",
+}
+
+
+def _postprocess_capa_blocks(html):
+    """Detecta bloques de capa en el HTML renderizado del análisis ('Causa raíz')
+    y los envuelve en divs estructurados con emoji + título + estado/fuente + descripción.
+
+    Solo aplica cuando la línea de la capa empieza con un emoji de marca y respeta el
+    formato NUEVO:
+      🔴 N. **Capa Nombre** · estado · `fuente`        (verbose, con párrafo descripción debajo)
+      ⚪ N. **Capa Nombre** · N/A — razón breve.       (compacto, una sola línea)
+
+    Las capas en formato VIEJO (sin emoji al inicio del párrafo) se dejan intactas.
+    """
+    if not html:
+        return html
+
+    # Patrón para una línea de capa renderizada como <p>...</p>
+    # Grupos: 1=emoji, 2=número, 3=nombre capa (texto plano dentro de <strong>),
+    #         4=resto (estado · fuente, puede contener <code>...</code>)
+    capa_line_re = re.compile(
+        r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+)</strong>([^<]*(?:<code>[^<]*</code>[^<]*)*)</p>'
+    )
+
+    def replace_block(match, full_html, start_idx):
+        emoji = match.group(1)
+        num = match.group(2)
+        nombre = match.group(3).strip()
+        resto = match.group(4).strip()
+        color = _CAPA_EMOJI_MAP.get(emoji, "na")
+        # Limpiar resto: si empieza con " · ", quitarlo
+        resto_clean = re.sub(r'^\s*·\s*', '', resto).strip()
+
+        if emoji == "⚪":
+            # Compacto: una sola línea, sin descripción aparte
+            return (
+                f'<div class="capa-block capa-na capa-na-compact">'
+                f'<span class="capa-emoji">{emoji}</span>'
+                f'<span class="capa-titulo"><strong>{num}. {nombre}</strong></span>'
+                f'<span class="capa-meta">{resto_clean}</span>'
+                f'</div>'
+            ), match.end()
+
+        # Verbose: buscar el siguiente <p>...</p> como descripción
+        rest_html = full_html[match.end():]
+        # Saltar whitespace/newlines
+        m_next = re.match(r'\s*<p>(.*?)</p>', rest_html, re.DOTALL)
+        desc_html = ""
+        consume_end = match.end()
+        if m_next:
+            inner = m_next.group(1)
+            # Solo consumirlo como descripción si NO es a su vez otra cabecera de capa
+            if not re.match(r'^(🔴|🟢|🟡|⚪)\s+\d+\.\s+<strong>', inner):
+                desc_html = inner
+                consume_end = match.end() + m_next.end()
+
+        # Separar estado de fuente: típicamente "<estado> · <code>fuente</code>"
+        # Renderizamos resto_clean tal cual (ya contiene <code> si aplica).
+        block_html = (
+            f'<div class="capa-block capa-{color}">'
+            f'<div class="capa-header">'
+            f'<span class="capa-emoji">{emoji}</span>'
+            f'<span class="capa-titulo"><strong>{num}. {nombre}</strong></span>'
+            f'<span class="capa-meta">{resto_clean}</span>'
+            f'</div>'
+        )
+        if desc_html:
+            block_html += f'<div class="capa-desc">{desc_html}</div>'
+        block_html += '</div>'
+        return block_html, consume_end
+
+    # Sustituir de izquierda a derecha (consumiendo descripción cuando aplica)
+    result = []
+    pos = 0
+    for m in capa_line_re.finditer(html):
+        if m.start() < pos:
+            continue
+        result.append(html[pos:m.start()])
+        new_block, new_pos = replace_block(m, html, m.start())
+        result.append(new_block)
+        pos = new_pos
+    result.append(html[pos:])
+    return "".join(result)
+
+
 def _md_inline(text):
     """Aplica formato inline de markdown: **bold**, *italic*, `code`, [texto](url)."""
     # Bold **text** (antes que italic para no canibalizar **)
@@ -1286,6 +1377,19 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .ta-right .manual-analysis ul li{{margin:6px 0}}
 .diag-block{{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}}
 .diag-header{{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}}
+/* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz') */
+.capa-block{{margin:12px 0;padding:12px 16px;border-radius:6px;border-left:3px solid transparent}}
+.capa-block.capa-rojo{{background:rgba(255,80,80,0.07);border-left-color:#e85050}}
+.capa-block.capa-verde{{background:rgba(80,200,80,0.05);border-left-color:#5dc870}}
+.capa-block.capa-amarillo{{background:rgba(220,180,50,0.06);border-left-color:#d4b32f}}
+.capa-block.capa-na{{background:rgba(255,255,255,0.02);border-left-color:#555}}
+.capa-block.capa-na-compact{{padding:6px 16px;display:flex;align-items:center;gap:8px;font-size:13px}}
+.capa-header{{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}}
+.capa-emoji{{font-size:16px;line-height:1}}
+.capa-titulo{{font-size:14px}}
+.capa-meta{{font-size:12px;color:#999;font-style:italic}}
+.capa-meta code{{background:#2a2a2a;color:#ddd;padding:2px 6px;border-radius:3px;font-size:11px;font-style:normal;margin-left:4px}}
+.capa-desc{{color:#ddd;font-size:13px;line-height:1.6;margin-top:4px;margin-left:24px}}
 .badge{{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}}
 .badge-auto{{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}}
 .badge-llm{{background:#1a2818;color:#c8f060;border:1px solid #2a4818}}
@@ -1659,7 +1763,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                     if md_sin_tabla:
                         rp.append(f'<div class="diag-block" data-tcid="{esc(r["id"])}">')
                         rp.append(f'<h4 class="diag-header">Causa raíz ({esc(r["id"])}) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal(\'capas\')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal(\'marcas\')" title="Significado de las marcas">?</button></h4>')
-                        rp.append(f'<div class="manual-analysis">{_md_to_html(md_sin_tabla)}</div>')
+                        rp.append(f'<div class="manual-analysis">{_postprocess_capa_blocks(_md_to_html(md_sin_tabla))}</div>')
                         rp.append(f'</div>')
                 elif has_fail and not turn_analysis_md:
                     # CAUSA RAÍZ — placeholder pendiente análisis (lo rellena Claude vía Optimizar)
