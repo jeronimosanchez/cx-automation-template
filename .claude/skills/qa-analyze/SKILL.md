@@ -136,11 +136,17 @@ estimacion: ~<X> min (Solución #<N> recomendada)
 | 3 | Compra | <acción/slots extraídos> | <problema> |
 | ... | ... | ... | ... |
 
-### Causa raíz (descompuesta en <N> capas)
+### Causa raíz — evaluación de las 7 capas estándar
 
-1. **<Capa 1>** ✓ verificada (`<fuente: Read X / git log Y / gcloud logging Z>`): <descripción concreta>
-2. **<Capa 2>** ✓ verificada (`<fuente>`): <descripción concreta>
-3. **<Capa 3>** ? supuesta: <descripción concreta> _(no verificado: <razón por la que no se pudo comprobar>)_
+1. **Capa Playbook** <marca> (`<fuente o motivo>`): <descripción concreta>
+2. **Capa Histórico** <marca> (`<fuente o motivo>`): <descripción concreta>
+3. **Capa Catálogo** <marca> (`<fuente o motivo>`): <descripción concreta>
+4. **Capa Orquestador** <marca> (`<fuente o motivo>`): <descripción concreta>
+5. **Capa Backend / Tool** <marca> (`<fuente o motivo>`): <descripción concreta>
+6. **Capa Política / Negocio** <marca> (`<fuente o motivo>`): <descripción concreta>
+7. **Capa Test** <marca> (`<fuente o motivo>`): <descripción concreta>
+
+**Resumen visual:** <N> 🔴 problema · <N> 🟢 ok · <N> 🟡 supuesta · <N> ⚪ N/A
 
 ## Recomendación
 
@@ -184,17 +190,26 @@ estimacion: ~<X> min (Solución #<N> recomendada)
 - Sé honesto sobre trade-offs en "Por qué este scoring"
 - En el TIPO usa una de las categorías listadas, no inventes nuevas
 
-**[v1.1 Cambio 3] Marcado verificado vs supuesto en "Causa raíz":**
-- Cada capa lleva marca explícita: **✓ verificada** o **? supuesta**
-- **✓ verificada** requiere cita de la fuente entre paréntesis tras la marca:
-  - `Read <ruta>` — leíste el archivo y la afirmación está en él
-  - `git log --since="..." -- <ruta>` — viste el commit relevante
-  - `gh pr view <N>` — verificaste título/contenido del PR antes de citarlo
-  - `gcloud logging read '<filtro>'` — viste la entrada del log del backend
-  - `curl <URL>` — consultaste el endpoint del backend
-- **? supuesta** debe ir acompañada de `_(no verificado: <razón>)_` explicando por qué no se pudo comprobar (ej: "política de producto no documentada en repo", "información sólo en cabeza del PO")
-- **Nunca uses ✓ sin fuente** — si no puedes citar una fuente concreta, marca como `?`
-- **Nunca cites un PR (#N), commit (sha), o variable de negocio sin haberlo verificado** con `gh pr view`, `git show`, o consulta al backend respectivamente
+**[v1.1 Cambio 3] Las 7 capas obligatorias con marca explícita:**
+
+Cada análisis evalúa OBLIGATORIAMENTE las 7 capas estándar (Playbook, Histórico, Catálogo, Orquestador, Backend/Tool, Política/Negocio, Test). Cada capa lleva una de las 4 marcas:
+
+- 🔴 **problema** — capa comprobada con fuente, ES causa del bug
+- 🟢 **ok** — capa comprobada con fuente, NO es causa del bug
+- 🟡 **supuesta** — no se pudo comprobar con fuente directa
+- ⚪ **N/A** — esta capa no aplica al tipo de bug
+
+Reglas:
+- 🔴 y 🟢 REQUIEREN cita de fuente entre paréntesis tras la marca:
+  * `Read <ruta>` — leíste el archivo
+  * `git log --since="..." -- <ruta>` — viste el commit relevante
+  * `gh pr view <N>` — verificaste el PR antes de citarlo
+  * `gcloud logging read '<filtro>'` — viste el log del backend
+  * `curl <URL>` — consultaste el endpoint del backend
+- 🟡 REQUIERE razón explicando por qué no se pudo comprobar (`_(no verificado: <razón>)_`)
+- ⚪ REQUIERE breve justificación de por qué la capa no aplica
+- NUNCA cites un PR (#N), commit (sha), o variable de negocio sin haberlo verificado con la herramienta correspondiente
+- SIEMPRE incluye el "Resumen visual" al final de la sección "Causa raíz" con el conteo de cada marca
 
 ### Paso 4 — Regenerar TODOS los HTMLs y publicar — AUTOMÁTICO
 
