@@ -326,7 +326,50 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <div class="card c-pct"><div class="n">90%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:90.2%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:9.8%"></div></div>
+<div class="patterns-block"><h2>⚠️ Patrones cruzados detectados</h2><h2>Patrones cruzados — run 20260521_154302</h2>
 
+<p>TCs analizados en este batch: TC-FRUSTRACION-01, TC-URGENCIA-01, TC-URGENCIA-02, TC-URGENCIA-03, TC-MULTI-PRODUCTO-01</p>
+
+<p>---</p>
+
+<h3>Patrón A — URGENCIA (cluster de 3 TCs)</h3>
+
+<p><strong>TCs:</strong> TC-URGENCIA-01 · TC-URGENCIA-02 · TC-URGENCIA-03</p>
+
+<table class="md-table"><thead><tr><th>Razón</th><th>Evaluación</th><th>Detalle</th></tr></thead><tbody><tr><td><strong>Síntoma compartido</strong></td><td>✅ existe</td><td>Los 3 agentes muestran el catálogo de rosas sin mencionar plazo. Respuesta textualmente casi idéntica en los 3 casos.</td></tr><tr><td><strong>Capa compartida</strong></td><td>✅ existe</td><td>🔴 Capa Comportamiento (mismo bloque eliminado) + 🔴 Capa Histórico (mismo commit de revert <code>2126c52</code>)</td></tr><tr><td><strong>Fix compartido</strong></td><td>✅ existe</td><td>Restaurar 14 líneas del bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code> resuelve los 3 sin cambios adicionales</td></tr></tbody></table>
+
+<p><strong>Variantes entre los 3 TCs:</strong></p>
+
+<table class="md-table"><thead><tr><th>TC</th><th>Input del usuario</th><th>Diferencia en regex</th></tr></thead><tbody><tr><td>TC-URGENCIA-01</td><td>"hoy a las 6" (hora numérica)</td><td>—</td></tr><tr><td>TC-URGENCIA-02</td><td>"hoy a las seis de la tarde" (hora textual)</td><td>—</td></tr><tr><td>TC-URGENCIA-03</td><td>"esta tarde" (sin hora)</td><td>Añade <code>tarde.{0,30}no</code> como patrón alternativo</td></tr></tbody></table>
+
+<p><strong>Nota TC-URGENCIA-03:</strong> "esta tarde" sin hora concreta es semánticamente ambigua respecto al corte de 14:00 de <code>envio_madrid_ciudad</code>. El fix restaurado responde "24h siempre" — correcto para la mayoría de casos, pero puede ser incorrecto para un cliente de Madrid ciudad que pida a las 12:00. Documentado como deuda técnica, no bloqueante.</p>
+
+<h4>ROI del patrón</h4>
+
+<table class="md-table"><thead><tr><th>TC a fixear</th><th>TCs potencialmente resueltos</th><th>Esfuerzo</th><th>ROI</th></tr></thead><tbody><tr><td>TC-URGENCIA-01 (fix #1)</td><td>3 TCs (URGENCIA-01, 02, 03)</td><td>~15 min</td><td>12 TCs/h</td></tr></tbody></table>
+
+<p><strong>Recomendación de secuencia:</strong> aplicar <code>/qa-fix TC-URGENCIA-01 1</code> → re-ejecutar los 3 TCs → confirmar que URGENCIA-02 y URGENCIA-03 pasan a PASS sin fix adicional.</p>
+
+<p>---</p>
+
+<h3>TCs sin patrón</h3>
+
+<table class="md-table"><thead><tr><th>TC</th><th>Por qué no forma patrón</th></tr></thead><tbody><tr><td><strong>TC-FRUSTRACION-01</strong></td><td>Síntoma distinto (agente muestra catálogo en rechazo 2 en lugar de preguntar motivo). Capa afectada: lógica RECHAZO ACUMULADO en compra.yaml, no el bloque URGENCIA. Fix independiente.</td></tr><tr><td><strong>TC-MULTI-PRODUCTO-01</strong></td><td>DEMO BREAK diferente (template ECO RESUMEN Paso 7). Fix independiente: restaurar línea del template multi-producto. No comparte causa ni síntoma con URGENCIA ni FRUSTRACION.</td></tr></tbody></table>
+
+<p><em>Nota:</em> TC-FRUSTRACION-01, TC-MULTI-PRODUCTO-01 y los tres TC-URGENCIA comparten la categoría meta "rotura intencional para demo", pero sus síntomas y fixes son distintos — no constituye un patrón accionable.</p>
+
+<p>---</p>
+
+<h3>Resumen ejecutivo</h3>
+
+<p><strong>1 patrón detectado</strong> (URGENCIA) · <strong>2 TCs aislados</strong> (FRUSTRACION-01, MULTI-PRODUCTO-01)</p>
+
+<p>Orden de fix recomendado por ROI:</p>
+
+<p>1. <strong>TC-URGENCIA-01</strong> → resuelve 3 TCs de golpe (~15 min)</p>
+<p>2. <strong>TC-MULTI-PRODUCTO-01</strong> → fix trivial, 1 línea de template (~10 min)</p>
+<p>3. <strong>TC-FRUSTRACION-01</strong> → requiere refuerzo de instrucciones en RECHAZO ACUMULADO (~20 min)</p>
+</div>
 <div class="actions-bar">
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">🗑 Borrar análisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
@@ -3622,7 +3665,7 @@ Ramo de Rosas Rojas — M (15 flores, 37€..."</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -3776,7 +3819,53 @@ Ramo de Rosas Rojas — M (15 flores, 37€..."</div>
 <ul class="ta-bullets ok">
 <li>Agente dijo [disculpa]</li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>Afecta exclusivamente la sección GESTION DE FRUSTRACION del playbook <code>compra.yaml</code>. Un solo bloque de texto a editar.</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>La regla existe pero está redactada de forma ambigua. No requiere nueva lógica, solo refuerzo de la instrucción existente.</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>La sección de frustración es autónoma; reforzar Rechazo 2 no afecta los turnos de Rechazo 1, 3 ni 4 ni ninguna otra rama del playbook.</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones</p>
+
+<p>---</p>
+
+<h4>Solución recomendada: #1 — Reforzar la instrucción de Rechazo 2 con bloque imperativo explícito</h4>
+
+<p>🟢 <strong>9/10</strong> · ~20 min · sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: La causa raíz es exclusivamente redaccional: la regla de Rechazo 2 compite en desventaja con la intención literal del usuario. Añadir un bloque explícito con verbo imperativo y condición de bloqueo ("NUNCA mostres productos antes de preguntar el motivo") elimina la ambigüedad sin tocar otros archivos ni lógica del sistema.</p>
+
+<p>---</p>
+
+<h4>Soluciones evaluadas (ordenadas por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td>Reforzar instrucción Rechazo 2 con bloque imperativo y ejemplo negativo en <code>compra.yaml</code></td><td>🟢 9/10</td><td>Solo <code>compra.yaml</code></td><td>Mínimo riesgo, ataca la causa raíz directamente, sin regresiones posibles.</td></tr><tr><td>2</td><td>Añadir ejemplo negativo al playbook (shot de lo que NO hacer en Rechazo 2)</td><td>🟡 7/10</td><td>Solo <code>compra.yaml</code></td><td>Complementario a #1; por sí solo menos fiable que una instrucción imperativa. Puede combinarse con #1.</td></tr><tr><td>3</td><td>Añadir un <code>Example</code> de CX con el flujo de Rechazo 2 correcto para guiar al LLM por few-shot</td><td>🟡 6/10</td><td><code>compra.yaml</code> + nuevo <code>Example</code> en Dialogflow CX</td><td>Mayor cobertura de guía, pero requiere crear y desplegar un artefacto adicional. Overkill para este bug.</td></tr></tbody></table>
+
+<p>---</p>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. Abrir <code>definitions/playbooks/compra.yaml</code>, sección GESTION DE FRUSTRACION (líneas 722-743).</p>
+<p>2. Localizar la línea de RECHAZO ACUMULADO (l.726):</p>
+<p>```</p>
+<p>1. RECHAZO ACUMULADO: rechazo 1 reformula. Rechazo 2 pregunta motivo. Rechazo 3 reformula y muestra una mas. Rechazo 4 ESCALAR.</p>
+<p>```</p>
+<p>3. Expandir el punto 1 añadiendo un sub-bloque imperativo para Rechazo 2, por ejemplo:</p>
+<p>```</p>
+<p>1. RECHAZO ACUMULADO:</p>
+<ul>
+<li>Rechazo 1: usa TONO RECONOCIMIENTO + reformula (pregunta tipo/color/presupuesto).</li>
+<li>Rechazo 2: PREGUNTA MOTIVO OBLIGATORIAMENTE. NUNCA muestres productos en este paso.</li>
+</ul>
+<p>Pregunta: '¿Qué es lo que no te convence? ¿El tipo de flor, el color, el precio o el tamaño?'</p>
+<p>Solo cuando el usuario responda pasa al siguiente turno.</p>
+<ul>
+<li>Rechazo 3: reformula aplicando la pista del Rechazo 2 y muestra una opción más.</li>
+<li>Rechazo 4: ESCALAR con $razon_handoff='frustracion_usuario'.</li>
+</ul>
+<p>```</p>
+<p>4. Guardar, crear rama, commit, PR, merge y esperar deploy.</p>
+<p>5. Rerun TC-FRUSTRACION-01: verificar que el turno 3 contiene <code>motivo</code>, <code>tipo</code>, <code>color</code>, <code>precio</code> o <code>tamaño</code> (cualquiera coincide con la regex del check).</p>
+
+<p><strong>Coste total</strong>: ~20 min (5 min edición + 2 min PR/merge + ~12 min deploy + 1 min rerun)</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -3850,7 +3939,7 @@ Ramo de Rosas Rojas — M (15 flores, 37€..."</div>
 
 <p><strong>Por qué</strong>: fix conocido-bueno (probado en <code>3e0b2d1</code> y <code>a10ab02</code>, TC pasó a PASS en primer rerun en ambas ocasiones). Cherry-pick o edición directa de 14 líneas en 1 archivo. Sin riesgo de regresión documentado. La inexactitud del "24h siempre" vs. Madrid ciudad antes de 14:00 (detectada en Capa Datos) es deuda técnica de diseño conversacional para un sprint posterior, no un bloqueante.</p>
 
-<h4>Soluciones evaluadas (ordenadas por score)</h4>
+<h4>Soluciones evaluadas (3 soluciones, DESC por score)</h4>
 
 <table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Restaurar bloque DETECCION URGENCIA TEMPORAL</strong> en <code>compra.yaml</code> (cherry-pick <code>a10ab02</code> o edición manual)</td><td>🟢 9/10</td><td>—</td><td>Fix probado 2 veces, 1 archivo, sin riesgo conocido. Único gap: no menciona excepción Madrid mismo día</td></tr><tr><td>2</td><td><strong>Solución #1 + consulta de zona antes de dar plazo</strong> (añadir paso de zona en slot-filling inicial)</td><td>🟡 6/10</td><td>Refactor slot-filling Compra</td><td>Más preciso con la política real del Sheet (<code>envio_madrid_ciudad</code>), pero añade un turno extra y puede impactar otros TCs</td></tr><tr><td>3</td><td><strong>Añadir Example de urgencia</strong> (few-shot turno-a-turno en <code>definitions/examples/</code>)</td><td>🟡 5/10</td><td>—</td><td>Complementario a #1, no elimina el gap de instrucciones. Útil como refuerzo si #1 sola muestra flakiness en variantes</td></tr></tbody></table>
 
@@ -3881,15 +3970,17 @@ Ramo de Rosas Rojas — M (15 flores, 37€..."</div>
 <p>```</p>
 
 <p>2. <strong>Commit + PR + merge</strong> con <code>--admin --squash</code>.</p>
-<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable.</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable en los 3 TCs del patrón.</p>
 
 <p><strong>Coste total</strong>: ~15 min (2 min edición + 3 min deploy + 10 min rerun × 3).</p>
+
+<p>&gt; <strong>TC raíz del patrón URGENCIA.</strong> El mismo fix resuelve TC-URGENCIA-02 y TC-URGENCIA-03. Re-ejecutar los 3 tras aplicar.</p>
 
 <p>&gt; <strong>Deuda técnica (Capa Datos):</strong> la respuesta "plazo mínimo 24h" es inexacta para <code>envio_madrid_ciudad</code> (mismo día antes de 14:00). Registrar como historia en <code>epic_backlog_conversational_design.md</code> para la Solución #2 en sprint posterior.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-02</span><span class="tname">Entrega urgente — variante hora textual ('hoy a las seis de la tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-02</span><span class="tname">Entrega urgente — variante hora textual ('hoy a las seis de la tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -3945,11 +4036,58 @@ Ramo de Rosas Rojas — M (15 flores, 37€..."</div>
 </ul>
 <h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-02"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>1 archivo (<code>compra.yaml</code>), restaurar 14 líneas ya escritas</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Restaurar instrucción condicional existente, sin nueva lógica</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix aplicado 2 veces sin regressions; reverts fueron intencionales para demo</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones</p>
+
+<h4>Solución recomendada: #1 — Restaurar bloque DETECCION URGENCIA TEMPORAL</h4>
+
+<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: fix conocido-bueno (probado en <code>3e0b2d1</code> y <code>a10ab02</code>). El bloque cubre explícitamente la variante textual de hora (<code>'esta tarde'</code>, <code>'esta noche'</code>, <code>'a las X'</code>), por lo que "seis de la tarde" queda cubierta sin cambios adicionales respecto al fix de TC-URGENCIA-01. Cherry-pick o edición directa de 14 líneas en 1 archivo. Sin riesgo de regresión documentado. La inexactitud del "24h siempre" vs. Madrid ciudad antes de 14:00 no aplica a este caso (18:00h &gt; corte 14:00) y es deuda técnica de diseño, no un bloqueante.</p>
+
+<h4>Soluciones evaluadas</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Restaurar bloque DETECCION URGENCIA TEMPORAL</strong> en <code>compra.yaml</code> (cherry-pick <code>a10ab02</code> o edición manual)</td><td>🟢 9/10</td><td>—</td><td>Fix probado 2 veces, cubre horas textuales, 1 archivo, sin riesgo conocido</td></tr><tr><td>2</td><td><strong>Solución #1 + consulta de zona antes de dar plazo</strong> (añadir paso de zona en slot-filling inicial)</td><td>🟡 6/10</td><td>Refactor slot-filling Compra</td><td>Más preciso con <code>envio_madrid_ciudad</code> (mismo día antes de 14:00), pero añade un turno extra y puede impactar otros TCs</td></tr><tr><td>3</td><td><strong>Añadir Example de urgencia con hora textual</strong> (few-shot en <code>definitions/examples/</code>)</td><td>🟡 5/10</td><td>—</td><td>Complementario a #1, no elimina el gap de instrucciones. Útil como refuerzo si #1 muestra flakiness en variantes textuales poco frecuentes</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Editar <code>definitions/playbooks/compra.yaml</code></strong>: insertar el bloque antes de <code>-- PASO 0 - MODO SEGUN GRUPO --</code> (~línea 388):</p>
+
+<p>```</p>
+<p>⛔ DETECCION URGENCIA TEMPORAL ⛔</p>
+<p>Si $intencion_inicial o el input actual del usuario contiene palabras que implican entrega urgente:</p>
+<ul>
+<li>'hoy', 'ahora', 'ya', 'esta tarde', 'esta noche', 'en X minutos', 'en X horas'</li>
+<li>una hora concreta del mismo dia ('a las 6', 'a las 18:00', 'para las 7', 'antes de las X')</li>
+<li>'urgente', 'rapido', 'cuanto antes'</li>
+</ul>
+<p>ANTES de continuar con slot-filling o busqueda de catalogo, clarifica el plazo segun $modo_tono:</p>
+<ul>
+<li>Estandar: 'Mira, el plazo minimo de entrega es 24h, asi que para hoy no podemos. Te valdria para mañana o un dia despues?'</li>
+<li>Solemne: 'Lamentablemente el plazo minimo de entrega disponible es de 24h. Le valdria para mañana?'</li>
+<li>Corporativo: 'El plazo minimo de entrega es 24h. Para mañana o posterior?'</li>
+</ul>
+<p>ESPERA respuesta del usuario.</p>
+<ul>
+<li>Si acepta plazo (mañana o posterior) - continua el flujo normal (PASO 0).</li>
+<li>Si insiste en hoy o rechaza - $razon_handoff='cliente_solicita_humano' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $modo_tono. (Un humano puede gestionar excepciones de logistica).</li>
+</ul>
+<p>⛔ FIN DETECCION URGENCIA ⛔</p>
+<p>```</p>
+
+<p>2. <strong>Commit + PR + merge</strong> con <code>--admin --squash</code>.</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable en TC-URGENCIA-01, TC-URGENCIA-02 y TC-URGENCIA-03.</p>
+
+<p><strong>Coste total</strong>: ~15 min (2 min edición + 3 min deploy + 10 min rerun × 3).</p>
+
+<p>&gt; <strong>Forma parte del patrón URGENCIA.</strong> Si el fix de TC-URGENCIA-01 restaura el bloque, TC-URGENCIA-02 y TC-URGENCIA-03 pasarán a PASS sin cambios adicionales. Re-ejecutar antes de planificar fix individual.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — variante sin hora ('esta tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — variante sin hora ('esta tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -4007,7 +4145,56 @@ Ramo de Rosas Rojas — M (15 flores, 37€..."</div>
 </ul>
 <h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-03"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>1 archivo (<code>compra.yaml</code>), restaurar bloque ya escrito</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Restaurar instrucción condicional existente, sin nueva lógica</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix aplicado 2 veces sin regressions; reverts fueron intencionales para demo</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones</p>
+
+<h4>Solución recomendada: #1 — Restaurar bloque DETECCION URGENCIA TEMPORAL</h4>
+
+<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: fix conocido-bueno (probado en <code>3e0b2d1</code> y <code>a10ab02</code>, TC pasó a PASS en primer rerun en ambas ocasiones). Edición de 14 líneas en 1 archivo. Sin riesgo de regresión documentado. La ambigüedad de "esta tarde" vs. el corte de 14:00 de Madrid ciudad es deuda técnica de diseño conversacional, no un bloqueante para este fix. La respuesta de plazo genérica ("para hoy no podemos") es conservadora-segura: puede sobreestimar el corte en un escenario de madrugada, pero nunca crea una falsa expectativa de entrega imposible.</p>
+
+<h4>Soluciones evaluadas (ordenadas DESC por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Restaurar bloque DETECCION URGENCIA TEMPORAL</strong> en <code>compra.yaml</code> (cherry-pick <code>a10ab02</code> o edición manual)</td><td>🟢 9/10</td><td>—</td><td>Fix probado 2 veces, 1 archivo, sin riesgo conocido. Gap: no menciona excepción Madrid mismo día ni pide hora cuando "esta tarde" es ambigua</td></tr><tr><td>2</td><td><strong>Solución #1 + preguntar hora cuando la expresión es ambigua</strong> (añadir rama condicional: si urgencia detectada sin hora explícita → preguntar "¿a partir de qué hora lo necesitas?")</td><td>🟡 7/10</td><td>Modificación mayor del bloque de urgencia</td><td>Elimina la ambigüedad de "esta tarde" y permite aplicar correctamente la excepción de Madrid. Añade un turno extra; puede introducir complejidad en el flujo. Recomendable en sprint posterior</td></tr><tr><td>3</td><td><strong>Añadir Example de urgencia con variante "esta tarde"</strong> (few-shot en <code>definitions/examples/</code>)</td><td>🟡 5/10</td><td>—</td><td>Complementario a #1, no elimina el gap de instrucciones. Útil como refuerzo si #1 sola muestra flakiness en variantes sin hora numérica</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Editar <code>definitions/playbooks/compra.yaml</code></strong>: insertar el bloque antes de <code>-- PASO 0 - MODO SEGUN GRUPO --</code> (~línea 388):</p>
+
+<p>```</p>
+<p>⛔ DETECCION URGENCIA TEMPORAL ⛔</p>
+<p>Si $intencion_inicial o el input actual del usuario contiene palabras que implican entrega urgente:</p>
+<ul>
+<li>'hoy', 'ahora', 'ya', 'esta tarde', 'esta noche', 'en X minutos', 'en X horas'</li>
+<li>una hora concreta del mismo dia ('a las 6', 'a las 18:00', 'para las 7', 'antes de las X')</li>
+<li>'urgente', 'rapido', 'cuanto antes'</li>
+</ul>
+<p>ANTES de continuar con slot-filling o busqueda de catalogo, clarifica el plazo segun $modo_tono:</p>
+<ul>
+<li>Estandar: 'Mira, el plazo minimo de entrega es 24h, asi que para hoy no podemos. Te valdria para mañana o un dia despues?'</li>
+<li>Solemne: 'Lamentablemente el plazo minimo de entrega disponible es de 24h. Le valdria para mañana?'</li>
+<li>Corporativo: 'El plazo minimo de entrega es 24h. Para mañana o posterior?'</li>
+</ul>
+<p>ESPERA respuesta del usuario.</p>
+<ul>
+<li>Si acepta plazo (mañana o posterior) - continua el flujo normal (PASO 0).</li>
+<li>Si insiste en hoy o rechaza - $razon_handoff='cliente_solicita_humano' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $modo_tono. (Un humano puede gestionar excepciones de logistica).</li>
+</ul>
+<p>⛔ FIN DETECCION URGENCIA ⛔</p>
+<p>```</p>
+
+<p>2. <strong>Commit + PR + merge</strong> con <code>--admin --squash</code>.</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable en TC-URGENCIA-01, TC-URGENCIA-02 y TC-URGENCIA-03 simultáneamente.</p>
+
+<p><strong>Coste total</strong>: ~15 min (2 min edición + 3 min deploy + 10 min rerun × 3).</p>
+
+<p>&gt; <strong>Deuda técnica (Capa Datos):</strong> "esta tarde" sin hora explícita es ambigua respecto al corte de 14:00 de <code>envio_madrid_ciudad</code>. La respuesta de "plazo mínimo 24h" es conservadora-segura pero puede ser incorrecta para clientes de Madrid ciudad que pidan antes de las 14:00. Registrar como historia en <code>epic_backlog_conversational_design.md</code> para la Solución #2 en sprint posterior.</p>
+
+<p>&gt; <strong>Forma parte del patrón URGENCIA.</strong> Si el fix de TC-URGENCIA-01 restaura el bloque, TC-URGENCIA-02 y TC-URGENCIA-03 pasarán a PASS sin cambios adicionales. Re-ejecutar los tres antes de planificar fix individual.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -4024,28 +4211,27 @@ Ramo de Rosas Rojas — M (15 flores, 37€..."</div>
 ¿Cuál te encaja?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
 <summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<table class="ta-flow-table">
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero un ramo de rosas y un centro de mesa para una boda"</em></td>
-<td class="col-problem">—</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: clasifica como G5 (Compra), extrae <code>ocasion<em>detectada=Boda</code>, <code>modo</em>tono=estandar</code>, <code>producto=∅</code></td>
-<td class="col-problem">⚠️ Detecta correctamente Boda pero NO captura que hay 2 productos distintos ("ramo" + "centro de mesa") — slot <code>producto</code> queda vacío porque no hay convención para multi-producto</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: recibe <code>producto=∅</code> + <code>ocasion=Boda</code> → flujo "sugerir productos para boda" → elige Ramo de Novia Rosas L</td>
-<td class="col-problem">🔴 Ignora silenciosamente el "centro de mesa" mencionado en <code>intencion_inicial</code>. No hay rama en el Playbook que detecte "X y Y"</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</em></td>
-<td class="col-problem">🔴 Respuesta mono-producto. No reconoce el segundo ítem, no propone secuenciar, no explica limitación</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: regex `centro.{0,80}ramo\</td>
-<td class="col-problem">ramo.{0,80}centro\</td>
-</tr>
-</table>
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero un ramo de rosas y un centro de mesa para mi casa"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=ramo de rosas y centro de mesa</code>, <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Perfecto, te ayudo con los dos. Empiezo por el ramo de rosas y luego vemos el centro de mesa, ¿te parece? Mira, para ramos de rosas tenemos:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   ..."</div>
+</div>
 </div>
 </details>
 <h4>Evaluacion</h4>
@@ -4053,15 +4239,7 @@ Ramo de Rosas Rojas — M (15 flores, 37€..."</div>
 <p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
 <ul class="ta-bullets ok">
 <li>Agente dijo [centro.{0,80}ramo]</li>
-</ul>
-<div class="diag-block" data-tcid="TC-MULTI-PRODUCTO-01">
-<h4 class="diag-header">Causa raíz (TC-MULTI-PRODUCTO-01) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
-<div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
-
-<p>1. <strong>Capa 1 (Orquestador — slots mono-producto)</strong>: El esquema de slots es singular (<code>producto</code>). No existe <code>productos[]</code> ni flag <code>multi_producto_detectado</code>. La <code>intencion_inicial</code> se preserva como texto libre pero no se inspecciona para detectar conjunciones ("y", "también", "además").</p>
-<p>2. <strong>Capa 2 (Playbook Compra — sin rama multi-ítem)</strong>: No hay CASO ESPECIAL que dispare cuando el usuario menciona ≥2 productos distintos. El flujo asume 1 producto por turno y va directo a recomendar. La señal de multi-ítem queda enterrada en <code>intencion_inicial</code> sin extraerla.</p>
-<p>3. <strong>Capa 3 (convención conversacional indefinida)</strong>: No hay política sobre cómo manejar pedidos multi-ítem (¿secuencial? ¿explicar limitación? ¿lista combinada?). El agente, sin instrucción explícita, elige la peor opción: silenciar el segundo ítem.</p></div>
-</div></div></td></tr></table>
+</ul></div></td></tr></table>
 <table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"el ramo de rosas morado de 37 euros"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Anotado, 1 x Ramo de Rosas Morado — M (37.0euros). Ahora el centro de mesa: Para centros de mesa tenemos:
 
 *   Centro de Mesa Orquídeas Blanco — S (8 tallos, 28€)
@@ -4204,28 +4382,40 @@ Confirmamos?"</div>
 <ul class="ta-bullets ok">
 <li>Agente dijo [65]</li>
 </ul></div></td></tr></table>
-<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — CASO ESPECIAL multi-producto en Playbook Compra</h4>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
 
-<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>1 archivo afectado: <code>definitions/playbooks/compra.yaml</code>, Paso 7 (ECO RESUMEN). El fix es restaurar el template original con el cálculo del total</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Cambio de 1 línea de plantilla de texto. No afecta lógica condicional, slots ni flujos</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>El template original fue validado en PR #94 (<code>4f7adea</code>) y pasó la suite completa. Restaurar es revertir a un estado conocido-bueno</td></tr></tbody></table>
 
-<p><strong>Por qué</strong>: Reutiliza el patrón arquitectónico ya validado de CASOS ESPECIALES (mismo mecanismo que TC-URGENCIA-01). Local al Playbook Compra, no toca Orquestador ni schema de slots. Detecta multi-ítem inspeccionando <code>intencion_inicial</code> con conjunciones y dispara una respuesta que reconoce ambos productos y propone "empezamos por X". Cubre exactamente la regex del check (<code>ramo.<em>centro</code> + <code>empez.</em>por</code>). Bajo coste, bajo riesgo de regresión.</p>
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones evaluadas</p>
 
-<h4>Soluciones evaluadas (ordenadas por score)</h4>
+<p>---</p>
 
-<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>CASO ESPECIAL multi-producto en Playbook Compra</strong>: detectar 2+ productos en <code>intencion_inicial</code> ("X y Y"), reconocer ambos y proponer secuenciar</td><td>🟢 9/10</td><td>—</td><td>Patrón ya probado (urgencia). Local, rápido, sin regresión en flujo mono-producto. Cubre la regex del check y la UX real</td></tr><tr><td>2</td><td><strong>Combinación #1 + #3</strong>: Playbook con CASO ESPECIAL + Orquestador marca <code>multi_item=true</code> y pasa lista de productos</td><td>🟢 8/10</td><td>Edit Orquestador + contrato de slots</td><td>Solución arquitectónica más limpia (separa detección de gestión). Coste mayor y más superficie de regresión. Recomendable a medio plazo</td></tr><tr><td>3</td><td><strong>Detección en Orquestador</strong>: nuevo flag <code>multi_item=true</code> y <code>productos_solicitados=[ramo, centro]</code></td><td>🟡 7/10</td><td>Edit Orquestador + reacción en Compra</td><td>Sin lógica en Compra el flag no produce respuesta correcta. Solo aporta valor combinado con #1</td></tr><tr><td>4</td><td><strong>Instrucción genérica anti-omisión</strong> en Playbook Compra ("si el user menciona varios productos, recónocelos todos antes de elegir uno")</td><td>🟡 6/10</td><td>—</td><td>Más flexible que el CASO ESPECIAL pero menos determinista. Gemini puede ignorarla en variaciones léxicas. Útil como red complementaria a #1</td></tr><tr><td>5</td><td><strong>Few-shot example multi-producto</strong> ("ramo y centro para boda" → respuesta correcta) sin CASO ESPECIAL explícito</td><td>🟡 5/10</td><td>Generar 1-2 examples nuevos</td><td>Refuerza determinismo en inputs cercanos pero alcance limitado por similitud léxica. Multiplicador útil de #1, no sustituto</td></tr><tr><td>6</td><td><strong>Ampliar slot <code>producto</code> a lista</strong> + carrito implícito multi-ítem real</td><td>🟡 5/10</td><td>Refactor slots + catálogo + carrito</td><td>Cambia el modelo de datos end-to-end. Alto impacto en 49 TCs. Anti-regresión costoso para 1 TC actual</td></tr><tr><td>7</td><td><strong>Recalibrar test</strong>: aceptar respuesta mono-producto como válida</td><td>🔴 2/10</td><td>—</td><td>Esconde el bug UX real. El user percibe que el agente "ignora" parte de su petición. El check refleja comportamiento legítimamente esperado, no es falso negativo</td></tr></tbody></table>
+<h4>Solución recomendada: #1 — Restaurar template ECO RESUMEN multi-producto en Paso 7 de compra.yaml</h4>
+
+<p>🟢 <strong>10/10</strong> · ~10 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: El DEMO BREAK es explícito y documentado. El fix es restaurar exactamente el template que existía antes del commit <code>c9ce667</code>, que fue validado en PR #94. Es una reversión de 1 línea en <code>compra.yaml</code> Paso 7. Bajo coste, cero riesgo de regresión (el estado destino es un estado validado). Cubre directamente el check de T3 (total "65" en el ECO RESUMEN).</p>
+
+<p>---</p>
+
+<h4>Soluciones evaluadas (ordenadas DESC por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Restaurar template Paso 7</strong>: reescribir la línea del ECO RESUMEN en <code>compra.yaml</code> Paso 7 con el template completo multi-producto que incluye <code>$cantidad_2 x $producto_2 ($precio_2euros)</code> y el cálculo del total</td><td>🟢 10/10</td><td>—</td><td>Reversión a estado conocido-bueno (PR #94). 1 línea, 0 riesgo, cubre el check de T3 directamente</td></tr><tr><td>2</td><td><strong><code>git revert c9ce667</code></strong>: revertir el commit del DEMO BREAK completo</td><td>🟢 9/10</td><td>Verificar que el revert no pise cambios posteriores (<code>2126c52</code>, <code>a10ab02</code>)</td><td>Más completo que #1 (restaura también el Paso 6b). Riesgo de conflicto con commits intermedios sobre <code>compra.yaml</code> — requiere inspección previa del diff</td></tr><tr><td>3</td><td><strong>Recalibrar el check de T3</strong>: eliminar el check que busca "65" en T3</td><td>🔴 2/10</td><td>—</td><td>Esconde el bug. El comportamiento correcto es mostrar el total en el ECO RESUMEN. Esta solución invalida la cobertura del TC</td></tr></tbody></table>
+
+<p>---</p>
 
 <h4>Plan de acción (Solución #1)</h4>
 
-<p>1. <strong>Añadir CASO ESPECIAL multi-producto</strong> al Playbook Compra (sección CASOS ESPECIALES, junto a urgencia/plazo) → <code>definitions/playbooks/compra.yaml</code></p>
+<p>1. <strong>Editar</strong> <code>definitions/playbooks/compra.yaml</code>, Paso 7 (ECO RESUMEN) → restaurar el template multi-producto:</p>
 <ul>
-<li>Trigger: el user menciona 2+ productos distintos unidos por "y"/"también"/"además" en <code>intencion_inicial</code> (p.ej. <code>ramo|centro|corona|bouquet|arreglo|caja</code> × 2)</li>
-<li>Acción: reconocer ambos productos explícitamente y proponer secuenciar. Respuesta tipo:</li>
+<li>Modo estándar: <code>'Tu pedido: $cantidad x $producto ($precio_estimadoeuros) + $cantidad_2 x $producto_2 ($precio_2euros) = [total]euros. Lo confirmo?'</code></li>
+<li>Calcular <code>total = $precio_estimado + $precio_2</code> (entero sin decimales)</li>
+<li>Verificar que el Paso 6b también tiene activa la captura de <code>$producto_2</code>, <code>$cantidad_2</code>, <code>$precio_2</code> (puede estar afectado por el DEMO BREAK <code>b8f9ee5</code> si <code>c9ce667</code> no lo restauró completamente)</li>
 </ul>
-<p><em>"Perfecto, te ayudo con los dos. Empiezo por el ramo y luego vemos el centro de mesa, ¿te parece? Para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te encaja?"</em></p>
 <p>2. <strong>Commit + push</strong> → CI corre <code>Deploy to Petal CX</code> + <code>QA Petal</code> automáticamente</p>
-<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable de TC-MULTI-PRODUCTO-01 y 0 regresiones en TCs mono-producto</p>
+<p>3. <strong>Verificar</strong> que TC-MULTI-PRODUCTO-01 pasa en T3 (check "65" presente en ECO RESUMEN) y que los params <code>producto_2</code>, <code>cantidad_2</code>, <code>precio_2</code> están poblados en T3</p>
 
-<p><strong>Coste total</strong>: ~15 min (10 edición + 5 validación, +2 min deploy CX)</p></div></div>
+<p><strong>Coste total</strong>: ~10 min (5 min edición + revisión del Paso 6b + ~2 min deploy CX + validación)</p></div></div>
 </div></div>
 
 <div id="metodologia-modal" class="modal hidden">
