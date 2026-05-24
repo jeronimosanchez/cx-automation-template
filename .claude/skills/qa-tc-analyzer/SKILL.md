@@ -205,35 +205,43 @@ estimacion: ~<X> min (Solución #<N> recomendada)
 | 3 | Compra | <acción/slots extraídos> | <problema> |
 | ... | ... | ... | ... |
 
-### Causa raíz — evaluación de las 7 capas estándar
+### Causa raíz — evaluación de las 9 capas del sistema [v1.1 Capas rediseñadas]
 
-<emoji> 1. **Capa Playbook** · <estado verbal> · `<fuente o motivo>`
+🔴/🟢/🟡/⚪ 1. **Capa Comportamiento** [verificada/supuesta/N/A] · `<fuente o motivo>`
 
-<descripción concreta de la capa, o se omite si N/A>
+Cubre: Playbooks + Examples + Generators (cómo guía la respuesta del agente). Verificar instrucciones del playbook, examples relevantes al turno, configuración de generadores LLM.
 
-<emoji> 2. **Capa Histórico** · <estado verbal> · `<fuente o motivo>`
+🔴/🟢/🟡/⚪ 2. **Capa Routing** [verificada/supuesta/N/A] · `<fuente o motivo>`
 
-<descripción>
+Cubre: Flows + Pages + Intents + Entity Types (cómo se enruta la conversación). En Petal suele ser ⚪ N/A porque usa Playbooks, no Flows.
 
-<emoji> 3. **Capa Catálogo** · <estado verbal> · `<fuente o motivo>`
+🔴/🟢/🟡/⚪ 3. **Capa Parámetros / Slots** [verificada/supuesta/N/A] · `<fuente o motivo>`
 
-<descripción>
+Cubre: slots de entrada/salida entre playbooks y entre playbook y tools. Verificar que los parámetros pasan correctamente entre componentes.
 
-<emoji> 4. **Capa Orquestador** · <estado verbal> · `<fuente o motivo>`
+🔴/🟢/🟡/⚪ 4. **Capa Integración** [verificada/supuesta/N/A] · `<fuente o motivo>`
 
-<descripción>
+Cubre: Tools + Webhooks + llamadas API al backend (PetalDataTool). Verificar tool calls, parámetros enviados, respuestas del backend.
 
-<emoji> 5. **Capa Backend / Tool** · <estado verbal> · `<fuente o motivo>`
+🔴/🟢/🟡/⚪ 5. **Capa Datos** [verificada/supuesta/N/A] · `<fuente o motivo>`
 
-<descripción>
+Cubre: Sheet (`business` + `agent_copy` + `inventario` + `perfil` + `pedidos`) + coherencia entre recursos. Aquí se reportan los hallazgos del Paso 2.5 (auditoría del Sheet).
 
-<emoji> 6. **Capa Política / Negocio** · <estado verbal> · `<fuente o motivo>`
+🔴/🟢/🟡/⚪ 6. **Capa Infraestructura** [verificada/supuesta/N/A] · `<fuente o motivo>`
 
-<descripción>
+Cubre: Environments + Versions + Agent Config. Verificar que el deploy es correcto, que la versión activa es la esperada, que la configuración del agente no introduce regresiones.
 
-<emoji> 7. **Capa Test** · <estado verbal> · `<fuente o motivo>`
+🔴/🟢/🟡/⚪ 7. **Capa Modelo / LLM** [verificada/supuesta/N/A] · `<fuente o motivo>`
 
-<descripción>
+Cubre: comportamiento de Gemini — alucinaciones, decisiones no deterministas. **Regla binaria de marcado 🔴:** se marca 🔴 [verificada] **solo si** las 8 capas restantes son todas 🟢 [verificada] **Y** el bug es reproducible en al menos 2 ejecuciones del mismo TC. En cualquier otro caso, 🟡 [supuesta]. Cuando se marque 🔴, incluir justificación explícita: *"Marcado 🔴 tras descartar las 8 capas restantes (todas 🟢) y confirmar reproducibilidad en N ejecuciones"*.
+
+🔴/🟢/🟡/⚪ 8. **Capa Histórico** [verificada/supuesta/N/A] · `<fuente o motivo>`
+
+Cubre: regresiones — git log del playbook involucrado (cargado en Paso 2.6).
+
+🔴/🟢/🟡/⚪ 9. **Capa Test** [verificada/supuesta/N/A] · `<fuente o motivo>`
+
+Cubre: calidad del propio test — regex mal calibrado, caso mal definido, expectativa incorrecta.
 
 **Resumen visual:** <N> 🔴 problema · <N> 🟢 ok · <N> 🟡 supuesta · <N> ⚪ N/A
 
@@ -282,19 +290,19 @@ estimacion: ~<X> min (Solución #<N> recomendada)
 - En el TIPO usa una de las categorías listadas, no inventes nuevas
 - FORMATO VERTICAL JERÁRQUICO obligatorio: cada capa con emoji al inicio + título destacado + metadata en línea separada + descripción en párrafo aparte. Las capas N/A van en una sola línea compacta.
 
-**[v1.1 Cambio 3] Las 7 capas obligatorias con marca explícita:**
+**[v1.1 Cambio 3 actualizado] Las 9 capas obligatorias con marca explícita:**
 
-Cada análisis evalúa OBLIGATORIAMENTE las 7 capas estándar (Playbook, Histórico, Catálogo, Orquestador, Backend/Tool, Política/Negocio, Test). Cada capa lleva una de las 4 marcas:
+Cada análisis evalúa OBLIGATORIAMENTE las 9 capas estándar (Comportamiento, Routing, Parámetros/Slots, Integración, Datos, Infraestructura, Modelo/LLM, Histórico, Test). Cada capa lleva una combinación de emoji + corchete:
 
-- 🔴 **problema** — capa comprobada con fuente, ES causa del bug
-- 🟢 **ok** — capa comprobada con fuente, NO es causa del bug
-- 🟡 **supuesta** — no se pudo comprobar con fuente directa
-- ⚪ **N/A** — esta capa no aplica al tipo de bug
+- 🔴 [verificada] — capa comprobada con fuente, ES causa del bug
+- 🟢 [verificada] — capa comprobada con fuente, NO es causa del bug
+- 🟡 [supuesta] — no se pudo comprobar con fuente directa
+- ⚪ [N/A] — esta capa no aplica al tipo de bug
 
 Reglas:
 - 🔴 y 🟢 REQUIEREN cita de fuente entre paréntesis tras la marca:
   * `Read <ruta>` — leíste el archivo
-  * `git log --since="..." -- <ruta>` — viste el commit relevante
+  * `git log -n 20 -- <ruta>` — viste el commit relevante
   * `gh pr view <N>` — verificaste el PR antes de citarlo
   * `gcloud logging read '<filtro>'` — viste el log del backend
   * `curl <URL>` — consultaste el endpoint del backend
