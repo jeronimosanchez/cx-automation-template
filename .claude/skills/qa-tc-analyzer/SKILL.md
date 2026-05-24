@@ -495,16 +495,26 @@ Claude:
 Total: ~3 min, 0€
 ```
 
-**Ejemplo 2 — Batch:**
+**Ejemplo 2 — Batch (≤5 FAILs, sin confirmación):**
 ```
 Usuario: analiza todos los fails
 Claude:
   1. python qa/list_fails.py --only-pending → ["TC-A", "TC-B", "TC-C"]
-  2. Confirma: "Voy a analizar 3 TCs. ¿Continúo?"
-  3. Para cada TC: descarga JSON, escribe MD
+  2. Arranca directo (≤5 FAILs, no requiere confirmación)
+  3. Lanza sub-agentes en paralelo: uno por TC. Cada uno descarga JSON y escribe MD
   4. regenerate_html UNA vez al final
   5. publish_html UNA vez al final
   6. Commit + PR con los 3 MDs
   7. Reporta tabla resumen
 Total: ~10 min, 0€
+
+**Ejemplo 3 — Batch (>5 FAILs, confirmación una vez):**
+```
+Usuario: analiza todos los fails
+Claude:
+  1. python qa/list_fails.py --only-pending → ["TC-A", ..., "TC-H"] (8 TCs)
+  2. Confirma una vez al inicio: "Voy a analizar 8 TCs (~25 min). ¿Continúo?"
+  3. Tras OK del usuario, lanza sub-agentes en paralelo
+  4. regenerate_html + publish_html + Commit + PR
+Total: ~25 min, 0€
 ```
