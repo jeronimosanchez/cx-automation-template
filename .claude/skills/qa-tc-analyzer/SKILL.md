@@ -135,6 +135,40 @@ Los hallazgos de coherencia del Sheet se reportan en la **Capa Datos** del anál
 - Marcar como 🟡 cualquier afirmación que dependa de datos del Sheet (con [supuesta] explícita en el MD)
 - Añadir recomendación al final del análisis: *"Re-ejecutar el análisis cuando el Sheet esté disponible para verificar las afirmaciones marcadas como supuesta por falta de acceso a datos de configuración"*
 
+### Paso 2.6 — Cargar fuentes contextuales adicionales [v1.1 Cambio 1]
+
+Antes de analizar el TC, el skill carga fuentes contextuales que enriquecen el análisis y reducen alucinaciones.
+
+**1. Historial del playbook (siempre):**
+```bash
+git log --oneline -n 20 -- definitions/playbooks/<archivo>.yaml
+```
+- Sin límite de tiempo. Últimos 20 commits sobre el playbook que toca ese TC.
+- **Red de seguridad:** si el análisis apunta a una regresión pero los 20 commits no muestran nada relevante, marcar Capa Histórico como 🟡 con nota: *"no se encontró cambio relevante en los últimos 20 commits — revisar manualmente si el problema es anterior"*. No ampliar la búsqueda automáticamente.
+
+**2. Memoria del proyecto (siempre, path relativo al repo):**
+- Leer `memory/MEMORY.md` (path relativo desde la raíz del proyecto) como índice
+- Decidir qué archivos abrir según el TC concreto:
+  - TC de compra → `memory/petal/pendiente_refactor_compra.md` + `memory/current/estado_actual.md`
+  - TC de proceso/QA → archivos relevantes en `memory/automatizacion/`
+  - Siempre revisar `memory/current/` para conocer estado activo
+- **Red de seguridad A — prioridad de fuentes:** si la memoria contradice el playbook actual, el playbook gana siempre. Si hay contradicción, marcarla explícitamente en el análisis.
+- **Red de seguridad B — memoria sin resultado:** si tras leer memoria no encuentra nada relevante para ese TC, no forzar conexiones ni inventar relevancia. Continuar sin citar memoria.
+
+**3. Verificación de PRs (condicional):**
+Solo si el análisis va a citar un PR específico:
+```bash
+gh pr view <N>
+```
+**Nunca** citar un PR sin haberlo verificado primero con esta llamada.
+
+**4. Logs del backend (condicional):**
+Solo si el agente respondió con error de tool call ("Lo siento, algo no ha funcionado" o similar):
+```bash
+gcloud logging read 'resource.labels.service_name="petal-sheet-api" AND severity>=ERROR' --freshness=1h --limit=20
+```
+Para identificar parámetros vacíos, status codes y causa exacta del fallo del backend.
+
 ### Paso 3 — Analizar y escribir MDs
 
 **Si hay 1 TC:** analizar inline y escribir el MD directamente.
