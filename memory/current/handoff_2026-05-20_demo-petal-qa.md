@@ -2,7 +2,7 @@
 
 **De**: sesión larga (16-20 may) en worktree `hungry-sanderson-d8def1`, rama `qa/html-redesign`
 **Para**: nueva sesión para terminar de preparar la demo de esta TARDE
-**Estado**: agente en estado roto listo para demo. 3 skills creadas (qa-tc-analyzer, qa-fix, qa-revert). Pendiente: terminar preparación + ensayar guion.
+**Estado**: agente en estado roto listo para demo. 3 skills creadas (qa-analyze, qa-fix, qa-revert). Pendiente: terminar preparación + ensayar guion.
 
 ---
 
@@ -26,7 +26,7 @@
 2. Abrir HTML del QA en gh-pages
    → ver TC-URGENCIA-01 en FAIL
 
-3. /qa-tc-analyzer TC-URGENCIA-01 (o en chat: "analiza TC-URGENCIA-01")
+3. /qa-analyze TC-URGENCIA-01 (o en chat: "analiza TC-URGENCIA-01")
    → genera análisis con 7 soluciones + score, publica al HTML
 
 4. Usuario elige solución (la #1: añadir CASOS ESPECIALES urgencia al Playbook Compra)
@@ -51,7 +51,7 @@
 | Commit del fix (para cherry-pick) | `3f041df` |
 | PR del fix original | #83 (mergeado) |
 | PR del revert | #84 (mergeado, restauró el estado roto) |
-| Skills locales (en `.claude/skills/`) | qa-tc-analyzer (existente), qa-fix (nueva), qa-revert (nueva), README.md |
+| Skills locales (en `.claude/skills/`) | qa-analyze (existente), qa-fix (nueva), qa-revert (nueva), README.md |
 
 URL del HTML actual: https://jeronimosanchez.github.io/cx-automation-template/qa/20260520_095116/qa_latest.html
 
@@ -63,7 +63,7 @@ URL del HTML actual: https://jeronimosanchez.github.io/cx-automation-template/qa
 
 | Skill | Invocación | Qué hace | Tiempo |
 |---|---|---|---|
-| **qa-tc-analyzer** | `/qa-tc-analyzer TC-XYZ` o lenguaje natural | Análisis + .md + HTML + publica gh-pages | ~30 seg |
+| **qa-analyze** | `/qa-analyze TC-XYZ` o lenguaje natural | Análisis + .md + HTML + publica gh-pages | ~30 seg |
 | **qa-fix** | `/qa-fix TC-XYZ <num>` o lenguaje natural | Aplica solución N: edit + PR + merge + deploy + valida | ~3 min |
 | **qa-revert** | `/qa-revert TC-XYZ` o lenguaje natural | Revert: PR + merge + deploy + confirma FAIL | ~2-3 min |
 
@@ -100,7 +100,7 @@ Ubicación: `~/cx-automation-template/`. El venv está en `~/cx-automation-templ
 1. **Leer CLAUDE.md actualizado** (políticas nuevas sobre permisos)
 2. **Ensayar el guion de demo**:
    - Verificar que el chat embebido sigue funcionando con el agente actual
-   - Validar `/qa-tc-analyzer TC-URGENCIA-01` en una sesión nueva
+   - Validar `/qa-analyze TC-URGENCIA-01` en una sesión nueva
    - Posiblemente hacer un ensayo completo de fix → revert con TC distinto si quieres practicar
 3. **Posibles mejoras pre-demo** (si hay tiempo):
    - Pulir mensajes de output de las skills
@@ -118,7 +118,7 @@ claude
 
 Pega esto:
 
-> Retomo la demo Petal QA. Lee `~/.claude/projects/-Users-jeronimosanchezmorote-cx-automation-template/memory/current/handoff_2026-05-20_demo-petal-qa.md` para el contexto completo. Después lee `CLAUDE.md` del repo para las nuevas políticas de permiso. Estado: agente roto con TC-URGENCIA-01 fallando, 3 skills creadas (qa-tc-analyzer, qa-fix, qa-revert), demo esta tarde. Dime por dónde quieres continuar.
+> Retomo la demo Petal QA. Lee `~/.claude/projects/-Users-jeronimosanchezmorote-cx-automation-template/memory/current/handoff_2026-05-20_demo-petal-qa.md` para el contexto completo. Después lee `CLAUDE.md` del repo para las nuevas políticas de permiso. Estado: agente roto con TC-URGENCIA-01 fallando, 3 skills creadas (qa-analyze, qa-fix, qa-revert), demo esta tarde. Dime por dónde quieres continuar.
 
 ---
 

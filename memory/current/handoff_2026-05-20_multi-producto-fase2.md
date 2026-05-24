@@ -33,7 +33,7 @@ metadata:
    - `inputParameterDefinitions`: añadir `producto_2`, `cantidad_2`, `precio_2` (opcionales)
    - PASO 2 (confirmación): si `$producto_2` está vacío → comportamiento actual; si tiene valor → render multi-línea con total combinado
 
-3. **`.claude/skills/qa-tc-analyzer/SKILL.md`** — añadir nueva sección al formato del MD:
+3. **`.claude/skills/qa-analyze/SKILL.md`** — añadir nueva sección al formato del MD:
    - "Parámetros / slots requeridos entre playbooks" — tabla que identifica slots cross-playbook necesarios para el fix
 
 ### Tras aplicar (validación)
@@ -50,6 +50,6 @@ Tras validar que multi-producto está sólido, el usuario quiere **romper algo p
 
 ```
 Retomo demo Petal QA. Lee handoff_2026-05-20_multi-producto-fase2.md. Aplica el plan
-de 3 cambios robustos multi-producto (Compra + Checkout + skill qa-tc-analyzer).
+de 3 cambios robustos multi-producto (Compra + Checkout + skill qa-analyze).
 Modo autónomo con red de seguridad (PR + revert si rompe). Ve directo.
 ```

@@ -27,7 +27,7 @@
 - `qa/regenerate_html.py` — regenera HTML desde JSONs locales o gh-pages SIN llamar a CX (5 seg, 0€)
 - `qa/publish_html.sh` — clona gh-pages, sustituye HTML, commit + push
 - `qa/list_fails.py` — lista FAILs y su estado de análisis (.md presente o no)
-- `.claude/skills/qa-tc-analyzer/SKILL.md` — skill local (NO en git, está en `~/cx-automation-template/.claude/skills/qa-tc-analyzer/`)
+- `.claude/skills/qa-analyze/SKILL.md` — skill local (NO en git, está en `~/cx-automation-template/.claude/skills/qa-analyze/`)
 
 ### Fixes adicionales
 
@@ -46,7 +46,7 @@
 | Botones Optimizar/Borrar/Run | ✅ En main, en producción |
 | Diagnóstico determinístico (datos reales) | ✅ En main, en producción |
 | Causa raíz + Recomendación: pendiente análisis | ✅ En main, en producción |
-| Skill `/qa-tc-analyzer` (local) | ✅ Operativa |
+| Skill `/qa-analyze` (local) | ✅ Operativa |
 | Scripts regenerate_html.py + publish_html.sh + list_fails.py | ✅ En main |
 | Bookmark histórico de runs | https://jeronimosanchez.github.io/cx-automation-template/qa/ |
 
@@ -83,7 +83,7 @@
    - Si es otra sesión: copias respuesta y la pegas aquí
    
    OPCIÓN B (directo, sin botón):
-   - Me dices "/qa-tc-analyzer TC-XYZ" o "analiza TC-XYZ"
+   - Me dices "/qa-analyze TC-XYZ" o "analiza TC-XYZ"
    - Yo leo JSON, genero análisis, guardo .md, regenero HTML, publico
 ```
 
@@ -112,7 +112,7 @@ claude
 
 Y pega esto:
 
-> Retomo el proyecto Petal QA. Lee `memory/current/handoff_2026-05-19_html-optimize-buttons.md` para el contexto completo. Estado: HTML v3 con botones Optimizar/Borrar/Run funcionando, Diagnóstico determinístico, Causa raíz + Recomendación pendientes. Último QA: 44/49 PASS. Workflow Claude para analizar TCs: skill `/qa-tc-analyzer` o botón Optimizar en el HTML. Dime qué hacer.
+> Retomo el proyecto Petal QA. Lee `memory/current/handoff_2026-05-19_html-optimize-buttons.md` para el contexto completo. Estado: HTML v3 con botones Optimizar/Borrar/Run funcionando, Diagnóstico determinístico, Causa raíz + Recomendación pendientes. Último QA: 44/49 PASS. Workflow Claude para analizar TCs: skill `/qa-analyze` o botón Optimizar en el HTML. Dime qué hacer.
 
 ---
 
@@ -126,7 +126,7 @@ Y pega esto:
 | `qa/list_fails.py` | Lista FAILs y estado de análisis |
 | `.github/workflows/qa.yml` | Workflow CI (lanza QA + publica HTML/JSONs en gh-pages) |
 | `qa/tc_analysis/` | Carpeta vacía actualmente (era donde vivían los `.md` manuales, borrados) |
-| `~/cx-automation-template/.claude/skills/qa-tc-analyzer/SKILL.md` | Skill local (NO en git) |
+| `~/cx-automation-template/.claude/skills/qa-analyze/SKILL.md` | Skill local (NO en git) |
 
 ---
 
