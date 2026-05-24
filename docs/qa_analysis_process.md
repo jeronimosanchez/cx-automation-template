@@ -2,7 +2,7 @@
 
 > **Propósito:** documentar exactamente cómo se realiza el análisis de un TC en FAIL del QA de Petal, qué fuentes se consultan, qué se produce, y cómo evoluciona el proceso a lo largo del tiempo.
 >
-> **Fuente única de verdad** sobre el proceso. Cualquier cambio al skill `qa-analyze` queda reflejado primero aquí, validado contra un caso real, y luego propagado al `SKILL.md`.
+> **Fuente única de verdad** sobre el proceso. Cualquier cambio al skill `qa-tc-analyzer` queda reflejado primero aquí, validado contra un caso real, y luego propagado al `SKILL.md`.
 
 ---
 
@@ -20,7 +20,7 @@
 
 ## Visión general
 
-El análisis QA arranca cuando un TC sale FAIL en un run de la suite. El usuario invoca el skill `qa-analyze` (o copia-pega un prompt desde el HTML) y se genera un análisis Markdown con:
+El análisis QA arranca cuando un TC sale FAIL en un run de la suite. El usuario invoca el skill `qa-tc-analyzer` (o copia-pega un prompt desde el HTML) y se genera un análisis Markdown con:
 
 - **Diagnóstico:** qué falla y en qué turno
 - **Causa raíz** (multi-capa: playbook, catálogo, política, test)
@@ -180,7 +180,7 @@ Esto conecta con la deuda técnica `automatizacion/deuda_analisis_dependencias_T
 
 Plan:
 1. Borrar `qa/tc_analysis/TC-URGENCIA-01.md` actual
-2. Re-invocar el skill `qa-analyze` con las mejoras de v1.1 aplicadas al SKILL.md
+2. Re-invocar el skill `qa-tc-analyzer` con las mejoras de v1.1 aplicadas al SKILL.md
 3. Comparar el output nuevo con el anterior
 4. Documentar diferencias
 

@@ -6,14 +6,14 @@ Skills locales (no commiteadas) que Claude Code carga automáticamente al abrir 
 
 | # | Skill | Invocación | Qué hace | Tiempo |
 |---|---|---|---|---|
-| 1 | **qa-analyze** | `/qa-analyze TC-XYZ` | Análisis del FAIL: descarga JSON, genera `.md` con 7 soluciones + score, regenera HTML y publica en gh-pages. **No toca el agente**. | ~30 seg |
+| 1 | **qa-tc-analyzer** | `/qa-tc-analyzer TC-XYZ` | Análisis del FAIL: descarga JSON, genera `.md` con 7 soluciones + score, regenera HTML y publica en gh-pages. **No toca el agente**. | ~30 seg |
 | 2 | **qa-fix** | `/qa-fix TC-XYZ <num-solución>` | Aplica una de las 7 soluciones propuestas: edita el archivo (Playbook/Test/Tool), commit + PR + merge, espera Deploy, valida con rerun. **Requiere análisis previo**. | ~3 min |
 | 3 | **qa-revert** | `/qa-revert TC-XYZ` | Revierte el último fix del TC para dejar el agente en estado roto (típicamente para demos). PR revert + merge + deploy + confirma FAIL. | ~2-3 min |
 
 ## Flujo típico de demo
 
 ```
-/qa-analyze TC-URGENCIA-01    ← entiende el bug + ve 7 soluciones
+/qa-tc-analyzer TC-URGENCIA-01    ← entiende el bug + ve 7 soluciones
 /qa-fix TC-URGENCIA-01 1      ← aplica la solución #1 (deploy + valida)
                               ← chat con agente → ya responde bien
 /qa-revert TC-URGENCIA-01     ← devuelve el agente al estado roto
@@ -23,7 +23,7 @@ Skills locales (no commiteadas) que Claude Code carga automáticamente al abrir 
 
 ## Cómo elegir
 
-- **Solo quieres entender un FAIL** → `qa-analyze`
+- **Solo quieres entender un FAIL** → `qa-tc-analyzer`
 - **Sabes qué solución aplicar y quieres ejecutarla** → `qa-fix`
 - **Quieres deshacer un fix previo (para demo o porque te equivocaste)** → `qa-revert`
 

@@ -1,13 +1,13 @@
 ---
 name: qa-fix
-description: Aplica una de las soluciones propuestas por qa-analyze a un TC. Crea branch, edita el archivo correspondiente (Playbook/Test/Tool según el tipo), commit + PR + merge, espera Deploy a Petal CX y valida con rerun. Pre-requisito: que ya exista análisis del TC (`/qa-analyze TC-XYZ` antes). NO incluye revert (eso es `/qa-revert`). Tiempo ~3 min (90% es Deploy). Uso: "/qa-fix TC-XYZ <num-solución>".
+description: Aplica una de las soluciones propuestas por qa-tc-analyzer a un TC. Crea branch, edita el archivo correspondiente (Playbook/Test/Tool según el tipo), commit + PR + merge, espera Deploy a Petal CX y valida con rerun. Pre-requisito: que ya exista análisis del TC (`/qa-tc-analyzer TC-XYZ` antes). NO incluye revert (eso es `/qa-revert`). Tiempo ~3 min (90% es Deploy). Uso: "/qa-fix TC-XYZ <num-solución>".
 ---
 
 # qa-fix — Aplica una solución concreta a un TC
 
 ## Cuándo invocar
 
-Cuando el usuario ya ha visto el análisis (`/qa-analyze`) y quiere aplicar una de las 7 soluciones:
+Cuando el usuario ya ha visto el análisis (`/qa-tc-analyzer`) y quiere aplicar una de las 7 soluciones:
 
 | Frase del usuario | Acción |
 |---|---|
@@ -26,7 +26,7 @@ Si el usuario solo dice `/qa-fix TC-XYZ` sin número:
 
 ## Pre-requisitos
 
-1. Análisis previo del TC: `qa/tc_analysis/TC-XYZ.md` debe existir (lo crea `/qa-analyze`).
+1. Análisis previo del TC: `qa/tc_analysis/TC-XYZ.md` debe existir (lo crea `/qa-tc-analyzer`).
 2. `main` actualizado:
    ```bash
    cd ~/cx-automation-template
@@ -34,7 +34,7 @@ Si el usuario solo dice `/qa-fix TC-XYZ` sin número:
    ```
 3. Venv + gcloud OK (deben estarlo).
 
-Si el `.md` no existe → reporta al usuario y sugiere correr `/qa-analyze TC-XYZ` primero.
+Si el `.md` no existe → reporta al usuario y sugiere correr `/qa-tc-analyzer TC-XYZ` primero.
 
 ## Flujo
 
@@ -127,7 +127,7 @@ Si **FAIL** ❌:
 
 - **NO commitea el `.md`** a `main` (sigue siendo artefacto local + gh-pages).
 - **NO ejecuta revert** automáticamente. Si el usuario lo quiere → `/qa-revert TC-XYZ`.
-- **NO repite análisis**: si quieres re-analizar, usa `/qa-analyze TC-XYZ`.
+- **NO repite análisis**: si quieres re-analizar, usa `/qa-tc-analyzer TC-XYZ`.
 
 ## Ejemplo
 

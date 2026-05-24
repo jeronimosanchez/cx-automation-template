@@ -2,7 +2,7 @@
 """
 qa/list_fails.py — Lista los FAILs de un run y su estado de análisis manual.
 
-Útil para saber qué TCs necesitan análisis. Usado por la skill /qa-analyze
+Útil para saber qué TCs necesitan análisis. Usado por la skill /qa-tc-analyzer
 en modo batch.
 
 Uso:

@@ -1,9 +1,10 @@
 ---
-name: qa-analyze
-description: Analiza FAILs del QA y publica el análisis enriquecido en el HTML de gh-pages. Soporta análisis individual (un TC) o batch (todos los FAILs sin análisis de un run). Genera MDs con formato rico (Turnos vs Problemas + 7 soluciones con score 🟢🟡🔴 + plan de acción), regenera HTML sin llamar a CX y publica en gh-pages. Coste 0€. Uso típico: "/qa-analyze TC-XYZ" o "analiza todos los fails" tras un QA run.
+name: qa-tc-analyzer
+version: 1.1
+description: Analiza FAILs del QA con 9 capas de causa raíz, dimensionamiento del bug (alcance/profundidad/riesgo), consulta del Sheet, lectura de memoria del proyecto y detección de patrones cruzados. Publica en HTML de gh-pages. Soporta individual o batch. Coste 0€. Uso: '/qa-tc-analyzer TC-XYZ' o 'analiza todos los fails'.
 ---
 
-# qa-analyze — Análisis profundo de TC(s) del QA
+# qa-tc-analyzer — Análisis profundo de TC(s) del QA
 
 ## Cuándo invocar esta skill
 
@@ -11,10 +12,10 @@ Cuando el usuario pida analizar uno o varios TCs del QA:
 
 | Frase del usuario | Modo |
 |---|---|
-| `/qa-analyze TC-DECO-02` | **Individual**: un TC específico |
+| `/qa-tc-analyzer TC-DECO-02` | **Individual**: un TC específico |
 | `analiza TC-DECO-02` | **Individual** |
 | `analiza y recomienda TC-XYZ` | **Individual** |
-| `/qa-analyze --all` | **Batch**: todos los FAILs sin `.md` del último run |
+| `/qa-tc-analyzer --all` | **Batch**: todos los FAILs sin `.md` del último run |
 | `analiza todos los fails` | **Batch** |
 | `analiza todos los fails de 20260518_192907` | **Batch** sobre run histórico |
 | `analiza el último run` | **Batch** sobre el último run |
@@ -323,7 +324,7 @@ Mensaje final adaptado al modo:
 
 **Ejemplo 1 — Individual:**
 ```
-Usuario: /qa-analyze TC-FRUSTRACION-01
+Usuario: /qa-tc-analyzer TC-FRUSTRACION-01
 Claude:
   1. Detecta TS=20260518_192907 (último)
   2. Descarga TC-FRUSTRACION-01.json
