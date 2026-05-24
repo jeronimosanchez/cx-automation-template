@@ -343,6 +343,53 @@ Reglas:
 - NUNCA cites un PR (#N), commit (sha), o variable de negocio sin haberlo verificado con la herramienta correspondiente
 - SIEMPRE incluye el "Resumen visual" al final de la sección "Causa raíz" con el conteo de cada marca
 
+### Paso 3c — Análisis de patrones cruzados (solo modo BATCH) [v1.1 Cambio 5]
+
+Solo se ejecuta en modo BATCH **después** de completar el análisis individual de todos los TCs. En modo INDIVIDUAL este paso se omite.
+
+**1. Identificar grupos candidatos:**
+Para los TCs en FAIL ya analizados, agrupar por similitud comparando:
+- `tipo` (del frontmatter del MD)
+- Capa(s) 🔴 (qué capa(s) están fallando)
+- Playbook involucrado
+- `agent_text` (texto del agente al fallar)
+- Solución recomendada
+
+Un grupo se considera candidato a patrón si **2 o más TCs** comparten al menos uno de estos atributos.
+
+**2. Evaluar cada grupo candidato con 3 razones independientes:**
+
+| Razón | Cómo se evalúa | Estados |
+|---|---|---|
+| **Síntoma compartido** | ¿`agent_text` idéntico o muy similar? | ✅ existe / ⚠️ parcial / ❌ no existe |
+| **Capa compartida** | ¿Misma capa 🔴 o capas relacionadas? | ✅ existe / ⚠️ parcial / ❌ no existe |
+| **Fix compartido** | ¿La misma solución cierra varios TCs? | ✅ existe / ⚠️ parcial / ❌ no existe |
+
+Las tres razones son independientes. No son excluyentes. Un patrón puede tener síntoma sin capa compartida, fix sin síntoma, etc.
+
+**3. Calcular ROI por patrón:**
+
+| TC a fixear | Alcance (TCs potencialmente resueltos) | Esfuerzo (tiempo del fix) | ROI (TCs/h) |
+|---|---|---|---|
+| TC-XXX | <N> TCs | <X> min | <N/X> |
+
+**4. Generar bloque dedicado en el reporte:**
+Crear un archivo adicional `qa/tc_analysis/_patterns_<TS>.md` con todos los patrones detectados, sus razones, y la tabla ROI.
+
+Si no se detecta ningún patrón, el archivo contiene únicamente:
+```markdown
+## Patrones cruzados detectados
+
+✅ Sin patrones cruzados detectados en este batch.
+```
+
+Este archivo es renderizado por `qa/regenerate_html.py` como sección destacada al inicio del reporte batch del dashboard (ver Cambio F).
+
+**5. Anotar en cada TC del patrón:**
+En la sección "Recomendación" del MD individual de cada TC afectado, añadir una nota:
+
+> **Forma parte del patrón <nombre>.** Previsión de alcance: si el fix de TC-YYY resuelve la causa raíz común, es probable que TC-ZZZ y TC-WWW pasen a PASS sin cambios adicionales. Re-ejecutar antes de planificar fixes individuales.
+
 ### Paso 4 — Regenerar TODOS los HTMLs y publicar — AUTOMÁTICO
 
 Tras escribir los MDs, ejecutar:
