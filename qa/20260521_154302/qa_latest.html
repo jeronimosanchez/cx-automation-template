@@ -306,9 +306,18 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .info-modal table{width:100%;border-collapse:collapse;margin-top:8px}
 .info-modal td{padding:6px 8px;border-bottom:1px solid #333}
 .info-modal code{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}
-/* [v1.1 Cambio F] Bloque de patrones cruzados */
-.patterns-block{background:#1a1a1a;border:1px solid #f59e0b;border-left:4px solid #f59e0b;border-radius:8px;padding:16px;margin-bottom:16px}
-.patterns-block h2{color:#f59e0b;font-size:14px;margin-bottom:8px}
+/* [v1.1 Cambio F] Bloque de patrones cruzados — colapsable (Alt 1) */
+.patterns-block{background:#1a1a1a;border:1px solid #f59e0b;border-left:4px solid #f59e0b;border-radius:8px;margin-bottom:16px;overflow:hidden}
+.patterns-th{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}
+.patterns-th:hover{background:#222}
+.patterns-icon{font-size:15px;flex:0 0 auto}
+.patterns-title{color:#f59e0b;font-size:13px;font-weight:700;flex:0 0 auto}
+.patterns-stats{color:#999;font-size:11px;font-family:'DM Mono',monospace;flex:1}
+.patterns-arrow{color:#f59e0b;font-size:10px;transition:transform 0.2s;margin-left:auto;flex:0 0 auto}
+.patterns-arrow.open{transform:rotate(90deg)}
+.patterns-body{display:none;padding:4px 16px 16px;border-top:1px solid #2a2a2a}
+.patterns-body.open{display:block}
+.patterns-block h2{display:none}
 .layer-format-note{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}
 </style></head><body>
 <h1>QA Report — Floristería Petal</h1>
@@ -326,7 +335,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <div class="card c-pct"><div class="n">90%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:90.2%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:9.8%"></div></div>
-<div class="patterns-block"><h2>⚠️ Patrones cruzados detectados</h2><h2>Patrones cruzados — run 20260521_154302</h2>
+<div class="patterns-block"><div class="patterns-th" onclick="togglePatterns()"><span class="patterns-icon">⚠️</span><span class="patterns-title">Patrones cruzados</span><span class="patterns-stats">1 patrón detectado · 3 TCs afectados · ROI 12 TCs/h</span><span class="patterns-arrow">▶</span></div><div class="patterns-body"><h2>Patrones cruzados — run 20260521_154302</h2>
 
 <p>TCs analizados en este batch: TC-FRUSTRACION-01, TC-URGENCIA-01, TC-URGENCIA-02, TC-URGENCIA-03, TC-MULTI-PRODUCTO-01</p>
 
@@ -369,7 +378,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <p>1. <strong>TC-URGENCIA-01</strong> → resuelve 3 TCs de golpe (~15 min)</p>
 <p>2. <strong>TC-MULTI-PRODUCTO-01</strong> → fix trivial, 1 línea de template (~10 min)</p>
 <p>3. <strong>TC-FRUSTRACION-01</strong> → requiere refuerzo de instrucciones en RECHAZO ACUMULADO (~20 min)</p>
-</div>
+</div></div>
 <div class="actions-bar">
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">🗑 Borrar análisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
@@ -4533,6 +4542,8 @@ Confirmamos?"</div>
 </div>
 <script>
 function toggle(el){el.nextElementSibling.classList.toggle('open');el.querySelector('.arrow').classList.toggle('open')}
+function togglePatterns(){var b=document.querySelector('.patterns-body');var a=document.querySelector('.patterns-arrow');if(b){b.classList.toggle('open');a.classList.toggle('open');}}
+function toggleSelectAll(cb){document.querySelectorAll('.opt-check').forEach(function(c){c.checked=cb.checked});updateRunButton();}
 function filterBy(s){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>{if(s==='all'){t.classList.remove('hidden')}else{t.classList.toggle('hidden',t.dataset.status!==s)}});if(s!=='all')document.querySelectorAll('.card[data-filter="'+s+'"]').forEach(c=>c.classList.add('active'))}
 function filterByGroup(g){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
 function filterByType(tp){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',t.dataset.type!==tp))}
@@ -4608,7 +4619,7 @@ function setPanelMode(mode){
     title.textContent = 'TCs en FAIL — selecciona los que quieras optimizar';
     run.textContent = '▶ Run';
     run.setAttribute('onclick', 'runOptimize()');
-    thead.innerHTML = '<th></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
+    thead.innerHTML = '<th><input type="checkbox" id="opt-select-all" title="Seleccionar todos" onchange="toggleSelectAll(this)"></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
   } else {
     title.textContent = 'TCs con análisis LLM aplicado — selecciona los que quieras borrar';
     run.textContent = '🗑 Borrar seleccionados';
