@@ -25,6 +25,7 @@ Cuando el usuario pida analizar uno o varios TCs del QA:
 - `TC-ID` (opcional): identificador del TC a analizar
 - `--all` (modo batch implícito): analizar todos los FAILs pendientes
 - `--ts TIMESTAMP` (opcional): apuntar a un run histórico específico (default: el último de gh-pages)
+- `--keep-existing` (opcional, default: false): si se activa, mantiene los MDs de análisis previos sin sobreescribir. Útil para preservar análisis hechos manualmente
 
 ## Pre-requisitos (verifica antes de empezar)
 
@@ -171,7 +172,7 @@ Para identificar parámetros vacíos, status codes y causa exacta del fallo del 
 
 ### Paso 3 — Analizar y escribir MDs
 
-**Si hay 1 TC:** analizar inline y escribir el MD directamente.
+**Si hay 1 TC:** analizar inline y escribir el MD directamente. Si el MD ya existe, sobreescribirlo (salvo `--keep-existing`).
 
 **Si hay ≥2 TCs:** lanzar un sub-agente por TC en paralelo usando la herramienta Agent. Cada sub-agente recibe:
 - El JSON completo del TC (embebido en el prompt)
@@ -467,7 +468,7 @@ Mensaje final adaptado al modo:
 ## Reglas importantes
 
 - **NO ejecutes QA** salvo que el usuario lo pida explícitamente
-- Si un MD ya existe, pregunta al usuario si quiere sobreescribir antes de hacerlo
+- Si un MD ya existe, sobreescríbelo sin preguntar (a menos que se use el flag `--keep-existing`). Los MDs viejos quedan en git, recuperables con `git show <commit>:qa/tc_analysis/TC-X.md`
 - **NO pidas confirmación** entre análisis y guardar/publicar: mostrar análisis en pantalla + proceder automáticamente al Paso 4-6
 - **Para ≥2 TCs: siempre lanzar sub-agentes en paralelo** — no analizar secuencialmente
 - Para modo BATCH, si hay >5 FAILs, pregunta confirmación antes de empezar (puede ser largo)
