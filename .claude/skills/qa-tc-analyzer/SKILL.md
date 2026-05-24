@@ -282,13 +282,45 @@ Cubre: calidad del propio test — regex mal calibrado, caso mal definido, expec
 ```
 
 **Reglas clave:**
-- SIEMPRE 7 soluciones (rango score 1-10)
+- **3, 5 o 7 soluciones según dimensionamiento del bug (ver Cambio 4 abajo)** — rango score 1-10
 - Ordena DESC por score
 - Usa emojis 🟢 (8-10), 🟡 (5-7), 🔴 (1-4)
 - "Dependencias" concreto o `—` (NO escribas "Sí, ya")
 - Sé honesto sobre trade-offs en "Por qué este scoring"
 - En el TIPO usa una de las categorías listadas, no inventes nuevas
 - FORMATO VERTICAL JERÁRQUICO obligatorio: cada capa con emoji al inicio + título destacado + metadata en línea separada + descripción en párrafo aparte. Las capas N/A van en una sola línea compacta.
+
+**[v1.1 Cambio 4] Soluciones adaptativas según dimensionamiento del bug:**
+
+En lugar de generar siempre 7 soluciones, el skill evalúa 3 dimensiones del bug y genera 3, 5 o 7 soluciones según el resultado.
+
+**Las 3 dimensiones:**
+
+| Dimensión | Trivial | Medio | Arquitectónico |
+|---|---|---|---|
+| **Alcance** | 1 archivo, una línea/frase | 1-2 archivos, sección o condición | 3+ archivos, nuevo componente o restructura |
+| **Profundidad** | Corregir texto, regex o calibración de test | Corregir lógica o paso de slots, añadir condición | Crear sub-playbook/Task, tocar Main flow, Agent config o fuente de datos |
+| **Riesgo de regresión** | Sin dependencias externas | Afecta 1-2 TCs relacionados | Afecta múltiples TCs simultáneamente |
+
+**Regla de clasificación:**
+El nivel final es el **máximo** de las tres dimensiones. Escala siempre hacia arriba, nunca hacia abajo.
+- 3 dimensiones en Trivial → 3 soluciones
+- Al menos una en Medio → 5 soluciones
+- Al menos una en Arquitectónico → 7 soluciones
+
+**Documentar la clasificación en el MD del análisis.** Añadir antes de la sección "Soluciones evaluadas":
+
+```markdown
+### Dimensionamiento del bug
+
+| Dimensión | Nivel | Justificación |
+|---|---|---|
+| Alcance | <Trivial/Medio/Arquitectónico> | <razón breve> |
+| Profundidad | <Trivial/Medio/Arquitectónico> | <razón breve> |
+| Riesgo de regresión | <Trivial/Medio/Arquitectónico> | <razón breve> |
+
+**Nivel final:** <Trivial/Medio/Arquitectónico> → <3/5/7> soluciones
+```
 
 **[v1.1 Cambio 3 actualizado] Las 9 capas obligatorias con marca explícita:**
 
