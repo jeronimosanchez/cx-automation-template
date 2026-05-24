@@ -263,7 +263,7 @@ Cubre: calidad del propio test — regex mal calibrado, caso mal definido, expec
 | <N> | **<solución>** | 🟢 <X>/10 | <dep o "—"> | <razonamiento> |
 | <N> | **<solución>** | 🟡 <X>/10 | <dep> | <razonamiento> |
 | <N> | **<solución>** | 🔴 <X>/10 | <dep> | <razonamiento> |
-| ... (7 soluciones, DESC por score) |
+| ... (3, 5 o 7 soluciones según dimensionamiento, DESC por score) |
 
 ### Plan de acción (Solución #<N>)
 
@@ -469,9 +469,12 @@ Mensaje final adaptado al modo:
 
 - **NO ejecutes QA** salvo que el usuario lo pida explícitamente
 - Si un MD ya existe, sobreescríbelo sin preguntar (a menos que se use el flag `--keep-existing`). Los MDs viejos quedan en git, recuperables con `git show <commit>:qa/tc_analysis/TC-X.md`
-- **NO pidas confirmación** entre análisis y guardar/publicar: mostrar análisis en pantalla + proceder automáticamente al Paso 4-6
+- **Política de confirmación unificada:**
+  - **BATCH con >5 FAILs:** pide confirmación UNA vez al inicio (antes de lanzar los sub-agentes), porque puede ser largo
+  - **BATCH con ≤5 FAILs:** sin confirmación, arranca directo
+  - **INDIVIDUAL (1 TC):** sin confirmación, arranca directo
+  - **Durante el análisis:** NUNCA pidas confirmación. Mostrar el análisis en pantalla y proceder automáticamente al Paso 4-6
 - **Para ≥2 TCs: siempre lanzar sub-agentes en paralelo** — no analizar secuencialmente
-- Para modo BATCH, si hay >5 FAILs, pregunta confirmación antes de empezar (puede ser largo)
 - Si encuentras información en el JSON que requiere trace adicional (interno de CX), menciónalo como **limitación** en la causa raíz
 - Usa SIEMPRE el último TS de gh-pages a menos que el usuario diga otro
 - Después de publicar, recuerda al usuario: "El HTML puede tardar 1-2 min en propagarse en gh-pages"

@@ -7,7 +7,7 @@ description: Aplica una de las soluciones propuestas por qa-tc-analyzer a un TC.
 
 ## Cuándo invocar
 
-Cuando el usuario ya ha visto el análisis (`/qa-tc-analyzer`) y quiere aplicar una de las 7 soluciones:
+Cuando el usuario ya ha visto el análisis (`/qa-tc-analyzer`) y quiere aplicar una de las soluciones propuestas:
 
 | Frase del usuario | Acción |
 |---|---|
