@@ -4517,59 +4517,9 @@ function runOptimize(){
   if (run.classList.contains('dl-disabled')) return;
   var checked = document.querySelectorAll('.opt-check:checked');
   if (checked.length === 0) return;
-  var P = '\n';
-  var prompt = 'Eres un experto en Dialogflow CX Playbooks con Gemini como LLM, ayudando a optimizar el agente Petal (floristería) desplegado en Dialogflow CX.' + P + P;
-  prompt += 'Analiza los siguientes TCs en FAIL y devuelve para cada uno un análisis estructurado en Markdown con el formato EXACTO que se indica al final.' + P + P;
-  prompt += '==== DATOS DE LOS TCs ====' + P + P;
-  checked.forEach(function(cb){
-    prompt += 'TC: ' + cb.dataset.tid + ' — ' + cb.dataset.tname + P +
-              'Grupo: ' + cb.dataset.group + P +
-              'Usuario dijo: "' + cb.dataset.user + '"' + P +
-              'Agente respondió (primeros 120 chars): "' + cb.dataset.agent + '"' + P +
-              'Check que falló: ' + cb.dataset.check + P +
-              'Log JSON completo: ' + cb.dataset.jsonurl + P + P;
-  });
-  prompt += '==== FORMATO DE RESPUESTA ====' + P + P;
-  prompt += 'Para CADA TC, devuelve un bloque Markdown con esta estructura EXACTA (que se guardará en qa/tc_analysis/{TC-ID}.md):' + P + P;
-  prompt += '```markdown' + P;
-  prompt += '---' + P;
-  prompt += 'status: FAIL' + P;
-  prompt += 'tipo: <Bug Playbook | Bug Catálogo | Test mal calibrado | Falso negativo | Flakiness | Bug Tool | Bug Orquestador>' + P;
-  prompt += 'estimacion: ~<N> min (Solución #<X> recomendada)' + P;
-  prompt += '---' + P + P;
-  prompt += '## T1' + P + P;
-  prompt += '### Turnos vs Problemas detectados' + P + P;
-  prompt += '| # | Quién | Acción / Texto | Problema detectado |' + P;
-  prompt += '|---|-------|----------------|--------------------|' + P;
-  prompt += '| 1 | User | *"texto del usuario"* | — |' + P;
-  prompt += '| 2 | Orquestador | clasifica como Gx → handoff a Y | ✅ Correcto / ⚠️ Observación / 🔴 Problema |' + P;
-  prompt += '| 3 | Compra | extrae slots, llama tool, etc. | descripción del problema |' + P;
-  prompt += '| ... | ... | ... | ... |' + P + P;
-  prompt += '### Causa raíz (descompuesta en N capas)' + P + P;
-  prompt += '1. **Capa 1 (ej. Playbook)**: descripción concreta' + P;
-  prompt += '2. **Capa 2 (ej. Catálogo)**: descripción concreta' + P + P;
-  prompt += '## Recomendación' + P + P;
-  prompt += '### Solución recomendada: #<N> — <título>' + P + P;
-  prompt += '🟢 **<score>/10** · ~<tiempo> · <dependencias o "Sin dependencias externas">' + P + P;
-  prompt += '**Por qué**: razonamiento conciso' + P + P;
-  prompt += '### Soluciones evaluadas (ordenadas por score)' + P + P;
-  prompt += '| # | Solución | Score | Dependencias | Por qué este scoring |' + P;
-  prompt += '|---|----------|-------|--------------|----------------------|' + P;
-  prompt += '| <N> | **<solución>** | 🟢 <X>/10 | <deps o "—"> | <razonamiento> |' + P;
-  prompt += '| ... (7 soluciones, ordenadas DESC por score) |' + P + P;
-  prompt += '### Plan de acción (Solución #<N>)' + P + P;
-  prompt += '1. **Acción concreta** → archivo a editar' + P;
-  prompt += '2. **Acción concreta** → archivo' + P;
-  prompt += '3. **Re-ejecutar QA** con `--runs 3`' + P + P;
-  prompt += '**Coste total**: ~<tiempo>' + P;
-  prompt += '```' + P + P;
-  prompt += '==== REGLAS ====' + P;
-  prompt += '- SIEMPRE 7 soluciones por TC, scores 1-10' + P;
-  prompt += '- Emojis: 🟢 (8-10), 🟡 (5-7), 🔴 (1-4)' + P;
-  prompt += '- "Dependencias" concreto (ej. "Aprobación de negocio", "Redeploy backend") o "—" si no hay' + P;
-  prompt += '- Si quieres más contexto, descarga el log JSON de cada TC (URL arriba) — incluye conversación completa, params, slots y trace' + P;
-  prompt += '- Prefiere fix más conservador: ajustar el check antes que cambiar playbook, salvo que el agente esté claramente equivocado' + P;
-  prompt += '- Sé honesto en "Por qué este scoring" — incluye trade-offs reales' + P;
+  var ids = [];
+  checked.forEach(function(cb){ ids.push(cb.dataset.tid); });
+  var prompt = '/qa-tc-analyzer ' + ids.join(' ');
   navigator.clipboard.writeText(prompt).then(function(){
     var fb = document.getElementById('btn-run-feedback');
     fb.textContent = '✓ Copiado — pega en Claude';
