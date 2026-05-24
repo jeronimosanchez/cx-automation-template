@@ -1239,6 +1239,45 @@ def generate_html(results, ts, txt_file, logs_dir_name=None):
     bar_r = f"{(n_fail/total)*100:.1f}" if total else "0"
     groups = sorted(set(r["group"].split(">")[0] for r in results))
     quota_card = f'<div class="card c-quota" data-filter="QUOTA_ERROR" onclick="filterBy(\'QUOTA_ERROR\')"><div class="n">{n_quota}</div><div class="l">Quota</div></div>' if n_quota > 0 else ''
+    # [v1.1 Cambio F] Cargar bloque de patrones cruzados si existe
+    # El skill escribe el archivo como _patterns_<TS>.md donde TS es el timestamp original
+    # con segundos (ej. 20260518_192907). El ts que recibe esta función puede venir
+    # truncado (sin segundos) desde regenerate_html.py. Usamos glob por prefijo para tolerar ambos.
+    import glob as _glob
+    patterns_block = ""
+    has_legacy_analyses = False
+    try:
+        ts_compact = ts.replace("-", "").replace(" ", "_").replace(":", "")
+        _patterns_dir = os.path.join(os.path.dirname(__file__), "tc_analysis")
+        # Buscar por prefijo: _patterns_20260518_1929*.md → match con o sin segundos
+        _patterns_matches = _glob.glob(os.path.join(_patterns_dir, f"_patterns_{ts_compact}*.md"))
+        # Si no hay match exacto, intentar con prefijo más corto (8 chars = fecha, 13 chars = fecha_hora_minuto)
+        if not _patterns_matches and len(ts_compact) >= 13:
+            _patterns_matches = _glob.glob(os.path.join(_patterns_dir, f"_patterns_{ts_compact[:13]}*.md"))
+        if _patterns_matches:
+            with open(_patterns_matches[0], "r", encoding="utf-8") as _pf:
+                _patterns_md = _pf.read()
+            _patterns_html = _md_to_html(_patterns_md)
+            patterns_block = f'<div class="patterns-block"><h2>⚠️ Patrones cruzados detectados</h2>{_patterns_html}</div>'
+        # Detectar análisis con formato viejo (7 capas v1.0) para mostrar la nota solo si aplica
+        _all_analyses = _glob.glob(os.path.join(_patterns_dir, "TC-*.md"))
+        for _a in _all_analyses:
+            try:
+                with open(_a, "r", encoding="utf-8") as _af:
+                    _content = _af.read()
+                # Heurística: formato viejo usa "Capa Playbook" (v1.0); nuevo usa "Capa Comportamiento" (v1.1)
+                if "Capa Playbook" in _content and "Capa Comportamiento" not in _content:
+                    has_legacy_analyses = True
+                    break
+            except Exception:
+                continue
+    except Exception:
+        patterns_block = ""
+        has_legacy_analyses = False
+    # Nota sobre formato de capas, condicional a que existan análisis legacy
+    legacy_note = ('<p class="layer-format-note" style="font-size:11px;color:#888;margin-bottom:12px">'
+                   'Algunos análisis usan formato de 7 capas (v1.0). Los nuevos usan 9 capas (v1.1).'
+                   '</p>') if has_legacy_analyses else ""
     h = f"""<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <title>QA Petal {ts}</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
@@ -1547,9 +1586,14 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .info-modal table{{width:100%;border-collapse:collapse;margin-top:8px}}
 .info-modal td{{padding:6px 8px;border-bottom:1px solid #333}}
 .info-modal code{{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
+/* [v1.1 Cambio F] Bloque de patrones cruzados */
+.patterns-block{{background:#1a1a1a;border:1px solid #f59e0b;border-left:4px solid #f59e0b;border-radius:8px;padding:16px;margin-bottom:16px}}
+.patterns-block h2{{color:#f59e0b;font-size:14px;margin-bottom:8px}}
+.layer-format-note{{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
 <p class="sub">{ts} · {RUNS} runs/TC · {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
+{legacy_note}
 <div class="hdr">
 <div><b>Orquestador:</b> {ORQ_VERSION}</div><div><b>Compra:</b> {COMPRA_VERSION}</div><div><b>Checkout:</b> {CHECKOUT_VERSION}</div>
 <div><b>Registro:</b> {REGISTRO_VERSION}</div><div><b>QA Script:</b> {SCRIPT_VERSION}</div><div><b>Tests:</b> {total} \u00d7 {RUNS} runs</div>
@@ -1562,6 +1606,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 {quota_card}<div class="card c-pct"><div class="n">{pct}%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:{bar_g}%"></div><div class="bar-y" style="width:{bar_y}%"></div><div class="bar-r" style="width:{bar_r}%"></div></div>
+{patterns_block}
 <div class="actions-bar">
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">\U0001f5d1 Borrar an\u00e1lisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">\u2699 Optimizar</a>
