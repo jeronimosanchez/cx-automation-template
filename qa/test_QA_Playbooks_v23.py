@@ -1258,7 +1258,28 @@ def generate_html(results, ts, txt_file, logs_dir_name=None):
             with open(_patterns_matches[0], "r", encoding="utf-8") as _pf:
                 _patterns_md = _pf.read()
             _patterns_html = _md_to_html(_patterns_md)
-            patterns_block = f'<div class="patterns-block"><h2>⚠️ Patrones cruzados detectados</h2>{_patterns_html}</div>'
+            # Extraer stats para el header colapsable
+            import re as _re2
+            _n_pat = len(_re2.findall(r'^## Patrón', _patterns_md, _re2.MULTILINE))
+            _roi_m = _re2.search(r'(\d+)\s*TCs/h', _patterns_md)
+            _roi_str = f"ROI {_roi_m.group(1)} TCs/h" if _roi_m else ""
+            _ntcs_m = _re2.search(r'\|\s*TC-\S+\s*\([^)]+\)\s*\|\s*(\d+)\s*TCs', _patterns_md)
+            _n_tcs = _ntcs_m.group(1) if _ntcs_m else ""
+            _stats_parts = [f"{_n_pat} patrón{'es' if _n_pat != 1 else ''} detectado{'s' if _n_pat != 1 else ''}"]
+            if _n_tcs: _stats_parts.append(f"{_n_tcs} TCs afectados")
+            if _roi_str: _stats_parts.append(_roi_str)
+            _header_stats = " · ".join(_stats_parts)
+            patterns_block = (
+                f'<div class="patterns-block">'
+                f'<div class="patterns-th" onclick="togglePatterns()">'
+                f'<span class="patterns-icon">⚠️</span>'
+                f'<span class="patterns-title">Patrones cruzados</span>'
+                f'<span class="patterns-stats">{_header_stats}</span>'
+                f'<span class="patterns-arrow">▶</span>'
+                f'</div>'
+                f'<div class="patterns-body">{_patterns_html}</div>'
+                f'</div>'
+            )
         # Detectar análisis con formato viejo (7 capas v1.0) para mostrar la nota solo si aplica
         _all_analyses = _glob.glob(os.path.join(_patterns_dir, "TC-*.md"))
         for _a in _all_analyses:
@@ -1586,9 +1607,18 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .info-modal table{{width:100%;border-collapse:collapse;margin-top:8px}}
 .info-modal td{{padding:6px 8px;border-bottom:1px solid #333}}
 .info-modal code{{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
-/* [v1.1 Cambio F] Bloque de patrones cruzados */
-.patterns-block{{background:#1a1a1a;border:1px solid #f59e0b;border-left:4px solid #f59e0b;border-radius:8px;padding:16px;margin-bottom:16px}}
-.patterns-block h2{{color:#f59e0b;font-size:14px;margin-bottom:8px}}
+/* [v1.1 Cambio F] Bloque de patrones cruzados — colapsable (Alt 1) */
+.patterns-block{{background:#1a1a1a;border:1px solid #f59e0b;border-left:4px solid #f59e0b;border-radius:8px;margin-bottom:16px;overflow:hidden}}
+.patterns-th{{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}}
+.patterns-th:hover{{background:#222}}
+.patterns-icon{{font-size:15px;flex:0 0 auto}}
+.patterns-title{{color:#f59e0b;font-size:13px;font-weight:700;flex:0 0 auto}}
+.patterns-stats{{color:#999;font-size:11px;font-family:'DM Mono',monospace;flex:1}}
+.patterns-arrow{{color:#f59e0b;font-size:10px;transition:transform 0.2s;margin-left:auto;flex:0 0 auto}}
+.patterns-arrow.open{{transform:rotate(90deg)}}
+.patterns-body{{display:none;padding:4px 16px 16px;border-top:1px solid #2a2a2a}}
+.patterns-body.open{{display:block}}
+.patterns-block h2{{display:none}}
 .layer-format-note{{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
@@ -2054,6 +2084,8 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 </div>
 <script>
 function toggle(el){el.nextElementSibling.classList.toggle('open');el.querySelector('.arrow').classList.toggle('open')}
+function togglePatterns(){var b=document.querySelector('.patterns-body');var a=document.querySelector('.patterns-arrow');if(b){b.classList.toggle('open');a.classList.toggle('open');}}
+function toggleSelectAll(cb){document.querySelectorAll('.opt-check').forEach(function(c){c.checked=cb.checked});updateRunButton();}
 function filterBy(s){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>{if(s==='all'){t.classList.remove('hidden')}else{t.classList.toggle('hidden',t.dataset.status!==s)}});if(s!=='all')document.querySelectorAll('.card[data-filter="'+s+'"]').forEach(c=>c.classList.add('active'))}
 function filterByGroup(g){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
 function filterByType(tp){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',t.dataset.type!==tp))}
@@ -2129,7 +2161,7 @@ function setPanelMode(mode){
     title.textContent = 'TCs en FAIL — selecciona los que quieras optimizar';
     run.textContent = '▶ Run';
     run.setAttribute('onclick', 'runOptimize()');
-    thead.innerHTML = '<th></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
+    thead.innerHTML = '<th><input type="checkbox" id="opt-select-all" title="Seleccionar todos" onchange="toggleSelectAll(this)"></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
   } else {
     title.textContent = 'TCs con análisis LLM aplicado — selecciona los que quieras borrar';
     run.textContent = '\U0001f5d1 Borrar seleccionados';
