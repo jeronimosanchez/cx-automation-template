@@ -101,6 +101,40 @@ fi
 
 Si el usuario proporciona los JSONs directamente (pegados o adjuntos), saltarse este paso.
 
+### Paso 2.5 — Auditoría del Sheet (variables de negocio) [v1.1 Paso nuevo]
+
+El skill consulta el Sheet para obtener los valores reales de las variables de negocio y auditar su coherencia. Evita que el skill invente valores de horarios, precios, zonas o políticas.
+
+**1. Cargar variables del Sheet (con timeout y verificación defensiva):**
+```bash
+curl -s --max-time 30 "https://petal-sheet-api-920225907399.europe-west1.run.app/exec?recurso=business" -o /tmp/sheet_business.json
+curl -s --max-time 30 "https://petal-sheet-api-920225907399.europe-west1.run.app/exec?recurso=agent_copy" -o /tmp/sheet_agent_copy.json
+
+# Verificación defensiva — exigir que ambos archivos sean objetos JSON
+SHEET_OK=true
+for f in /tmp/sheet_business.json /tmp/sheet_agent_copy.json; do
+  if [ ! -s "$f" ] || ! jq -e 'type == "object"' "$f" > /dev/null 2>&1; then
+    echo "SHEET_FAIL: $f no es un objeto JSON válido"
+    SHEET_OK=false
+  fi
+done
+```
+
+**2. Auditar coherencia del Sheet** (solo si SHEET_OK=true):
+Para cada variable relevante al TC, comprobar:
+- **Duplicados con valores distintos**: misma key en `business` y `agent_copy` con valores diferentes
+- **Valores lógicamente imposibles**: ej. `horario_corte_mismo_dia` posterior al cierre de `horario_apertura`
+- **Valores ausentes**: keys esperadas que no existen (ej. `envio_barcelona_metro`)
+- **Formato inconsistente**: misma información en formatos distintos (ej. "14:00" vs "2pm")
+
+**3. Reportar:**
+Los hallazgos de coherencia del Sheet se reportan en la **Capa Datos** del análisis (capa 5 del nuevo esquema de 9 capas). Si la coherencia falla, esa capa puede ser 🔴 incluso si el playbook está correcto.
+
+**Red de seguridad — Sheet no disponible o JSON inválido (SHEET_OK=false):**
+- Continuar el análisis sin bloquear
+- Marcar como 🟡 cualquier afirmación que dependa de datos del Sheet (con [supuesta] explícita en el MD)
+- Añadir recomendación al final del análisis: *"Re-ejecutar el análisis cuando el Sheet esté disponible para verificar las afirmaciones marcadas como supuesta por falta de acceso a datos de configuración"*
+
 ### Paso 3 — Analizar y escribir MDs
 
 **Si hay 1 TC:** analizar inline y escribir el MD directamente.
