@@ -1228,15 +1228,15 @@ def _load_previous_meta(out_dir=None):
 
 
 def _render_patterns_html(md):
-    """Renders _patterns_*.md with the sketch-based visual structure:
+    """Renders _patterns_*.md with the sketch-based visual structure.
 
-      RESUMEN — 3 stat bullets (tests, TCs con patrón, patrones)
-      Per-pattern card (2-column layout):
-        header: pattern name  |  ROI badge
-        body left:  TCs afectados (list)
-        body right: CAUSA (prose rows) + RECOMENDACIÓN
-      TCS SIN PATRÓN (table)
-      RESUMEN EJECUTIVO (ordered list)
+      RESUMEN — 3 stat bullets
+      Per-pattern card (2-col):
+        header: pattern name (no ROI in header)
+        left:  TCs afectados list
+        right: ROI clickable (tooltip) · CAUSA rows · RECOMENDACIÓN
+      TCS SIN PATRÓN — same 2-col card: left=TC list, right=CAUSA DE NO PATRÓN
+      RESUMEN EJECUTIVO
     """
     def _esc(s):
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -1271,9 +1271,9 @@ def _render_patterns_html(md):
     # ── Count TCs with pattern ────────────────────────────────────────────
     tcs_con_patron = set()
     for _, body in pattern_secs:
-        tcs_m = re.search(r"\*\*TCs:\*\*\s*(.+)", body)
-        if tcs_m:
-            for tc in re.findall(r"TC-\S+", tcs_m.group(1)):
+        tcs_m_c = re.search(r"\*\*TCs:\*\*\s*(.+)", body)
+        if tcs_m_c:
+            for tc in re.findall(r"TC-\S+", tcs_m_c.group(1)):
                 tcs_con_patron.add(tc)
 
     # ── RESUMEN (stats block) ─────────────────────────────────────────────
@@ -1289,9 +1289,19 @@ def _render_patterns_html(md):
         out.append('<p class="pat-empty">No hay patrón detectado</p>')
 
     for pat_title, pat_body in pattern_secs:
-        # ROI value
-        roi_m = re.search(r"(\d+)\s*TCs/h", pat_body)
-        roi_str = f"ROI: {roi_m.group(1)} TCs/h" if roi_m else ""
+        # ROI value + tooltip (from ROI table row)
+        roi_val_m = re.search(r"(\d+)\s*TCs/h", pat_body)
+        roi_val = roi_val_m.group(1) if roi_val_m else ""
+        roi_tip = ""
+        roi_table_m = re.search(
+            r"### ROI del patrón\n\s*\|[^\n]+\n\|[-| ]+\n(\|[^\n]+)", pat_body
+        )
+        if roi_table_m:
+            cells = [c.strip() for c in roi_table_m.group(1).strip("|").split("|")]
+            if len(cells) >= 3:
+                tcs_res = re.sub(r"\*\*", "", cells[1]).strip()
+                esfuerzo = re.sub(r"\*\*", "", cells[2]).strip()
+                roi_tip = f"{tcs_res} en {esfuerzo}"
 
         # TCs list
         tcs_m = re.search(r"\*\*TCs:\*\*\s*(.+)", pat_body)
@@ -1315,11 +1325,9 @@ def _render_patterns_html(md):
         # ── Card ──────────────────────────────────────────────────────────
         out.append('<div class="pat-card">')
 
-        # Header row: title + ROI badge
+        # Header: only title (ROI moved to right column)
         out.append('<div class="pat-card-hdr">')
         out.append(f'<div class="pat-card-title">{_inline(pat_title)}</div>')
-        if roi_str:
-            out.append(f'<div class="pat-roi-badge">{_esc(roi_str)}</div>')
         out.append('</div>')
 
         # Body: 2 columns
@@ -1332,8 +1340,20 @@ def _render_patterns_html(md):
             out.append(f'<div class="pat-tc-item">{_esc(tc)}</div>')
         out.append('</div>')
 
-        # Right — Causa + Recomendación
+        # Right — ROI (clickable) · CAUSA · RECOMENDACIÓN
         out.append('<div class="pat-card-right">')
+        if roi_val:
+            tcs_part = roi_tip.split(" en ")[0].strip() if " en " in roi_tip else roi_tip
+            esf_part = roi_tip.split(" en ")[1].strip() if " en " in roi_tip else ""
+            out.append(
+                f'<div class="pat-roi-btn"'
+                f' data-roi-val="{_esc(roi_val)}"'
+                f' data-roi-tcs="{_esc(tcs_part)}"'
+                f' data-roi-esf="{_esc(esf_part)}">'
+                f'ROI: {_esc(roi_val)} TCs/h'
+                f'<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span>'
+                f'</div>'
+            )
         if causa_rows:
             out.append('<div class="pat-col-lbl">CAUSA</div>')
             for label, detalle in causa_rows:
@@ -1350,19 +1370,69 @@ def _render_patterns_html(md):
         out.append('</div>')  # body
         out.append('</div>')  # card
 
-    # ── TCS SIN PATRÓN ────────────────────────────────────────────────────
+    # ── TCS SIN PATRÓN — same 2-col card structure ────────────────────────
     if no_pat_sec:
-        out.append('<div class="pat-section">')
-        out.append('<div class="pat-sh">TCS SIN PATRÓN</div>')
-        out.append(_md_to_html(no_pat_sec[1]))
-        out.append('</div>')
+        # Parse the table: | TC | Por qué no forma patrón |
+        no_pat_rows = []
+        tbl_m = re.search(r"\| TC[^\n]*\n\|[-| ]+\n((?:\|[^\n]+\n?)+)", no_pat_sec[1])
+        if tbl_m:
+            for row in tbl_m.group(1).strip().split("\n"):
+                cells = [c.strip() for c in row.strip("|").split("|")]
+                if len(cells) >= 2:
+                    tc_id = re.sub(r"\*\*", "", cells[0]).strip()
+                    razon = cells[1].strip()
+                    if tc_id:
+                        no_pat_rows.append((tc_id, razon))
 
-    # ── RESUMEN EJECUTIVO ─────────────────────────────────────────────────
+        if no_pat_rows:
+            out.append('<div class="pat-card">')
+            out.append('<div class="pat-card-hdr">')
+            out.append('<div class="pat-card-title">TCs sin patrón</div>')
+            out.append('</div>')
+            out.append('<div class="pat-card-body">')
+            # Left — TC list
+            out.append('<div class="pat-card-left">')
+            out.append('<div class="pat-col-lbl">TCs</div>')
+            for tc_id, _ in no_pat_rows:
+                out.append(f'<div class="pat-tc-item pat-tc-nopattern">{_esc(tc_id)}</div>')
+            out.append('</div>')
+            # Right — Causa de no patrón
+            out.append('<div class="pat-card-right">')
+            out.append('<div class="pat-col-lbl">CAUSA DE NO PATRÓN</div>')
+            for tc_id, razon in no_pat_rows:
+                out.append(
+                    f'<div class="pat-causa-row">'
+                    f'<span class="pat-causa-lbl">{_esc(tc_id)}:</span> {_inline(razon)}'
+                    f'</div>'
+                )
+            out.append('</div>')
+            out.append('</div>')  # body
+            out.append('</div>')  # card
+        else:
+            out.append('<div class="pat-section">')
+            out.append('<div class="pat-sh">TCS SIN PATRÓN</div>')
+            out.append(_md_to_html(no_pat_sec[1]))
+            out.append('</div>')
+
+    # ── ORDEN DE EJECUCIÓN (WIP) ──────────────────────────────────────────
     if summary_sec:
         out.append('<div class="pat-section">')
-        out.append('<div class="pat-sh">RESUMEN EJECUTIVO</div>')
-        out.append(_md_to_html(summary_sec[1]))
+        out.append('<div class="pat-sh">ORDEN DE EJECUCIÓN</div>')
+        out.append('<div class="pat-wip">⚙️ <em>Work in progress</em> — la lógica de priorización (patrón vs. TC individual primero) se implementará en una próxima versión del skill.</div>')
         out.append('</div>')
+
+    # ── ROI modal (position:fixed, funciona desde cualquier lugar del DOM) ─
+    out.append(
+        '<div id="roi-modal-overlay" class="roi-modal-overlay" onclick="closeRoiModal()">'
+        '<div class="roi-modal" onclick="event.stopPropagation()">'
+        '<div class="roi-modal-hdr">'
+        '<span class="roi-modal-ttl">ROI — Tasa de resolución</span>'
+        '<span class="roi-modal-x" onclick="closeRoiModal()">×</span>'
+        '</div>'
+        '<div class="roi-modal-body" id="roi-modal-body"></div>'
+        '</div>'
+        '</div>'
+    )
 
     return "\n".join(out)
 
@@ -1771,13 +1841,31 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .pat-card{{background:#141414;border:1px solid #2d2d2d;border-radius:6px;margin-bottom:12px;overflow:hidden}}
 .pat-card-hdr{{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #2a2a2a;gap:10px}}
 .pat-card-title{{font-size:13px;font-weight:600;color:#e0e0e0;flex:1}}
-.pat-roi-badge{{font-size:10px;font-weight:700;color:#c8f060;background:#0e1f05;border:1px solid #c8f06033;padding:2px 9px;border-radius:10px;white-space:nowrap;flex-shrink:0}}
+.pat-roi-btn{{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#c8f060;background:#0e1f05;border:1px solid #c8f06044;padding:3px 10px;border-radius:5px;margin-bottom:8px;user-select:none}}
+.pat-roi-q{{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#c8f06033;color:#c8f060;font-size:9px;font-weight:700;flex-shrink:0;cursor:pointer;transition:background .15s}}
+.pat-roi-q:hover{{background:#c8f06066}}
+.pat-wip{{font-size:12px;color:#666;font-style:italic;padding:6px 10px;border-left:2px solid #333;background:#161616;border-radius:0 4px 4px 0;line-height:1.5}}
+.roi-modal-overlay{{display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center}}
+.roi-modal-overlay.open{{display:flex}}
+.roi-modal{{background:#1a1a1a;border:1px solid #ef4444;border-radius:8px;width:380px;max-width:90vw;box-shadow:0 8px 32px #000c;overflow:hidden}}
+.roi-modal-hdr{{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2a2a2a}}
+.roi-modal-ttl{{font-size:13px;font-weight:700;color:#ef4444}}
+.roi-modal-x{{font-size:20px;color:#666;cursor:pointer;line-height:1;padding:0 2px}}
+.roi-modal-x:hover{{color:#ccc}}
+.roi-modal-body{{padding:14px 16px}}
+.rmi-def{{font-size:12px;color:#ccc;line-height:1.5;margin-bottom:12px}}
+.rmi-section{{margin-bottom:12px}}
+.rmi-lbl{{font-size:10px;font-weight:700;letter-spacing:.8px;color:#777;text-transform:uppercase;margin-bottom:5px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}}
+.rmi-formula{{font-size:12px;font-family:'DM Mono',monospace;color:#c8f060;background:#0e1f05;padding:6px 10px;border-radius:4px}}
+.rmi-row{{display:flex;justify-content:space-between;font-size:12px;color:#ccc;padding:4px 0;border-bottom:1px solid #222}}
+.rmi-result{{color:#c8f060;font-weight:700;border-bottom:none;margin-top:4px;padding-top:6px}}
 .pat-card-body{{display:grid;grid-template-columns:1fr 2fr}}
 .pat-card-left{{padding:12px 14px;border-right:1px solid #2a2a2a}}
 .pat-card-right{{padding:12px 14px}}
 .pat-col-lbl{{font-size:10px;font-weight:700;letter-spacing:.8px;color:#777;text-transform:uppercase;margin-bottom:7px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}}
 .pat-rec-lbl{{margin-top:12px}}
 .pat-tc-item{{font-size:11px;font-family:'DM Mono',monospace;color:#c8f060;margin-bottom:4px}}
+.pat-tc-nopattern{{color:#ef4444}}
 .pat-causa-row{{font-size:12px;color:#ccc;margin-bottom:5px;line-height:1.4}}
 .pat-causa-lbl{{color:#aaa;font-weight:600}}
 .pat-rec-text{{font-size:12px;color:#b8c890;line-height:1.5}}
@@ -2250,6 +2338,8 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <script>
 function toggle(el){el.nextElementSibling.classList.toggle('open');el.querySelector('.arrow').classList.toggle('open')}
 function togglePatterns(){var b=document.querySelector('.patterns-body');var a=document.querySelector('.patterns-arrow');if(b){b.classList.toggle('open');a.classList.toggle('open');}}
+function openRoiModal(btn){var val=btn.dataset.roiVal,tcs=btn.dataset.roiTcs,esf=btn.dataset.roiEsf;var b=document.getElementById('roi-modal-body');if(!b)return;b.innerHTML='<p class="rmi-def"><strong>Tasa de resolución</strong> — cuántos TCs puedes cerrar por hora de trabajo invertida en el fix.</p><div class="rmi-section"><div class="rmi-lbl">Fórmula</div><div class="rmi-formula">ROI = TCs resueltos ÷ esfuerzo (h)</div></div><div class="rmi-section"><div class="rmi-lbl">Este fix</div><div class="rmi-row"><span>TCs resueltos</span><span>'+(tcs||'—')+'</span></div><div class="rmi-row"><span>Esfuerzo estimado</span><span>'+(esf||'—')+'</span></div><div class="rmi-row rmi-result"><span>ROI resultante</span><span>'+(val||'—')+' TCs/h</span></div></div>';document.getElementById('roi-modal-overlay').classList.add('open');}
+function closeRoiModal(){var o=document.getElementById('roi-modal-overlay');if(o)o.classList.remove('open');}
 function toggleSelectAll(cb){document.querySelectorAll('.opt-check').forEach(function(c){c.checked=cb.checked});updateRunButton();}
 function filterBy(s){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>{if(s==='all'){t.classList.remove('hidden')}else{t.classList.toggle('hidden',t.dataset.status!==s)}});if(s!=='all')document.querySelectorAll('.card[data-filter="'+s+'"]').forEach(c=>c.classList.add('active'))}
 function filterByGroup(g){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
