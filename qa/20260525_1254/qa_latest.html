@@ -373,27 +373,54 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <div class="card c-pct"><div class="n">90%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:90.2%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:9.8%"></div></div>
-<div class="patterns-block"><div class="patterns-th" onclick="togglePatterns()"><span class="patterns-icon">⚠️</span><span class="patterns-title">Patrones cruzados</span><span class="patterns-stats">0 patrónes detectados</span><span class="patterns-arrow">▶</span></div><div class="patterns-body"><div class="pat-resumen">
+<div class="patterns-block"><div class="patterns-th" onclick="togglePatterns()"><span class="patterns-icon">⚠️</span><span class="patterns-title">Patrones cruzados</span><span class="patterns-stats">1 patrón detectado · ROI 12 TCs/h</span><span class="patterns-arrow">▶</span></div><div class="patterns-body"><div class="pat-resumen">
 <div class="pat-resumen-title">RESUMEN</div>
-<div class="pat-resumen-stat">• Tests analizados en este batch: <strong>0</strong></div>
-<div class="pat-resumen-stat">• TCs con patrón: <strong>0</strong></div>
+<div class="pat-resumen-stat">• Tests analizados en este batch: <strong>5</strong></div>
+<div class="pat-resumen-stat">• TCs con patrón: <strong>3</strong></div>
 <div class="pat-resumen-stat">• Patrones: <strong>1</strong></div>
 </div>
 <div class="pat-card">
 <div class="pat-card-hdr">
-<div class="pat-card-title">Patrones cruzados detectados — run 20260525_1254</div>
+<div class="pat-card-title">Patrón URGENCIA — revert <code>2126c52</code> rompe los 3 TCs de entrega urgente</div>
 </div>
 <div class="pat-card-body">
 <div class="pat-card-left">
 <div class="pat-col-lbl">TCs afectados</div>
+<div class="pat-tc-item">TC-URGENCIA-01</div>
+<div class="pat-tc-item">TC-URGENCIA-02</div>
+<div class="pat-tc-item">TC-URGENCIA-03</div>
 </div>
 <div class="pat-card-right">
+<div class="pat-roi-btn" data-roi-val="12" data-roi-tcs="3 TCs" data-roi-esf="~15 min">ROI: 12 TCs/h<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span></div>
 <div class="pat-col-lbl">CAUSA</div>
-<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> Los 3 TCs muestran el mismo comportamiento: agente muestra catálogo sin verificar plazo. Regex de check falla en todos por ausencia de tokens <code>plazo</code>, <code>24h</code>, <code>no</code> o similar</div>
-<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Capa 1 (Comportamiento) + Capa 8 (Histórico) en los 3 TCs. Causa raíz idéntica: ausencia del bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code> tras revert <code>2126c52</code></div>
-<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Un único cambio en <code>compra.yaml</code> (restaurar bloque de 14 líneas antes de PASO 0) cierra los 3 TCs. El fix fue validado en producción en <code>a10ab02</code> y <code>3e0b2d1</code></div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> Agente muestra catálogo sin verificar plazo en los 3 TCs — regex falla por ausencia de tokens <code>plazo</code>/<code>24h</code>/<code>no</code></div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Capa 1 Comportamiento + Capa 8 Histórico en los 3 TCs. Causa raíz única: ausencia del bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code> tras revert <code>2126c52</code></div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Un único cambio (restaurar 14 líneas en <code>compra.yaml</code>) cierra los 3 TCs simultáneamente. Validado en producción en <code>a10ab02</code> y <code>3e0b2d1</code></div>
+<div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>
+<div class="pat-rec-text">Aplicar fix TC-URGENCIA-01 — resuelve los 3 TCs del patrón en un único cambio antes de abordar los bugs independientes.</div>
 </div>
 </div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">TCs sin patrón</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs</div>
+<div class="pat-tc-item pat-tc-nopattern">TC-MULTI-PRODUCTO-01</div>
+<div class="pat-tc-item pat-tc-nopattern">TC-FRUSTRACION-01</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-col-lbl">CAUSA DE NO PATRÓN</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">TC-MULTI-PRODUCTO-01:</span> DEMO BREAK <code>c9ce667</code> en ECO RESUMEN Paso 7 — causa y fix distintos. Bug de prioridad alta (precio incorrecto al cliente)</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">TC-FRUSTRACION-01:</span> Instrucción "Rechazo 2" ambigua en GESTION DE FRUSTRACION — causa y fix distintos. Bug preexistente no relacionado con los reverts</div>
+</div>
+</div>
+</div>
+<div class="pat-section">
+<div class="pat-sh">ORDEN DE EJECUCIÓN</div>
+<div class="pat-wip">⚙️ <em>Work in progress</em> — la lógica de priorización (patrón vs. TC individual primero) se implementará en una próxima versión del skill.</div>
 </div>
 <div id="roi-modal-overlay" class="roi-modal-overlay" onclick="closeRoiModal()"><div class="roi-modal" onclick="event.stopPropagation()"><div class="roi-modal-hdr"><span class="roi-modal-ttl">ROI — Tasa de resolución</span><span class="roi-modal-x" onclick="closeRoiModal()">×</span></div><div class="roi-modal-body" id="roi-modal-body"></div></div></div></div></div>
 <div class="actions-bar">
@@ -4021,7 +4048,61 @@ Revisa especial..."</div>
 <ul class="ta-bullets ok">
 <li>Agente dijo [disculpa]</li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución #1 — Especificar instrucción Rechazo 2 en compra.yaml ⭐ RECOMENDADA</h4>
+
+<p><strong>Puntuación: 9/10 | Esfuerzo: ~10 min</strong></p>
+
+<p><strong>Cambio:</strong> En <code>definitions/playbooks/compra.yaml</code>, línea ~726, modificar:</p>
+
+<p>```</p>
+<h2>ANTES</h2>
+<p>Rechazo 2 pregunta motivo.</p>
+
+<h2>DESPUÉS</h2>
+<p>Rechazo 2 pregunta tipo de flor preferido u ocasion concreta para reformular la busqueda (no añadir catalogo).</p>
+<p>```</p>
+
+<p><strong>Por qué es la mejor opción:</strong> Corrige la causa raíz (instrucción ambigua), mejora la experiencia real del usuario (preguntar por tipo/ocasión es más útil para reformular que preguntar por color), y el riesgo de regresión es mínimo — el resto del bloque FRUSTRACION no se toca.</p>
+
+<p><strong>Verificación:</strong> El agente debería responder en T3 algo como "Entiendo. ¿Qué tipo de flor tienes en mente, o hay alguna ocasión concreta para la que las buscas?", lo que activa <code>tipo</code> o <code>ocasion</code> en el regex.</p>
+
+<p>---</p>
+
+<h4>Solución #2 — Ampliar regex del test para incluir 'color'</h4>
+
+<p><strong>Puntuación: 6/10 | Esfuerzo: ~5 min</strong></p>
+
+<p>Añadir <code>color</code> al regex del check T3: <code>[propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano|color]</code>.</p>
+
+<p><strong>No recomendada:</strong> Ajusta el test para que pase con el comportamiento actual, pero no mejora el playbook. Preguntar por "color" en Rechazo 2 es una respuesta subóptima para reformular la búsqueda — es mejor preguntar por tipo u ocasión. Esta solución enmascara el bug sin resolverlo.</p>
+
+<p>---</p>
+
+<h4>Solución #3 — Añadir Example de frustración Rechazo-2</h4>
+
+<p><strong>Puntuación: 5/10 | Esfuerzo: ~30 min</strong></p>
+
+<p>Crear un Example que muestre el comportamiento correcto en Rechazo 2 (agente pregunta por tipo/ocasión), reforzando la instrucción del playbook.</p>
+
+<p><strong>No recomendada como solución primaria:</strong> Complementaria a la Solución #1, no alternativa. Un Example sin instrucción clara puede ser ignorado por el LLM bajo variabilidad. Abordar como refuerzo posterior si el fix de Solución #1 no es suficientemente estable.</p>
+
+<p>---</p>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. Editar <code>definitions/playbooks/compra.yaml</code> línea ~726</p>
+<p>2. Cambiar: <code>Rechazo 2 pregunta motivo.</code></p>
+<p>3. Por: <code>Rechazo 2 pregunta tipo de flor preferido u ocasion concreta para reformular la busqueda (no añadir catalogo).</code></p>
+<p>4. Commit + PR + merge → deploy automático vía CI/CD</p>
+<p>5. Re-ejecutar: <code>python qa/test_QA_Playbooks_v23.py --tc TC-FRUSTRACION-01 --runs 3</code></p>
+<p>6. Criterio de éxito: 3/3 PASS</p>
+
+<p><strong>Comando QA post-fix:</strong></p>
+<p>```bash</p>
+<p>python qa/test_QA_Playbooks_v23.py --tc TC-FRUSTRACION-01 --runs 3</p>
+<p>```</p>
+
+<p>---</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -4582,7 +4663,74 @@ Confirmamos?"</div>
 <ul class="ta-bullets ok">
 <li>Agente dijo [65]</li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-MULTI-PRODUCTO-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook (DEMO BREAK activo)</span></div><div class="rec-content"><h4>Solución #1 — Restaurar template ECO RESUMEN Paso 7 con ambos productos y total ⭐ RECOMENDADA</h4>
+
+<p><strong>Puntuación: 9/10 | Esfuerzo: ~10 min</strong></p>
+
+<p><strong>Cambio:</strong> En <code>definitions/playbooks/compra.yaml</code>, líneas 601-606, restaurar el template del Paso 7 para incluir <code>$producto_2</code>, <code>$precio_2</code> y el total combinado. Referencia: commit <code>4f7adea</code>.</p>
+
+<p>```yaml</p>
+<h2>ANTES (DEMO BREAK activo — c9ce667)</h2>
+<p>7. ECO RESUMEN OBLIGATORIO (NO saltarse, NO ir directo a Checkout):</p>
+<p>Usa el template EXACTO segun modo, sin anadir productos extra:</p>
+<ul>
+<li>Estandar: 'Tu pedido: $cantidad x $producto ($precio_estimadoeuros). Lo confirmo?'</li>
+<li>Solemne: 'El pedido queda: $cantidad x $producto ($precio_estimadoeuros). Lo confirmamos?'</li>
+<li>Corporativo: 'Resumen del pedido: $cantidad x $producto ($precio_estimadoeuros). Confirmamos?'</li>
+</ul>
+<p>ESPERA confirmacion explicita del usuario.</p>
+
+<h2>DESPUÉS (restaurado)</h2>
+<p>7. ECO RESUMEN OBLIGATORIO (NO saltarse, NO ir directo a Checkout):</p>
+<p>Usa el template EXACTO segun modo:</p>
+<ul>
+<li>Estandar: 'Tu pedido: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: [suma]euros. Lo confirmo?'</li>
+<li>Solemne: 'El pedido queda: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: [suma]euros. Lo confirmamos?'</li>
+<li>Corporativo: 'Resumen del pedido: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: [suma]euros. Confirmamos?'</li>
+</ul>
+<p>ESPERA confirmacion explicita del usuario.</p>
+<p>```</p>
+
+<p><strong>Por qué es la mejor opción:</strong> Corrige la causa raíz de ambos fallos (T3 y T5). El ECO RESUMEN con <code>$precio_2</code> explícito fuerza al LLM a anclar el valor del slot antes de transferir a Checkout, eliminando la divergencia de precio. El riesgo de regresión es mínimo — el fix ya existía en <code>4f7adea</code> y fue validado en su momento.</p>
+
+<p><strong>Verificación:</strong> El agente debería mostrar en T3 el resumen con ambos productos y total 65€, y en T5 el Checkout debería reflejar 37€ + 28€ = 65€.</p>
+
+<p>---</p>
+
+<h4>Solución #2 — Solución #1 + revisar regex T3 para case-insensitive</h4>
+
+<p><strong>Puntuación: 8/10 | Esfuerzo: ~15 min</strong></p>
+
+<p>Aplicar Solución #1 y adicionalmente revisar el check de T3 para confirmar si el fallo era de calibración de regex (case-sensitivity) o de comportamiento. Si tras el fix de Solución #1 el T3 sigue fallando, ajustar el regex añadiendo flag case-insensitive o cambiando <code>ramo.<em>centro</code> por <code>[Rr]amo.</em>[Cc]entro</code>.</p>
+
+<p><strong>Cuándo usar:</strong> Si tras aplicar Solución #1 el T3 continúa fallando en los 3 runs (lo que indicaría que el problema del T3 no era solo el template roto sino también el regex).</p>
+
+<p>---</p>
+
+<h4>Solución #3 — Añadir Example multi-producto para consolidar el ECO RESUMEN</h4>
+
+<p><strong>Puntuación: 5/10 | Esfuerzo: ~30 min</strong></p>
+
+<p>Crear un Example que muestre el flujo completo multi-producto con el ECO RESUMEN correcto (ambos productos + total), reforzando el template del Paso 7.</p>
+
+<p><strong>No recomendada como solución primaria:</strong> Complementaria a Solución #1, no alternativa. Sin el template correcto, un Example puede ser insuficiente bajo variabilidad del LLM. Abordar como refuerzo si Solución #1 muestra inestabilidad en runs posteriores.</p>
+
+<p>---</p>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. Editar <code>definitions/playbooks/compra.yaml</code> líneas 601-606</p>
+<p>2. Restaurar el template del Paso 7 con <code>$producto_2</code>, <code>$precio_2</code> y total combinado (referencia: <code>git show 4f7adea -- definitions/playbooks/compra.yaml</code>)</p>
+<p>3. Commit + PR + merge → deploy automático vía CI/CD</p>
+<p>4. Re-ejecutar: <code>python qa/test_QA_Playbooks_v23.py --tc TC-MULTI-PRODUCTO-01 --runs 3</code></p>
+<p>5. Criterio de éxito: 3/3 PASS (T3 y T5 correctos, total 65€)</p>
+
+<p><strong>Comando QA post-fix:</strong></p>
+<p>```bash</p>
+<p>python qa/test_QA_Playbooks_v23.py --tc TC-MULTI-PRODUCTO-01 --runs 3</p>
+<p>```</p>
+
+<p>---</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
