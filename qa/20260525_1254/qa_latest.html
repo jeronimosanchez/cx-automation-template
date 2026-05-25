@@ -373,7 +373,29 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <div class="card c-pct"><div class="n">90%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:90.2%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:9.8%"></div></div>
-
+<div class="patterns-block"><div class="patterns-th" onclick="togglePatterns()"><span class="patterns-icon">⚠️</span><span class="patterns-title">Patrones cruzados</span><span class="patterns-stats">0 patrónes detectados</span><span class="patterns-arrow">▶</span></div><div class="patterns-body"><div class="pat-resumen">
+<div class="pat-resumen-title">RESUMEN</div>
+<div class="pat-resumen-stat">• Tests analizados en este batch: <strong>0</strong></div>
+<div class="pat-resumen-stat">• TCs con patrón: <strong>0</strong></div>
+<div class="pat-resumen-stat">• Patrones: <strong>1</strong></div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">Patrones cruzados detectados — run 20260525_1254</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs afectados</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-col-lbl">CAUSA</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> Los 3 TCs muestran el mismo comportamiento: agente muestra catálogo sin verificar plazo. Regex de check falla en todos por ausencia de tokens <code>plazo</code>, <code>24h</code>, <code>no</code> o similar</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Capa 1 (Comportamiento) + Capa 8 (Histórico) en los 3 TCs. Causa raíz idéntica: ausencia del bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code> tras revert <code>2126c52</code></div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Un único cambio en <code>compra.yaml</code> (restaurar bloque de 14 líneas antes de PASO 0) cierra los 3 TCs. El fix fue validado en producción en <code>a10ab02</code> y <code>3e0b2d1</code></div>
+</div>
+</div>
+</div>
+<div id="roi-modal-overlay" class="roi-modal-overlay" onclick="closeRoiModal()"><div class="roi-modal" onclick="event.stopPropagation()"><div class="roi-modal-hdr"><span class="roi-modal-ttl">ROI — Tasa de resolución</span><span class="roi-modal-x" onclick="closeRoiModal()">×</span></div><div class="roi-modal-body" id="roi-modal-body"></div></div></div></div></div>
 <div class="actions-bar">
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">🗑 Borrar análisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
@@ -3583,7 +3605,7 @@ Revisa especial..."</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -4003,7 +4025,7 @@ Revisa especial..."</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span><span class="tipo-tag">Bug Playbook (DEMO BREAK activo)</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -4564,7 +4586,7 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — variante hora numerica ('hoy a las 6')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — variante hora numerica ('hoy a las 6')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -4732,11 +4754,61 @@ Confirmamos?"</div>
 </ul>
 <h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-01"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>1 archivo (<code>compra.yaml</code>), restaurar 14 líneas ya escritas y probadas</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Restaurar instrucción condicional existente, sin nueva lógica</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix aplicado 2 veces sin regressions; reverts fueron intencionales para demo</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones</p>
+
+<h4>Solución recomendada: #1 — Restaurar bloque DETECCION URGENCIA TEMPORAL</h4>
+
+<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: fix conocido-bueno (probado en <code>3e0b2d1</code> y <code>a10ab02</code>, TC pasó a PASS en primer rerun en ambas ocasiones). Cherry-pick o edición directa de 14 líneas en 1 archivo. Sin riesgo de regresión documentado. La inexactitud del "24h siempre" vs. Madrid ciudad antes de 14:00 (detectada en Capa Datos) es deuda técnica de diseño conversacional para un sprint posterior, no un bloqueante.</p>
+
+<p><strong>Bloque a insertar</strong> antes de <code>-- PASO 0 - MODO SEGUN GRUPO --</code> (~línea 388 de <code>compra.yaml</code>):</p>
+
+<p>```</p>
+<p>⛔ DETECCION URGENCIA TEMPORAL ⛔</p>
+<p>Si $intencion_inicial o el input actual del usuario contiene palabras que implican entrega urgente:</p>
+<ul>
+<li>'hoy', 'ahora', 'ya', 'esta tarde', 'esta noche', 'en X minutos', 'en X horas'</li>
+<li>una hora concreta del mismo dia ('a las 6', 'a las 18:00', 'para las 7', 'antes de las X')</li>
+<li>'urgente', 'rapido', 'cuanto antes'</li>
+</ul>
+<p>ANTES de continuar con slot-filling o busqueda de catalogo, clarifica el plazo segun $modo_tono:</p>
+<ul>
+<li>Estandar: 'Mira, el plazo minimo de entrega es 24h, asi que para hoy no podemos. Te valdria para mañana o un dia despues?'</li>
+<li>Solemne: 'Lamentablemente el plazo minimo de entrega disponible es de 24h. Le valdria para mañana?'</li>
+<li>Corporativo: 'El plazo minimo de entrega es 24h. Para mañana o posterior?'</li>
+</ul>
+<p>ESPERA respuesta del usuario.</p>
+<ul>
+<li>Si acepta plazo (mañana o posterior) - continua el flujo normal (PASO 0).</li>
+<li>Si insiste en hoy o rechaza - $razon_handoff='cliente_solicita_humano' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $modo_tono.</li>
+</ul>
+<p>⛔ FIN DETECCION URGENCIA ⛔</p>
+<p>```</p>
+
+<h4>Soluciones evaluadas (3 soluciones, DESC por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Restaurar bloque DETECCION URGENCIA TEMPORAL</strong> en <code>compra.yaml</code> (cherry-pick <code>a10ab02</code> o edición manual)</td><td>🟢 9/10</td><td>—</td><td>Fix probado 2 veces, 1 archivo, sin riesgo conocido. Único gap: no menciona excepción Madrid mismo día</td></tr><tr><td>2</td><td><strong>Solución #1 + consultar zona antes de dar plazo</strong> (añadir paso de zona en slot-filling inicial)</td><td>🟡 6/10</td><td>Refactor slot-filling Compra</td><td>Más preciso con la política real del Sheet (<code>envio_madrid_ciudad</code>), pero añade un turno extra y puede impactar otros TCs</td></tr><tr><td>3</td><td><strong>Añadir Example de urgencia</strong> (few-shot turno-a-turno en <code>definitions/examples/</code>)</td><td>🟡 5/10</td><td>—</td><td>Complementario a #1, no elimina el gap de instrucciones. Útil como refuerzo si #1 sola muestra flakiness en variantes</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Editar <code>definitions/playbooks/compra.yaml</code></strong>: insertar el bloque antes de <code>-- PASO 0 - MODO SEGUN GRUPO --</code> (~línea 388).</p>
+<p>2. <strong>Commit + PR + merge</strong> siguiendo el flujo estándar del repo.</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable en los 3 TCs del patrón URGENCIA.</p>
+
+<p><strong>Coste total</strong>: ~15 min (2 min edición + 3 min deploy + 10 min rerun × 3).</p>
+
+<p>&gt; <strong>TC raíz del patrón URGENCIA.</strong> El mismo fix resuelve TC-URGENCIA-02 y TC-URGENCIA-03. Re-ejecutar los 3 tras aplicar.</p>
+
+<p>&gt; <strong>Deuda técnica (Capa Datos):</strong> la respuesta "plazo mínimo 24h" es inexacta para <code>envio_madrid_ciudad</code> (mismo día antes de 14:00). Registrar como historia en <code>epic_backlog_conversational_design.md</code> para la Solución #2 en sprint posterior.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-URGENCIA-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-02</span><span class="tname">Entrega urgente — variante hora textual ('hoy a las seis de la tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-URGENCIA-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-02</span><span class="tname">Entrega urgente — variante hora textual ('hoy a las seis de la tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -4789,9 +4861,7 @@ Confirmamos?"</div>
 *   Ramo de Rosas Morado — M (15 flores, 37€)
 *   Ramo de Rosas Amarillo — M (12 flores, 25€)
 *   Ramo de Rosas Blanco — M (12…"</em></li>
-</ul>
-<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+</ul></div></td></tr></table>
 <div class="ta-run-header fail">❌ Run 2</div>
 <table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo de rosas para hoy a las seis de la tarde"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, para hoy a las seis tengo ramos de rosas. Mira:
 
@@ -4844,9 +4914,7 @@ Confirmamos?"</div>
 *   Ramo de Rosas Blanco — M (12 flores, 25€)
 
 ¿Al…"</em></li>
-</ul>
-<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+</ul></div></td></tr></table>
 <div class="ta-run-header fail">❌ Run 3</div>
 <table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo de rosas para hoy a las seis de la tarde"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, ramos de rosas tenemos. Mira, para hoy a las seis de la tarde te puedo ofrecer:
 
@@ -4898,13 +4966,77 @@ Confirmamos?"</div>
 *   Ramo de Rosas Amarillo — M (12 flores, 25€)
 *   Ramo de Rosas …"</em></li>
 </ul>
-<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-02"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="diag-block" data-tcid="TC-URGENCIA-02">
+<h4 class="diag-header">Causa raíz (TC-URGENCIA-02) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
+<div class="manual-analysis"><p><strong>Usuario:</strong> "necesito un ramo de rosas para hoy a las seis de la tarde"</p>
+<p><strong>Agente:</strong> muestra catálogo de rosas directamente, sin detectar urgencia ni clarificar plazo de entrega.</p>
+
+
+<p><strong>Check T1:</strong> FAIL — regex <code>hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano</code> no encontrado en respuesta del agente.</p>
+
+<p>---</p>
+
+<h4>Causa raíz — evaluación de las 9 capas [v1.1]</h4>
+
+<table class="md-table"><thead><tr><th>Capa</th><th>Estado</th><th>Evaluación</th></tr></thead><tbody><tr><td>1. Comportamiento del Playbook</td><td>🔴 Verificada</td><td>El bloque <code>⛔ DETECCION URGENCIA TEMPORAL ⛔</code> está ausente en <code>compra.yaml</code>. Fue eliminado mediante el revert <code>2126c52</code>. Fuente: <code>git log -- definitions/playbooks/compra.yaml</code></td></tr><tr><td>2. Routing / Intent</td><td>⚪ N/A</td><td>El TC no involucra problemas de enrutamiento. El agente llega al playbook de Compra correctamente.</td></tr><tr><td>3. Parámetros / Slots</td><td>🟢 Verificada</td><td><code>intencion_inicial</code> = "necesito un ramo de rosas para hoy a las seis de la tarde" — capturado completo con la señal temporal incluida. El problema no es de captura de parámetros. Fuente: <code>params</code> del JSON del run.</td></tr><tr><td>4. Integración / Herramientas</td><td>🟢 Verificada</td><td>El agente muestra catálogo real (integración con Sheet funciona). El fallo ocurre upstream, antes de llegar a la búsqueda de catálogo.</td></tr><tr><td>5. Datos / Sheet</td><td>🟡 Supuesta</td><td>Sheet: <code>tiempo_entrega_estimado = "24h en Madrid y Barcelona"</code>, <code>horario_corte_mismo_dia = "14:00"</code>. El Sheet es técnicamente correcto: "a las seis de la tarde" = 18:00h &gt; corte de 14:00h, por lo que 24h es la respuesta correcta para este caso. El dato "24h siempre" podría ser inexacto para Madrid antes de las 14:00 (donde aplica "mismo día"), pero no afecta a este TC concreto.</td></tr><tr><td>6. Infraestructura</td><td>⚪ N/A</td><td>No hay evidencia de problemas de infra. CI/CD funcional, versiones activas correctas (orquestador v65 / compra v39).</td></tr><tr><td>7. Comportamiento del LLM</td><td>🟢 Verificada</td><td>El LLM sigue fielmente las instrucciones del playbook. Sin el bloque de detección de urgencia, actúa conforme a lo que está escrito: avanza a catálogo. No hay alucinación ni comportamiento inesperado.</td></tr><tr><td>8. Histórico / Patrón</td><td>🔴 Verificada</td><td>Mismo patrón que TC-URGENCIA-01: el bloque fue añadido (<code>3e0b2d1</code>), revertido (<code>1f95cae</code>), re-añadido (<code>a10ab02</code>) y vuelto a revertir (<code>2126c52</code>) dos veces de forma intencionada para demos. Estado actual: bloque eliminado. Fuente: <code>git log -- definitions/playbooks/compra.yaml</code>.</td></tr><tr><td>9. Test / Cobertura</td><td>🟢 Verificada</td><td>El regex del check T1 está bien calibrado: `hoy.{0,40}no\</td><td>plazo\</td><td>24h\</td><td>24 horas\</td><td>entrega.{0,30}simulad\</td><td>entrega.{0,30}disponible\</td><td>equipo\</td><td>humano` cubre la variante textual de hora ("seis de la tarde") porque el agente debería mencionar el plazo de 24h o la inviabilidad, no la hora exacta. El test detecta correctamente el FAIL.</td></tr></tbody></table>
+
+<p><strong>Resumen visual:</strong></p>
+
+<p>```</p>
+<p>Capa 1 🔴  Capa 2 ⚪  Capa 3 🟢  Capa 4 🟢  Capa 5 🟡</p>
+<p>Capa 6 ⚪  Capa 7 🟢  Capa 8 🔴  Capa 9 🟢</p>
+<p>```</p>
+
+<p>Causa raíz única: <strong>ausencia del bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code></strong> (capa 1), documentada en el histórico de commits (capa 8). El estado actual es fruto de un revert intencional para demo.</p>
+
+<p>---</p></div>
+</div></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Eje</th><th>Valoración</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>Afecta únicamente al playbook <code>compra.yaml</code>. Sin impacto en otros recursos, flujos o playbooks.</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Fix conocido y ya probado: restaurar bloque existente. Sin cambios de arquitectura ni de integración.</td></tr><tr><td>Riesgo</td><td>Trivial</td><td>El bloque fue validado en producción en <code>a10ab02</code> y <code>3e0b2d1</code>. Anti-regresión cubierta por la suite existente (TC-URGENCIA-01 y TC-URGENCIA-02).</td></tr></tbody></table>
+
+<h4>Solución recomendada: #1</h4>
+
+<p><strong>Restaurar el bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code>.</strong></p>
+
+<p>El bloque ya existe en el historial de git (<code>a10ab02</code>) y ha sido probado en producción. El fix consiste en añadirlo de nuevo al FLUJO PRINCIPAL del playbook, antes de los pasos de slot-filling y búsqueda de catálogo:</p>
+
+<p>```</p>
+<p>⛔ DETECCION URGENCIA TEMPORAL ⛔</p>
+<p>Si $intencion_inicial o el input actual del usuario contiene palabras que implican entrega urgente:</p>
+<ul>
+<li>'hoy', 'ahora', 'ya', 'esta tarde', 'esta noche', 'en X minutos', 'en X horas'</li>
+<li>una hora concreta del mismo dia ('a las 6', 'a las 18:00', 'para las 7', 'antes de las X')</li>
+<li>'urgente', 'rapido', 'cuanto antes'</li>
+</ul>
+<p>ANTES de continuar con slot-filling o busqueda de catalogo, clarifica el plazo segun $modo_tono:</p>
+<ul>
+<li>Estandar: 'Mira, el plazo minimo de entrega es 24h, asi que para hoy no podemos...'</li>
+</ul>
+<p>...</p>
+<p>⛔ FIN DETECCION URGENCIA ⛔</p>
+<p>```</p>
+
+<p>Este fix resuelve simultáneamente TC-URGENCIA-01 y TC-URGENCIA-02 porque el bloque cubre tanto horas numéricas ("a las 6") como textuales ("a las seis de la tarde") mediante la regla genérica "hora concreta del mismo día".</p>
+
+<h4>Soluciones evaluadas (3)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Estimación</th><th>Ventajas</th><th>Inconvenientes</th></tr></thead><tbody><tr><td><strong>1</strong></td><td><strong>Restaurar bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code></strong></td><td><strong>~15 min</strong></td><td>Fix probado, cubre toda la familia URGENCIA (01 + 02), sin cambios de arquitectura.</td><td>Requiere hacer el fix en el mismo commit que TC-URGENCIA-01 (o después, si ya se aplicó).</td></tr><tr><td>2</td><td>Ampliar regex del check T1 para aceptar catálogo como respuesta válida</td><td>~5 min</td><td>No toca el playbook.</td><td>Solución incorrecta: el comportamiento del agente es el bug, no el test. Degradaría la cobertura QA.</td></tr><tr><td>3</td><td>Crear regla específica para variante textual de hora en <code>compra.yaml</code></td><td>~20 min</td><td>Más granular.</td><td>Duplicación de lógica respecto a la regla genérica ya existente. Mayor mantenimiento futuro.</td></tr></tbody></table>
+
+<h4>Plan de acción</h4>
+
+<p>1. Verificar si el fix de TC-URGENCIA-01 ya fue aplicado (<code>git log -- definitions/playbooks/compra.yaml</code>).</p>
+<p>2. Si no se ha aplicado: ejecutar <code>/qa-fix TC-URGENCIA-01 1</code> — resuelve ambos TCs en un único cambio.</p>
+<p>3. Si ya se aplicó a TC-URGENCIA-01: el bloque ya estará presente y este TC debería pasar en el siguiente run. Verificar con rerun.</p>
+<p>4. Validar que ambos TCs (01 y 02) pasan con 3/3 runs antes de cerrar.</p>
+
+<p>---</p>
+
+<p>&gt; <strong>Nota clave:</strong> TC-URGENCIA-02 forma parte del patrón URGENCIA junto con TC-URGENCIA-01. El fix de TC-URGENCIA-01 (restaurar el bloque <code>DETECCION URGENCIA TEMPORAL</code>) resuelve este TC sin cambios adicionales. No son bugs independientes: comparten causa raíz única (ausencia del mismo bloque) y la misma solución. Aplicar el fix una sola vez cubre ambos casos.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — variante sin hora ('esta tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260525_1254_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — variante sin hora ('esta tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header fail">❌ Run 1</div>
@@ -5054,7 +5186,56 @@ Confirmamos?"</div>
 </ul>
 <h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
 <p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-03"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>1 archivo (<code>compra.yaml</code>), restaurar 14 líneas ya escritas</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Restaurar instrucción condicional existente, sin nueva lógica</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix aplicado 2 veces sin regressions; reverts fueron intencionales para demo</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones</p>
+
+<h4>Solución recomendada: #1 — Restaurar bloque DETECCION URGENCIA TEMPORAL</h4>
+
+<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: fix conocido-bueno (probado en <code>3e0b2d1</code> y <code>a10ab02</code>, TC pasó a PASS en primer rerun en ambas ocasiones). Cherry-pick o edición directa de 14 líneas en 1 archivo. Sin riesgo de regresión documentado. La inexactitud del "24h siempre" vs. Madrid ciudad antes de 14:00 (más relevante en esta variante por la ambigüedad de "esta tarde") es deuda técnica de diseño conversacional para un sprint posterior, no un bloqueante.</p>
+
+<h4>Soluciones evaluadas (3 soluciones, DESC por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Restaurar bloque DETECCION URGENCIA TEMPORAL</strong> en <code>compra.yaml</code> (cherry-pick <code>a10ab02</code> o edición manual)</td><td>🟢 9/10</td><td>—</td><td>Fix probado 2 veces, 1 archivo, sin riesgo conocido. Único gap: no desambigua "esta tarde" vs. corte 14:00 Madrid ciudad</td></tr><tr><td>2</td><td><strong>Solución #1 + preguntar zona antes de dar plazo</strong> (añadir paso de zona en slot-filling inicial)</td><td>🟡 6/10</td><td>Refactor slot-filling Compra</td><td>Más preciso con la política real del Sheet (<code>envio_madrid_ciudad</code>) y especialmente relevante para la ambigüedad de "esta tarde", pero añade un turno extra y puede impactar otros TCs</td></tr><tr><td>3</td><td><strong>Añadir Example de urgencia variante "esta tarde"</strong> (few-shot turno-a-turno en <code>definitions/examples/</code>)</td><td>🟡 5/10</td><td>—</td><td>Complementario a #1, no elimina el gap de instrucciones. Útil como refuerzo si #1 sola muestra flakiness en esta variante semántica</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Editar <code>definitions/playbooks/compra.yaml</code></strong>: insertar el bloque antes de <code>-- PASO 0 - MODO SEGUN GRUPO --</code> (~línea 388):</p>
+
+<p>```</p>
+<p>⛔ DETECCION URGENCIA TEMPORAL ⛔</p>
+<p>Si $intencion_inicial o el input actual del usuario contiene palabras que implican entrega urgente:</p>
+<ul>
+<li>'hoy', 'ahora', 'ya', 'esta tarde', 'esta noche', 'en X minutos', 'en X horas'</li>
+<li>una hora concreta del mismo dia ('a las 6', 'a las 18:00', 'para las 7', 'antes de las X')</li>
+<li>'urgente', 'rapido', 'cuanto antes'</li>
+</ul>
+<p>ANTES de continuar con slot-filling o busqueda de catalogo, clarifica el plazo segun $modo_tono:</p>
+<ul>
+<li>Estandar: 'Mira, el plazo minimo de entrega es 24h, asi que para hoy no podemos. Te valdria para mañana o un dia despues?'</li>
+<li>Solemne: 'Lamentablemente el plazo minimo de entrega disponible es de 24h. Le valdria para mañana?'</li>
+<li>Corporativo: 'El plazo minimo de entrega es 24h. Para mañana o posterior?'</li>
+</ul>
+<p>ESPERA respuesta del usuario.</p>
+<ul>
+<li>Si acepta plazo (mañana o posterior) - continua el flujo normal (PASO 0).</li>
+<li>Si insiste en hoy o rechaza - $razon_handoff='cliente_solicita_humano' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $modo_tono. (Un humano puede gestionar excepciones de logistica).</li>
+</ul>
+<p>⛔ FIN DETECCION URGENCIA ⛔</p>
+<p>```</p>
+
+<p>2. <strong>Commit + PR + merge</strong> con <code>--admin --squash</code>.</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable en los 3 TCs del patrón.</p>
+
+<p><strong>Coste total</strong>: ~15 min (2 min edición + 3 min deploy + 10 min rerun × 3).</p>
+
+<p>&gt; <strong>Forma parte del patrón URGENCIA.</strong> El fix de TC-URGENCIA-01 resuelve este TC. Re-ejecutar los 3 TCs del patrón tras aplicar.</p>
+
+<p>&gt; <strong>Deuda técnica (Capa Datos):</strong> la respuesta "plazo mínimo 24h siempre" es inexacta para <code>envio_madrid_ciudad</code> (mismo día antes de 14:00). La ambigüedad de "esta tarde" hace este gap más pronunciado que en URGENCIA-01 (hora concreta) o URGENCIA-02 (expresión nocturna fuera de horario). Registrar como historia en <code>epic_backlog_conversational_design.md</code> para la Solución #2 en sprint posterior.</p></div></div>
 </div></div>
 
 <div id="metodologia-modal" class="modal hidden">
