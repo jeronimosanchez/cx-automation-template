@@ -785,15 +785,22 @@ def _parse_frontmatter(text):
     return meta, body
 
 
-def _load_tc_analysis(tc_id):
-    """Lee qa/tc_analysis/{tc_id}.md → {meta, turnos, recomendacion} o None.
+def _load_tc_analysis(tc_id, run_ts=None):
+    """Lee qa/tc_analysis/{run_ts}/{tc_id}.md → {meta, turnos, recomendacion} o None.
+
+    run_ts: timestamp compacto del run (ej: '20260525_1254'). Cuando se pasa,
+    busca en la subcarpeta run-scoped. Si es None, busca en el directorio raíz
+    (modo legado / compatibilidad).
 
     Secciones reconocidas en el MD:
       - Front-matter YAML (entre ---): meta (status, tipo, estimacion...)
       - ## T1, ## T2...: análisis técnico por turno (va en columna derecha)
       - ## Recomendación (o Recomendacion sin tilde): acción a tomar (banda inferior)
     """
-    path = TC_ANALYSIS_DIR / f"{tc_id}.md"
+    if run_ts:
+        path = TC_ANALYSIS_DIR / run_ts / f"{tc_id}.md"
+    else:
+        path = TC_ANALYSIS_DIR / f"{tc_id}.md"
     if not path.exists():
         return None
     text = path.read_text(encoding="utf-8")
@@ -1450,27 +1457,19 @@ def generate_html(results, ts, txt_file, logs_dir_name=None):
     groups = sorted(set(r["group"].split(">")[0] for r in results))
     quota_card = f'<div class="card c-quota" data-filter="QUOTA_ERROR" onclick="filterBy(\'QUOTA_ERROR\')"><div class="n">{n_quota}</div><div class="l">Quota</div></div>' if n_quota > 0 else ''
     # [v1.1 Cambio F] Cargar bloque de patrones cruzados si existe
-    # El skill escribe el archivo como _patterns_<TS>.md donde TS es el timestamp original
-    # con segundos (ej. 20260518_192907). El ts que recibe esta función puede venir
-    # truncado (sin segundos) desde regenerate_html.py. Usamos glob por prefijo para tolerar ambos.
+    # Los análisis y patrones son run-scoped: se guardan en qa/tc_analysis/{ts_compact}/
+    # El skill escribe _patterns_<TS>.md en esa subcarpeta al ejecutar el análisis.
     import glob as _glob
+    # ts_compact: "20260525_1254" — usado como nombre de subcarpeta run-scoped
+    _ts_compact = ts.replace("-", "").replace(" ", "_").replace(":", "")
     patterns_block = ""
     has_legacy_analyses = False
     try:
-        ts_compact = ts.replace("-", "").replace(" ", "_").replace(":", "")
-        _patterns_dir = os.path.join(os.path.dirname(__file__), "tc_analysis")
-        # Buscar por prefijo: _patterns_20260518_1929*.md → match con o sin segundos
-        _patterns_matches = _glob.glob(os.path.join(_patterns_dir, f"_patterns_{ts_compact}*.md"))
-        # Si no hay match exacto, intentar con prefijo más corto (fecha_hora_minuto)
-        if not _patterns_matches and len(ts_compact) >= 13:
-            _patterns_matches = _glob.glob(os.path.join(_patterns_dir, f"_patterns_{ts_compact[:13]}*.md"))
-        # Fallback: misma fecha (el análisis por lotes puede tener un timestamp propio)
-        if not _patterns_matches and len(ts_compact) >= 8:
-            _day_matches = sorted(_glob.glob(os.path.join(_patterns_dir, f"_patterns_{ts_compact[:8]}*.md")))
-            if _day_matches:
-                _patterns_matches = [_day_matches[-1]]  # el más reciente del mismo día
+        _analysis_run_dir = os.path.join(os.path.dirname(__file__), "tc_analysis", _ts_compact)
+        # Buscar _patterns_*.md dentro de la subcarpeta del run
+        _patterns_matches = _glob.glob(os.path.join(_analysis_run_dir, "_patterns_*.md"))
         if _patterns_matches:
-            with open(_patterns_matches[0], "r", encoding="utf-8") as _pf:
+            with open(sorted(_patterns_matches)[-1], "r", encoding="utf-8") as _pf:
                 _patterns_md = _pf.read()
             _patterns_html = _render_patterns_html(_patterns_md)
             # Extraer stats para el header colapsable
@@ -1496,7 +1495,7 @@ def generate_html(results, ts, txt_file, logs_dir_name=None):
                 f'</div>'
             )
         # Detectar análisis con formato viejo (7 capas v1.0) para mostrar la nota solo si aplica
-        _all_analyses = _glob.glob(os.path.join(_patterns_dir, "TC-*.md"))
+        _all_analyses = _glob.glob(os.path.join(_analysis_run_dir, "TC-*.md"))
         for _a in _all_analyses:
             try:
                 with open(_a, "r", encoding="utf-8") as _af:
@@ -1932,7 +1931,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
         bc = {"PASS": "b-p", "FAIL": "b-f", "INESTABLE": "b-i", "QUOTA_ERROR": "b-q"}.get(r["status"], "b-i")
         badge = f'<span class="b {bc}">{r["status"]}</span>'
         # Tag de tipo en el header (sustituye al veredicto)
-        _analysis_peek = _load_tc_analysis(r["id"])
+        _analysis_peek = _load_tc_analysis(r["id"], run_ts=_ts_compact)
         tipo_tag_html = ""
         if _analysis_peek:
             _tipo = _analysis_peek["meta"].get("tipo", "")
