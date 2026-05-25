@@ -154,7 +154,7 @@ Hipótesis más probable: el check evalúa cada alternativa de la lista `[A|B|C|
 
 ---
 
-## Soluciones propuestas
+## Recomendación
 
 ### Solución #1 — Restaurar template ECO RESUMEN Paso 7 con ambos productos y total ⭐ RECOMENDADA
 
@@ -206,7 +206,7 @@ Crear un Example que muestre el flujo completo multi-producto con el ECO RESUMEN
 
 ---
 
-## Plan de acción — Solución #1
+### Plan de acción (Solución #1)
 
 1. Editar `definitions/playbooks/compra.yaml` líneas 601-606
 2. Restaurar el template del Paso 7 con `$producto_2`, `$precio_2` y total combinado (referencia: `git show 4f7adea -- definitions/playbooks/compra.yaml`)

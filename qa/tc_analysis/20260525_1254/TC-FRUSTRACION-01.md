@@ -127,7 +127,7 @@ El regex `[propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]` e
 
 ---
 
-## Soluciones propuestas
+## Recomendación
 
 ### Solución #1 — Especificar instrucción Rechazo 2 en compra.yaml ⭐ RECOMENDADA
 
@@ -169,7 +169,7 @@ Crear un Example que muestre el comportamiento correcto en Rechazo 2 (agente pre
 
 ---
 
-## Plan de acción — Solución #1
+### Plan de acción (Solución #1)
 
 1. Editar `definitions/playbooks/compra.yaml` línea ~726
 2. Cambiar: `Rechazo 2 pregunta motivo.`
