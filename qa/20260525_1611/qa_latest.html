@@ -1,0 +1,1577 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<title>QA Petal 2026-05-25 16:11</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:#0e0e0e;color:#e0e0e0;padding:20px;max-width:960px;margin:0 auto}
+h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
+.sub{color:#666;font-size:12px;margin-bottom:20px;font-family:'DM Mono',monospace}
+.hdr{background:#141414;border:1px solid #222;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 20px;font-size:12px;color:#777}
+.hdr b{color:#bbb}
+.cards{display:flex;gap:10px;margin-bottom:16px}
+.card{background:#1a1a1a;border-radius:8px;padding:12px 18px;flex:1;text-align:center;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.card:hover{border-color:#444}.card.active{border-color:#c8f060}
+.card .n{font-size:28px;font-weight:600}.card .l{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px}
+.card.c-pass .n{color:#22c55e}.card.c-fail .n{color:#ef4444}.card.c-total .n{color:#c8f060}.card.c-inst .n{color:#f59e0b}.card.c-quota .n{color:#f97316}.card.c-pct .n{color:#888}
+.bar{background:#1a1a1a;border-radius:6px;height:8px;margin-bottom:20px;overflow:hidden;display:flex}
+.bar-g{background:#22c55e}.bar-y{background:#f59e0b}.bar-r{background:#ef4444}
+.dl{display:inline-block;font-size:11px;padding:5px 14px;border-radius:5px;background:#c8f06022;color:#c8f060;border:1px solid #c8f06044;cursor:pointer;margin-bottom:16px;text-decoration:none}
+.dl:hover{background:#c8f06033}
+.dl-disabled{background:#1a1a1a !important;color:#666 !important;border-color:#374151 !important;cursor:not-allowed !important}
+.dl-disabled:hover{background:#1a1a1a !important}
+.optimize-panel{background:#141414;border:1px solid #222;border-radius:8px;padding:16px;margin-bottom:16px}
+.optimize-panel.hidden{display:none}
+.optimize-panel-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.optimize-panel-title{color:#c8f060;font-size:12px;font-family:'DM Mono',monospace;letter-spacing:.3px;flex:1}
+.optimize-panel-header .dl{margin-bottom:0}
+.run-feedback{color:#c8f060;font-size:11px;font-family:'DM Mono',monospace;opacity:0;transition:opacity .2s}
+.run-feedback.visible{opacity:1}
+.optimize-table{width:100%;border-collapse:collapse;font-size:11px}
+.optimize-table th{background:#1a1a1a;color:#c8f060;font-weight:600;padding:8px 10px;text-align:left;border-bottom:1px solid #222;text-transform:uppercase;letter-spacing:.3px;font-size:10px}
+.optimize-table td{padding:8px 10px;border-bottom:1px solid #1a1a1a;color:#ddd;vertical-align:top}
+.optimize-table tr:hover{background:#1a1a1a}
+.optimize-table td:first-child{width:30px;text-align:center}
+.optimize-table td:nth-child(2){font-family:'DM Mono',monospace;color:#c8f060;font-size:11px;white-space:nowrap}
+.optimize-table td:nth-child(4),.optimize-table td:nth-child(5){color:#aaa;font-size:10px;line-height:1.4}
+.optimize-table input[type=checkbox]{accent-color:#c8f060;cursor:pointer;width:14px;height:14px}
+.filter-bar{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0;border-bottom:1px solid #1a1a1a}
+.filter-row:last-child{border-bottom:none}
+.filter-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#666;font-weight:700;min-width:80px;font-family:'DM Mono',monospace}
+.fbtn{font-size:11px;padding:4px 12px;border-radius:5px;background:#1a1a1a;border:1px solid #282828;color:#777;cursor:pointer;transition:all .15s;position:relative}
+.fbtn[data-legend]:hover::after{content:attr(data-legend);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1f1f1f;color:#c8f060;padding:6px 10px;border-radius:4px;font-size:11px;white-space:nowrap;border:1px solid #444;z-index:10;pointer-events:none;font-weight:normal;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.fbtn[data-legend]:hover::before{content:"";position:absolute;bottom:calc(100% + 1px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#444;z-index:10;pointer-events:none}
+.fbtn:hover{border-color:#444;color:#ccc}.fbtn.active{border-color:#c8f060;color:#c8f060;background:#c8f06011}
+.t{background:#141414;border:1px solid #222;border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color .2s}
+.t:hover{border-color:#333}
+.t.sb-pass{border-left:3px solid #22c55e}.t.sb-fail{border-left:3px solid #ef4444}.t.sb-inst{border-left:3px solid #f59e0b}.t.sb-quota{border-left:3px solid #f97316}
+.th{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+.th:hover{background:#1a1a1a}
+.th-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tid{color:#c8f060;font-weight:500;font-size:12px;font-family:'DM Mono',monospace}
+.tname{font-size:13px;color:#ccc}
+.tgroup{font-size:10px;padding:2px 6px;border-radius:3px;background:#333;color:#999;font-family:'DM Mono',monospace}
+.truns{font-size:10px;color:#777;font-family:'DM Mono',monospace}
+.b{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:.3px}
+.b-p{background:#22c55e22;color:#22c55e}.b-f{background:#ef444422;color:#ef4444}.b-i{background:#f59e0b22;color:#f59e0b}.b-q{background:#f9731622;color:#f97316}
+.arrow{transition:transform .2s;color:#555;font-size:14px}.arrow.open{transform:rotate(90deg)}
+.tbody{display:none;padding:0 14px 14px;border-top:1px solid #1e1e1e}.tbody.open{display:block}
+.run-header{font-size:11px;font-weight:600;color:#888;margin:12px 0 6px;padding:4px 8px;background:#111;border-radius:4px;font-family:'DM Mono',monospace}
+.run-header.rp{color:#22c55e}.run-header.rf{color:#ef4444}
+.turn{margin:6px 0;padding:10px 12px;background:#0e0e0e;border-radius:6px;border:1px solid #1e1e1e}
+.turn-num{font-size:10px;color:#555;font-family:'DM Mono',monospace;margin-bottom:6px}
+.turn-user .label{color:#8b8bf5;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.turn-user .text{color:#ddd;font-size:13px;margin-top:2px}
+.turn-agent .label{color:#c8f060;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.turn-agent .text{color:#aaa;font-size:12px;margin-top:2px;line-height:1.5;max-height:120px;overflow-y:auto}
+.turn-params{font-size:11px;color:#666;font-family:'DM Mono',monospace;margin-top:4px}
+.turn-params span{color:#f59e0b}
+.turn-check{margin-top:6px;font-size:11px}.turn-check.ok{color:#22c55e}.turn-check.fail{color:#ef4444}
+.turn-agent.has-fail{border-left:3px solid #ef4444;padding-left:10px;margin-left:-2px}
+.turn-agent.has-ok{border-left:3px solid #22c55e;padding-left:10px;margin-left:-2px}
+/* Tag de tipo en header del TC (sustituye al veredicto) */
+.tipo-tag{font-size:10px;padding:2px 8px;border-radius:3px;background:#f9731622;color:#f97316;font-family:'DM Mono',monospace;font-weight:600}
+/* Banda de recomendación al final del TC */
+.recomendacion{margin:14px 0 4px;padding:14px 16px;background:#0c1f0c;border:1px solid #1e3a1e;border-left:4px solid #22c55e;border-radius:6px}
+.recomendacion.fail{background:#1f0e0c;border-color:#3a1e1e;border-left-color:#ef4444}
+.recomendacion.fail .rec-title{color:#fca5a5}
+.recomendacion.fail .rec-icon{filter:none}
+.recomendacion.pass{background:#0c1f0c;border-color:#1e3a1e;border-left-color:#22c55e}
+.rec-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.rec-icon{font-size:18px}
+.rec-title{color:#22c55e;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+.rec-tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:3px;background:#22c55e22;color:#22c55e;font-family:'DM Mono',monospace;font-weight:600}
+.rec-content p{font-size:11px;color:#cce;line-height:1.5;margin:3px 0}
+.rec-content ul{margin:4px 0 4px 16px}
+.rec-content li{font-size:11px;color:#cce;line-height:1.45;margin:2px 0}
+.rec-content code{background:#1a2e1a;color:#86efac;padding:1px 4px;border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}
+.rec-content strong{color:#86efac;font-weight:600}
+.rec-content h2,.rec-content h3,.rec-content h4{color:#22c55e;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 3px}
+.rec-content .md-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
+.rec-content .md-table th,.rec-content .md-table td{border:1px solid #1a3a1a;padding:5px 7px;text-align:left;vertical-align:top}
+.rec-content .md-table th{background:#0c1f0c;color:#86efac;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
+.rec-content .md-table tr:nth-child(even){background:#0a1a0a}
+.solucion-recomendada{margin:0 0 10px;padding:10px 12px;background:#1a2e1a;border:1px solid #22c55e44;border-left:4px solid #22c55e;border-radius:5px}
+.solucion-recomendada .sr-label{display:block;font-size:10px;color:#86efac;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:4px;font-family:'DM Mono',monospace}
+.solucion-recomendada .sr-title{font-size:14px;color:#fff;font-weight:600;margin-bottom:4px}
+.solucion-recomendada .sr-why{font-size:11px;color:#cce;line-height:1.5;margin-top:6px}
+.rec-content h4:first-child{margin-top:0}
+.ta-table{width:100%;border-collapse:collapse;margin:8px 0}
+.ta-table th,.ta-table td{vertical-align:top;border:1px solid #1e1e1e;padding:8px 10px}
+.ta-table th{background:#111;color:#888;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;text-align:left}
+.ta-th-turno{background:#1a1a1a !important;color:#c8f060 !important;font-family:'DM Mono',monospace}
+.ta-col-left{width:42%;background:#0e0e0e}
+.ta-col-right{width:58%;background:#111}
+.ta-run-header{font-size:14px;font-weight:700;padding:8px 10px;margin:8px 0 0;background:#1a1a1a;border:1px solid #222;border-bottom:none;border-radius:6px 6px 0 0;color:#ddd;font-family:'DM Mono',monospace;letter-spacing:.5px}
+.ta-run-header.ok{color:#22c55e;border-color:#22c55e33}.ta-run-header.fail{color:#ef4444;border-color:#ef444433}
+.ta-run-header + .ta-table{border-radius:0;margin-top:0}
+.ta-run-header + .ta-table th{border-top:none}
+.ta-run-block{margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #222}
+.ta-run-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.ta-run-tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;background:#222;color:#888;font-family:'DM Mono',monospace;margin-bottom:4px}
+.ta-run-tag.ok{background:#22c55e22;color:#22c55e}.ta-run-tag.fail{background:#ef444422;color:#ef4444}
+/* Convención de colores en bloques User/Agent:
+   - Texto conversacional (lo que dice cada uno): #ddd (igual para los dos)
+   - Label USUARIO: violeta #8b8bf5
+   - Label AGENTE: violeta #8b8bf5 + subrayado (distinguir sin saturar con colores)
+   - El color verde-lima queda reservado para el header "TURNO" (estructural)
+*/
+.ta-user{color:#ddd;font-size:13px;margin-bottom:6px;line-height:1.5}
+.ta-user .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;display:block;margin-bottom:2px;font-style:normal}
+.ta-user .ta-text{font-style:italic;color:#ddd}
+.ta-agent{color:#ddd;font-size:13px;line-height:1.5;margin-bottom:6px}
+.ta-agent .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;text-decoration:underline;text-underline-offset:3px;display:block;margin-bottom:2px;font-style:normal}
+.ta-agent .ta-text{font-style:italic;color:#ddd}
+.ta-checks{margin-top:4px}
+.ta-checks .turn-check{margin-top:2px;font-size:10px}
+.log-btn{display:inline-block;font-size:14px;padding:2px 6px;margin-right:8px;background:#1a1a1a;border:1px solid #333;border-radius:4px;text-decoration:none;cursor:pointer;transition:all .15s}
+.log-btn:hover{background:#222;border-color:#c8f060}
+.ta-bullets{margin:4px 0 4px 16px;padding:0;list-style:disc}
+.ta-bullets li{font-size:11px;line-height:1.4;margin:1px 0;word-break:break-word;font-family:'DM Mono',monospace}
+.ta-bullets.ok{color:#22c55e}.ta-bullets.ok li{color:#22c55e}
+.ta-bullets.fail{color:#ef4444}.ta-bullets.fail li{color:#ef4444}
+.ta-detail{margin:6px 0 10px;border:1px solid #1f1f1f;border-radius:5px;background:#0d0d0d}
+.ta-detail summary{padding:8px 12px;cursor:pointer;color:#aaa;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.3px;list-style:none;user-select:none;display:flex;justify-content:space-between;align-items:center}
+.ta-detail summary::-webkit-details-marker{display:none}
+.ta-detail summary:hover{color:#c8f060;background:#101010}
+.ta-detail .ta-detail-icon{display:inline-block;transition:transform .15s;color:#666;font-size:10px}
+.ta-detail[open] .ta-detail-icon{transform:rotate(90deg);color:#c8f060}
+.ta-detail .ta-flow-table{margin:0;border-top:1px solid #1f1f1f}
+.ta-flow-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:12px}
+.ta-flow-table td{padding:6px 8px;border-bottom:1px solid #1e1e1e;vertical-align:top}
+.ta-flow-table tr:last-child td{border-bottom:none}
+.ta-flow-table .col-step{width:62%;color:#ddd}
+.ta-flow-table .col-problem{width:38%;color:#aaa;font-size:11px;border-left:1px solid #1e1e1e;padding-left:10px}
+.ta-flow-table code{background:#1f2937;color:#cbd5e1;padding:1px 4px;border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}
+.ta-flow-table em{color:#ddd;font-style:italic}
+.trace-step{margin:6px 0;padding:6px 10px;border-radius:4px;font-size:12px;line-height:1.5}
+.trace-user{background:#1a1a2e;border-left:3px solid #8b8bf5;color:#ddd}
+.trace-agent{background:#1a1a1a;border-left:3px solid #c8f060;color:#ddd}
+.trace-action{background:transparent;color:#aaa;padding:4px 10px 4px 24px;font-style:italic}
+.trace-arrow{color:#666;margin-right:4px}
+.trace-lbl{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:#8b8bf5;margin-bottom:2px}
+.trace-agent .trace-lbl{color:#8b8bf5;text-decoration:underline;text-underline-offset:3px}
+.trace-text{color:#ddd;font-style:italic}
+/* Análisis técnico (columna derecha): texto en #ddd (coherente con user/agent), code en gris-azul */
+.ta-right h2,.ta-right h3{color:#c8f060;font-size:12px;font-weight:600;margin:10px 0 4px}
+.ta-right h2{font-size:14px}
+.ta-right h4{font-size:10px;color:#c8f060;font-weight:600;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+.ta-right h4:first-child{margin-top:0}
+.ta-right p{font-size:13px;color:#ddd;line-height:1.6;margin:4px 0}
+.ta-right ul,.ta-right ol{margin:6px 0 6px 18px}
+.ta-right li{font-size:13px;color:#ddd;line-height:1.55;margin:2px 0}
+.ta-right .manual-analysis ol li{margin:10px 0;line-height:1.6}
+.ta-right .manual-analysis ul li{margin:6px 0}
+.diag-block{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}
+.diag-header{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}
+/* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz') */
+.capa-block{margin:14px 0;padding:14px 16px;border-radius:6px;border-left:4px solid transparent;min-height:48px}
+.capa-block.capa-rojo{background:rgba(255,80,80,0.07);border-left-color:#e85050}
+.capa-block.capa-verde{background:rgba(80,200,80,0.05);border-left-color:#5dc870}
+.capa-block.capa-amarillo{background:rgba(220,180,50,0.06);border-left-color:#d4b32f}
+.capa-block.capa-na{background:rgba(255,255,255,0.02);border-left-color:#555}
+.capa-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.capa-emoji{font-size:18px;line-height:1;flex-shrink:0}
+.capa-titulo{flex:1;font-size:14px;color:#fff}
+.capa-titulo strong{color:#fff;font-weight:600}
+.capa-badge{padding:3px 12px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;font-family:'DM Mono',monospace;letter-spacing:.3px}
+.capa-badge-verificada{background:rgba(80,200,80,0.15);color:#5dc870;border:1px solid rgba(80,200,80,0.35)}
+.capa-badge-supuesta{background:rgba(220,180,50,0.15);color:#d4b32f;border:1px solid rgba(220,180,50,0.35)}
+.capa-badge-na{background:rgba(150,150,150,0.12);color:#aaa;border:1px solid rgba(150,150,150,0.3)}
+.capa-fuente{font-size:12px;margin-top:8px;margin-left:30px}
+.capa-fuente code{display:inline-block;max-width:100%;background:#2a2a2a;color:#ddd;padding:3px 10px;border-radius:4px;font-size:11px;font-family:'DM Mono',monospace;word-break:break-word;overflow-wrap:anywhere;white-space:normal;line-height:1.5;box-sizing:border-box}
+.capa-desc{margin-top:8px;margin-left:30px}
+.capa-desc p,.capa-desc-p{color:#ddd;font-size:13px;line-height:1.6;margin:6px 0}
+.capa-desc code{background:#2a2a2a;color:#ddd;padding:1px 6px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace;word-break:break-word;overflow-wrap:anywhere}
+.badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}
+.badge-auto{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}
+.badge-llm{background:#1a2818;color:#c8f060;border:1px solid #2a4818}
+.panel-close{color:#888 !important;font-size:14px;padding:4px 10px !important}
+.panel-close:hover{color:#fff !important;background:#222}
+.ta-right code{background:#1f2937;color:#cbd5e1;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}
+.ta-right strong{color:#fff;font-weight:600}
+.ta-right em{color:#aaa;font-style:italic}
+.ta-right a{color:#c8f060;text-decoration:none}.ta-right a:hover{text-decoration:underline}
+.ta-right .md-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
+.ta-right .md-table th,.ta-right .md-table td{border:1px solid #1e1e1e;padding:5px 7px;text-align:left}
+.ta-right .md-table th{background:#1a1a1a;color:#c8f060;font-weight:600}
+.ta-right .md-table tr:nth-child(even){background:#0e0e0e}
+.diag-manual-block{margin:12px 0 4px;padding:12px 14px;background:#0c0c0e;border:1px solid #1f1f2a;border-left:3px solid #c8f060;border-radius:6px}
+.diag-manual-block h2,.diag-manual-block h3{color:#c8f060;font-size:12px;font-weight:600;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace}
+.diag-manual-block h4{color:#aaa;font-size:11px;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+.diag-manual-block p{font-size:13px;color:#ddd;line-height:1.6;margin:4px 0}
+.diag-manual-block ul{margin:6px 0 6px 20px}
+.diag-manual-block li{font-size:13px;color:#ddd;line-height:1.55;margin:4px 0}
+.diag-manual-block code{background:#1f2937;color:#cbd5e1;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}
+.diag-manual-block strong{color:#fff;font-weight:600}
+.diag-manual-block em{color:#aaa;font-style:italic}
+.diag-manual-block .md-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
+.diag-manual-block .md-table th,.diag-manual-block .md-table td{border:1px solid #1e1e1e;padding:6px 9px;text-align:left;vertical-align:top}
+.diag-manual-block .md-table th{background:#1a1a1a;color:#c8f060;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+.diag-manual-block .md-table tr:nth-child(even){background:#0e0e0e}
+.resumen-section{margin:32px 0 16px;padding:18px 20px;background:#141414;border:1px solid #222;border-radius:8px;border-left:3px solid #c8f060}
+.resumen-section h2,.resumen-section h3,.resumen-section h4{color:#c8f060;margin:14px 0 8px}
+.resumen-section h2{font-size:18px;font-weight:600}
+.resumen-section h3{font-size:14px;font-weight:600;color:#bbb}
+.resumen-section h4{font-size:12px;color:#888}
+.resumen-section p{font-size:13px;color:#bbb;line-height:1.6;margin:6px 0}
+.resumen-section ul{margin:6px 0 10px 18px}
+.resumen-section li{font-size:13px;color:#bbb;line-height:1.55;margin:3px 0}
+.resumen-section code{background:#222;color:#c8f060;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}
+.resumen-section strong{color:#ddd}
+.resumen-section em{color:#aaa;font-style:italic}
+.resumen-section .md-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}
+.resumen-section .md-table th,.resumen-section .md-table td{border:1px solid #222;padding:8px 10px;text-align:left;vertical-align:top}
+.resumen-section .md-table th{background:#1a1a1a;color:#c8f060;font-weight:600}
+.resumen-section .md-table tr:nth-child(even){background:#0e0e0e}
+.actions-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.modal{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:100;display:flex;align-items:center;justify-content:center}
+.modal.hidden{display:none}
+.modal-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7)}
+.modal-content{position:relative;background:#141414;border:1px solid #333;border-radius:8px;padding:24px;max-width:880px;width:90%;max-height:80vh;overflow-y:auto}
+.modal-content h2{color:#c8f060;font-size:18px;margin-bottom:14px}
+.modal-close{position:absolute;top:10px;right:14px;background:none;border:none;color:#888;font-size:24px;cursor:pointer;line-height:1}
+.modal-close:hover{color:#fff}
+.modal-metodologia{max-width:760px}
+.modal-sub{color:#888;font-size:11px;font-family:'DM Mono',monospace;margin-bottom:18px;letter-spacing:.3px}
+.kpi-section{margin:18px 0;padding:14px 16px;background:#0d0d0d;border:1px solid #1f1f1f;border-radius:6px;position:relative}
+.kpi-section h3[data-legend]{cursor:help;position:relative;display:inline-block}
+.kpi-section h3[data-legend]:hover::after{content:attr(data-legend);position:absolute;top:calc(100% + 6px);left:0;background:#1f1f1f;color:#ddd;padding:10px 14px;border-radius:5px;font-size:11px;line-height:1.5;border:1px solid #444;z-index:1000;width:340px;white-space:normal;font-family:'Inter',-apple-system,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.5);font-weight:normal;letter-spacing:normal;text-transform:none}
+.kpi-section h3[data-legend]:hover::before{content:"";position:absolute;top:calc(100% - 1px);left:20px;border:6px solid transparent;border-bottom-color:#444;z-index:1000}
+.kpi-section h3{color:#c8f060;font-size:13px;margin:0 0 10px;font-family:'DM Mono',monospace;letter-spacing:.3px}
+.kpi-section h4{color:#aaa;font-size:11px;margin:12px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.kpi-section p{color:#ddd;font-size:12px;line-height:1.5;margin:4px 0}
+.kpi-section ul{margin:4px 0 4px 18px;padding:0}
+.kpi-section li{color:#ddd;font-size:12px;line-height:1.5;margin:2px 0}
+.kpi-section code{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace}
+.kpi-sub{color:#888 !important;font-size:11px !important;font-style:italic}
+.kpi-action{color:#aaa !important;font-size:11px !important}
+.kpi-no-data{color:#666 !important;font-size:11px !important;text-align:center;padding:10px 0}
+.kpi-flak h3{color:#fbbf24}
+.kpi-component{margin:10px 0 14px;padding-left:8px;border-left:2px solid #1f1f1f}
+.kpi-bar-row{display:flex;align-items:center;gap:8px;margin:3px 0;position:relative;cursor:help}
+.kpi-bar-row[data-legend]:hover::after{content:attr(data-legend);position:absolute;bottom:calc(100% + 8px);left:0;background:#1f1f1f;color:#ddd;padding:10px 14px;border-radius:5px;font-size:11px;line-height:1.5;border:1px solid #444;z-index:1000;width:340px;white-space:normal;font-family:'Inter',-apple-system,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+.kpi-bar-row[data-legend]:hover::before{content:"";position:absolute;bottom:calc(100% + 2px);left:30px;border:6px solid transparent;border-top-color:#444;z-index:1000}
+.kpi-label{flex:0 0 180px;font-size:11px;color:#ccc}
+.kpi-bar{flex:1;height:8px;background:#1a1a1a;border-radius:4px;overflow:hidden}
+.kpi-bar-fill{height:100%;background:linear-gradient(90deg,#22c55e,#86efac);border-radius:4px;transition:width .3s}
+.kpi-value{flex:0 0 50px;text-align:right;font-size:11px;color:#c8f060;font-family:'DM Mono',monospace;font-weight:600}
+.kpi-cobertura{width:100%;border-collapse:collapse;font-size:11px;margin:4px 0}
+.kpi-cobertura td{padding:4px 8px;border-bottom:1px solid #1a1a1a;color:#ddd}
+.kpi-cobertura td:nth-child(2){color:#aaa;width:30%}
+.kpi-cobertura td:nth-child(3){color:#888;width:18%;text-align:right;font-size:10px}
+.kpi-regr{width:100%;border-collapse:collapse;font-size:12px}
+.kpi-regr td{padding:6px 10px;border-bottom:1px solid #1a1a1a;color:#ddd}
+.kpi-regr td:first-child{color:#888;width:30%;font-size:11px}
+.delta-up{color:#22c55e !important;font-weight:600}
+.delta-down{color:#ef4444 !important;font-weight:600}
+.delta-neutral{color:#888 !important;font-weight:600}
+/* fbtn-modal: usa estilo idéntico a fbtn normal (sin highlight) */
+.hist-table{width:100%;border-collapse:collapse;font-size:12px}
+.hist-table th,.hist-table td{border:1px solid #222;padding:8px 10px;text-align:left}
+.hist-table th{background:#1a1a1a;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.hist-table td.ok{color:#22c55e;font-weight:600}
+.hist-table td.inst{color:#f59e0b;font-weight:600}
+.hist-table td.fail{color:#ef4444;font-weight:600}
+.hist-table tr:hover{background:#1a1a1a}
+.hist-table tr.current{background:#c8f06011}
+.hist-table tr.current td:first-child::after{content:" ★";color:#c8f060}
+.hist-table a{color:#c8f060;text-decoration:none}.hist-table a:hover{text-decoration:underline}
+.hist-loading{padding:30px;text-align:center;color:#888}
+.grupos-legend{margin:8px 0 16px;background:#141414;border:1px solid #222;border-radius:8px;padding:0}
+.grupos-legend summary{cursor:pointer;padding:10px 14px;font-size:12px;color:#c8f060;font-weight:500;list-style:none;user-select:none}
+.grupos-legend summary::-webkit-details-marker{display:none}
+.grupos-legend summary::before{content:"▶ ";color:#555;font-size:10px;margin-right:4px}
+.grupos-legend[open] summary::before{content:"▼ "}
+.grupos-legend[open] summary{border-bottom:1px solid #1e1e1e}
+.legend-table{width:100%;border-collapse:collapse;margin:0}
+.legend-table th{background:#1a1a1a;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;text-align:left;font-weight:600}
+.legend-table td{padding:8px 14px;font-size:12px;border-top:1px solid #1e1e1e}
+.legend-table td:first-child{width:160px;color:#c8f060;font-family:'DM Mono',monospace;font-size:11px}
+.legend-table code{background:#222;color:#c8f060;padding:1px 5px;border-radius:3px;font-size:11px}
+.legend-table tr:nth-child(even){background:#0e0e0e}
+.legend-note{font-size:11px;color:#666;padding:10px 14px;border-top:1px solid #1e1e1e;margin:0}
+.backfilled-tag{font-size:9px;background:#444;color:#bbb;padding:1px 5px;border-radius:3px;margin-left:6px;text-transform:uppercase;letter-spacing:.3px;font-family:'DM Mono',monospace}
+.hidden{display:none!important}
+/* Botón "?" circular (info de capas / marcas) */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#444;color:#ddd;border:1px solid #666;font-size:11px;cursor:pointer;margin-left:6px;padding:0;font-weight:bold;line-height:1;vertical-align:middle}
+.info-btn:hover{background:#666;color:#fff}
+/* Modal info (capas / marcas) */
+.info-modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;justify-content:center;align-items:center}
+.info-modal-overlay.visible{display:flex}
+.info-modal{background:#1a1a1a;border:1px solid #444;border-radius:8px;max-width:600px;width:90%;padding:24px;color:#ddd;font-size:14px;line-height:1.6;position:relative}
+.info-modal h3{margin-top:0;color:#fff}
+.info-modal-close{position:absolute;top:12px;right:12px;background:transparent;border:none;color:#888;font-size:20px;cursor:pointer;padding:0;line-height:1}
+.info-modal-close:hover{color:#fff}
+.info-modal table{width:100%;border-collapse:collapse;margin-top:8px}
+.info-modal td{padding:6px 8px;border-bottom:1px solid #333}
+.info-modal code{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}
+/* Patrones cruzados — bloque colapsable (rojo = análisis de errores) */
+.patterns-block{background:#1a1a1a;border:1px solid #ef4444;border-left:4px solid #ef4444;border-radius:8px;margin-bottom:16px;overflow:hidden}
+.patterns-th{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}
+.patterns-th:hover{background:#222}
+.patterns-icon{font-size:15px;flex:0 0 auto}
+.patterns-title{color:#ef4444;font-size:13px;font-weight:700;flex:0 0 auto}
+.patterns-stats{color:#999;font-size:11px;font-family:'DM Mono',monospace;flex:1}
+.patterns-arrow{color:#ef4444;font-size:10px;transition:transform 0.2s;margin-left:auto;flex:0 0 auto}
+.patterns-arrow.open{transform:rotate(90deg)}
+.patterns-body{display:none;padding:4px 16px 16px;border-top:1px solid #2a2a2a}
+.patterns-body.open{display:block}
+.patterns-block h2{display:none}
+/* Patterns body — sketch layout (2-col cards) */
+.pat-resumen{background:#1a1a1a;border:1px solid #2d2d2d;border-radius:6px;padding:10px 14px;margin-bottom:14px}
+.pat-resumen-title{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:6px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}
+.pat-resumen-stat{font-size:12px;color:#ccc;margin-bottom:2px;line-height:1.5}
+.pat-card{background:#141414;border:1px solid #2d2d2d;border-radius:6px;margin-bottom:12px;overflow:hidden}
+.pat-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #2a2a2a;gap:10px}
+.pat-card-title{font-size:13px;font-weight:600;color:#e0e0e0;flex:1}
+.pat-roi-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#c8f060;background:#0e1f05;border:1px solid #c8f06044;padding:3px 10px;border-radius:5px;margin-bottom:8px;user-select:none}
+.pat-roi-q{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#c8f06033;color:#c8f060;font-size:9px;font-weight:700;flex-shrink:0;cursor:pointer;transition:background .15s}
+.pat-roi-q:hover{background:#c8f06066}
+.pat-wip{font-size:12px;color:#666;font-style:italic;padding:6px 10px;border-left:2px solid #333;background:#161616;border-radius:0 4px 4px 0;line-height:1.5}
+.roi-modal-overlay{display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center}
+.roi-modal-overlay.open{display:flex}
+.roi-modal{background:#1a1a1a;border:1px solid #ef4444;border-radius:8px;width:380px;max-width:90vw;box-shadow:0 8px 32px #000c;overflow:hidden}
+.roi-modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2a2a2a}
+.roi-modal-ttl{font-size:13px;font-weight:700;color:#ef4444}
+.roi-modal-x{font-size:20px;color:#666;cursor:pointer;line-height:1;padding:0 2px}
+.roi-modal-x:hover{color:#ccc}
+.roi-modal-body{padding:14px 16px}
+.rmi-def{font-size:12px;color:#ccc;line-height:1.5;margin-bottom:12px}
+.rmi-section{margin-bottom:12px}
+.rmi-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;color:#777;text-transform:uppercase;margin-bottom:5px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}
+.rmi-formula{font-size:12px;font-family:'DM Mono',monospace;color:#c8f060;background:#0e1f05;padding:6px 10px;border-radius:4px}
+.rmi-row{display:flex;justify-content:space-between;font-size:12px;color:#ccc;padding:4px 0;border-bottom:1px solid #222}
+.rmi-result{color:#c8f060;font-weight:700;border-bottom:none;margin-top:4px;padding-top:6px}
+.pat-card-body{display:grid;grid-template-columns:1fr 2fr}
+.pat-card-left{padding:12px 14px;border-right:1px solid #2a2a2a}
+.pat-card-right{padding:12px 14px}
+.pat-col-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;color:#777;text-transform:uppercase;margin-bottom:7px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}
+.pat-rec-lbl{margin-top:12px}
+.pat-tc-item{font-size:11px;font-family:'DM Mono',monospace;color:#c8f060;margin-bottom:4px}
+.pat-tc-nopattern{color:#ef4444}
+.pat-causa-row{font-size:12px;color:#ccc;margin-bottom:5px;line-height:1.4}
+.pat-causa-lbl{color:#aaa;font-weight:600}
+.pat-rec-text{font-size:12px;color:#b8c890;line-height:1.5}
+.pat-section{margin-bottom:18px}
+.pat-sh{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid #2a2a2a;padding-bottom:4px;margin-top:16px}
+.pat-empty{font-size:12px;color:#888;font-style:italic}
+.layer-format-note{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}
+</style></head><body>
+<h1>QA Report — Floristería Petal</h1>
+<p class="sub">2026-05-25 16:11 · 3 runs/TC · MacBook-Air.local</p>
+
+<div class="hdr">
+<div><b>Orquestador:</b> v65</div><div><b>Compra:</b> v39</div><div><b>Checkout:</b> v33</div>
+<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 5 × 3 runs</div>
+</div>
+<div class="cards">
+<div class="card c-total" onclick="filterBy('all')"><div class="n">5</div><div class="l">Total</div></div>
+<div class="card c-pass" data-filter="PASS" onclick="filterBy('PASS')"><div class="n">0</div><div class="l">Pass</div></div>
+<div class="card c-inst" data-filter="INESTABLE" onclick="filterBy('INESTABLE')"><div class="n">0</div><div class="l">Inestable</div></div>
+<div class="card c-fail" data-filter="FAIL" onclick="filterBy('FAIL')"><div class="n">5</div><div class="l">Fail</div></div>
+<div class="card c-pct"><div class="n">0%</div><div class="l">Tasa</div></div>
+</div>
+<div class="bar"><div class="bar-g" style="width:0.0%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:100.0%"></div></div>
+<div class="patterns-block"><div class="patterns-th" onclick="togglePatterns()"><span class="patterns-icon">⚠️</span><span class="patterns-title">Patrones cruzados</span><span class="patterns-stats">1 patrón detectado · ROI 12 TCs/h</span><span class="patterns-arrow">▶</span></div><div class="patterns-body"><div class="pat-resumen">
+<div class="pat-resumen-title">RESUMEN</div>
+<div class="pat-resumen-stat">• Tests analizados en este batch: <strong>5</strong></div>
+<div class="pat-resumen-stat">• TCs con patrón: <strong>3</strong></div>
+<div class="pat-resumen-stat">• Patrones: <strong>1</strong></div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">Patrón URGENCIA — revert <code>2126c52</code> rompe los 3 TCs de entrega urgente</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs afectados</div>
+<div class="pat-tc-item">TC-URGENCIA-01</div>
+<div class="pat-tc-item">TC-URGENCIA-02</div>
+<div class="pat-tc-item">TC-URGENCIA-03</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-roi-btn" data-roi-val="12" data-roi-tcs="3 TCs" data-roi-esf="~15 min">ROI: 12 TCs/h<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span></div>
+<div class="pat-col-lbl">CAUSA</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> Agente muestra catálogo sin verificar plazo en los 3 TCs — regex falla por ausencia de tokens <code>plazo</code>/<code>24h</code>/<code>no</code></div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Capa 1 Comportamiento + Capa 8 Histórico en los 3 TCs. Causa raíz única: ausencia del bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code> tras revert <code>2126c52</code></div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Un único cambio (restaurar bloque en <code>compra.yaml</code>) cierra los 3 TCs simultáneamente. Validado en producción en <code>a10ab02</code> y <code>3e0b2d1</code></div>
+<div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>
+<div class="pat-rec-text">Aplicar fix TC-URGENCIA-01 — resuelve los 3 TCs del patrón en un único cambio antes de abordar los bugs independientes.</div>
+</div>
+</div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">TCs sin patrón</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs</div>
+<div class="pat-tc-item pat-tc-nopattern">TC-MULTI-PRODUCTO-01</div>
+<div class="pat-tc-item pat-tc-nopattern">TC-FRUSTRACION-01</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-col-lbl">CAUSA DE NO PATRÓN</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">TC-MULTI-PRODUCTO-01:</span> DEMO BREAK <code>c9ce667</code> en ECO RESUMEN Paso 7 — causa y fix distintos. Bug de prioridad alta (precio incorrecto al cliente)</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">TC-FRUSTRACION-01:</span> Instrucción "Rechazo 2" ambigua en GESTION DE FRUSTRACION — causa y fix distintos. Bug preexistente no relacionado con los reverts</div>
+</div>
+</div>
+</div>
+<div class="pat-section">
+<div class="pat-sh">ORDEN DE EJECUCIÓN</div>
+<div class="pat-wip">⚙️ <em>Work in progress</em> — la lógica de priorización (patrón vs. TC individual primero) se implementará en una próxima versión del skill.</div>
+</div>
+<div id="roi-modal-overlay" class="roi-modal-overlay" onclick="closeRoiModal()"><div class="roi-modal" onclick="event.stopPropagation()"><div class="roi-modal-hdr"><span class="roi-modal-ttl">ROI — Tasa de resolución</span><span class="roi-modal-x" onclick="closeRoiModal()">×</span></div><div class="roi-modal-body" id="roi-modal-body"></div></div></div></div></div>
+<div class="actions-bar">
+<a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">🗑 Borrar análisis</a>
+<a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
+<a class="dl" onclick="openHistorial()" style="cursor:pointer">📊 Histórico</a>
+</div>
+<div id="optimize-panel" class="optimize-panel hidden">
+  <div class="optimize-panel-header">
+    <span id="optimize-panel-title" class="optimize-panel-title">TCs en FAIL — selecciona los que quieras optimizar</span>
+    <a id="btn-run" class="dl dl-disabled" onclick="runOptimize()" style="cursor:not-allowed">▶ Run</a>
+    <a class="dl panel-close" onclick="closePanel()" style="cursor:pointer" title="Cerrar panel">✕</a>
+    <span id="btn-run-feedback" class="run-feedback"></span>
+  </div>
+  <table class="optimize-table">
+    <thead><tr><th></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th></tr></thead>
+    <tbody id="optimize-tbody"></tbody>
+  </table>
+</div>
+<div class="filter-bar">
+<div class="filter-row">
+<span class="filter-label">Resultado</span>
+<div class="fbtn" data-legend="Mostrar todos los test cases" onclick="filterBy('all')">Todos</div>
+<div class="fbtn" data-legend="TCs que pasan todos los checks en todos los runs" onclick="filterBy('PASS')">✅ Pass</div>
+<div class="fbtn" data-legend="TCs que pasan en algunos runs pero no en todos (flakiness)" onclick="filterBy('INESTABLE')">⚠️ Inestable</div>
+<div class="fbtn" data-legend="TCs que fallan en todos los runs" onclick="filterBy('FAIL')">❌ Fail</div>
+<div class="fbtn" data-legend="TCs no ejecutables por límite de cuota de la API" onclick="filterBy('QUOTA_ERROR')">⚡ Quota</div>
+</div>
+<div class="filter-row">
+<span class="filter-label">Categoría</span>
+<div class="fbtn" data-legend="Regresión: TCs que vigilan bugs ya corregidos para que no vuelvan" onclick="filterByType('REG')">Regresión</div>
+<div class="fbtn" data-legend="Registro: TCs del flujo de alta de usuario (email, nombre, datos)" onclick="filterByType('NEW')">Registro</div>
+<div class="fbtn fbtn-modal" data-legend="Ver KPIs de calidad QA: flakiness, salud de Orquestador y Compra, cobertura del suite, regresión vs run anterior" onclick="openMetodologia()">Metodología (KPIs)</div>
+<div class="fbtn" data-legend="Compra Zona Gris (casos ambiguos)" title="Compra Zona Gris (casos ambiguos)" onclick="filterByGroup('COMPRA-ZG')">COMPRA-ZG</div>
+</div>
+</div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_20260525_1611_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header fail">❌ Run 1</div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero rosas"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración..."</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero rosas"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=rosas</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración..."</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#22c55e">✅ Turno superado</p>
+<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
+<ul class="ta-bullets ok">
+<li>Agente dijo [ocasion]</li>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"no me gustan"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Entiendo, disculpa la confusion. Te busco una alternativa.
+
+¿Tienes algún color en mente o lo dejo en mis manos?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T2)</span>
+<div class="trace-text">"no me gustan"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=rosas</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Entiendo, disculpa la confusion. Te busco una alternativa.
+
+¿Tienes algún color en mente o lo dejo en mis manos?"</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#22c55e">✅ Turno superado</p>
+<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
+<ul class="ta-bullets ok">
+<li>Agente dijo [alternativ]</li>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 3</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T3)</span><span class="ta-text">"tampoco me convencen, dame otras"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Vale, te enseño otras que tengo:
+
+*   Ramo de Peonías Coral — M (15 flores, 35€)
+*   Ramo de Girasoles Amarillo — M (10 flores, 20€)
+*   Ramo de Gerberas Amarillo — M (10 flores, 18€)
+
+¿Alguna te convence?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T3)</span>
+<div class="trace-text">"tampoco me convencen, dame otras"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code>, <code>modo_tono=estandar</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Vale, te enseño otras que tengo:
+
+*   Ramo de Peonías Coral — M (15 flores, 35€)
+*   Ramo de Girasoles Amarillo — M (10 flores, 20€)
+*   Ramo de Gerberas Amarillo — M (10 flores, 18€)
+
+¿Alguna te convence?"</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#ef4444">❌ Turno no superado</p>
+<ul class="ta-bullets fail">
+<li>Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]</li>
+</ul>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code>, <code>modo_tono=estandar</code></li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Vale, te enseño otras que tengo:
+
+*   Ramo de Peonías Coral — M (15 flores, 35€)
+*   Ramo de Girasoles Amarillo — M (10 flores, 20€)
+*   Ramo de Gerberas Amarillo — M (10 flores, 18€)
+
+¿Alguna te conv…"</em></li>
+</ul>
+<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
+<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"ninguna me gusta"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T4)</span>
+<div class="trace-text">"ninguna me gusta"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code>, <code>modo_tono=estandar</code>, <code>razon_handoff=frustracion_usuario</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!"</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#22c55e">✅ Turno superado</p>
+<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
+<ul class="ta-bullets ok">
+<li>Agente dijo [equipo]</li>
+</ul></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución #1 — Precisar instrucción Rechazo 2 en playbook ⭐ RECOMENDADA</h4>
+
+<p><strong>Archivo:</strong> <code>definitions/playbooks/compra.yaml</code>, línea 726</p>
+
+<p><strong>Cambio:</strong></p>
+<p>```</p>
+<h2>ANTES</h2>
+<p>Rechazo 2 pregunta motivo.</p>
+
+<h2>DESPUÉS</h2>
+<p>Rechazo 2 pregunta tipo de flor preferido u ocasion concreta para reformular la busqueda (no añadir catalogo).</p>
+<p>```</p>
+
+<p><strong>Razonamiento:</strong> La instrucción ambigua "pregunta motivo" deja al LLM libre de interpretar cualquier dimensión. La nueva instrucción fuerza que la pregunta sea sobre tipo de flor u ocasión — tokens que están cubiertos por el regex (<code>tipo</code>, <code>ocasion</code>) — y además prohíbe explícitamente mostrar catálogo en este paso, lo que mejora la experiencia de usuario (no saturar con opciones antes de entender la preferencia).</p>
+
+<p><strong>Riesgo:</strong> Muy bajo. El cambio solo afecta Rechazo 2; Rechazo 1, 3 y 4 mantienen su comportamiento actual.</p>
+
+<p>---</p>
+
+<h4>Solución #2 — Ampliar regex T3 para incluir "color"</h4>
+
+<p><strong>Archivo:</strong> <code>qa/test_QA_Playbooks_v23.py</code>, sección TC-FRUSTRACION-01, check T3</p>
+
+<p><strong>Cambio:</strong> Añadir <code>color</code> al regex: <code>[propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano|color]</code></p>
+
+<p><strong>Razonamiento:</strong> Si preguntar por color es una respuesta válida al Rechazo 2, el test debería aceptarla. Soluciona el FAIL sin tocar el playbook.</p>
+
+<p><strong>Riesgo:</strong> Medio. El test se vuelve más permisivo y podría enmascarar comportamientos no deseados. La instrucción ambigua quedaría sin corregir, permitiendo que el LLM reformule de formas imprevisibles en el futuro. No se recomienda como solución única.</p>
+
+<p>---</p>
+
+<h4>Solución #3 — Combinar fix playbook + ampliar regex</h4>
+
+<p><strong>Archivos:</strong> <code>definitions/playbooks/compra.yaml</code> (línea 726) + <code>qa/test_QA_Playbooks_v23.py</code> (regex T3)</p>
+
+<p><strong>Cambio:</strong> Aplicar Solución #1 y además añadir <code>color</code> al regex como token alternativo aceptable.</p>
+
+<p><strong>Razonamiento:</strong> Máxima robustez: la instrucción precisa guía al agente hacia tipo/ocasión (tokens verificables), y el regex ampliado cubre el caso borde si el agente pregunta por color como dimensión complementaria. Evita falsos negativos futuros ante formulaciones ligeramente distintas.</p>
+
+<p><strong>Riesgo:</strong> Bajo. El coste es mínimo (dos ediciones triviales) y la cobertura mejora. Recomendable si se quiere blindar el TC contra variabilidad del LLM.</p>
+
+<p>---</p>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. Abrir <code>definitions/playbooks/compra.yaml</code></p>
+<p>2. Localizar línea 726, sección <code>GESTION DE FRUSTRACION</code></p>
+<p>3. Reemplazar: <code>Rechazo 2 pregunta motivo.</code> → <code>Rechazo 2 pregunta tipo de flor preferido u ocasion concreta para reformular la busqueda (no añadir catalogo).</code></p>
+<p>4. Commit: <code>fix(compra): precisa instruccion Rechazo 2 en GESTION DE FRUSTRACION</code></p>
+<p>5. PR → merge → esperar deploy</p>
+<p>6. Rerun TC-FRUSTRACION-01 — verificar PASS en T3</p>
+
+<p><strong>Tiempo estimado:</strong> ~20 min (5 min edición + 12-15 min deploy + 2 min rerun)</p>
+
+<p>---</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_20260525_1611_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header fail">❌ Run 1</div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas y un centro de mesa para mi casa"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Perfecto, te ayudo con los dos. Empiezo por el ramo de rosas y luego vemos el centro de mesa, ¿te parece? Mira, para ramos de rosas tenemos:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Cuál te encaja?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero un ramo de rosas y un centro de mesa para mi casa"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Perfecto, te ayudo con los dos. Empiezo por el ramo de rosas y luego vemos el centro de mesa, ¿te parece? Mira, para ramos de rosas tenemos:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   ..."</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#22c55e">✅ Turno superado</p>
+<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
+<ul class="ta-bullets ok">
+<li>Agente dijo [centro.{0,80}ramo]</li>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"el ramo de rosas morado de 37 euros"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Anotado, 1 x Ramo de Rosas Morado — M (37.0euros). Ahora el centro de mesa: Para centros de mesa tenemos:
+
+*   Centro de Mesa Orquídeas Blanco — S (8 tallos, 28€)
+*   Centro de Mesa Tulipanes Multicolor — S (8 flores, 28€)
+*   Centro de Mesa Rosas y Eucalipto Rosa y Verde — S (6 flores, 26€)
+
+¿Cuál te gusta?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T2)</span>
+<div class="trace-text">"el ramo de rosas morado de 37 euros"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Anotado, 1 x Ramo de Rosas Morado — M (37.0euros). Ahora el centro de mesa: Para centros de mesa tenemos:
+
+*   Centro de Mesa Orquídeas Blanco — S (8 tallos, 28€)
+*   Centro de Mesa Tulipanes Multicolor — S (8 flores, 28€)
+*   Centro de Mes..."</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#22c55e">✅ Turno superado</p>
+<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
+<ul class="ta-bullets ok">
+<li>Agente dijo [morado]</li>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 3</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T3)</span><span class="ta-text">"el centro de tulipanes de 28 euros"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Tu pedido: 1 x Ramo de Rosas Morado — M (37.0euros) y 1 x Centro de Mesa Tulipanes Multicolor — S (28.0euros). ¿Lo confirmo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T3)</span>
+<div class="trace-text">"el centro de tulipanes de 28 euros"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Tu pedido: 1 x Ramo de Rosas Morado — M (37.0euros) y 1 x Centro de Mesa Tulipanes Multicolor — S (28.0euros). ¿Lo confirmo?"</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#ef4444">❌ Turno no superado</p>
+<ul class="ta-bullets fail">
+<li>Agente debía decir [65]</li>
+</ul>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code></li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [65]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Tu pedido: 1 x Ramo de Rosas Morado — M (37.0euros) y 1 x Centro de Mesa Tulipanes Multicolor — S (28.0euros). ¿Lo confirmo?"</em></li>
+</ul>
+<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
+<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"si"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Perfecto, para completar tu pedido necesito tu correo electronico."</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T4)</span>
+<div class="trace-text">"si"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>precio_2=28</code>, <code>precio_estimado=37</code>, <code>producto_2=Centro de Mesa Tulipanes Multicolor — S</code>, <code>cantidad=1</code>, <code>producto=Ramo de Rosas Morado — M</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Perfecto, para completar tu pedido necesito tu correo electronico."</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#22c55e">✅ Turno superado</p>
+<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
+<ul class="ta-bullets ok">
+<li>Agente dijo [correo]</li>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 5</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T5)</span><span class="ta-text">"jerosan1@gmail.com"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Perfecto Jero, te resumo tu pedido:
+🌸 1 x Ramo de Rosas Morado — M (37€)
+🌸 1 x Centro de Mesa Tulipanes Multicolor — S (28€)
+💳 Total: 65€
+📍 Calle la Cenicienta 4 portal H 1º A, 28018 Madrid
+
+¿Confirmamos?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T5)</span>
+<div class="trace-text">"jerosan1@gmail.com"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>precio_estimado=37</code>, <code>producto_2=Centro de Mesa Tulipanes Multicolor — S</code>, <code>cantidad=1</code>, <code>modo_tono=estandar</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Perfecto Jero, te resumo tu pedido:
+🌸 1 x Ramo de Rosas Morado — M (37€)
+🌸 1 x Centro de Mesa Tulipanes Multicolor — S (28€)
+💳 Total: 65€
+📍 Calle la Cenicienta 4 portal H 1º A, 28018 Madrid
+
+¿Confirmamos?"</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#22c55e">✅ Turno superado</p>
+<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
+<ul class="ta-bullets ok">
+<li>Agente dijo [65]</li>
+</ul></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución #1 — Restaurar template multi-producto en Paso 7 ECO RESUMEN ⭐ RECOMENDADA</h4>
+
+<p>Añadir en el Paso 7 de <code>compra.yaml</code> una rama condicional que, cuando existen <code>$producto_2</code> y <code>$precio_2</code>, use un template con ambos productos y el total calculado:</p>
+
+<p>```yaml</p>
+<h2>Paso 7 ECO RESUMEN — variante multi-producto (cuando $producto_2 existe)</h2>
+<ul>
+<li>Estandar: 'Tu pedido: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: [$precio_estimado + $precio_2]€. ¿Lo confirmo?'</li>
+<li>Solemne: 'El pedido queda: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: [$precio_estimado + $precio_2]€. ¿Lo confirmamos?'</li>
+<li>Corporativo: 'Resumen del pedido: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: [$precio_estimado + $precio_2]€. ¿Confirmamos?'</li>
+</ul>
+<p>```</p>
+
+<p>El template mono-producto existente se mantiene inalterado para pedidos de un solo ítem.</p>
+
+<p><strong>Ventajas:</strong> mínimo impacto, restaura comportamiento pre-DEMO BREAK, revierte exactamente lo que <code>c9ce667</code> eliminó.</p>
+
+<p><strong>Riesgo:</strong> bajo — solo cambia texto de instrucción en un paso de compra.yaml.</p>
+
+<p>---</p>
+
+<h4>Solución #2 — Revertir commit <code>c9ce667</code> directamente</h4>
+
+<p>Ejecutar <code>git revert c9ce667</code> para restaurar el estado del Paso 7 al commit anterior. Si <code>b8f9ee5</code> (captura de <code>$producto_2</code>) también sigue roto, revertir ambos en orden inverso.</p>
+
+<p><strong>Ventajas:</strong> reversión limpia y trazable mediante git.</p>
+
+<p><strong>Riesgo:</strong> medio — si otros cambios del mismo commit son deseables, el revert los deshace también. Verificar el diff completo del commit antes de revertir.</p>
+
+<p>---</p>
+
+<h4>Solución #3 — Delegar el cálculo del total al LLM sin template fijo</h4>
+
+<p>Reemplazar el template con instrucción abierta: "Si hay $producto_2, muestra ambos productos y calcula el total sumando $precio_estimado + $precio_2 antes de pedir confirmación."</p>
+
+<p><strong>Ventajas:</strong> más flexible para futuras extensiones (3+ productos).</p>
+
+<p><strong>Riesgo:</strong> mayor variabilidad en el output del LLM; los checks de texto fijo ("65") pueden ser frágiles si el LLM formatea el número de forma distinta (65,00 vs 65 vs 65.0).</p>
+
+<p>---</p>
+
+<h4>Solución #4 — Añadir instrucción de suma explícita como regla global del playbook</h4>
+
+<p>Añadir al encabezado de <code>compra.yaml</code> una regla global: "Cuando el pedido tenga más de un producto, SIEMPRE calcula y muestra el total antes de pedir confirmación."</p>
+
+<p><strong>Ventajas:</strong> cubre casos futuros de multi-producto sin tocar cada paso individualmente.</p>
+
+<p><strong>Riesgo:</strong> medio — las reglas globales interactúan con todos los pasos; posible interferencia con otros flujos si el LLM aplica la regla en contextos no deseados.</p>
+
+<p>---</p>
+
+<h4>Solución #5 — Añadir un Paso 7b específico para multi-producto</h4>
+
+<p>Crear un paso intermedio entre la selección del segundo producto y el ECO RESUMEN que calcule y confirme el total antes de pasar al Paso 7.</p>
+
+<p><strong>Ventajas:</strong> separación clara de responsabilidades; el Paso 7 existente no se toca.</p>
+
+<p><strong>Riesgo:</strong> complejidad añadida al flujo; más pasos = más posibilidades de salto incorrecto entre pasos.</p>
+
+<p>---</p>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. Abrir <code>definitions/playbooks/compra.yaml</code></p>
+<p>2. Localizar el Paso 7 ECO RESUMEN (actualmente líneas ~601-606)</p>
+<p>3. Añadir condicional multi-producto: si <code>$producto_2</code> existe, usar template con ambos ítems y total calculado</p>
+<p>4. Mantener el template mono-producto existente sin cambios</p>
+<p>5. Commit: <code>fix(compra): restaura ECO RESUMEN multi-producto en Paso 7 (revierte DEMO BREAK c9ce667)</code></p>
+<p>6. PR + merge → pipeline CI/CD → rerun TC-MULTI-PRODUCTO-01</p>
+<p>7. Verificar que T3 ahora incluye "65" en el resumen</p>
+
+<p><strong>Tiempo estimado:</strong> ~10 min (edición de texto + ciclo PR/merge/deploy)</p>
+
+<p>---</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_20260525_1611_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — variante hora numerica ('hoy a las 6')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header fail">❌ Run 1</div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo de rosas para hoy a las 6"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿De qué color te gustaría el ramo de rosas?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"necesito un ramo de rosas para hoy a las 6"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¿De qué color te gustaría el ramo de rosas?"</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#ef4444">❌ Turno no superado</p>
+<ul class="ta-bullets fail">
+<li>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</li>
+</ul>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code></li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"¿De qué color te gustaría el ramo de rosas?"</em></li>
+</ul>
+<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
+<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución #1 — Reaplicar bloque DETECCION URGENCIA TEMPORAL desde commit a10ab02 ⭐ RECOMENDADA</h4>
+
+<p><strong>Puntuación: 10/10 | Esfuerzo: ~15 min</strong></p>
+
+<p>Recuperar el bloque DETECCION URGENCIA TEMPORAL tal como existía en el commit <code>a10ab02</code> y añadirlo al FLUJO PRINCIPAL de <code>compra.yaml</code> en la posición correcta (antes del inicio del flujo de catálogo). El bloque debe incluir: detección de indicadores temporales urgentes ("hoy", "ahora", "en X horas", hora numérica del mismo día), respuesta informando del plazo mínimo de entrega, y opción de continuar si el plazo es aceptable o derivar a equipo humano si no lo es.</p>
+
+<p><strong>Por qué es la mejor opción:</strong> El fix está validado en producción. El commit <code>a10ab02</code> resolvió los 3 TCs de urgencia simultáneamente sin efectos secundarios conocidos. Reaplicarlo es la ruta de menor riesgo y mayor confianza. No requiere diseño nuevo ni experimentación.</p>
+
+<p><strong>Verificación:</strong> Ejecutar suite con los 3 TCs de urgencia con <code>--runs 3</code>. Los 3 deben pasar. Revisar también que TC del flujo de compra normal (sin urgencia) no se ve afectado.</p>
+
+<p>---</p>
+
+<h4>Solución #2 — Implementar detección de urgencia desde cero con diseño actualizado</h4>
+
+<p><strong>Puntuación: 6/10 | Esfuerzo: ~45 min</strong></p>
+
+<p>Diseñar e implementar un nuevo bloque de detección de urgencia temporal en compra.yaml, revisando el diseño conversacional para incorporar aprendizajes desde <code>a10ab02</code>. Incluiría: patrones de detección más amplios, respuestas más naturales, y posiblemente integración con la lógica de slots de fecha/hora. Útil si se detectan limitaciones en el diseño original, pero requiere más tiempo de diseño y validación.</p>
+
+<p>---</p>
+
+<h4>Solución #3 — Revert del revert (git revert 2126c52)</h4>
+
+<p><strong>Puntuación: 5/10 | Esfuerzo: ~5 min</strong></p>
+
+<p>Ejecutar <code>git revert 2126c52</code> para deshacer el revert y recuperar el estado de <code>a10ab02</code>. Técnicamente correcto y el más rápido, pero arriesgado si el motivo del revert original tenía justificación (el git log muestra un ciclo fix→revert→fix→revert que sugiere posibles efectos secundarios no documentados). Requiere investigar por qué se hizo el revert antes de aplicarlo ciegamente.</p>
+
+<p>---</p>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. Inspeccionar el bloque DETECCION URGENCIA TEMPORAL tal como estaba en <code>a10ab02</code>: <code>git show a10ab02 -- definitions/playbooks/compra.yaml</code></p>
+<p>2. Añadir el bloque recuperado al FLUJO PRINCIPAL de <code>definitions/playbooks/compra.yaml</code> en la posición correcta (antes del bloque de inicio de catálogo), usando Edit.</p>
+<p>3. Re-ejecutar: <code>python qa/test_QA_Playbooks_v23.py --test TC-URGENCIA-01,TC-URGENCIA-02,TC-URGENCIA-03 --runs 3</code></p>
+<p>4. Criterio de éxito: 3/3 PASS en los 3 TCs</p>
+
+<p><strong>Comando QA post-fix:</strong></p>
+<p>```bash</p>
+<p>python qa/test_QA_Playbooks_v23.py --test TC-URGENCIA-01,TC-URGENCIA-02,TC-URGENCIA-03 --runs 3</p>
+<p>```</p>
+
+<p>---</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_20260525_1611_logs/TC-URGENCIA-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-02</span><span class="tname">Entrega urgente — variante hora textual ('hoy a las seis de la tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header fail">❌ Run 1</div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo de rosas para hoy a las seis de la tarde"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, ramos de rosas tenemos. Mira:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguna te convence?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"necesito un ramo de rosas para hoy a las seis de la tarde"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Claro, ramos de rosas tenemos. Mira:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguna te convence?"</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#ef4444">❌ Turno no superado</p>
+<ul class="ta-bullets fail">
+<li>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</li>
+</ul>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code></li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Claro, ramos de rosas tenemos. Mira:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguna te convence?"</em></li>
+</ul>
+<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
+<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>1 archivo (<code>compra.yaml</code>), restaurar 14 líneas ya escritas y probadas</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Restaurar instrucción condicional existente, sin nueva lógica</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix aplicado 2 veces sin regressions; reverts fueron intencionales para demo</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones</p>
+
+<h4>Soluciones evaluadas (3 soluciones, DESC por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Restaurar bloque DETECCION URGENCIA TEMPORAL</strong> en <code>compra.yaml</code> (cherry-pick <code>a10ab02</code> o edición manual)</td><td>🟢 9/10</td><td>—</td><td>Fix probado 2 veces, 1 archivo, sin riesgo conocido. Resuelve TC-URGENCIA-01/02/03 en un solo cambio</td></tr><tr><td>2</td><td><strong>Solución #1 + consultar zona antes de dar plazo</strong> (añadir paso de zona en slot-filling inicial)</td><td>🟡 6/10</td><td>Refactor slot-filling Compra</td><td>Más preciso con la política real del Sheet (<code>envio_madrid_ciudad</code>), pero añade un turno extra y puede impactar otros TCs</td></tr><tr><td>3</td><td><strong>Añadir Example de urgencia con hora textual</strong> (few-shot turno-a-turno en <code>definitions/examples/</code>)</td><td>🟡 5/10</td><td>—</td><td>Complementario a #1, no elimina el gap de instrucciones. Útil como refuerzo si #1 sola muestra flakiness en variantes de hora textual</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Editar <code>definitions/playbooks/compra.yaml</code></strong>: insertar el bloque antes de <code>-- PASO 0 - MODO SEGUN GRUPO --</code> (~línea 388).</p>
+
+<p><strong>Bloque a insertar:</strong></p>
+
+<p>```</p>
+<p>⛔ DETECCION URGENCIA TEMPORAL ⛔</p>
+<p>Si $intencion_inicial o el input actual del usuario contiene palabras que implican entrega urgente:</p>
+<ul>
+<li>'hoy', 'ahora', 'ya', 'esta tarde', 'esta noche', 'en X minutos', 'en X horas'</li>
+<li>una hora concreta del mismo dia ('a las 6', 'a las 18:00', 'para las 7', 'antes de las X', 'a las seis de la tarde')</li>
+<li>'urgente', 'rapido', 'cuanto antes'</li>
+</ul>
+<p>ANTES de continuar con slot-filling o busqueda de catalogo, clarifica el plazo segun $modo_tono:</p>
+<ul>
+<li>Estandar: 'Mira, el plazo minimo de entrega es 24h, asi que para hoy no podemos. Te valdria para mañana o un dia despues?'</li>
+<li>Solemne: 'Lamentablemente el plazo minimo de entrega disponible es de 24h. Le valdria para mañana?'</li>
+<li>Corporativo: 'El plazo minimo de entrega es 24h. Para mañana o posterior?'</li>
+</ul>
+<p>ESPERA respuesta del usuario.</p>
+<ul>
+<li>Si acepta plazo (mañana o posterior) - continua el flujo normal (PASO 0).</li>
+<li>Si insiste en hoy o rechaza - $razon_handoff='cliente_solicita_humano' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $modo_tono.</li>
+</ul>
+<p>⛔ FIN DETECCION URGENCIA ⛔</p>
+<p>```</p>
+
+<p>2. <strong>Commit + PR + merge</strong> siguiendo el flujo estándar del repo.</p>
+<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable en los 3 TCs del patrón URGENCIA.</p>
+
+<p><strong>Coste total</strong>: ~15 min (2 min edición + 3 min deploy + 10 min rerun × 3).</p>
+
+<p>---</p>
+
+<h4>Patrones cruzados</h4>
+
+<p><strong>TC-URGENCIA-01, TC-URGENCIA-02 y TC-URGENCIA-03 comparten causa raíz idéntica:</strong> ausencia del bloque <code>DETECCION URGENCIA TEMPORAL</code> en <code>compra.yaml</code> tras revert <code>2126c52</code>. Las tres variantes (hora numérica, hora textual, sin hora explícita) son distintas expresiones del mismo escenario de negocio. El commit <code>a10ab02</code> resolvió los 3 simultáneamente. Aplicar Solución #1 sobre cualquiera de los 3 resuelve el patrón completo.</p>
+
+<p>&gt; <strong>Deuda técnica (Capa Datos):</strong> la respuesta "plazo mínimo 24h" es inexacta para <code>envio_madrid_ciudad</code> (mismo día antes de 14:00). Registrar como historia en <code>epic_backlog_conversational_design.md</code> para la Solución #2 en sprint posterior.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_20260525_1611_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — variante sin hora ('esta tarde')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">EDGE</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header fail">❌ Run 1</div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo de rosas para esta tarde"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, ramos de rosas tenemos:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguna te convence?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
+<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"necesito un ramo de rosas para esta tarde"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=rosas</code> <span style="color:#666;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Claro, ramos de rosas tenemos:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguna te convence?"</div>
+</div>
+</div>
+</details>
+<h4>Evaluacion</h4>
+<p style="color:#ef4444">❌ Turno no superado</p>
+<ul class="ta-bullets fail">
+<li>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|tarde.{0,30}no|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</li>
+</ul>
+<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>producto=rosas</code></li>
+<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|tarde.{0,30}no|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]</code></li>
+<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Claro, ramos de rosas tenemos:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguna te convence?"</em></li>
+</ul>
+<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
+<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">EDGE</span></div><div class="rec-content"><h4>Solución #1 — Restaurar bloque DETECCION URGENCIA TEMPORAL en compra.yaml (recomendada)</h4>
+
+<p>Añadir al inicio del flujo principal de <code>compra.yaml</code> el bloque de detección de urgencia temporal, antes de la lógica de presentación de catálogo. El bloque debe interceptar expresiones como "esta tarde", "hoy", "en X horas" y responder indicando que la entrega no es posible en ese plazo (con variantes: "esta tarde no es posible", "el plazo mínimo es 24h", etc.).</p>
+
+<p>El regex de validación incluye <code>tarde.{0,30}no</code> específicamente para esta variante, por lo que la respuesta del agente debe contener construcciones del tipo "esta tarde no podemos" / "para esta tarde no es posible".</p>
+
+<p><strong>Ventaja:</strong> fix directo, bajo riesgo, comportamiento ya validado en <code>a10ab02</code>.</p>
+
+<h4>Solución #2 — Añadir Intent específico para urgencia temporal</h4>
+
+<p>Crear un intent <code>urgencia_entrega</code> que capture patrones como "esta tarde", "hoy mismo", "en X horas" y enrute a una página de respuesta de limitación de entrega antes de llegar a Compra.</p>
+
+<p><strong>Ventaja:</strong> separación de responsabilidades. <strong>Desventaja:</strong> mayor complejidad, requiere cambios en Flows/Pages además de Playbook.</p>
+
+<h4>Solución #3 — Añadir condición en el Orquestador</h4>
+
+<p>Interceptar la señal de urgencia en el Orquestador antes de delegar a Compra, respondiendo directamente con el mensaje de limitación.</p>
+
+<p><strong>Ventaja:</strong> no toca compra.yaml. <strong>Desventaja:</strong> mezcla responsabilidades en el orquestador; peor mantenibilidad.</p>
+
+<p>---</p>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. Recuperar el bloque DETECCION URGENCIA TEMPORAL del commit <code>a10ab02</code> (<code>git show a10ab02 -- definitions/playbooks/compra.yaml</code>)</p>
+<p>2. Añadir el bloque al inicio del flujo principal de <code>compra.yaml</code>, antes de la presentación de catálogo</p>
+<p>3. Verificar que cubre las tres variantes: con hora específica (TC-URGENCIA-01), con "hoy" (TC-URGENCIA-02), con "esta tarde" (TC-URGENCIA-03)</p>
+<p>4. Commit + PR + merge → deploy → rerun</p>
+
+<p><strong>Comando QA post-fix:</strong></p>
+<p>```</p>
+<p>/qa-tc-analyzer TC-URGENCIA-01 TC-URGENCIA-02 TC-URGENCIA-03</p>
+<p>```</p>
+
+<p>---</p></div></div>
+</div></div>
+
+<div id="metodologia-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeMetodologia()"></div>
+  <div class="modal-content modal-metodologia">
+    <button class="modal-close" onclick="closeMetodologia()">&times;</button>
+    <h2>📊 Metodología de evaluación QA</h2>
+    <p class="modal-sub">5 test cases · 0 PASS · 0 INESTABLE · 5 FAIL · 2026-05-25 16:11</p>
+    
+    <div class="kpi-section kpi-flak">
+      <h3 data-legend="Un TC es INESTABLE cuando pasa en algunos runs pero falla en otros. Indica que el sistema no es determinístico — la misma entrada produce resultados distintos. Umbral aceptable: <10%. Si es alto, los tests no son fiables.">Flakiness: 0.0% <span class="kpi-sub">(0 TCs INESTABLE de 5)</span></h3>
+      <p>TCs flaky: <code>—</code></p>
+      <p class="kpi-action">Acción si alto: re-correr con <code>--runs 5</code> para confirmar.</p>
+    </div>
+    
+    <div class="kpi-section">
+      <h3>🏥 Salud de componentes críticos</h3>
+      <div class="kpi-component">
+        <h4>Orquestador</h4>
+        <div class="kpi-bar-row" data-legend="Cada TC declara su grupo_intent esperado (ej. G5, COMPRA-INV). El Orquestador clasifica el input del usuario en el primer turno. Este % indica cuántos TCs aciertan la clasificación esperada. Si baja: el Orquestador está fallando al clasificar inputs.">
+          <span class="kpi-label">Clasificación correcta</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:0.0%"></div></div>
+          <span class="kpi-value">0.0%</span>
+        </div>
+        <p class="kpi-sub">0/5 TCs clasifican el grupo_intent esperado</p>
+        <p class="kpi-sub">Errores:</p><ul><li><code>TC-FRUSTRACION-01</code> — esperaba <code>COMPRA-ZG</code>, observó <code>G5</code></li><li><code>TC-MULTI-PRODUCTO-01</code> — esperaba <code>COMPRA-ZG</code>, observó <code>G5</code></li><li><code>TC-URGENCIA-01</code> — esperaba <code>COMPRA-ZG</code>, observó <code>G5</code></li><li><code>TC-URGENCIA-02</code> — esperaba <code>COMPRA-ZG</code>, observó <code>G5</code></li><li><code>TC-URGENCIA-03</code> — esperaba <code>COMPRA-ZG</code>, observó <code>G5</code></li></ul>
+      </div>
+      <div class="kpi-component">
+        <h4>Compra (slot-filling)</h4>
+        <div class="kpi-bar-row" data-legend="% de turnos donde Compra extrajo el slot 'producto' del utterance del usuario (ej. 'rosas rojas', 'tulipanes'). Si baja: el Compra no está identificando qué producto pide el usuario.">
+          <span class="kpi-label">Producto extraído</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100.0%"></div></div>
+          <span class="kpi-value">100.0%</span>
+        </div>
+        <div class="kpi-bar-row" data-legend="% de turnos donde Compra detectó la ocasión (Regalo, Decoracion, Funebre, etc.) del input del usuario. Si baja: el playbook no infiere la intención de uso.">
+          <span class="kpi-label">Ocasión detectada</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:41.7%"></div></div>
+          <span class="kpi-value">41.7%</span>
+        </div>
+        <div class="kpi-bar-row" data-legend="% de turnos donde se asignó modo_tono (estandar/solemne/corporativo). El Orquestador detecta esto en el primer utterance del usuario. Si baja: la detección de tono está fallando.">
+          <span class="kpi-label">Modo_tono asignado</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100.0%"></div></div>
+          <span class="kpi-value">100.0%</span>
+        </div>
+        <p class="kpi-sub">Sobre 12 turnos totales</p>
+      </div>
+    </div>
+    
+        <div class="kpi-section">
+          <h3>📈 Regresión vs run anterior</h3>
+          <table class="kpi-regr">
+            <tr><td>Run actual</td><td>2026-05-25 16:11</td><td><strong>PASS 0%</strong> (0/5)</td></tr>
+            <tr><td>Run anterior</td><td>2026-05-25 16:10</td><td>PASS 0% (0/5)</td></tr>
+            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-neutral"><strong>+0%</strong></td></tr>
+          </table>
+        </div>
+    
+    <div class="kpi-section">
+      <h3>🎯 Cobertura del test suite</h3>
+      <div class="kpi-component">
+        <h4>Grupos del Orquestador (clasificación del input) — 1/7 cubiertos (14.0%)</h4>
+        <table class="kpi-cobertura"><tr><td><code>G1</code> Saludo</td><td>❌ FALTA cubrir</td><td>0 TCs</td></tr><tr><td><code>G2</code> Info negocio</td><td>❌ FALTA cubrir</td><td>0 TCs</td></tr><tr><td><code>G3</code> Consulta</td><td>❌ FALTA cubrir</td><td>0 TCs</td></tr><tr><td><code>G4</code> Gestión pedido</td><td>❌ FALTA cubrir</td><td>0 TCs</td></tr><tr><td><code>G5</code> Compra</td><td>✅ cubierto</td><td>5 TCs</td></tr><tr><td><code>G6</code> Queja</td><td>❌ FALTA cubrir</td><td>0 TCs</td></tr><tr><td><code>G7</code> Registro</td><td>❌ FALTA cubrir</td><td>0 TCs</td></tr></table>
+      </div>
+      <div class="kpi-component">
+        <h4>Modos de tono (cómo modula el agente la respuesta) — 1/3 cubiertos (33.0%)</h4>
+        <table class="kpi-cobertura"><tr><td><code>estandar</code></td><td>✅ cubierto</td><td>12 TCs</td></tr><tr><td><code>solemne</code></td><td>❌ FALTA cubrir</td><td>0 TCs</td></tr><tr><td><code>corporativo</code></td><td>❌ FALTA cubrir</td><td>0 TCs</td></tr></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="historial-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeHistorial()"></div>
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeHistorial()">&times;</button>
+    <h2>Histórico de QA Runs</h2>
+    <div id="hist-loading" class="hist-loading">Cargando histórico...</div>
+    <table id="hist-table" class="hist-table hidden">
+      <thead><tr><th>Fecha/hora</th><th>Total</th><th>Pass</th><th>Inestables</th><th>Fail</th><th>Tasa</th><th>Reporte</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+<!-- Modal: Las 7 capas estándar -->
+<div class="info-modal-overlay" id="modal-capas">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="closeInfoModal('capas')">&times;</button>
+    <h3>Las 7 capas estándar del análisis QA</h3>
+    <p>Cada análisis evalúa estas 7 capas obligatoriamente para descomponer la causa raíz del bug:</p>
+    <table>
+      <tr><td><strong>1. Playbook</strong></td><td>El código del playbook tal como está hoy</td></tr>
+      <tr><td><strong>2. Histórico</strong></td><td>Cambios recientes al playbook (commits, PRs)</td></tr>
+      <tr><td><strong>3. Catálogo</strong></td><td>Datos del Google Sheet (inventario, agent_copy)</td></tr>
+      <tr><td><strong>4. Orquestador</strong></td><td>Clasificación inicial del usuario (intent, slots)</td></tr>
+      <tr><td><strong>5. Backend / Tool</strong></td><td>Llamadas al petal-sheet-api</td></tr>
+      <tr><td><strong>6. Política / Negocio</strong></td><td>Reglas de negocio (plazos, importes, ocasiones soportadas)</td></tr>
+      <tr><td><strong>7. Test</strong></td><td>Calibración del check regex del TC</td></tr>
+    </table>
+    <p style="margin-top:16px;">Cada capa se marca con uno de los 4 estados (ver "Marca posible" para detalle).</p>
+  </div>
+</div>
+<!-- Modal: Estados posibles -->
+<div class="info-modal-overlay" id="modal-marcas">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="closeInfoModal('marcas')">&times;</button>
+    <h3>Estados posibles de cada capa</h3>
+    <table>
+      <tr><td style="width:120px;"><strong>🔴 problema</strong></td><td>Capa <em>comprobada con fuente</em>. ES causa del bug.</td></tr>
+      <tr><td><strong>🟢 ok</strong></td><td>Capa <em>comprobada con fuente</em>. NO es causa del bug.</td></tr>
+      <tr><td><strong>🟡 supuesta</strong></td><td>No se pudo comprobar (falta documentación o info externa).</td></tr>
+      <tr><td><strong>⚪ N/A</strong></td><td>Esta capa no aplica al tipo de bug analizado.</td></tr>
+    </table>
+    <p style="margin-top:16px;">Las marcas <strong>🔴</strong> y <strong>🟢</strong> requieren citar la fuente entre paréntesis (ej: <code>Read compra.yaml</code>, <code>git log</code>, <code>gh pr view</code>, <code>gcloud logging</code>, <code>curl URL</code>).</p>
+  </div>
+</div>
+<script>
+function toggle(el){el.nextElementSibling.classList.toggle('open');el.querySelector('.arrow').classList.toggle('open')}
+function togglePatterns(){var b=document.querySelector('.patterns-body');var a=document.querySelector('.patterns-arrow');if(b){b.classList.toggle('open');a.classList.toggle('open');}}
+function openRoiModal(btn){var val=btn.dataset.roiVal,tcs=btn.dataset.roiTcs,esf=btn.dataset.roiEsf;var b=document.getElementById('roi-modal-body');if(!b)return;b.innerHTML='<p class="rmi-def"><strong>Tasa de resolución</strong> — cuántos TCs puedes cerrar por hora de trabajo invertida en el fix.</p><div class="rmi-section"><div class="rmi-lbl">Fórmula</div><div class="rmi-formula">ROI = TCs resueltos ÷ esfuerzo (h)</div></div><div class="rmi-section"><div class="rmi-lbl">Este fix</div><div class="rmi-row"><span>TCs resueltos</span><span>'+(tcs||'—')+'</span></div><div class="rmi-row"><span>Esfuerzo estimado</span><span>'+(esf||'—')+'</span></div><div class="rmi-row rmi-result"><span>ROI resultante</span><span>'+(val||'—')+' TCs/h</span></div></div>';document.getElementById('roi-modal-overlay').classList.add('open');}
+function closeRoiModal(){var o=document.getElementById('roi-modal-overlay');if(o)o.classList.remove('open');}
+function toggleSelectAll(cb){document.querySelectorAll('.opt-check').forEach(function(c){c.checked=cb.checked});updateRunButton();}
+function filterBy(s){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>{if(s==='all'){t.classList.remove('hidden')}else{t.classList.toggle('hidden',t.dataset.status!==s)}});if(s!=='all')document.querySelectorAll('.card[data-filter="'+s+'"]').forEach(c=>c.classList.add('active'))}
+function filterByGroup(g){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
+function filterByType(tp){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',t.dataset.type!==tp))}
+
+// Histórico: fetch único a qa/history.json estático (publicado en gh-pages).
+// Antes: ~25 llamadas a GitHub API → rate limit 60 req/h sin auth.
+// Ahora: 1 fetch a ../history.json. Sin rate limit, sin latencia.
+async function openHistorial(){
+  const modal=document.getElementById('historial-modal');
+  const loading=document.getElementById('hist-loading');
+  const table=document.getElementById('hist-table');
+  modal.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  loading.textContent='Cargando histórico...';
+  table.classList.add('hidden');
+  try{
+    const rows=await fetch('../history.json',{cache:'no-cache'}).then(r=>{
+      if(!r.ok) throw new Error('history.json no disponible (HTTP '+r.status+')');
+      return r.json();
+    });
+    if(!Array.isArray(rows)||rows.length===0){
+      loading.textContent='No hay metadatos históricos disponibles.';
+      return;
+    }
+    const currentTs=document.title.match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/);
+    const tbody=table.querySelector('tbody');
+    tbody.innerHTML='';
+    rows.forEach(m=>{
+      const tr=document.createElement('tr');
+      if(currentTs && m.timestamp===currentTs[0]) tr.classList.add('current');
+      const backfilled=m.backfilled?' <span class="backfilled-tag">retroactivo</span>':'';
+      const url=`../${m.dir}/qa_latest.html`;
+      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${url}">Ver</a></td>`;
+      tbody.appendChild(tr);
+    });
+    loading.classList.add('hidden');
+    table.classList.remove('hidden');
+  }catch(e){
+    loading.textContent='Error cargando histórico: '+e.message;
+  }
+}
+function closeHistorial(){document.getElementById('historial-modal').classList.add('hidden')}
+function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
+function closeMetodologia(){document.getElementById('metodologia-modal').classList.add('hidden')}
+
+// === Optimizar / Borrar análisis / Run ===
+// Activar botón Optimizar si hay TCs en FAIL en el DOM
+function initOptimizeButton(){
+  var fails = document.querySelectorAll('.t[data-status="FAIL"]');
+  var btn = document.getElementById('btn-optimize');
+  if (!btn) return;
+  if (fails.length > 0){
+    btn.classList.remove('dl-disabled');
+    btn.style.cursor = 'pointer';
+  }
+}
+// Activar botón Borrar análisis si hay bloques LLM aplicados en el DOM
+function initDeleteButton(){
+  var analyses = document.querySelectorAll('.diag-block[data-tcid]');
+  var btn = document.getElementById('btn-delete');
+  if (!btn) return;
+  if (analyses.length > 0){
+    btn.classList.remove('dl-disabled');
+    btn.style.cursor = 'pointer';
+  }
+}
+// Set panel mode: 'optimize' (FAIL TCs, generate prompt) o 'delete' (TCs con .md, generate rm commands)
+function setPanelMode(mode){
+  var title = document.getElementById('optimize-panel-title');
+  var run = document.getElementById('btn-run');
+  var thead = document.querySelector('#optimize-panel thead tr');
+  if (mode === 'optimize'){
+    title.textContent = 'TCs en FAIL — selecciona los que quieras optimizar';
+    run.textContent = '▶ Run';
+    run.setAttribute('onclick', 'runOptimize()');
+    thead.innerHTML = '<th><input type="checkbox" id="opt-select-all" title="Seleccionar todos" onchange="toggleSelectAll(this)"></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
+  } else {
+    title.textContent = 'TCs con análisis LLM aplicado — selecciona los que quieras borrar';
+    run.textContent = '🗑 Borrar seleccionados';
+    run.setAttribute('onclick', 'runDelete()');
+    thead.innerHTML = '<th></th><th>ID</th><th>Análisis</th>';
+  }
+}
+function openOptimizePanel(){
+  var btn = document.getElementById('btn-optimize');
+  if (btn.classList.contains('dl-disabled')) return;
+  var panel = document.getElementById('optimize-panel');
+  if (!panel) return;
+  setPanelMode('optimize');
+  // Construir tabla desde el DOM
+  var tbody = document.getElementById('optimize-tbody');
+  tbody.innerHTML = '';
+  var fails = document.querySelectorAll('.t[data-status="FAIL"]');
+  fails.forEach(function(tc){
+    var tid = tc.querySelector('.tid') ? tc.querySelector('.tid').textContent.trim() : '?';
+    var tname = tc.querySelector('.tname') ? tc.querySelector('.tname').textContent.trim() : '';
+    // user utterance: primer ta-user > .ta-text (o .trace-text del primer trace-user)
+    var userEl = tc.querySelector('.ta-user .ta-text') || tc.querySelector('.trace-user .trace-text') || tc.querySelector('.turn-user .text');
+    var userTxt = userEl ? userEl.textContent.trim().replace(/^"|"$/g, '') : '';
+    // agent response: primer ta-agent > .ta-text
+    var agentEl = tc.querySelector('.ta-agent .ta-text') || tc.querySelector('.trace-agent .trace-text') || tc.querySelector('.turn-agent .text');
+    var agentTxt = agentEl ? agentEl.textContent.trim().replace(/^"|"$/g, '').substring(0, 120) : '';
+    // failed check: primer .turn-check.fail (render clásico) o primer .ta-bullets.fail li (render v3)
+    var checkEl = tc.querySelector('.turn-check.fail') || tc.querySelector('.ta-bullets.fail li');
+    var checkTxt = checkEl ? checkEl.textContent.trim() : '';
+    // URL al log JSON completo (del botón JSON del TC)
+    var logBtn = tc.querySelector('.log-btn');
+    var jsonUrl = logBtn ? logBtn.getAttribute('href') : '';
+    // group (extra metadato)
+    var group = tc.getAttribute('data-group') || '';
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><input type="checkbox" class="opt-check" data-tid="' + tid + '" data-tname="' + tname.replace(/"/g, '&quot;') + '" data-group="' + group + '"></td>' +
+                   '<td>' + tid + '</td>' +
+                   '<td>' + tname + '</td>' +
+                   '<td>' + checkTxt + '</td>' +
+                   '<td>' + agentTxt + (agentTxt.length === 120 ? '…' : '') + '</td>';
+    // attach data hidden for prompt
+    tr.querySelector('input').dataset.user = userTxt;
+    tr.querySelector('input').dataset.agent = agentTxt;
+    tr.querySelector('input').dataset.check = checkTxt;
+    tr.querySelector('input').dataset.jsonurl = jsonUrl;
+    tbody.appendChild(tr);
+  });
+  panel.classList.remove('hidden');
+  // attach listeners to checkboxes
+  document.querySelectorAll('.opt-check').forEach(function(cb){
+    cb.addEventListener('change', updateRunButton);
+  });
+  updateRunButton();
+}
+function openDeletePanel(){
+  var btn = document.getElementById('btn-delete');
+  if (btn.classList.contains('dl-disabled')) return;
+  var panel = document.getElementById('optimize-panel');
+  if (!panel) return;
+  setPanelMode('delete');
+  // Construir tabla con TCs que tienen análisis LLM aplicado
+  var tbody = document.getElementById('optimize-tbody');
+  tbody.innerHTML = '';
+  var blocks = document.querySelectorAll('.diag-block[data-tcid]');
+  var seen = {};
+  blocks.forEach(function(b){
+    var tid = b.getAttribute('data-tcid');
+    if (seen[tid]) return;
+    seen[tid] = true;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><input type="checkbox" class="opt-check" data-tid="' + tid + '"></td>' +
+                   '<td>' + tid + '</td>' +
+                   '<td>Causa raíz LLM aplicada</td>';
+    tbody.appendChild(tr);
+  });
+  panel.classList.remove('hidden');
+  document.querySelectorAll('.opt-check').forEach(function(cb){
+    cb.addEventListener('change', updateRunButton);
+  });
+  updateRunButton();
+}
+function updateRunButton(){
+  var run = document.getElementById('btn-run');
+  if (!run) return;
+  var checked = document.querySelectorAll('.opt-check:checked');
+  if (checked.length > 0){
+    run.classList.remove('dl-disabled');
+    run.style.cursor = 'pointer';
+  } else {
+    run.classList.add('dl-disabled');
+    run.style.cursor = 'not-allowed';
+  }
+}
+function runOptimize(){
+  var run = document.getElementById('btn-run');
+  if (run.classList.contains('dl-disabled')) return;
+  var checked = document.querySelectorAll('.opt-check:checked');
+  if (checked.length === 0) return;
+  var ids = [];
+  checked.forEach(function(cb){ ids.push(cb.dataset.tid); });
+  var prompt = '/qa-tc-analyzer ' + ids.join(' ');
+  navigator.clipboard.writeText(prompt).then(function(){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✓ Copiado — pega en Claude';
+    fb.classList.add('visible');
+    setTimeout(function(){ fb.classList.remove('visible'); }, 3000);
+  }).catch(function(err){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✗ Error al copiar: ' + err.message;
+    fb.classList.add('visible');
+  });
+}
+function runDelete(){
+  var run = document.getElementById('btn-run');
+  if (run.classList.contains('dl-disabled')) return;
+  var checked = document.querySelectorAll('.opt-check:checked');
+  if (checked.length === 0) return;
+  // Extraer TS de la URL (formato: /qa/<TS>/qa_latest.html)
+  var m = window.location.pathname.match(/\/qa\/([0-9_]+)\//);
+  var ts = m ? m[1] : '<TS>';
+  var P = '\n';
+  var cmd = '# Borrar análisis LLM seleccionados + regenerar + publicar' + P;
+  checked.forEach(function(cb){
+    cmd += 'rm qa/tc_analysis/' + cb.dataset.tid + '.md' + P;
+  });
+  cmd += 'python3 qa/regenerate_html.py --ts ' + ts + ' --out /tmp/qa.html' + P;
+  cmd += './qa/publish_html.sh /tmp/qa.html ' + ts + P;
+  navigator.clipboard.writeText(cmd).then(function(){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✓ Copiado — pega en terminal';
+    fb.classList.add('visible');
+    setTimeout(function(){ fb.classList.remove('visible'); }, 3000);
+  }).catch(function(err){
+    var fb = document.getElementById('btn-run-feedback');
+    fb.textContent = '✗ Error al copiar: ' + err.message;
+    fb.classList.add('visible');
+  });
+}
+function closePanel(){
+  var panel = document.getElementById('optimize-panel');
+  panel.classList.add('hidden');
+  document.getElementById('optimize-tbody').innerHTML = '';
+  // Resetear Run a desactivado
+  var run = document.getElementById('btn-run');
+  run.classList.add('dl-disabled');
+  run.style.cursor = 'not-allowed';
+  // Limpiar feedback
+  var fb = document.getElementById('btn-run-feedback');
+  fb.textContent = '';
+  fb.classList.remove('visible');
+}
+// Init al cargar
+function initButtons(){ initOptimizeButton(); initDeleteButton(); }
+document.addEventListener('DOMContentLoaded', initButtons);
+if (document.readyState !== 'loading') initButtons();
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();closePanel();}});
+
+// Info modals (Capas / Marcas) — abiertas desde botones "?" en "Causa raíz"
+function openInfoModal(id){document.getElementById('modal-'+id).classList.add('visible');}
+function closeInfoModal(id){document.getElementById('modal-'+id).classList.remove('visible');}
+// Cerrar al hacer clic fuera de la modal
+document.addEventListener('click',function(e){if(e.target.classList&&e.target.classList.contains('info-modal-overlay')){e.target.classList.remove('visible');}});
+// Cerrar con Escape
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.info-modal-overlay.visible').forEach(function(m){m.classList.remove('visible');});}});
+</script></body></html>
