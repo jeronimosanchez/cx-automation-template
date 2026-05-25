@@ -1227,6 +1227,146 @@ def _load_previous_meta(out_dir=None):
         return None
 
 
+def _render_patterns_html(md):
+    """Renders _patterns_*.md with the sketch-based visual structure:
+
+      RESUMEN — 3 stat bullets (tests, TCs con patrón, patrones)
+      Per-pattern card (2-column layout):
+        header: pattern name  |  ROI badge
+        body left:  TCs afectados (list)
+        body right: CAUSA (prose rows) + RECOMENDACIÓN
+      TCS SIN PATRÓN (table)
+      RESUMEN EJECUTIVO (ordered list)
+    """
+    def _esc(s):
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def _inline(s):
+        return _md_inline(_esc(s))
+
+    def _strip_dots(s):
+        return re.sub(r"[🔴🟢🟡⚪✅✔]\s*", "", s).strip()
+
+    out = []
+
+    # ── Parse TC list ─────────────────────────────────────────────────────
+    tc_m = re.search(r"TCs analizados en este batch:\s*(.+)", md)
+    tc_list = [t.strip() for t in tc_m.group(1).split(",")] if tc_m else []
+
+    # ── Parse ## sections ─────────────────────────────────────────────────
+    parts = re.split(r"\n## ", "\n" + md.strip())
+    pattern_secs, no_pat_sec, summary_sec = [], None, None
+    for part in parts[1:]:
+        lines = part.split("\n")
+        title = lines[0].strip()
+        body = "\n".join(lines[1:]).strip()
+        t_low = title.lower()
+        if "patr" in t_low and "sin" not in t_low:
+            pattern_secs.append((title, body))
+        elif "sin patr" in t_low:
+            no_pat_sec = (title, body)
+        elif "resumen" in t_low:
+            summary_sec = (title, body)
+
+    # ── Count TCs with pattern ────────────────────────────────────────────
+    tcs_con_patron = set()
+    for _, body in pattern_secs:
+        tcs_m = re.search(r"\*\*TCs:\*\*\s*(.+)", body)
+        if tcs_m:
+            for tc in re.findall(r"TC-\S+", tcs_m.group(1)):
+                tcs_con_patron.add(tc)
+
+    # ── RESUMEN (stats block) ─────────────────────────────────────────────
+    out.append('<div class="pat-resumen">')
+    out.append('<div class="pat-resumen-title">RESUMEN</div>')
+    out.append(f'<div class="pat-resumen-stat">• Tests analizados en este batch: <strong>{len(tc_list)}</strong></div>')
+    out.append(f'<div class="pat-resumen-stat">• TCs con patrón: <strong>{len(tcs_con_patron)}</strong></div>')
+    out.append(f'<div class="pat-resumen-stat">• Patrones: <strong>{len(pattern_secs)}</strong></div>')
+    out.append('</div>')
+
+    # ── Pattern cards ─────────────────────────────────────────────────────
+    if not pattern_secs:
+        out.append('<p class="pat-empty">No hay patrón detectado</p>')
+
+    for pat_title, pat_body in pattern_secs:
+        # ROI value
+        roi_m = re.search(r"(\d+)\s*TCs/h", pat_body)
+        roi_str = f"ROI: {roi_m.group(1)} TCs/h" if roi_m else ""
+
+        # TCs list
+        tcs_m = re.search(r"\*\*TCs:\*\*\s*(.+)", pat_body)
+        tc_items = re.findall(r"TC-[\w-]+", tcs_m.group(1)) if tcs_m else []
+
+        # Causa rows (from reason table)
+        causa_rows = []
+        reason_m = re.search(r"\| Razón[^\n]*\n\|[-| ]+\n((?:\|[^\n]+\n?)+)", pat_body)
+        if reason_m:
+            for row in reason_m.group(1).strip().split("\n"):
+                cells = [c.strip() for c in row.strip("|").split("|")]
+                if len(cells) >= 3:
+                    label = re.sub(r"\*\*", "", cells[0]).strip()
+                    detalle = _strip_dots(cells[2])
+                    causa_rows.append((label, detalle))
+
+        # Recomendación
+        rec_m = re.search(r"\*\*Recomendación de secuencia:\*\*\s*(.+)", pat_body)
+        rec_text = rec_m.group(1).strip() if rec_m else ""
+
+        # ── Card ──────────────────────────────────────────────────────────
+        out.append('<div class="pat-card">')
+
+        # Header row: title + ROI badge
+        out.append('<div class="pat-card-hdr">')
+        out.append(f'<div class="pat-card-title">{_inline(pat_title)}</div>')
+        if roi_str:
+            out.append(f'<div class="pat-roi-badge">{_esc(roi_str)}</div>')
+        out.append('</div>')
+
+        # Body: 2 columns
+        out.append('<div class="pat-card-body">')
+
+        # Left — TCs afectados
+        out.append('<div class="pat-card-left">')
+        out.append('<div class="pat-col-lbl">TCs afectados</div>')
+        for tc in tc_items:
+            out.append(f'<div class="pat-tc-item">{_esc(tc)}</div>')
+        out.append('</div>')
+
+        # Right — Causa + Recomendación
+        out.append('<div class="pat-card-right">')
+        if causa_rows:
+            out.append('<div class="pat-col-lbl">CAUSA</div>')
+            for label, detalle in causa_rows:
+                out.append(
+                    f'<div class="pat-causa-row">'
+                    f'<span class="pat-causa-lbl">{_esc(label)}:</span> {_inline(detalle)}'
+                    f'</div>'
+                )
+        if rec_text:
+            out.append('<div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>')
+            out.append(f'<div class="pat-rec-text">{_inline(rec_text)}</div>')
+        out.append('</div>')  # right
+
+        out.append('</div>')  # body
+        out.append('</div>')  # card
+
+    # ── TCS SIN PATRÓN ────────────────────────────────────────────────────
+    if no_pat_sec:
+        out.append('<div class="pat-section">')
+        out.append('<div class="pat-sh">TCS SIN PATRÓN</div>')
+        out.append(_md_to_html(no_pat_sec[1]))
+        out.append('</div>')
+
+    # ── RESUMEN EJECUTIVO ─────────────────────────────────────────────────
+    if summary_sec:
+        out.append('<div class="pat-section">')
+        out.append('<div class="pat-sh">RESUMEN EJECUTIVO</div>')
+        out.append(_md_to_html(summary_sec[1]))
+        out.append('</div>')
+
+    return "\n".join(out)
+
+
 def generate_html(results, ts, txt_file, logs_dir_name=None):
     total = len(results)
     n_pass = sum(1 for r in results if r["status"] == "PASS")
@@ -1251,13 +1391,18 @@ def generate_html(results, ts, txt_file, logs_dir_name=None):
         _patterns_dir = os.path.join(os.path.dirname(__file__), "tc_analysis")
         # Buscar por prefijo: _patterns_20260518_1929*.md → match con o sin segundos
         _patterns_matches = _glob.glob(os.path.join(_patterns_dir, f"_patterns_{ts_compact}*.md"))
-        # Si no hay match exacto, intentar con prefijo más corto (8 chars = fecha, 13 chars = fecha_hora_minuto)
+        # Si no hay match exacto, intentar con prefijo más corto (fecha_hora_minuto)
         if not _patterns_matches and len(ts_compact) >= 13:
             _patterns_matches = _glob.glob(os.path.join(_patterns_dir, f"_patterns_{ts_compact[:13]}*.md"))
+        # Fallback: misma fecha (el análisis por lotes puede tener un timestamp propio)
+        if not _patterns_matches and len(ts_compact) >= 8:
+            _day_matches = sorted(_glob.glob(os.path.join(_patterns_dir, f"_patterns_{ts_compact[:8]}*.md")))
+            if _day_matches:
+                _patterns_matches = [_day_matches[-1]]  # el más reciente del mismo día
         if _patterns_matches:
             with open(_patterns_matches[0], "r", encoding="utf-8") as _pf:
                 _patterns_md = _pf.read()
-            _patterns_html = _md_to_html(_patterns_md)
+            _patterns_html = _render_patterns_html(_patterns_md)
             # Extraer stats para el header colapsable
             import re as _re2
             _n_pat = len(_re2.findall(r'^## Patrón', _patterns_md, _re2.MULTILINE))
@@ -1607,18 +1752,38 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .info-modal table{{width:100%;border-collapse:collapse;margin-top:8px}}
 .info-modal td{{padding:6px 8px;border-bottom:1px solid #333}}
 .info-modal code{{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}}
-/* [v1.1 Cambio F] Bloque de patrones cruzados — colapsable (Alt 1) */
-.patterns-block{{background:#1a1a1a;border:1px solid #f59e0b;border-left:4px solid #f59e0b;border-radius:8px;margin-bottom:16px;overflow:hidden}}
+/* Patrones cruzados — bloque colapsable (rojo = análisis de errores) */
+.patterns-block{{background:#1a1a1a;border:1px solid #ef4444;border-left:4px solid #ef4444;border-radius:8px;margin-bottom:16px;overflow:hidden}}
 .patterns-th{{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}}
 .patterns-th:hover{{background:#222}}
 .patterns-icon{{font-size:15px;flex:0 0 auto}}
-.patterns-title{{color:#f59e0b;font-size:13px;font-weight:700;flex:0 0 auto}}
+.patterns-title{{color:#ef4444;font-size:13px;font-weight:700;flex:0 0 auto}}
 .patterns-stats{{color:#999;font-size:11px;font-family:'DM Mono',monospace;flex:1}}
-.patterns-arrow{{color:#f59e0b;font-size:10px;transition:transform 0.2s;margin-left:auto;flex:0 0 auto}}
+.patterns-arrow{{color:#ef4444;font-size:10px;transition:transform 0.2s;margin-left:auto;flex:0 0 auto}}
 .patterns-arrow.open{{transform:rotate(90deg)}}
 .patterns-body{{display:none;padding:4px 16px 16px;border-top:1px solid #2a2a2a}}
 .patterns-body.open{{display:block}}
 .patterns-block h2{{display:none}}
+/* Patterns body — sketch layout (2-col cards) */
+.pat-resumen{{background:#1a1a1a;border:1px solid #2d2d2d;border-radius:6px;padding:10px 14px;margin-bottom:14px}}
+.pat-resumen-title{{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:6px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}}
+.pat-resumen-stat{{font-size:12px;color:#ccc;margin-bottom:2px;line-height:1.5}}
+.pat-card{{background:#141414;border:1px solid #2d2d2d;border-radius:6px;margin-bottom:12px;overflow:hidden}}
+.pat-card-hdr{{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #2a2a2a;gap:10px}}
+.pat-card-title{{font-size:13px;font-weight:600;color:#e0e0e0;flex:1}}
+.pat-roi-badge{{font-size:10px;font-weight:700;color:#c8f060;background:#0e1f05;border:1px solid #c8f06033;padding:2px 9px;border-radius:10px;white-space:nowrap;flex-shrink:0}}
+.pat-card-body{{display:grid;grid-template-columns:1fr 2fr}}
+.pat-card-left{{padding:12px 14px;border-right:1px solid #2a2a2a}}
+.pat-card-right{{padding:12px 14px}}
+.pat-col-lbl{{font-size:10px;font-weight:700;letter-spacing:.8px;color:#777;text-transform:uppercase;margin-bottom:7px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}}
+.pat-rec-lbl{{margin-top:12px}}
+.pat-tc-item{{font-size:11px;font-family:'DM Mono',monospace;color:#c8f060;margin-bottom:4px}}
+.pat-causa-row{{font-size:12px;color:#ccc;margin-bottom:5px;line-height:1.4}}
+.pat-causa-lbl{{color:#aaa;font-weight:600}}
+.pat-rec-text{{font-size:12px;color:#b8c890;line-height:1.5}}
+.pat-section{{margin-bottom:18px}}
+.pat-sh{{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid #2a2a2a;padding-bottom:4px;margin-top:16px}}
+.pat-empty{{font-size:12px;color:#888;font-style:italic}}
 .layer-format-note{{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
