@@ -200,9 +200,14 @@ Los 7 gates anteriores aplican al momento de un commit autónomo. Las sub-seccio
 
 **Escritura en el repo o despliegue**
 - Escribir/modificar archivos del repo (`definitions/`, `src/`, `qa/`, `.github/`, `CLAUDE.md`, etc.).
-- `git push`, `gh pr create`, `gh pr merge`, `gh pr review`.
+- `git push origin main` o push a `main` por cualquier vía — dispara `deploy.yml` → producción.
+- `gh pr merge` — fusiona a `main` → mismo efecto que push a main.
+- `gh pr create` — abrir PR es auto-OK; el gate es el merge.
 - `gcloud run deploy`, cualquier mutación sobre GCP, IAM o GitHub Secrets.
 - Instalación de dependencias en el entorno (`pip install`, `npm install`, etc.).
+
+**Auto-permitido sin gate:**
+- `git push origin <rama-que-no-sea-main>` — sube código a GitHub sin tocar producción.
 
 ### 8.3 Excepción: patrón "lanza" / "dale"
 
