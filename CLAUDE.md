@@ -194,30 +194,34 @@ Los 7 gates anteriores aplican al momento de un commit autónomo. Las sub-seccio
 
 ### 8.2 Gate obligatorio (parar y pedir aprobación)
 
-**Escritura contra APIs**
-- `curl -X POST/PATCH/DELETE` o `requests.patch/post/delete`.
-- Cualquier `PATCH` a la API de CX **aunque sea no-op** — los probes con `updateMask` inválido también cuentan, porque la intención de mutar cruza el gate.
+Solo 3 gates. Todo lo demás es auto.
 
-**Escritura en el repo o despliegue**
-- Escribir/modificar archivos del repo (`definitions/`, `src/`, `qa/`, `.github/`, `CLAUDE.md`, etc.).
-- `git push origin main` o push a `main` por cualquier vía — dispara `deploy.yml` → producción.
-- `gh pr merge` — fusiona a `main` → mismo efecto que push a main.
-- `gh pr create` — abrir PR es auto-OK; el gate es el merge.
-- `gcloud run deploy`, cualquier mutación sobre GCP, IAM o GitHub Secrets.
-- Instalación de dependencias en el entorno (`pip install`, `npm install`, etc.).
+| Gate | Por qué |
+|---|---|
+| `gh pr merge` / `git push` a `main` | Dispara deploy a producción |
+| `curl POST/PATCH/DELETE` a API CX directamente | Muta el agente saltándose el pipeline — sin traza en GitHub |
+| IAM / GitHub Secrets / GCP directo | Seguridad crítica, nunca negociable |
 
-**Auto-permitido sin gate:**
-- `git push origin <rama-que-no-sea-main>` — sube código a GitHub sin tocar producción.
+**Auto-permitido sin gate (todo lo demás):**
+- Escribir/modificar archivos del repo (`definitions/`, `src/`, `qa/`, etc.)
+- `git push origin <rama-que-no-sea-main>`
+- `gh pr create`
+- `pip install`, `npm install`
+- Correr tests QA (hasta suite completa)
 
-### 8.3 Excepción: patrón "lanza" / "dale"
+### 8.3 Modo libre — desactivar todos los gates para una acción concreta
 
-Cuando Jero dice **"lanza"** o **"dale"** tras un análisis aprobado en la misma conversación, el ciclo completo (edit → PR → merge --admin → deploy → QA → diff) se ejecuta **sin gates intermedios** de §8.2 *escritura en el repo o despliegue*.
+Cuando Jero dice **"modo libre: <descripción de la acción>"**, Claude Code ejecuta esa acción concreta **sin ningún gate**, incluyendo los 3 de §8.2.
 
-Condiciones para activarse:
-- Análisis previo aprobado en la misma conversación.
-- El alcance del ciclo está descrito antes de "lanza" / "dale".
+Condiciones:
+- Jero debe especificar la acción concretamente ("modo libre: merge y deploy de este PR").
+- El modo libre aplica **solo a esa acción**. Al terminar, vuelven los gates normales.
+- No aplica a IAM / GitHub Secrets — esos son intocables siempre.
 
-No cubre las áreas listadas en §7 (Constraints): IAM, agente Petal en producción tocado fuera del CI/CD, GitHub Secrets, petal-sheet-api. Esos mantienen gate aunque Jero diga "lanza".
+Ejemplo:
+> "modo libre: merge del PR #72 y espera el deploy"
+> → Claude Code hace merge + vigila deploy sin preguntar nada.
+
 
 ---
 
