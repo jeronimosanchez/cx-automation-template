@@ -1,0 +1,70 @@
+{
+  "tc_id": "TC-URGENCIA-02",
+  "tc_name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-27 21:37",
+  "ts_file": "20260527_2137",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "No te preocupes, hacemos entregas rápidas. En Madrid, si pides antes de las 17:00, entregamos en el mismo día. Para otras ciudades, entregamos en 24-48 horas. ¿Te gustaría que te ayude a elegir algo?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [entrega]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "mañana por la mañana",
+          "agent": "Entendido. Si pides hoy antes de las 17:00, podemos entregarlo mañana por la mañana en Madrid. ¿Te ayudo a elegir las flores?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [mañana]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
