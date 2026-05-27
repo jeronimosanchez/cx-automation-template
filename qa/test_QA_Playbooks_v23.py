@@ -1045,10 +1045,12 @@ def _postprocess_capa_blocks(html):
     capa_line_re = re.compile(
         r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+?)</strong>\s*\[(verificada|supuesta|N/A)\]\s*</p>'
     )
-    # Patrón COMPACTO: <p>EMOJI N. <strong>Capa Nombre</strong> · estado — descripción inline</p>
-    # Todo en un solo <p>, sin corchetes ni fuente aparte. Típico de capas N/A.
+    # Patrón COMPACTO: <p>EMOJI N. <strong>Capa Nombre</strong> [SEPARADOR] ESTADO [SEPARADOR] — descripción inline</p>
+    # Todo en un solo <p>. Acepta tanto "· estado —" como "[estado] —".
     capa_line_compact_re = re.compile(
-        r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+?)</strong>\s*[·•∙]\s*(verificada|supuesta|N/A)\s*[—\-–]\s*(.+?)\s*</p>',
+        r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+?)</strong>\s*'
+        r'(?:[·•∙]\s*(?P<estado1>verificada|supuesta|N/A)|\[(?P<estado2>verificada|supuesta|N/A)\])\s*'
+        r'[—\-–]\s*(?P<desc>.+?)\s*</p>',
         re.DOTALL
     )
 
@@ -1120,7 +1122,11 @@ def _postprocess_capa_blocks(html):
         emoji = m.group(1)
         num = m.group(2)
         nombre = m.group(3).strip()
-        estado = m.group(4)
+        if kind == "verbose":
+            estado = m.group(4)
+        else:
+            # Formato compacto: estado puede venir como grupo named 'estado1' (· estado) o 'estado2' ([estado])
+            estado = m.groupdict().get("estado1") or m.groupdict().get("estado2") or "N/A"
         color = _CAPA_EMOJI_MAP.get(emoji, "na")
         badge_cls, badge_txt = _ESTADO_BADGE_MAP.get(estado, ("na", estado))
 
@@ -1128,9 +1134,9 @@ def _postprocess_capa_blocks(html):
             # Formato verbose: fuente + descripción en bloques siguientes
             fuente_html, desc_html, end_pos = consume_following_blocks(html, m.end())
         else:
-            # Formato compacto: la descripción viene en el mismo <p>, tras "· estado —"
+            # Formato compacto: la descripción viene en el mismo <p>, tras "estado —"
             fuente_html = ""
-            desc_inline = m.group(5).strip()
+            desc_inline = m.group("desc").strip()
             desc_html = f'<p class="capa-desc-p">{desc_inline}</p>' if desc_inline else ""
             end_pos = m.end()
 
