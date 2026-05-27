@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-27 15:10",
+  "ts_file": "20260527_151044",
+  "total": 51,
+  "pass": 44,
+  "inst": 4,
+  "fail": 3,
+  "pct": 86,
+  "runs_per_tc": 3,
+  "note": "47 TCs reutilizados del run 20260527_1353 + 4 REG re-ejecutados"
+}
