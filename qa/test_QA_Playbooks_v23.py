@@ -1053,6 +1053,17 @@ def _postprocess_capa_blocks(html):
         r'[—\-–]\s*(?P<desc>.+?)\s*</p>',
         re.DOTALL
     )
+    # Patrón ALT: <p><strong>Capa N — Nombre:</strong> EMOJI [estado · fuente] [descripción opcional]</p>
+    # Variante donde el sub-agente puso emoji DESPUÉS del título en lugar de antes.
+    # La descripción es opcional (puede estar vacía o en un <p> siguiente, que consumimos
+    # con consume_following_blocks).
+    capa_line_alt_re = re.compile(
+        r'<p><strong>Capa\s+(\d+)\s*[—\-–]\s*([^<]+?):</strong>\s*'
+        r'(🔴|🟢|🟡|⚪)\s*'
+        r'(?:\[(?P<estado>verificada|supuesta|N/A)[^\]]*\]|(?P<estado2>N/A))\s*'
+        r'(?P<desc>.*?)</p>',
+        re.DOTALL
+    )
 
     def consume_following_blocks(full_html, start_pos):
         """Consume bloques HTML (<p>, <table>, <pre>, <ul>, <ol>, <blockquote>)
@@ -1069,8 +1080,11 @@ def _postprocess_capa_blocks(html):
             r'\s*(<p>(.*?)</p>|<table[^>]*>.*?</table>|<pre>.*?</pre>|<ul>.*?</ul>|<ol>.*?</ol>|<blockquote>.*?</blockquote>)',
             re.DOTALL
         )
-        # Detectar si el siguiente <p> es otra cabecera de capa
-        header_marker_re = re.compile(r'^(🔴|🟢|🟡|⚪)\s+\d+\.\s+<strong>')
+        # Detectar si el siguiente <p> es otra cabecera de capa (verbose/compact/alt)
+        header_marker_re = re.compile(
+            r'^(🔴|🟢|🟡|⚪)\s+\d+\.\s+<strong>'      # verbose/compact: emoji al inicio
+            r'|^<strong>Capa\s+\d+\s*[—\-–]'          # alt: <strong>Capa N — Nombre:</strong>
+        )
         p_tag_re = re.compile(r'\s*<p>(.*?)</p>', re.DOTALL)
 
         first = True
@@ -1104,12 +1118,14 @@ def _postprocess_capa_blocks(html):
         desc_html = "".join(desc_parts)
         return fuente, desc_html, pos
 
-    # Recolectar todos los matches (verbose y compacto), ordenados por posición.
+    # Recolectar todos los matches (verbose, compacto, alt), ordenados por posición.
     all_matches = []
     for m in capa_line_re.finditer(html):
         all_matches.append(("verbose", m))
     for m in capa_line_compact_re.finditer(html):
         all_matches.append(("compact", m))
+    for m in capa_line_alt_re.finditer(html):
+        all_matches.append(("alt", m))
     all_matches.sort(key=lambda x: x[1].start())
 
     result = []
@@ -1119,26 +1135,38 @@ def _postprocess_capa_blocks(html):
             continue
         result.append(html[last_pos:m.start()])
 
-        emoji = m.group(1)
-        num = m.group(2)
-        nombre = m.group(3).strip()
         if kind == "verbose":
+            emoji = m.group(1)
+            num = m.group(2)
+            nombre = m.group(3).strip()
             estado = m.group(4)
-        else:
-            # Formato compacto: estado puede venir como grupo named 'estado1' (· estado) o 'estado2' ([estado])
+        elif kind == "compact":
+            emoji = m.group(1)
+            num = m.group(2)
+            nombre = m.group(3).strip()
             estado = m.groupdict().get("estado1") or m.groupdict().get("estado2") or "N/A"
+        else:  # kind == "alt": <strong>Capa N — Nombre:</strong> EMOJI [estado] ...
+            num = m.group(1)
+            nombre = "Capa " + m.group(2).strip()
+            emoji = m.group(3)
+            estado = m.groupdict().get("estado") or m.groupdict().get("estado2") or "N/A"
         color = _CAPA_EMOJI_MAP.get(emoji, "na")
         badge_cls, badge_txt = _ESTADO_BADGE_MAP.get(estado, ("na", estado))
 
         if kind == "verbose":
-            # Formato verbose: fuente + descripción en bloques siguientes
             fuente_html, desc_html, end_pos = consume_following_blocks(html, m.end())
         else:
-            # Formato compacto: la descripción viene en el mismo <p>, tras "estado —"
             fuente_html = ""
-            desc_inline = m.group("desc").strip()
+            desc_inline = (m.groupdict().get("desc") or "").strip()
+            # Limpiar separador inicial residual
+            desc_inline = re.sub(r'^\s*[—\-–]\s*', '', desc_inline)
             desc_html = f'<p class="capa-desc-p">{desc_inline}</p>' if desc_inline else ""
             end_pos = m.end()
+            # Si es alt, consumir también los siguientes <p>/<table>/etc como descripción adicional
+            if kind == "alt":
+                extra_fuente, extra_desc, end_pos = consume_following_blocks(html, m.end())
+                if extra_desc:
+                    desc_html += extra_desc
 
         block = (
             f'<div class="capa-block capa-{color}">'
@@ -1158,7 +1186,30 @@ def _postprocess_capa_blocks(html):
         last_pos = end_pos
 
     result.append(html[last_pos:])
-    return "".join(result)
+    html_out = "".join(result)
+
+    # Recalcular "Resumen visual" desde las capas realmente envueltas en el HTML.
+    # Evita que el texto del MD (escrito por el sub-agente) muestre conteos
+    # incorrectos cuando éste se equivoca o cuando alguna capa usa un formato
+    # exótico que no se envuelve.
+    cnt_rojo = len(re.findall(r'class="capa-block capa-rojo"', html_out))
+    cnt_verde = len(re.findall(r'class="capa-block capa-verde"', html_out))
+    cnt_amarillo = len(re.findall(r'class="capa-block capa-amarillo"', html_out))
+    cnt_na = len(re.findall(r'class="capa-block capa-na"', html_out))
+    if cnt_rojo + cnt_verde + cnt_amarillo + cnt_na > 0:
+        real_resumen = (
+            f'{cnt_rojo} 🔴 problema · {cnt_verde} 🟢 ok · '
+            f'{cnt_amarillo} 🟡 supuesta · {cnt_na} ⚪ N/A'
+        )
+        # Reemplazar la línea "Resumen visual: ..." declarada por el sub-agente
+        # con el conteo real. Aceptamos varias formas de separador y emoji order.
+        html_out = re.sub(
+            r'(<p[^>]*><strong>Resumen visual:</strong>)\s*[^<]*?(</p>)',
+            lambda m: f'{m.group(1)} {real_resumen}{m.group(2)}',
+            html_out,
+            count=1,
+        )
+    return html_out
 
 
 def _md_inline(text):
