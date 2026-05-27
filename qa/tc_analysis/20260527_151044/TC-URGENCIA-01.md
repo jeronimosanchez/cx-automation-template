@@ -150,3 +150,5 @@ Re-aplicar el bloque ya validado en `3e0b2d1` / `a10ab02` con un único ajuste: 
 ---
 
 **Pendiente para sprint posterior** (no parte de este fix): conectar el bloque al Sheet (Solución #1) para que `horario_corte_mismo_dia` y `tiempo_entrega_estimado` dejen de estar huérfanos. Memorizar en `automatizacion/`.
+
+> **Forma parte del patrón URGENCIA-PLAZO.** Si el fix de TC-URGENCIA-01 resuelve la causa raíz común (ausencia de bloque de detección de plazo en compra.yaml), TC-URGENCIA-03 pasará a PASS sin cambios adicionales. Re-ejecutar antes de planificar fixes individuales.

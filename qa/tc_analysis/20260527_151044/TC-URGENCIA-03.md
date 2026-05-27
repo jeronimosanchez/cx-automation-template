@@ -105,3 +105,5 @@ Añadir al FLUJO PRINCIPAL de Compra un bloque de prioridad alta que:
 4. **Test local (dry-run):** revisar el diff antes de commitear.
 5. **Commit, PR, merge, deploy** (vía workflow estándar) y rerun de TC-URGENCIA-01 + TC-URGENCIA-03 con `--runs 3` para validar que ambos pasan y que ningún otro TC de Compra regresa.
 6. **Si aparece regresión:** NO revertir reflexivamente — esto sería el cuarto ping-pong. Diagnosticar el efecto colateral concreto y ajustar el bloque (probable: especificidad de triggers o orden de evaluación dentro del playbook).
+
+> **Forma parte del patrón URGENCIA-PLAZO.** Si el fix de TC-URGENCIA-01 resuelve la causa raíz común (ausencia de bloque de detección de plazo en compra.yaml), TC-URGENCIA-03 pasará a PASS sin cambios adicionales. Re-ejecutar antes de planificar fixes individuales.
