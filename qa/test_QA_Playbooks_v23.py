@@ -1050,42 +1050,53 @@ def _postprocess_capa_blocks(html):
     )
 
     def consume_following_blocks(full_html, start_pos):
-        """Consume <p>...</p> consecutivos hasta encontrar otra cabecera de capa o
-        salir de la sección. Devuelve (fuente_html, desc_html, end_pos).
+        """Consume bloques HTML (<p>, <table>, <pre>, <ul>, <ol>, <blockquote>)
+        después de una cabecera de capa, hasta encontrar otra cabecera o salir.
+        Devuelve (fuente_html, desc_html, end_pos).
         - fuente_html: si el primer <p> es SOLO <code>...</code>, ese es la fuente
-        - desc_html: el resto de párrafos concatenados (sin re-wrapear en <p>)
+        - desc_html: el resto del contenido (párrafos, tablas, listas, etc.) bajo la capa
         """
         fuente = ""
-        descs = []
+        desc_parts = []
         pos = start_pos
-        next_p_re = re.compile(r'\s*<p>(.*?)</p>', re.DOTALL)
-        # Detectar si el siguiente bloque es otra cabecera de capa
+        # Tags consumibles como contenido de la capa (en orden de probabilidad)
+        block_re = re.compile(
+            r'\s*(<p>(.*?)</p>|<table[^>]*>.*?</table>|<pre>.*?</pre>|<ul>.*?</ul>|<ol>.*?</ol>|<blockquote>.*?</blockquote>)',
+            re.DOTALL
+        )
+        # Detectar si el siguiente <p> es otra cabecera de capa
         header_marker_re = re.compile(r'^(🔴|🟢|🟡|⚪)\s+\d+\.\s+<strong>')
+        p_tag_re = re.compile(r'\s*<p>(.*?)</p>', re.DOTALL)
 
         first = True
         while True:
-            m = next_p_re.match(full_html, pos)
+            # Primero comprobamos si el siguiente bloque es un <p> con cabecera de capa
+            mp = p_tag_re.match(full_html, pos)
+            if mp and header_marker_re.match(mp.group(1)):
+                break
+            m = block_re.match(full_html, pos)
             if not m:
                 break
-            inner = m.group(1)
-            # No consumir si es otra cabecera de capa
-            if header_marker_re.match(inner):
-                break
-            # Saltar "_(no verificado)_" rendered → <em>(no verificado)</em> sólo si es supuesta
-            # Lo incluimos como parte de la descripción (más explícito)
-            inner_strip = inner.strip()
-            # Si el contenido es exactamente un <code>...</code>, es la fuente (solo el primero)
-            if first and re.fullmatch(r'<code>[^<]+</code>', inner_strip):
-                fuente = inner_strip
+            block_html = m.group(1).strip()
+            # Si el primer bloque es <p><code>...</code></p>, es la fuente
+            if first and block_html.startswith('<p>') and block_html.endswith('</p>'):
+                inner = block_html[3:-4].strip()
+                if re.fullmatch(r'<code>[^<]+</code>', inner):
+                    fuente = inner
+                    pos = m.end()
+                    first = False
+                    continue
+            # Si es <p>...</p>, lo wrapeamos con clase capa-desc-p (mantiene estilos)
+            if block_html.startswith('<p>') and block_html.endswith('</p>'):
+                inner = block_html[3:-4].strip()
+                desc_parts.append(f'<p class="capa-desc-p">{inner}</p>')
             else:
-                descs.append(inner_strip)
+                # Tabla / pre / lista / blockquote: lo incluimos tal cual
+                desc_parts.append(block_html)
             pos = m.end()
             first = False
 
-        desc_html = ""
-        if descs:
-            # Unir párrafos manteniendo separación visual
-            desc_html = "".join(f'<p class="capa-desc-p">{d}</p>' for d in descs)
+        desc_html = "".join(desc_parts)
         return fuente, desc_html, pos
 
     result = []
@@ -1625,7 +1636,8 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .tipo-tag{{font-size:10px;padding:2px 8px;border-radius:3px;background:#f9731622;color:#f97316;font-family:'DM Mono',monospace;font-weight:600}}
 /* Banda de recomendación al final del TC */
 /* Banda de DIAGNÓSTICO — mismo ancho/letra que .recomendacion, color azul */
-.diagnostico{{margin:14px 0 4px;padding:14px 16px;background:#0c172f;border:1px solid #1e3a5f;border-left:4px solid #3b82f6;border-radius:6px}}
+.diagnostico,.dimensionamiento{{margin:14px 0 4px;padding:14px 16px;background:#0c172f;border:1px solid #1e3a5f;border-left:4px solid #3b82f6;border-radius:6px}}
+.dimensionamiento{{margin-top:8px;background:#0a1322}}
 .diagnostico.pendiente{{background:#1a1a1a;border-color:#444;border-left-color:#777}}
 .diagnostico .diag-band-title{{color:#93c5fd}}
 .diagnostico .diag-tag{{background:#3b82f622;color:#93c5fd}}
@@ -1641,6 +1653,17 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .diagnostico .diag-band-content .md-table th{{background:#0c172f;color:#93c5fd;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}}
 .diagnostico .diag-band-content .md-table tr:nth-child(even){{background:#0a1530}}
 .diagnostico .wip-disclaimer-sm{{font-size:10px;color:#7a7a7a;margin-top:10px;padding-top:8px;border-top:1px solid #1a3a5f;font-style:italic}}
+/* Dimensionamiento: hereda el estilo del contenido del diagnóstico */
+.dimensionamiento .diag-band-title{{color:#93c5fd}}
+.dimensionamiento .diag-band-content p{{font-size:11px;color:#cce;line-height:1.5;margin:3px 0}}
+.dimensionamiento .diag-band-content code{{background:#1a2e3a;color:#93c5fd;padding:1px 4px;border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}}
+.dimensionamiento .diag-band-content strong{{color:#93c5fd;font-weight:600}}
+.dimensionamiento .diag-band-content h2,.dimensionamiento .diag-band-content h3,.dimensionamiento .diag-band-content h4{{color:#3b82f6;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 3px}}
+.dimensionamiento .diag-band-content h4:first-child{{margin-top:0}}
+.dimensionamiento .diag-band-content .md-table{{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}}
+.dimensionamiento .diag-band-content .md-table th,.dimensionamiento .diag-band-content .md-table td{{border:1px solid #1a3a5f;padding:5px 7px;text-align:left;vertical-align:top}}
+.dimensionamiento .diag-band-content .md-table th{{background:#0c172f;color:#93c5fd;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}}
+.dimensionamiento .diag-band-content .md-table tr:nth-child(even){{background:#0a1530}}
 .recomendacion{{margin:14px 0 4px;padding:14px 16px;background:#0c1f0c;border:1px solid #1e3a1e;border-left:4px solid #22c55e;border-radius:6px}}
 .recomendacion.fail{{background:#1f0e0c;border-color:#3a1e1e;border-left-color:#ef4444}}
 .recomendacion.fail .rec-title{{color:#fca5a5}}
@@ -1749,12 +1772,14 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .ta-right .manual-analysis ul li{{margin:6px 0}}
 .diag-block{{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}}
 .diag-header{{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}}
-/* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz') */
-.capa-block{{margin:14px 0;padding:14px 16px;border-radius:6px;border-left:4px solid transparent;min-height:48px}}
-.capa-block.capa-rojo{{background:rgba(255,80,80,0.07);border-left-color:#e85050}}
-.capa-block.capa-verde{{background:rgba(80,200,80,0.05);border-left-color:#5dc870}}
-.capa-block.capa-amarillo{{background:rgba(220,180,50,0.06);border-left-color:#d4b32f}}
-.capa-block.capa-na{{background:rgba(255,255,255,0.02);border-left-color:#555}}
+/* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz')
+   NOTA: las capas internas NO tienen barra lateral coloreada (solo el bloque
+   Diagnóstico exterior la tiene). El emoji 🔴🟢🟡⚪ es el indicador de marca. */
+.capa-block{{margin:14px 0;padding:14px 16px;border-radius:6px;min-height:48px}}
+.capa-block.capa-rojo{{background:rgba(255,80,80,0.07)}}
+.capa-block.capa-verde{{background:rgba(80,200,80,0.05)}}
+.capa-block.capa-amarillo{{background:rgba(220,180,50,0.06)}}
+.capa-block.capa-na{{background:rgba(255,255,255,0.02)}}
 .capa-header{{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}}
 .capa-emoji{{font-size:18px;line-height:1;flex-shrink:0}}
 .capa-titulo{{flex:1;font-size:14px;color:#fff}}
@@ -1768,6 +1793,11 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .capa-desc{{margin-top:8px;margin-left:30px}}
 .capa-desc p,.capa-desc-p{{color:#ddd;font-size:13px;line-height:1.6;margin:6px 0}}
 .capa-desc code{{background:#2a2a2a;color:#ddd;padding:1px 6px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace;word-break:break-word;overflow-wrap:anywhere}}
+/* Cualquier tabla/pre/blockquote dentro de una capa hereda el sangrado del título */
+.capa-block .md-table,.capa-block table,.capa-block pre,.capa-block blockquote,.capa-block ul,.capa-block ol{{margin-left:30px;margin-top:8px;margin-bottom:8px;max-width:calc(100% - 30px)}}
+.capa-block .md-table{{width:calc(100% - 30px);border-collapse:collapse;font-size:11px}}
+.capa-block .md-table th,.capa-block .md-table td{{border:1px solid #2a2a2a;padding:6px 8px;text-align:left;vertical-align:top;color:#ddd}}
+.capa-block .md-table th{{background:#1a1a1a;color:#c8f060;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}}
 .badge{{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}}
 .badge-auto{{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}}
 .badge-llm{{background:#1a2818;color:#c8f060;border:1px solid #2a4818}}
@@ -2205,6 +2235,17 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                 r"###?\s*Turnos\s+vs\s+Problemas[^\n]*\n(?:\s*\|[^\n]*\n)+",
                 "", diagnostico_md, flags=re.IGNORECASE
             ).strip()
+            # Extraer la sección "Dimensionamiento del bug" como banda aparte
+            # Captura desde "### Dimensionamiento..." hasta el siguiente "## " o el fin del MD.
+            dim_match = re.search(
+                r"(####?\s*Dimensionamiento\s+del\s+bug[^\n]*\n.*?)(?=\n##\s|\n###\s|\Z)",
+                md_sin_tabla, flags=re.IGNORECASE | re.DOTALL
+            )
+            dim_md = ""
+            if dim_match:
+                dim_md = dim_match.group(1).strip()
+                # Quitarla del MD del diagnóstico
+                md_sin_tabla = (md_sin_tabla[:dim_match.start()] + md_sin_tabla[dim_match.end():]).strip()
             if md_sin_tabla:
                 diag_tipo = analysis["meta"].get("tipo", "")
                 diag_tag_html = f'<span class="rec-tag diag-tag">{esc(diag_tipo)}</span>' if diag_tipo else ""
@@ -2212,6 +2253,14 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                 h += f'<div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span>{diag_tag_html}<button class="info-btn" onclick="openInfoModal(\'capas\')" title="9 capas y sus estados">?</button></div>'
                 h += f'<div class="rec-content diag-band-content"><div class="manual-analysis">{_postprocess_capa_blocks(_md_to_html(md_sin_tabla))}</div></div>'
                 h += f'<div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div>'
+                h += f'</div>\n'
+            # Banda separada: Dimensionamiento del bug
+            if dim_md:
+                # Quitar el encabezado "### Dimensionamiento del bug" del MD (ya lo metemos en el header de la banda)
+                dim_body_md = re.sub(r"^####?\s*Dimensionamiento\s+del\s+bug[^\n]*\n", "", dim_md, count=1, flags=re.IGNORECASE).strip()
+                h += f'<div class="dimensionamiento" data-tcid="{esc(r["id"])}">'
+                h += f'<div class="rec-header"><span class="rec-icon">📐</span><span class="rec-title diag-band-title">Dimensionamiento del bug</span></div>'
+                h += f'<div class="rec-content diag-band-content">{_md_to_html(dim_body_md)}</div>'
                 h += f'</div>\n'
         elif any(rr.get("status") == "FAIL" for rr in r.get("runs", [])):
             # Placeholder cuando hay FAIL pero aún sin análisis
