@@ -31,6 +31,7 @@ Aprendizajes, políticas y feedback que valen para cualquier capa (Petal o Autom
 Decisiones, pendientes y aprendizajes específicos del agente Petal (no reusables para otros clientes).
 
 - [`petal/pendiente_refactor_compra.md`](petal/pendiente_refactor_compra.md) — Compra ~11.4k tokens. Plan: sub-playbook ConsultaInventario como Task. Anti-regresión: 49 TCs actuales.
+- [`petal/bugs_pendientes_checkout_compra.md`](petal/bugs_pendientes_checkout_compra.md) — 4 bugs detectados en conversación real (27-may): loop registro + pérdida color (corregidos, revertidos para demo — restaurar con `git revert 5b812e0`) + error factual precio mínimo + transición registro abrupta (pendientes de fix).
 
 ---
 
