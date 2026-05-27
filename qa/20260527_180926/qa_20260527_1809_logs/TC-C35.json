@@ -1,0 +1,116 @@
+{
+  "tc_id": "TC-C35",
+  "tc_name": "Ocasión ambigua emocional",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 18:09",
+  "ts_file": "20260527_1809",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Es para alguien especial",
+          "agent": "Perfecto, un regalo. Mira, para alguien especial tengo opciones que suelen gustar:\n\nRamo de Peonías Coral — M (15 flores, 35€)\nRamo de Girasoles Amarillo — M (10 flores, 20€)\nRamo de Gerberas Amarillo — M (10 flores, 18€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "Es para alguien especial",
+            "modo_tono": "estandar",
+            "grupo_intent": "G3"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [regalo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Es para alguien especial",
+          "agent": "Perfecto, un regalo. Mira, para alguien especial tengo opciones que suelen gustar:\n\n*   Ramo de Peonías Coral — M (15 flores, 35€)\n*   Ramo de Girasoles Amarillo — M (10 flores, 20€)\n*   Ramo de Gerberas Amarillo — M (10 flores, 18€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "Es para alguien especial",
+            "modo_tono": "estandar",
+            "grupo_intent": "G3"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [regalo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Es para alguien especial",
+          "agent": "Perfecto, un regalo. Dime para quién es y yo me encargo.",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "grupo_intent": "G3",
+            "intencion_inicial": "Es para alguien especial"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [regalo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

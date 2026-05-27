@@ -1,0 +1,119 @@
+{
+  "tc_id": "TC-C31",
+  "tc_name": "Presupuesto sin producto",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 18:09",
+  "ts_file": "20260527_1809",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo no muy caro",
+          "agent": "Perfecto, algo no muy caro. Mira, tengo estas opciones por menos de 20€:\n\n*   Ramo de Girasoles Amarillo — M (10 flores, 20€)\n*   Ramo de Gerberas Amarillo — M (10 flores, 18€)\n*   Ramo de Gladiolos Rosa — M (3 tallos, 19€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "grupo_intent": "G3",
+            "intencion_inicial": "Algo no muy caro",
+            "precio_max": 20
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [flor]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo no muy caro",
+          "agent": "Claro, te muestro lo que mejor queda por debajo de 20 euros:\n\n*   Ramo de Girasoles Amarillo — M (10 flores, 20€)\n*   Ramo de Gerberas Amarillo — M (10 flores, 18€)\n*   Ramo de Gladiolos Rosa — M (3 tallos, 19€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "precio_max": 20,
+            "grupo_intent": "G3",
+            "intencion_inicial": "algo no muy caro"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [flor]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo no muy caro",
+          "agent": "Perfecto, te propongo opciones que suelen gustar. Mira, tengo estas opciones por menos de 20 euros:\n\n*   Ramo de Girasoles — M (10 flores, 20€)\n*   Ramo de Gerberas — M (10 flores, 18€)\n*   Ramo de Gladiolos — M (3 tallos, 19€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "precio_max": 20,
+            "intencion_inicial": "algo no muy caro",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [flor]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
