@@ -1624,6 +1624,23 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 /* Tag de tipo en header del TC (sustituye al veredicto) */
 .tipo-tag{{font-size:10px;padding:2px 8px;border-radius:3px;background:#f9731622;color:#f97316;font-family:'DM Mono',monospace;font-weight:600}}
 /* Banda de recomendación al final del TC */
+/* Banda de DIAGNÓSTICO — mismo ancho/letra que .recomendacion, color azul */
+.diagnostico{{margin:14px 0 4px;padding:14px 16px;background:#0c172f;border:1px solid #1e3a5f;border-left:4px solid #3b82f6;border-radius:6px}}
+.diagnostico.pendiente{{background:#1a1a1a;border-color:#444;border-left-color:#777}}
+.diagnostico .diag-band-title{{color:#93c5fd}}
+.diagnostico .diag-tag{{background:#3b82f622;color:#93c5fd}}
+.diagnostico .diag-band-content p{{font-size:11px;color:#cce;line-height:1.5;margin:3px 0}}
+.diagnostico .diag-band-content ul{{margin:4px 0 4px 16px}}
+.diagnostico .diag-band-content li{{font-size:11px;color:#cce;line-height:1.45;margin:2px 0}}
+.diagnostico .diag-band-content code{{background:#1a2e3a;color:#93c5fd;padding:1px 4px;border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}}
+.diagnostico .diag-band-content strong{{color:#93c5fd;font-weight:600}}
+.diagnostico .diag-band-content h2,.diagnostico .diag-band-content h3,.diagnostico .diag-band-content h4{{color:#3b82f6;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 3px}}
+.diagnostico .diag-band-content h4:first-child{{margin-top:0}}
+.diagnostico .diag-band-content .md-table{{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}}
+.diagnostico .diag-band-content .md-table th,.diagnostico .diag-band-content .md-table td{{border:1px solid #1a3a5f;padding:5px 7px;text-align:left;vertical-align:top}}
+.diagnostico .diag-band-content .md-table th{{background:#0c172f;color:#93c5fd;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}}
+.diagnostico .diag-band-content .md-table tr:nth-child(even){{background:#0a1530}}
+.diagnostico .wip-disclaimer-sm{{font-size:10px;color:#7a7a7a;margin-top:10px;padding-top:8px;border-top:1px solid #1a3a5f;font-style:italic}}
 .recomendacion{{margin:14px 0 4px;padding:14px 16px;background:#0c1f0c;border:1px solid #1e3a1e;border-left:4px solid #22c55e;border-radius:6px}}
 .recomendacion.fail{{background:#1f0e0c;border-color:#3a1e1e;border-left-color:#ef4444}}
 .recomendacion.fail .rec-title{{color:#fca5a5}}
@@ -2162,24 +2179,8 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                     if not turn_analysis_md:
                         # Solo añadir a la cola de Optimizar si NO hay análisis manual aún
                         fail_actions_all.append({"turno": tn, "msgs": fail_msgs, "user": t["user"][:100], "gi": gi})
-                # 2) BLOQUE MANUAL (.md): si existe y es el último run, se añade DEBAJO del determinístico
-                if turn_analysis_md and is_last_run:
-                    # Quitar solo: header "### Turnos vs Problemas..." + las filas de la tabla (líneas con |)
-                    md_sin_tabla = re.sub(
-                        r"###?\s*Turnos\s+vs\s+Problemas[^\n]*\n(?:\s*\|[^\n]*\n)+",
-                        "", turn_analysis_md, flags=re.IGNORECASE
-                    ).strip()
-                    if md_sin_tabla:
-                        rp.append(f'<div class="diag-block" data-tcid="{esc(r["id"])}">')
-                        rp.append(f'<h4 class="diag-header">Diagnóstico ({esc(r["id"])}) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal(\'capas\')" title="9 capas y sus estados">?</button></h4>')
-                        rp.append(f'<div class="manual-analysis">{_postprocess_capa_blocks(_md_to_html(md_sin_tabla))}</div>')
-                        rp.append(f'<div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div>')
-                        rp.append(f'</div>')
-                elif has_fail and not turn_analysis_md:
-                    # DIAGNÓSTICO — placeholder pendiente análisis (lo rellena Claude vía Optimizar)
-                    rp.append(f'<h4>Diagnóstico<button class="info-btn" onclick="openInfoModal(\'capas\')" title="9 capas y sus estados">?</button></h4>')
-                    rp.append(f'<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar el diagnóstico (9 capas), soluciones evaluadas con score y plan de acción.</p>')
-                    rp.append(f'<div class="wip-disclaimer">⚠ <strong>Acceso a Backlog: WIP</strong> — El diagnóstico distinguirá <em>bug / feature pendiente / por diseño</em> cuando esté implementado <em>system_knowledge.md + Backlog</em>.</div>')
+                # Nota: el diagnóstico manual ahora se renderiza fuera del loop, al nivel del TC,
+                # como banda full-width justo antes de "Recomendación / Acción".
                 turn_analysis_html = "\n".join(rp)
                 h += '<table class="ta-table"><tr>'
                 turn_badge_cls = "fail" if has_fail else "ok"
@@ -2188,7 +2189,37 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                 h += f'<td class="ta-col-left">{left_html}</td>'
                 h += f'<td class="ta-col-right"><div class="ta-right">{turn_analysis_html}</div></td>'
                 h += '</tr></table>\n'
-        # (El diagnóstico manual ahora se renderiza en la columna derecha del último run — sin bloque full-width)
+        # ──────────────────────────────────────────────────────────────────
+        # Diagnóstico al NIVEL del TC (no por run/turno): banda full-width
+        # justo antes de la banda de Recomendación, con mismo ancho/letra.
+        # ──────────────────────────────────────────────────────────────────
+        diagnostico_md = ""
+        if analysis:
+            # Tomar el primer turno con MD (el análisis se asocia al T1 típicamente)
+            for _tn_k, _md_v in analysis.get("turnos", {}).items():
+                if _md_v and _md_v.strip():
+                    diagnostico_md = _md_v
+                    break
+        if diagnostico_md:
+            md_sin_tabla = re.sub(
+                r"###?\s*Turnos\s+vs\s+Problemas[^\n]*\n(?:\s*\|[^\n]*\n)+",
+                "", diagnostico_md, flags=re.IGNORECASE
+            ).strip()
+            if md_sin_tabla:
+                diag_tipo = analysis["meta"].get("tipo", "")
+                diag_tag_html = f'<span class="rec-tag diag-tag">{esc(diag_tipo)}</span>' if diag_tipo else ""
+                h += f'<div class="diagnostico" data-tcid="{esc(r["id"])}">'
+                h += f'<div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span>{diag_tag_html}<button class="info-btn" onclick="openInfoModal(\'capas\')" title="9 capas y sus estados">?</button></div>'
+                h += f'<div class="rec-content diag-band-content"><div class="manual-analysis">{_postprocess_capa_blocks(_md_to_html(md_sin_tabla))}</div></div>'
+                h += f'<div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div>'
+                h += f'</div>\n'
+        elif any(rr.get("status") == "FAIL" for rr in r.get("runs", [])):
+            # Placeholder cuando hay FAIL pero aún sin análisis
+            h += f'<div class="diagnostico pendiente" data-tcid="{esc(r["id"])}">'
+            h += f'<div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span><span class="rec-tag diag-tag">Pendiente análisis</span><button class="info-btn" onclick="openInfoModal(\'capas\')" title="9 capas y sus estados">?</button></div>'
+            h += f'<div class="rec-content diag-band-content"><p style="color:#888;font-style:italic">Pendiente análisis. Solicitar <em>"analiza {esc(r["id"])}"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score y plan de acción.</p></div>'
+            h += f'</div>\n'
+
         # Banda de recomendacion: prefiere manual (.md), si no auto
         recomendacion_md = analysis.get("recomendacion", "") if analysis else ""
         if recomendacion_md:
