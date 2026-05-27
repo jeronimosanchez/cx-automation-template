@@ -387,7 +387,8 @@ TESTS = [
          {"user": "no me gustan",
           "checks": ["otra|alternativ|otras|propongo|encaja|tipo"]},
          {"user": "tampoco me convencen, dame otras",
-          "checks": ["propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano"]},
+          "checks": ["propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano"],
+          "desc": "Segundo rechazo consecutivo — el agente debía proponer alternativa por tipo u ocasión, o escalar al equipo"},
          {"user": "ninguna me gusta",
           "checks": ["equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion"]},
      ],
@@ -434,7 +435,8 @@ TESTS = [
      "name": "Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')",
      "turns": [
          {"user": "quiero un ramo de rosas para hoy a las 18:00",
-          "checks": ["hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"]},
+          "checks": ["hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"],
+          "desc": "El agente debía reconocer la urgencia horaria y verificar el plazo de entrega antes de mostrar catálogo"},
      ],
      "not_expected": []},
 
@@ -442,7 +444,8 @@ TESTS = [
      "name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
      "turns": [
          {"user": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
-          "checks": ["plazo|24h|24 horas|entrega|hora|tiempo"]},
+          "checks": ["plazo|24h|24 horas|entrega|hora|tiempo"],
+          "desc": "El agente debía informar sobre el plazo de entrega antes de continuar con la compra"},
          {"user": "mañana por la mañana",
           "checks": ["mañana|perfecto|posible|24h|llega|pedido"]},
      ],
@@ -452,7 +455,8 @@ TESTS = [
      "name": "Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio",
      "turns": [
          {"user": "lo necesito para este viernes",
-          "checks": ["24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo"]},
+          "checks": ["24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo"],
+          "desc": "El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo"},
      ],
      "not_expected": []},
 
@@ -502,7 +506,8 @@ TESTS = [
          {"user": "el ramo de rosas morado de 37 euros",
           "checks": ["morado|anotado|centro|cual"]},
          {"user": "el centro de tulipanes de 28 euros",
-          "checks": ["65"]},
+          "checks": ["65"],
+          "desc": "El agente debía mostrar el resumen del pedido con el total calculado (37 + 28 = 65€)"},
          {"user": "si",
           "checks": ["correo|email|completar.{0,20}pedido"]},
          {"user": "jerosan1@gmail.com",
@@ -636,6 +641,28 @@ def _split_check_detail(d):
     return status, msg
 
 
+def _check_msg_to_tokens(msg):
+    """Extrae tokens legibles de un check msg como 'Agente debía decir [regex|tokens]'.
+    Devuelve (prefix, tokens_list, raw_regex) o (None, None, None) si no hay regex."""
+    m = re.match(r'^(.*?)\[(.+)\](.*)$', msg, re.DOTALL)
+    if not m:
+        return None, None, None
+    prefix = m.group(1).strip()
+    raw = m.group(2)
+    parts = raw.split('|')
+    tokens = []
+    for p in parts:
+        p = p.strip()
+        p = re.sub(r'\.\{0,\d+\}', '…', p)
+        p = re.sub(r'\.\{1,\d+\}', '…', p)
+        p = re.sub(r'\.\*', '…', p)
+        p = re.sub(r'[\\^$()?+]', '', p)
+        p = p.strip('…').strip()
+        if p:
+            tokens.append(p)
+    return prefix, tokens, raw
+
+
 import unicodedata
 
 
@@ -707,6 +734,7 @@ def run_single(token, test, run_num=1):
             "agent": response_text[:500], "playbook": playbook,
             "params": params, "checks": turn_check,
             "trace": trace,  # US-QA-09: capturar trace del API para análisis profundo
+            "desc": turn.get("desc", ""),  # descripción en lenguaje natural del check
         })
     return {"pass": all_pass, "turns": turn_results, "quota_error": has_quota_error}
 
@@ -1447,6 +1475,13 @@ def _render_patterns_html(md):
 
 
 def generate_html(results, ts, txt_file, logs_dir_name=None):
+    # Lookup: (tc_id, turn_number) → desc en lenguaje natural
+    _tc_turn_desc = {}
+    for _tc in TESTS:
+        for _ti, _turn in enumerate(_tc.get("turns", []), 1):
+            if _turn.get("desc"):
+                _tc_turn_desc[(_tc["id"], _ti)] = _turn["desc"]
+
     total = len(results)
     n_pass = sum(1 for r in results if r["status"] == "PASS")
     n_inst = sum(1 for r in results if r["status"] == "INESTABLE")
@@ -1619,8 +1654,24 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .ta-th-turno{{background:#1a1a1a !important;color:#c8f060 !important;font-family:'DM Mono',monospace}}
 .ta-col-left{{width:42%;background:#0e0e0e}}
 .ta-col-right{{width:58%;background:#111}}
-.ta-run-header{{font-size:14px;font-weight:700;padding:8px 10px;margin:8px 0 0;background:#1a1a1a;border:1px solid #222;border-bottom:none;border-radius:6px 6px 0 0;color:#ddd;font-family:'DM Mono',monospace;letter-spacing:.5px}}
-.ta-run-header.ok{{color:#22c55e;border-color:#22c55e33}}.ta-run-header.fail{{color:#ef4444;border-color:#ef444433}}
+.ta-run-header{{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding:4px 10px 4px 8px;margin:10px 0 4px;background:#f0f0f0;border-radius:20px;font-family:'DM Mono',monospace;border:none}}
+.run-num{{color:#111;letter-spacing:.3px}}
+.run-badge{{font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase}}
+.run-badge.ok{{background:#22c55e;color:#fff}}
+.run-badge.fail{{background:#ef4444;color:#fff}}
+.run-badge.inestable{{background:#f59e0b;color:#fff}}
+.turn-badge{{font-size:9px;font-weight:700;padding:1px 7px;border-radius:8px;letter-spacing:.4px;vertical-align:middle;margin-left:6px;text-transform:uppercase}}
+.turn-badge.ok{{background:#22c55e22;color:#22c55e;border:1px solid #22c55e55}}
+.turn-badge.fail{{background:#ef444422;color:#ef4444;border:1px solid #ef444455}}
+.regex-detail{{display:inline-block;margin:3px 0}}
+.regex-detail summary{{list-style:none;cursor:pointer;padding:0}}
+.regex-detail summary::-webkit-details-marker{{display:none}}
+.regex-pill{{display:inline-flex;align-items:center;gap:3px;background:#1a2233;color:#64748b;border:1px solid #2a3a55;padding:2px 9px;border-radius:10px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.3px}}
+.regex-detail summary:hover .regex-pill{{color:#c8f060;border-color:#c8f06055}}
+.regex-detail[open] .regex-pill{{color:#c8f060;border-color:#c8f06066}}
+.regex-expanded{{display:block;margin-top:4px;padding:5px 8px;background:#080c12;border:1px solid #1e2a3a;border-radius:3px;color:#4a5568;font-size:10px;font-family:'DM Mono',monospace;word-break:break-all;white-space:pre-wrap}}
+.wip-disclaimer{{margin-top:8px;padding:6px 10px;background:#1a1500;border:1px solid #f59e0b44;border-radius:4px;font-size:11px;color:#f59e0b}}
+.wip-disclaimer-sm{{margin-top:10px;padding:5px 8px;background:#111;border:1px solid #2a2a2a;border-radius:4px;font-size:10px;color:#555}}
 .ta-run-header + .ta-table{{border-radius:0;margin-top:0}}
 .ta-run-header + .ta-table th{{border-top:none}}
 .ta-run-block{{margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #222}}
@@ -1647,12 +1698,12 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .ta-bullets li{{font-size:11px;line-height:1.4;margin:1px 0;word-break:break-word;font-family:'DM Mono',monospace}}
 .ta-bullets.ok{{color:#22c55e}}.ta-bullets.ok li{{color:#22c55e}}
 .ta-bullets.fail{{color:#ef4444}}.ta-bullets.fail li{{color:#ef4444}}
-.ta-detail{{margin:6px 0 10px;border:1px solid #1f1f1f;border-radius:5px;background:#0d0d0d}}
-.ta-detail summary{{padding:8px 12px;cursor:pointer;color:#aaa;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.3px;list-style:none;user-select:none;display:flex;justify-content:space-between;align-items:center}}
+.ta-detail{{margin:0 0 8px}}
+.ta-detail summary{{padding:4px 0;cursor:pointer;color:#c8f060;font-size:10px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:.5px;text-transform:uppercase;list-style:none;user-select:none;display:flex;justify-content:space-between;align-items:center}}
 .ta-detail summary::-webkit-details-marker{{display:none}}
-.ta-detail summary:hover{{color:#c8f060;background:#101010}}
-.ta-detail .ta-detail-icon{{display:inline-block;transition:transform .15s;color:#666;font-size:10px}}
-.ta-detail[open] .ta-detail-icon{{transform:rotate(90deg);color:#c8f060}}
+.ta-detail summary:hover{{color:#fff}}
+.ta-detail .ta-detail-icon{{display:inline-block;transition:transform .15s;color:#c8f060;font-size:11px;font-weight:700}}
+.ta-detail[open] .ta-detail-icon{{transform:rotate(90deg)}}
 .ta-detail .ta-flow-table{{margin:0;border-top:1px solid #1f1f1f}}
 .ta-flow-table{{width:100%;border-collapse:collapse;margin:6px 0;font-size:12px}}
 .ta-flow-table td{{padding:6px 8px;border-bottom:1px solid #1e1e1e;vertical-align:top}}
@@ -1910,14 +1961,6 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 </div>
 <div class="filter-bar">
 <div class="filter-row">
-<span class="filter-label">Resultado</span>
-<div class="fbtn" data-legend="Mostrar todos los test cases" onclick="filterBy('all')">Todos</div>
-<div class="fbtn" data-legend="TCs que pasan todos los checks en todos los runs" onclick="filterBy('PASS')">\u2705 Pass</div>
-<div class="fbtn" data-legend="TCs que pasan en algunos runs pero no en todos (flakiness)" onclick="filterBy('INESTABLE')">\u26a0\ufe0f Inestable</div>
-<div class="fbtn" data-legend="TCs que fallan en todos los runs" onclick="filterBy('FAIL')">\u274c Fail</div>
-<div class="fbtn" data-legend="TCs no ejecutables por l\u00edmite de cuota de la API" onclick="filterBy('QUOTA_ERROR')">\u26a1 Quota</div>
-</div>
-<div class="filter-row">
 <span class="filter-label">Categor\u00eda</span>
 <div class="fbtn" data-legend="Regresi\u00f3n: TCs que vigilan bugs ya corregidos para que no vuelvan" onclick="filterByType('REG')">Regresi\u00f3n</div>
 <div class="fbtn" data-legend="Registro: TCs del flujo de alta de usuario (email, nombre, datos)" onclick="filterByType('NEW')">Registro</div>
@@ -1979,9 +2022,10 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
         fail_actions_all = []
         for ri, run in enumerate(r["runs"]):
             run_pass = run["pass"]
-            run_icon = "\u2705" if run_pass else "\u274c"
             run_cls = "ok" if run_pass else "fail"
-            h += f'<div class="ta-run-header {run_cls}">{run_icon} Run {ri+1}</div>\n'
+            run_badge_label = "PASS" if run_pass else ("INESTABLE" if r["status"] == "INESTABLE" else "FAIL")
+            run_badge_cls = "ok" if run_pass else ("inestable" if r["status"] == "INESTABLE" else "fail")
+            h += f'<div class="ta-run-header"><span class="run-num">Run {ri+1}</span><span class="run-badge {run_badge_cls}">{run_badge_label}</span></div>\n'
             for tn_idx, t in enumerate(run["turns"]):
                 tn = tn_idx + 1
                 params = t.get("params") or {}
@@ -1999,10 +2043,48 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                 # Si hay análisis manual con tabla Turnos vs Problemas → usar inline
                 turno_md_for_flow = analysis["turnos"].get(tn, "") if analysis else ""
                 manual_flow_rows = _extract_flow_table(turno_md_for_flow) if turno_md_for_flow else None
+                # Pre-compute checks para EVALUACIÓN
+                ok_msgs = []
+                fail_msgs = []
+                for d in t["checks"]["details"]:
+                    st, msg = _split_check_detail(d)
+                    if st == "OK":
+                        ok_msgs.append(msg)
+                    else:
+                        fail_msgs.append(msg)
+                # 1) EVALUACIÓN — siempre visible, primera en columna derecha
                 rp = []
-                # SIEMPRE plegable: "Análisis detallado del flujo" (PASS y FAIL, con o sin MD manual)
+                rp.append(f'<h4>Evaluacion</h4>')
+                if not has_fail:
+                    # PASS: auto-desc de lo que mencionó el agente + pill regex colapsable
+                    for c in ok_msgs:
+                        _, toks, raw = _check_msg_to_tokens(c)
+                        if toks:
+                            auto_ok = "Agente mencionó: " + " / ".join(toks[:6])
+                            rp.append(f'<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">{esc(auto_ok)}</p>')
+                        raw_display = f'[{raw}]' if raw else c
+                        rp.append(f'<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">{esc(raw_display)}</code></details>')
+                else:
+                    # FAIL: desc (manual o auto-generado) + pill regex colapsable
+                    turn_desc = _tc_turn_desc.get((r["id"], tn), t.get("desc", ""))
+                    if not turn_desc and fail_msgs:
+                        auto_parts = []
+                        for c in fail_msgs:
+                            _, toks, _ = _check_msg_to_tokens(c)
+                            if toks:
+                                auto_parts.append("Debía incluir: " + " / ".join(toks[:6]))
+                            elif c:
+                                auto_parts.append(c[:80])
+                        turn_desc = " · ".join(auto_parts)
+                    if turn_desc:
+                        rp.append(f'<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">{esc(turn_desc)}</p>')
+                    for c in fail_msgs:
+                        _, _, raw = _check_msg_to_tokens(c)
+                        raw_display = f'[{raw}]' if raw else c
+                        rp.append(f'<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">{esc(raw_display)}</code></details>')
+                # 2) ANÁLISIS DETALLADO — colapsable, debajo de EVALUACIÓN
                 rp.append(f'<details class="ta-detail">')
-                rp.append(f'<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>')
+                rp.append(f'<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>')
                 rp.append(f'<div class="ta-detail-content">')
                 if manual_flow_rows:
                     # CASO A: tabla manual del MD
@@ -2024,18 +2106,18 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                     if has_useful_data:
                         if real_playbook and real_playbook != "unknown":
                             rp.append(f'<div class="trace-step trace-action">')
-                            rp.append(f'<span class="trace-arrow">v</span> Playbook activo: <strong>{esc(real_playbook)}</strong> <span style="color:#666;font-size:10px">(real)</span>')
+                            rp.append(f'<span class="trace-arrow">v</span> Playbook activo: <strong>{esc(real_playbook)}</strong> <span style="color:#999;font-size:10px">(real)</span>')
                             rp.append(f'</div>')
                         if gi:
                             gi_desc = _gi_map.get(gi, "")
                             playbook_inferred = _gi_to_playbook.get(gi, "Orquestador")
                             gi_title = f' title="{esc(gi_desc)}"' if gi_desc else ""
                             rp.append(f'<div class="trace-step trace-action">')
-                            rp.append(f'<span class="trace-arrow">v</span> Orquestador clasifica: <code{gi_title}>{esc(gi)}</code> · <em>{esc(gi_desc)}</em> <span style="color:#666;font-size:10px">(real)</span>')
+                            rp.append(f'<span class="trace-arrow">v</span> Orquestador clasifica: <code{gi_title}>{esc(gi)}</code> · <em>{esc(gi_desc)}</em> <span style="color:#999;font-size:10px">(real)</span>')
                             rp.append(f'</div>')
                             if not (real_playbook and real_playbook != "unknown") and gi not in ("G1", "G2", "G3", "G6", "ESP"):
                                 rp.append(f'<div class="trace-step trace-action">')
-                                rp.append(f'<span class="trace-arrow">v</span> Handoff: <strong>{esc(playbook_inferred)}</strong> <span style="color:#666;font-size:10px">(inferido)</span>')
+                                rp.append(f'<span class="trace-arrow">v</span> Handoff: <strong>{esc(playbook_inferred)}</strong> <span style="color:#999;font-size:10px">(inferido)</span>')
                                 rp.append(f'</div>')
                         intent_match = trace.get("intent", "")
                         if intent_match:
@@ -2045,7 +2127,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                         if slot_keys_to_show:
                             slots_text = ", ".join(f'<code>{esc(k)}={esc(str(params[k])[:50])}</code>' for k in slot_keys_to_show[:5])
                             rp.append(f'<div class="trace-step trace-action">')
-                            rp.append(f'<span class="trace-arrow">v</span> Slots completados: {slots_text} <span style="color:#666;font-size:10px">(real)</span>')
+                            rp.append(f'<span class="trace-arrow">v</span> Slots completados: {slots_text} <span style="color:#999;font-size:10px">(real)</span>')
                             rp.append(f'</div>')
                     else:
                         rp.append(f'<div class="trace-step trace-action" style="color:#666"><span class="trace-arrow">v</span> <em>Sin trace ni grupo_intent capturado en este turno</em></div>')
@@ -2056,62 +2138,26 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                     rp.append(f'<div class="trace-text">"{esc(agent_short)}"</div>')
                     rp.append(f'</div>')
                 rp.append(f'</div>')  # cierre ta-detail-content
+                rp.append(f'</div>')  # cierre ta-detail-content
                 rp.append(f'</details>')
-                # Evaluacion
-                ok_msgs = []
-                fail_msgs = []
-                for d in t["checks"]["details"]:
-                    st, msg = _split_check_detail(d)
-                    if st == "OK":
-                        ok_msgs.append(msg)
-                    else:
-                        fail_msgs.append(msg)
-                rp.append(f'<h4>Evaluacion</h4>')
-                if not has_fail:
-                    rp.append(f'<p style="color:#22c55e">\u2705 Turno superado</p>')
-                    rp.append(f'<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>')
-                    rp.append('<ul class="ta-bullets ok">')
-                    for c in ok_msgs:
-                        rp.append(f'<li>{esc(c)}</li>')
-                    rp.append('</ul>')
-                else:
-                    rp.append(f'<p style="color:#ef4444">\u274c Turno no superado</p>')
-                    if ok_msgs:
-                        rp.append('<ul class="ta-bullets ok">')
-                        for c in ok_msgs:
-                            rp.append(f'<li>{esc(c)}</li>')
-                        rp.append('</ul>')
-                    if fail_msgs:
-                        rp.append('<ul class="ta-bullets fail">')
-                        for c in fail_msgs:
-                            rp.append(f'<li>{esc(c)}</li>')
-                        rp.append('</ul>')
                 # Diagnostico MANUAL: solo en el último run, en la columna derecha (no se duplica)
                 turn_analysis_md = analysis["turnos"].get(tn, "") if analysis else ""
                 is_last_run = (ri == len(r["runs"]) - 1)
                 # 1) BLOQUE DETERMINÍSTICO: siempre que haya fail, mostrar datos reales del log
                 if has_fail:
-                    rp.append(f'<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>')
+                    rp.append(f'<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>')
                     playbook_inferred = _gi_to_playbook.get(gi, "Orquestador") if gi else "Orquestador"
                     grupo_expected = r.get("group", "")
                     grupo_match_ok = (gi == grupo_expected) or (grupo_expected and grupo_expected in (gi or ""))
-                    # Bloque "Datos observados" (siempre con info real del TC)
                     rp.append(f'<ul class="ta-bullets" style="color:#aaa;font-size:12px">')
                     if gi:
                         match_icon = "✅" if grupo_match_ok else "⚠️"
                         rp.append(f'<li style="color:#aaa"><strong>Clasificación:</strong> {match_icon} grupo_intent observado <code>{esc(gi)}</code> (esperado: <code>{esc(grupo_expected) if grupo_expected else "—"}</code>) → playbook inferido <code>{esc(playbook_inferred)}</code></li>')
                     else:
                         rp.append(f'<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>{esc(grupo_expected) if grupo_expected else "—"}</code>)</li>')
-                    # Slots extraídos
                     if slot_keys_to_show:
                         slots_str = ", ".join(f'<code>{esc(k)}={esc(str(params[k])[:40])}</code>' for k in slot_keys_to_show[:5])
                         rp.append(f'<li style="color:#aaa"><strong>Slots extraídos:</strong> {slots_str}</li>')
-                    # Checks fallidos con detalle
-                    for c in fail_msgs:
-                        rp.append(f'<li style="color:#aaa"><strong>Check no superado:</strong> <code>{esc(c)}</code></li>')
-                    # Agente respondió (primeros 200 chars)
-                    agent_preview = t["agent"][:200] + ("…" if len(t["agent"]) > 200 else "")
-                    rp.append(f'<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"{esc(agent_preview)}"</em></li>')
                     rp.append(f'</ul>')
                     if not turn_analysis_md:
                         # Solo añadir a la cola de Optimizar si NO hay análisis manual aún
@@ -2125,16 +2171,20 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                     ).strip()
                     if md_sin_tabla:
                         rp.append(f'<div class="diag-block" data-tcid="{esc(r["id"])}">')
-                        rp.append(f'<h4 class="diag-header">Causa raíz ({esc(r["id"])}) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal(\'capas\')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal(\'marcas\')" title="Significado de las marcas">?</button></h4>')
+                        rp.append(f'<h4 class="diag-header">Diagnóstico ({esc(r["id"])}) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal(\'capas\')" title="9 capas y sus estados">?</button></h4>')
                         rp.append(f'<div class="manual-analysis">{_postprocess_capa_blocks(_md_to_html(md_sin_tabla))}</div>')
+                        rp.append(f'<div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div>')
                         rp.append(f'</div>')
                 elif has_fail and not turn_analysis_md:
-                    # CAUSA RAÍZ — placeholder pendiente análisis (lo rellena Claude vía Optimizar)
-                    rp.append(f'<h4>Causa raíz<button class="info-btn" onclick="openInfoModal(\'capas\')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal(\'marcas\')" title="Significado de las marcas">?</button></h4>')
-                    rp.append(f'<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p>')
+                    # DIAGNÓSTICO — placeholder pendiente análisis (lo rellena Claude vía Optimizar)
+                    rp.append(f'<h4>Diagnóstico<button class="info-btn" onclick="openInfoModal(\'capas\')" title="9 capas y sus estados">?</button></h4>')
+                    rp.append(f'<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar el diagnóstico (9 capas), soluciones evaluadas con score y plan de acción.</p>')
+                    rp.append(f'<div class="wip-disclaimer">⚠ <strong>Acceso a Backlog: WIP</strong> — El diagnóstico distinguirá <em>bug / feature pendiente / por diseño</em> cuando esté implementado <em>system_knowledge.md + Backlog</em>.</div>')
                 turn_analysis_html = "\n".join(rp)
                 h += '<table class="ta-table"><tr>'
-                h += f'<th colspan="2" class="ta-th-turno">Turno {tn}</th></tr><tr>'
+                turn_badge_cls = "fail" if has_fail else "ok"
+                turn_badge_label = "No superado" if has_fail else "Superado"
+                h += f'<th colspan="2" class="ta-th-turno">Turno {tn} <span class="turn-badge {turn_badge_cls}">{turn_badge_label}</span></th></tr><tr>'
                 h += f'<td class="ta-col-left">{left_html}</td>'
                 h += f'<td class="ta-col-right"><div class="ta-right">{turn_analysis_html}</div></td>'
                 h += '</tr></table>\n'
@@ -2154,7 +2204,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
             h += '<div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777">'
             h += '<span class="sr-label" style="color:#888">Solución recomendada</span>'
             h += '<div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div>'
-            h += f'<div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza {esc(r["id"])}"</em>. Se generará: causa raíz, soluciones evaluadas con score, plan de acción.</div>'
+            h += f'<div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza {esc(r["id"])}"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div>'
             h += '</div>'
             h += '<h4 style="color:#888">Soluciones evaluadas</h4>'
             h += '<p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p>'
@@ -2304,36 +2354,31 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
     </table>
   </div>
 </div>
-<!-- Modal: Las 7 capas estándar -->
+<!-- Modal: Las 9 capas + estados (unificado) -->
 <div class="info-modal-overlay" id="modal-capas">
   <div class="info-modal">
     <button class="info-modal-close" onclick="closeInfoModal('capas')">&times;</button>
-    <h3>Las 7 capas estándar del análisis QA</h3>
-    <p>Cada análisis evalúa estas 7 capas obligatoriamente para descomponer la causa raíz del bug:</p>
+    <h3>Las 9 capas del análisis QA</h3>
+    <p>Cada análisis evalúa estas 9 capas obligatoriamente para identificar la causa raíz del bug:</p>
     <table>
-      <tr><td><strong>1. Playbook</strong></td><td>El código del playbook tal como está hoy</td></tr>
-      <tr><td><strong>2. Histórico</strong></td><td>Cambios recientes al playbook (commits, PRs)</td></tr>
-      <tr><td><strong>3. Catálogo</strong></td><td>Datos del Google Sheet (inventario, agent_copy)</td></tr>
-      <tr><td><strong>4. Orquestador</strong></td><td>Clasificación inicial del usuario (intent, slots)</td></tr>
-      <tr><td><strong>5. Backend / Tool</strong></td><td>Llamadas al petal-sheet-api</td></tr>
-      <tr><td><strong>6. Política / Negocio</strong></td><td>Reglas de negocio (plazos, importes, ocasiones soportadas)</td></tr>
-      <tr><td><strong>7. Test</strong></td><td>Calibración del check regex del TC</td></tr>
+      <tr><td><strong>1. Comportamiento</strong></td><td>Playbooks, Examples, Generators</td></tr>
+      <tr><td><strong>2. Routing</strong></td><td>Flows, Pages, Intents, Entity Types</td></tr>
+      <tr><td><strong>3. Parámetros / Slots</strong></td><td>Paso de slots entre playbooks y tools</td></tr>
+      <tr><td><strong>4. Integración</strong></td><td>Tools, Webhooks, llamadas al backend</td></tr>
+      <tr><td><strong>5. Datos</strong></td><td>Google Sheet (inventario, agent_copy, negocio)</td></tr>
+      <tr><td><strong>6. Infraestructura</strong></td><td>Environments, Versions, Agent Config</td></tr>
+      <tr><td><strong>7. Modelo / LLM</strong></td><td>Comportamiento de Gemini (alucinaciones)</td></tr>
+      <tr><td><strong>8. Histórico</strong></td><td>Regresiones — git log del playbook</td></tr>
+      <tr><td><strong>9. Test</strong></td><td>Calibración del check regex del TC</td></tr>
     </table>
-    <p style="margin-top:16px;">Cada capa se marca con uno de los 4 estados (ver "Marca posible" para detalle).</p>
-  </div>
-</div>
-<!-- Modal: Estados posibles -->
-<div class="info-modal-overlay" id="modal-marcas">
-  <div class="info-modal">
-    <button class="info-modal-close" onclick="closeInfoModal('marcas')">&times;</button>
-    <h3>Estados posibles de cada capa</h3>
+    <h3 style="margin-top:20px;">Estados posibles de cada capa</h3>
     <table>
-      <tr><td style="width:120px;"><strong>🔴 problema</strong></td><td>Capa <em>comprobada con fuente</em>. ES causa del bug.</td></tr>
+      <tr><td style="width:130px;"><strong>🔴 problema</strong></td><td>Capa <em>comprobada con fuente</em>. ES causa del bug.</td></tr>
       <tr><td><strong>🟢 ok</strong></td><td>Capa <em>comprobada con fuente</em>. NO es causa del bug.</td></tr>
       <tr><td><strong>🟡 supuesta</strong></td><td>No se pudo comprobar (falta documentación o info externa).</td></tr>
       <tr><td><strong>⚪ N/A</strong></td><td>Esta capa no aplica al tipo de bug analizado.</td></tr>
     </table>
-    <p style="margin-top:16px;">Las marcas <strong>🔴</strong> y <strong>🟢</strong> requieren citar la fuente entre paréntesis (ej: <code>Read compra.yaml</code>, <code>git log</code>, <code>gh pr view</code>, <code>gcloud logging</code>, <code>curl URL</code>).</p>
+    <p style="margin-top:12px;">Las marcas <strong>🔴</strong> y <strong>🟢</strong> requieren citar la fuente (ej: <code>Read compra.yaml</code>, <code>git log</code>, <code>gh pr view</code>, <code>gcloud logging</code>, <code>curl URL</code>).</p>
   </div>
 </div>
 <script>
