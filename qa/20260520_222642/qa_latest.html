@@ -72,6 +72,23 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 /* Tag de tipo en header del TC (sustituye al veredicto) */
 .tipo-tag{font-size:10px;padding:2px 8px;border-radius:3px;background:#f9731622;color:#f97316;font-family:'DM Mono',monospace;font-weight:600}
 /* Banda de recomendación al final del TC */
+/* Banda de DIAGNÓSTICO — mismo ancho/letra que .recomendacion, color azul */
+.diagnostico{margin:14px 0 4px;padding:14px 16px;background:#0c172f;border:1px solid #1e3a5f;border-left:4px solid #3b82f6;border-radius:6px}
+.diagnostico.pendiente{background:#1a1a1a;border-color:#444;border-left-color:#777}
+.diagnostico .diag-band-title{color:#93c5fd}
+.diagnostico .diag-tag{background:#3b82f622;color:#93c5fd}
+.diagnostico .diag-band-content p{font-size:11px;color:#cce;line-height:1.5;margin:3px 0}
+.diagnostico .diag-band-content ul{margin:4px 0 4px 16px}
+.diagnostico .diag-band-content li{font-size:11px;color:#cce;line-height:1.45;margin:2px 0}
+.diagnostico .diag-band-content code{background:#1a2e3a;color:#93c5fd;padding:1px 4px;border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}
+.diagnostico .diag-band-content strong{color:#93c5fd;font-weight:600}
+.diagnostico .diag-band-content h2,.diagnostico .diag-band-content h3,.diagnostico .diag-band-content h4{color:#3b82f6;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 3px}
+.diagnostico .diag-band-content h4:first-child{margin-top:0}
+.diagnostico .diag-band-content .md-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
+.diagnostico .diag-band-content .md-table th,.diagnostico .diag-band-content .md-table td{border:1px solid #1a3a5f;padding:5px 7px;text-align:left;vertical-align:top}
+.diagnostico .diag-band-content .md-table th{background:#0c172f;color:#93c5fd;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
+.diagnostico .diag-band-content .md-table tr:nth-child(even){background:#0a1530}
+.diagnostico .wip-disclaimer-sm{font-size:10px;color:#7a7a7a;margin-top:10px;padding-top:8px;border-top:1px solid #1a3a5f;font-style:italic}
 .recomendacion{margin:14px 0 4px;padding:14px 16px;background:#0c1f0c;border:1px solid #1e3a1e;border-left:4px solid #22c55e;border-radius:6px}
 .recomendacion.fail{background:#1f0e0c;border-color:#3a1e1e;border-left-color:#ef4444}
 .recomendacion.fail .rec-title{color:#fca5a5}
@@ -102,8 +119,24 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .ta-th-turno{background:#1a1a1a !important;color:#c8f060 !important;font-family:'DM Mono',monospace}
 .ta-col-left{width:42%;background:#0e0e0e}
 .ta-col-right{width:58%;background:#111}
-.ta-run-header{font-size:14px;font-weight:700;padding:8px 10px;margin:8px 0 0;background:#1a1a1a;border:1px solid #222;border-bottom:none;border-radius:6px 6px 0 0;color:#ddd;font-family:'DM Mono',monospace;letter-spacing:.5px}
-.ta-run-header.ok{color:#22c55e;border-color:#22c55e33}.ta-run-header.fail{color:#ef4444;border-color:#ef444433}
+.ta-run-header{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding:4px 10px 4px 8px;margin:10px 0 4px;background:#f0f0f0;border-radius:20px;font-family:'DM Mono',monospace;border:none}
+.run-num{color:#111;letter-spacing:.3px}
+.run-badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase}
+.run-badge.ok{background:#22c55e;color:#fff}
+.run-badge.fail{background:#ef4444;color:#fff}
+.run-badge.inestable{background:#f59e0b;color:#fff}
+.turn-badge{font-size:9px;font-weight:700;padding:1px 7px;border-radius:8px;letter-spacing:.4px;vertical-align:middle;margin-left:6px;text-transform:uppercase}
+.turn-badge.ok{background:#22c55e22;color:#22c55e;border:1px solid #22c55e55}
+.turn-badge.fail{background:#ef444422;color:#ef4444;border:1px solid #ef444455}
+.regex-detail{display:inline-block;margin:3px 0}
+.regex-detail summary{list-style:none;cursor:pointer;padding:0}
+.regex-detail summary::-webkit-details-marker{display:none}
+.regex-pill{display:inline-flex;align-items:center;gap:3px;background:#1a2233;color:#64748b;border:1px solid #2a3a55;padding:2px 9px;border-radius:10px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.3px}
+.regex-detail summary:hover .regex-pill{color:#c8f060;border-color:#c8f06055}
+.regex-detail[open] .regex-pill{color:#c8f060;border-color:#c8f06066}
+.regex-expanded{display:block;margin-top:4px;padding:5px 8px;background:#080c12;border:1px solid #1e2a3a;border-radius:3px;color:#4a5568;font-size:10px;font-family:'DM Mono',monospace;word-break:break-all;white-space:pre-wrap}
+.wip-disclaimer{margin-top:8px;padding:6px 10px;background:#1a1500;border:1px solid #f59e0b44;border-radius:4px;font-size:11px;color:#f59e0b}
+.wip-disclaimer-sm{margin-top:10px;padding:5px 8px;background:#111;border:1px solid #2a2a2a;border-radius:4px;font-size:10px;color:#555}
 .ta-run-header + .ta-table{border-radius:0;margin-top:0}
 .ta-run-header + .ta-table th{border-top:none}
 .ta-run-block{margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #222}
@@ -130,12 +163,12 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .ta-bullets li{font-size:11px;line-height:1.4;margin:1px 0;word-break:break-word;font-family:'DM Mono',monospace}
 .ta-bullets.ok{color:#22c55e}.ta-bullets.ok li{color:#22c55e}
 .ta-bullets.fail{color:#ef4444}.ta-bullets.fail li{color:#ef4444}
-.ta-detail{margin:6px 0 10px;border:1px solid #1f1f1f;border-radius:5px;background:#0d0d0d}
-.ta-detail summary{padding:8px 12px;cursor:pointer;color:#aaa;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.3px;list-style:none;user-select:none;display:flex;justify-content:space-between;align-items:center}
+.ta-detail{margin:0 0 8px}
+.ta-detail summary{padding:4px 0;cursor:pointer;color:#c8f060;font-size:10px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:.5px;text-transform:uppercase;list-style:none;user-select:none;display:flex;justify-content:space-between;align-items:center}
 .ta-detail summary::-webkit-details-marker{display:none}
-.ta-detail summary:hover{color:#c8f060;background:#101010}
-.ta-detail .ta-detail-icon{display:inline-block;transition:transform .15s;color:#666;font-size:10px}
-.ta-detail[open] .ta-detail-icon{transform:rotate(90deg);color:#c8f060}
+.ta-detail summary:hover{color:#fff}
+.ta-detail .ta-detail-icon{display:inline-block;transition:transform .15s;color:#c8f060;font-size:11px;font-weight:700}
+.ta-detail[open] .ta-detail-icon{transform:rotate(90deg)}
 .ta-detail .ta-flow-table{margin:0;border-top:1px solid #1f1f1f}
 .ta-flow-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:12px}
 .ta-flow-table td{padding:6px 8px;border-bottom:1px solid #1e1e1e;vertical-align:top}
@@ -306,9 +339,61 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .info-modal table{width:100%;border-collapse:collapse;margin-top:8px}
 .info-modal td{padding:6px 8px;border-bottom:1px solid #333}
 .info-modal code{background:#1f2937;color:#cbd5e1;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'DM Mono',monospace}
+/* Patrones cruzados — bloque colapsable (rojo = análisis de errores) */
+.patterns-block{background:#1a1a1a;border:1px solid #ef4444;border-left:4px solid #ef4444;border-radius:8px;margin-bottom:16px;overflow:hidden}
+.patterns-th{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}
+.patterns-th:hover{background:#222}
+.patterns-icon{font-size:15px;flex:0 0 auto}
+.patterns-title{color:#ef4444;font-size:13px;font-weight:700;flex:0 0 auto}
+.patterns-stats{color:#999;font-size:11px;font-family:'DM Mono',monospace;flex:1}
+.patterns-arrow{color:#ef4444;font-size:10px;transition:transform 0.2s;margin-left:auto;flex:0 0 auto}
+.patterns-arrow.open{transform:rotate(90deg)}
+.patterns-body{display:none;padding:4px 16px 16px;border-top:1px solid #2a2a2a}
+.patterns-body.open{display:block}
+.patterns-block h2{display:none}
+/* Patterns body — sketch layout (2-col cards) */
+.pat-resumen{background:#1a1a1a;border:1px solid #2d2d2d;border-radius:6px;padding:10px 14px;margin-bottom:14px}
+.pat-resumen-title{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:6px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}
+.pat-resumen-stat{font-size:12px;color:#ccc;margin-bottom:2px;line-height:1.5}
+.pat-card{background:#141414;border:1px solid #2d2d2d;border-radius:6px;margin-bottom:12px;overflow:hidden}
+.pat-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #2a2a2a;gap:10px}
+.pat-card-title{font-size:13px;font-weight:600;color:#e0e0e0;flex:1}
+.pat-roi-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#c8f060;background:#0e1f05;border:1px solid #c8f06044;padding:3px 10px;border-radius:5px;margin-bottom:8px;user-select:none}
+.pat-roi-q{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#c8f06033;color:#c8f060;font-size:9px;font-weight:700;flex-shrink:0;cursor:pointer;transition:background .15s}
+.pat-roi-q:hover{background:#c8f06066}
+.pat-wip{font-size:12px;color:#666;font-style:italic;padding:6px 10px;border-left:2px solid #333;background:#161616;border-radius:0 4px 4px 0;line-height:1.5}
+.roi-modal-overlay{display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center}
+.roi-modal-overlay.open{display:flex}
+.roi-modal{background:#1a1a1a;border:1px solid #ef4444;border-radius:8px;width:380px;max-width:90vw;box-shadow:0 8px 32px #000c;overflow:hidden}
+.roi-modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2a2a2a}
+.roi-modal-ttl{font-size:13px;font-weight:700;color:#ef4444}
+.roi-modal-x{font-size:20px;color:#666;cursor:pointer;line-height:1;padding:0 2px}
+.roi-modal-x:hover{color:#ccc}
+.roi-modal-body{padding:14px 16px}
+.rmi-def{font-size:12px;color:#ccc;line-height:1.5;margin-bottom:12px}
+.rmi-section{margin-bottom:12px}
+.rmi-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;color:#777;text-transform:uppercase;margin-bottom:5px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}
+.rmi-formula{font-size:12px;font-family:'DM Mono',monospace;color:#c8f060;background:#0e1f05;padding:6px 10px;border-radius:4px}
+.rmi-row{display:flex;justify-content:space-between;font-size:12px;color:#ccc;padding:4px 0;border-bottom:1px solid #222}
+.rmi-result{color:#c8f060;font-weight:700;border-bottom:none;margin-top:4px;padding-top:6px}
+.pat-card-body{display:grid;grid-template-columns:1fr 2fr}
+.pat-card-left{padding:12px 14px;border-right:1px solid #2a2a2a}
+.pat-card-right{padding:12px 14px}
+.pat-col-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;color:#777;text-transform:uppercase;margin-bottom:7px;border-bottom:1px solid #2a2a2a;padding-bottom:3px}
+.pat-rec-lbl{margin-top:12px}
+.pat-tc-item{font-size:11px;font-family:'DM Mono',monospace;color:#c8f060;margin-bottom:4px}
+.pat-tc-nopattern{color:#ef4444}
+.pat-causa-row{font-size:12px;color:#ccc;margin-bottom:5px;line-height:1.4}
+.pat-causa-lbl{color:#aaa;font-weight:600}
+.pat-rec-text{font-size:12px;color:#b8c890;line-height:1.5}
+.pat-section{margin-bottom:18px}
+.pat-sh{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid #2a2a2a;padding-bottom:4px;margin-top:16px}
+.pat-empty{font-size:12px;color:#888;font-style:italic}
+.layer-format-note{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}
 </style></head><body>
 <h1>QA Report — Floristería Petal</h1>
 <p class="sub">latest · 3 runs/TC · MacBook-Air.local</p>
+
 <div class="hdr">
 <div><b>Orquestador:</b> v65</div><div><b>Compra:</b> v39</div><div><b>Checkout:</b> v33</div>
 <div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 1 × 3 runs</div>
@@ -321,6 +406,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <div class="card c-pct"><div class="n">0%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:0.0%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:100.0%"></div></div>
+
 <div class="actions-bar">
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">🗑 Borrar análisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
@@ -340,14 +426,6 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div>
 <div class="filter-bar">
 <div class="filter-row">
-<span class="filter-label">Resultado</span>
-<div class="fbtn" data-legend="Mostrar todos los test cases" onclick="filterBy('all')">Todos</div>
-<div class="fbtn" data-legend="TCs que pasan todos los checks en todos los runs" onclick="filterBy('PASS')">✅ Pass</div>
-<div class="fbtn" data-legend="TCs que pasan en algunos runs pero no en todos (flakiness)" onclick="filterBy('INESTABLE')">⚠️ Inestable</div>
-<div class="fbtn" data-legend="TCs que fallan en todos los runs" onclick="filterBy('FAIL')">❌ Fail</div>
-<div class="fbtn" data-legend="TCs no ejecutables por límite de cuota de la API" onclick="filterBy('QUOTA_ERROR')">⚡ Quota</div>
-</div>
-<div class="filter-row">
 <span class="filter-label">Categoría</span>
 <div class="fbtn" data-legend="Regresión: TCs que vigilan bugs ya corregidos para que no vuelvan" onclick="filterByType('REG')">Regresión</div>
 <div class="fbtn" data-legend="Registro: TCs del flujo de alta de usuario (email, nombre, datos)" onclick="filterByType('NEW')">Registro</div>
@@ -357,77 +435,69 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 </div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
-<div class="ta-run-header fail">❌ Run 1</div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas y un centro de mesa para mi casa"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Perfecto, te ayudo con los dos. Empiezo por el ramo y luego vemos el centro de mesa, ¿te parece? Mira, para ramos de rosas tenemos:
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas y un centro de mesa para mi casa"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Perfecto, te ayudo con los dos. Empiezo por el ramo y luego vemos el centro de mesa, ¿te parece? Mira, para ramos de rosas tenemos:
 
 *   Ramo de Rosas Morado — M (15 flores, 37€)
 *   Ramo de Rosas Amarillo — M (12 flores, 25€)
 *   Ramo de Rosas Blanco — M (12 flores, 25€)
 
-¿Cuál te encaja?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
-<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+¿Cuál te encaja?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: centro…ramo</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[centro.{0,80}ramo]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<table class="ta-flow-table">
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero un ramo de rosas y un centro de mesa para una boda"</em></td>
-<td class="col-problem">—</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: clasifica como G5 (Compra), extrae <code>ocasion<em>detectada=Boda</code>, <code>modo</em>tono=estandar</code>, <code>producto=∅</code></td>
-<td class="col-problem">⚠️ Detecta correctamente Boda pero NO captura que hay 2 productos distintos ("ramo" + "centro de mesa") — slot <code>producto</code> queda vacío porque no hay convención para multi-producto</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: recibe <code>producto=∅</code> + <code>ocasion=Boda</code> → flujo "sugerir productos para boda" → elige Ramo de Novia Rosas L</td>
-<td class="col-problem">🔴 Ignora silenciosamente el "centro de mesa" mencionado en <code>intencion_inicial</code>. No hay rama en el Playbook que detecte "X y Y"</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Agente</strong>: <em>"Claro, para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te gusta o miramos otras opciones?"</em></td>
-<td class="col-problem">🔴 Respuesta mono-producto. No reconoce el segundo ítem, no propone secuenciar, no explica limitación</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">5</span><strong>Test (check)</strong>: regex `centro.{0,80}ramo\</td>
-<td class="col-problem">ramo.{0,80}centro\</td>
-</tr>
-</table>
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero un ramo de rosas y un centro de mesa para mi casa"</div>
 </div>
-</details>
-<h4>Evaluacion</h4>
-<p style="color:#22c55e">✅ Turno superado</p>
-<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
-<ul class="ta-bullets ok">
-<li>Agente dijo [centro.{0,80}ramo]</li>
-</ul>
-<div class="diag-block" data-tcid="TC-MULTI-PRODUCTO-01">
-<h4 class="diag-header">Causa raíz (TC-MULTI-PRODUCTO-01) <span class="badge badge-llm">✨ LLM</span><button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
-<div class="manual-analysis"><h4>Causa raíz (descompuesta en 3 capas)</h4>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=ramo de rosas y centro de mesa</code>, <code>modo_tono=estandar</code>, <code>ocasion_detectada=Decoracion</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Perfecto, te ayudo con los dos. Empiezo por el ramo y luego vemos el centro de mesa, ¿te parece? Mira, para ramos de rosas tenemos:
 
-<p>1. <strong>Capa 1 (Orquestador — slots mono-producto)</strong>: El esquema de slots es singular (<code>producto</code>). No existe <code>productos[]</code> ni flag <code>multi_producto_detectado</code>. La <code>intencion_inicial</code> se preserva como texto libre pero no se inspecciona para detectar conjunciones ("y", "también", "además").</p>
-<p>2. <strong>Capa 2 (Playbook Compra — sin rama multi-ítem)</strong>: No hay CASO ESPECIAL que dispare cuando el usuario menciona ≥2 productos distintos. El flujo asume 1 producto por turno y va directo a recomendar. La señal de multi-ítem queda enterrada en <code>intencion_inicial</code> sin extraerla.</p>
-<p>3. <strong>Capa 3 (convención conversacional indefinida)</strong>: No hay política sobre cómo manejar pedidos multi-ítem (¿secuencial? ¿explicar limitación? ¿lista combinada?). El agente, sin instrucción explícita, elige la peor opción: silenciar el segundo ítem.</p></div>
-</div></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"el ramo de rosas morado de 37 euros"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Anotado, 1 x Ramo de Rosas Morado — M (37.0euros). Ahora el centro de mesa: Tenemos estas opciones de centros de mesa con rosas:
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de R..."</div>
+</div>
+</div>
+</div>
+</details></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"el ramo de rosas morado de 37 euros"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Anotado, 1 x Ramo de Rosas Morado — M (37.0euros). Ahora el centro de mesa: Tenemos estas opciones de centros de mesa con rosas:
 
 *   Centro de Mesa Rosas y Eucalipto — S (6 flores, 26€)
 *   Centro de Mesa Rosas y Eucalipto — M (8 flores, 32€)
 
-¿Cuál te gusta?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
-<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+¿Cuál te gusta?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: morado</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[morado]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
 <div class="trace-step trace-user">
 <span class="trace-lbl">Usuario (T2)</span>
 <div class="trace-text">"el ramo de rosas morado de 37 euros"</div>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>producto=ramo de rosas y centro de mesa</code>, <code>modo_tono=estandar</code> <span style="color:#666;font-size:10px">(real)</span>
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>producto=ramo de rosas y centro de mesa</code>, <code>modo_tono=estandar</code> <span style="color:#999;font-size:10px">(real)</span>
 </div>
 <div class="trace-step trace-agent">
 <span class="trace-lbl">Agente</span>
@@ -437,143 +507,102 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 *   Centro de Mesa Rosas y Eucalipto — M (8 flores, 3..."</div>
 </div>
 </div>
-</details>
-<h4>Evaluacion</h4>
-<p style="color:#22c55e">✅ Turno superado</p>
-<p style="color:#aaa;font-size:12px">El agente respondio correctamente. Todas las verificaciones del test se cumplen:</p>
-<ul class="ta-bullets ok">
-<li>Agente dijo [morado]</li>
-</ul></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 3</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T3)</span><span class="ta-text">"el centro de tulipanes de 28 euros"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"No tengo un centro de tulipanes de 28 euros. De los que te mostré, ¿alguna te convence o miramos otras?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
-<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+</div>
+</details></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 3 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T3)</span><span class="ta-text">"el centro de tulipanes de 28 euros"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"No tengo un centro de tulipanes de 28 euros. De los que te mostré, ¿alguna te convence o miramos otras?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">El agente debía mostrar el resumen del pedido con el total calculado (37 + 28 = 65€)</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[65|sesenta.{0,5}cinco|tulipanes.{0,150}morado|morado.{0,150}tulipanes]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
 <div class="trace-step trace-user">
 <span class="trace-lbl">Usuario (T3)</span>
 <div class="trace-text">"el centro de tulipanes de 28 euros"</div>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>producto=ramo de rosas y centro de mesa</code>, <code>modo_tono=estandar</code> <span style="color:#666;font-size:10px">(real)</span>
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>producto=ramo de rosas y centro de mesa</code>, <code>modo_tono=estandar</code> <span style="color:#999;font-size:10px">(real)</span>
 </div>
 <div class="trace-step trace-agent">
 <span class="trace-lbl">Agente</span>
 <div class="trace-text">"No tengo un centro de tulipanes de 28 euros. De los que te mostré, ¿alguna te convence o miramos otras?"</div>
 </div>
 </div>
+</div>
 </details>
-<h4>Evaluacion</h4>
-<p style="color:#ef4444">❌ Turno no superado</p>
-<ul class="ta-bullets fail">
-<li>Agente debía decir [65|sesenta.{0,5}cinco|tulipanes.{0,150}morado|morado.{0,150}tulipanes]</li>
-</ul>
-<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Decoracion</code>, <code>producto=ramo de rosas y centro de mesa</code>, <code>modo_tono=estandar</code></li>
-<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [65|sesenta.{0,5}cinco|tulipanes.{0,150}morado|morado.{0,150}tulipanes]</code></li>
-<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"No tengo un centro de tulipanes de 28 euros. De los que te mostré, ¿alguna te convence o miramos otras?"</em></li>
-</ul>
-<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"si"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿A cuál te refieres?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
-<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"si"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿A cuál te refieres?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: correo / email / completar…pedido</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[correo|email|completar.{0,20}pedido]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
 <div class="trace-step trace-user">
 <span class="trace-lbl">Usuario (T4)</span>
 <div class="trace-text">"si"</div>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code> <span style="color:#666;font-size:10px">(real)</span>
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code> <span style="color:#999;font-size:10px">(real)</span>
 </div>
 <div class="trace-step trace-agent">
 <span class="trace-lbl">Agente</span>
 <div class="trace-text">"¿A cuál te refieres?"</div>
 </div>
 </div>
+</div>
 </details>
-<h4>Evaluacion</h4>
-<p style="color:#ef4444">❌ Turno no superado</p>
-<ul class="ta-bullets fail">
-<li>Agente debía decir [correo|email|completar.{0,20}pedido]</li>
-</ul>
-<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code></li>
-<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [correo|email|completar.{0,20}pedido]</code></li>
-<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"¿A cuál te refieres?"</em></li>
-</ul>
-<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 5</th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T5)</span><span class="ta-text">"jerosan1@gmail.com"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Tu pedido: 1 x Ramo de Rosas Morado — M (37.0euros). Lo confirmo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><details class="ta-detail">
-<summary>Análisis detallado del flujo <span class="ta-detail-icon">▶</span></summary>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 5 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T5)</span><span class="ta-text">"jerosan1@gmail.com"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Tu pedido: 1 x Ramo de Rosas Morado — M (37.0euros). Lo confirmo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: 65 / tulipanes…morado / morado…tulipanes</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[65|tulipanes.{0,200}morado|morado.{0,200}tulipanes]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
 <div class="trace-step trace-user">
 <span class="trace-lbl">Usuario (T5)</span>
 <div class="trace-text">"jerosan1@gmail.com"</div>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#666;font-size:10px">(real)</span>
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#666;font-size:10px">(inferido)</span>
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
 </div>
 <div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code> <span style="color:#666;font-size:10px">(real)</span>
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code> <span style="color:#999;font-size:10px">(real)</span>
 </div>
 <div class="trace-step trace-agent">
 <span class="trace-lbl">Agente</span>
 <div class="trace-text">"Tu pedido: 1 x Ramo de Rosas Morado — M (37.0euros). Lo confirmo?"</div>
 </div>
 </div>
+</div>
 </details>
-<h4>Evaluacion</h4>
-<p style="color:#ef4444">❌ Turno no superado</p>
-<ul class="ta-bullets fail">
-<li>Agente debía decir [65|tulipanes.{0,200}morado|morado.{0,200}tulipanes]</li>
-</ul>
-<h4>Diagnóstico <span class="badge badge-auto">⚙ AUTO</span></h4>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Decoracion</code>, <code>modo_tono=estandar</code>, <code>producto=ramo de rosas y centro de mesa</code></li>
-<li style="color:#aaa"><strong>Check no superado:</strong> <code>Agente debía decir [65|tulipanes.{0,200}morado|morado.{0,200}tulipanes]</code></li>
-<li style="color:#aaa"><strong>Agente respondió:</strong> <em>"Tu pedido: 1 x Ramo de Rosas Morado — M (37.0euros). Lo confirmo?"</em></li>
-</ul>
-<h4>Causa raíz<button class="info-btn" onclick="openInfoModal('capas')" title="Qué son las 7 capas">?</button><button class="info-btn" onclick="openInfoModal('marcas')" title="Significado de las marcas">?</button></h4>
-<p style="color:#888;font-style:italic;font-size:12px">Pendiente análisis. Click <strong>Optimizar</strong> en la barra superior para generar la causa raíz y las soluciones evaluadas.</p></div></td></tr></table>
-<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — CASO ESPECIAL multi-producto en Playbook Compra</h4>
-
-<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
-
-<p><strong>Por qué</strong>: Reutiliza el patrón arquitectónico ya validado de CASOS ESPECIALES (mismo mecanismo que TC-URGENCIA-01). Local al Playbook Compra, no toca Orquestador ni schema de slots. Detecta multi-ítem inspeccionando <code>intencion_inicial</code> con conjunciones y dispara una respuesta que reconoce ambos productos y propone "empezamos por X". Cubre exactamente la regex del check (<code>ramo.<em>centro</code> + <code>empez.</em>por</code>). Bajo coste, bajo riesgo de regresión.</p>
-
-<h4>Soluciones evaluadas (ordenadas por score)</h4>
-
-<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>CASO ESPECIAL multi-producto en Playbook Compra</strong>: detectar 2+ productos en <code>intencion_inicial</code> ("X y Y"), reconocer ambos y proponer secuenciar</td><td>🟢 9/10</td><td>—</td><td>Patrón ya probado (urgencia). Local, rápido, sin regresión en flujo mono-producto. Cubre la regex del check y la UX real</td></tr><tr><td>2</td><td><strong>Combinación #1 + #3</strong>: Playbook con CASO ESPECIAL + Orquestador marca <code>multi_item=true</code> y pasa lista de productos</td><td>🟢 8/10</td><td>Edit Orquestador + contrato de slots</td><td>Solución arquitectónica más limpia (separa detección de gestión). Coste mayor y más superficie de regresión. Recomendable a medio plazo</td></tr><tr><td>3</td><td><strong>Detección en Orquestador</strong>: nuevo flag <code>multi_item=true</code> y <code>productos_solicitados=[ramo, centro]</code></td><td>🟡 7/10</td><td>Edit Orquestador + reacción en Compra</td><td>Sin lógica en Compra el flag no produce respuesta correcta. Solo aporta valor combinado con #1</td></tr><tr><td>4</td><td><strong>Instrucción genérica anti-omisión</strong> en Playbook Compra ("si el user menciona varios productos, recónocelos todos antes de elegir uno")</td><td>🟡 6/10</td><td>—</td><td>Más flexible que el CASO ESPECIAL pero menos determinista. Gemini puede ignorarla en variaciones léxicas. Útil como red complementaria a #1</td></tr><tr><td>5</td><td><strong>Few-shot example multi-producto</strong> ("ramo y centro para boda" → respuesta correcta) sin CASO ESPECIAL explícito</td><td>🟡 5/10</td><td>Generar 1-2 examples nuevos</td><td>Refuerza determinismo en inputs cercanos pero alcance limitado por similitud léxica. Multiplicador útil de #1, no sustituto</td></tr><tr><td>6</td><td><strong>Ampliar slot <code>producto</code> a lista</strong> + carrito implícito multi-ítem real</td><td>🟡 5/10</td><td>Refactor slots + catálogo + carrito</td><td>Cambia el modelo de datos end-to-end. Alto impacto en 49 TCs. Anti-regresión costoso para 1 TC actual</td></tr><tr><td>7</td><td><strong>Recalibrar test</strong>: aceptar respuesta mono-producto como válida</td><td>🔴 2/10</td><td>—</td><td>Esconde el bug UX real. El user percibe que el agente "ignora" parte de su petición. El check refleja comportamiento legítimamente esperado, no es falso negativo</td></tr></tbody></table>
-
-<h4>Plan de acción (Solución #1)</h4>
-
-<p>1. <strong>Añadir CASO ESPECIAL multi-producto</strong> al Playbook Compra (sección CASOS ESPECIALES, junto a urgencia/plazo) → <code>definitions/playbooks/compra.yaml</code></p>
-<ul>
-<li>Trigger: el user menciona 2+ productos distintos unidos por "y"/"también"/"además" en <code>intencion_inicial</code> (p.ej. <code>ramo|centro|corona|bouquet|arreglo|caja</code> × 2)</li>
-<li>Acción: reconocer ambos productos explícitamente y proponer secuenciar. Respuesta tipo:</li>
-</ul>
-<p><em>"Perfecto, te ayudo con los dos. Empiezo por el ramo y luego vemos el centro de mesa, ¿te parece? Para boda tengo el Ramo de Novia Rosas — L (12 flores, 45€). ¿Te encaja?"</em></p>
-<p>2. <strong>Commit + push</strong> → CI corre <code>Deploy to Petal CX</code> + <code>QA Petal</code> automáticamente</p>
-<p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> para confirmar PASS estable de TC-MULTI-PRODUCTO-01 y 0 regresiones en TCs mono-producto</p>
-
-<p><strong>Coste total</strong>: ~15 min (10 edición + 5 validación, +2 min deploy CX)</p></div></div>
+</ul></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-MULTI-PRODUCTO-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
 </div></div>
 
 <div id="metodologia-modal" class="modal hidden">
@@ -626,8 +655,8 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
           <h3>📈 Regresión vs run anterior</h3>
           <table class="kpi-regr">
             <tr><td>Run actual</td><td>latest</td><td><strong>PASS 0%</strong> (0/1)</td></tr>
-            <tr><td>Run anterior</td><td>2026-05-21 17:06</td><td>PASS 0% (0/1)</td></tr>
-            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-neutral"><strong>+0%</strong></td></tr>
+            <tr><td>Run anterior</td><td>2026-05-27 17:08</td><td>PASS 100% (1/1)</td></tr>
+            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-down"><strong>-100%</strong></td></tr>
           </table>
         </div>
     
@@ -657,40 +686,39 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
     </table>
   </div>
 </div>
-<!-- Modal: Las 7 capas estándar -->
+<!-- Modal: Las 9 capas + estados (unificado) -->
 <div class="info-modal-overlay" id="modal-capas">
   <div class="info-modal">
     <button class="info-modal-close" onclick="closeInfoModal('capas')">&times;</button>
-    <h3>Las 7 capas estándar del análisis QA</h3>
-    <p>Cada análisis evalúa estas 7 capas obligatoriamente para descomponer la causa raíz del bug:</p>
+    <h3>Las 9 capas del análisis QA</h3>
+    <p>Cada análisis evalúa estas 9 capas obligatoriamente para identificar la causa raíz del bug:</p>
     <table>
-      <tr><td><strong>1. Playbook</strong></td><td>El código del playbook tal como está hoy</td></tr>
-      <tr><td><strong>2. Histórico</strong></td><td>Cambios recientes al playbook (commits, PRs)</td></tr>
-      <tr><td><strong>3. Catálogo</strong></td><td>Datos del Google Sheet (inventario, agent_copy)</td></tr>
-      <tr><td><strong>4. Orquestador</strong></td><td>Clasificación inicial del usuario (intent, slots)</td></tr>
-      <tr><td><strong>5. Backend / Tool</strong></td><td>Llamadas al petal-sheet-api</td></tr>
-      <tr><td><strong>6. Política / Negocio</strong></td><td>Reglas de negocio (plazos, importes, ocasiones soportadas)</td></tr>
-      <tr><td><strong>7. Test</strong></td><td>Calibración del check regex del TC</td></tr>
+      <tr><td><strong>1. Comportamiento</strong></td><td>Playbooks, Examples, Generators</td></tr>
+      <tr><td><strong>2. Routing</strong></td><td>Flows, Pages, Intents, Entity Types</td></tr>
+      <tr><td><strong>3. Parámetros / Slots</strong></td><td>Paso de slots entre playbooks y tools</td></tr>
+      <tr><td><strong>4. Integración</strong></td><td>Tools, Webhooks, llamadas al backend</td></tr>
+      <tr><td><strong>5. Datos</strong></td><td>Google Sheet (inventario, agent_copy, negocio)</td></tr>
+      <tr><td><strong>6. Infraestructura</strong></td><td>Environments, Versions, Agent Config</td></tr>
+      <tr><td><strong>7. Modelo / LLM</strong></td><td>Comportamiento de Gemini (alucinaciones)</td></tr>
+      <tr><td><strong>8. Histórico</strong></td><td>Regresiones — git log del playbook</td></tr>
+      <tr><td><strong>9. Test</strong></td><td>Calibración del check regex del TC</td></tr>
     </table>
-    <p style="margin-top:16px;">Cada capa se marca con uno de los 4 estados (ver "Marca posible" para detalle).</p>
-  </div>
-</div>
-<!-- Modal: Estados posibles -->
-<div class="info-modal-overlay" id="modal-marcas">
-  <div class="info-modal">
-    <button class="info-modal-close" onclick="closeInfoModal('marcas')">&times;</button>
-    <h3>Estados posibles de cada capa</h3>
+    <h3 style="margin-top:20px;">Estados posibles de cada capa</h3>
     <table>
-      <tr><td style="width:120px;"><strong>🔴 problema</strong></td><td>Capa <em>comprobada con fuente</em>. ES causa del bug.</td></tr>
+      <tr><td style="width:130px;"><strong>🔴 problema</strong></td><td>Capa <em>comprobada con fuente</em>. ES causa del bug.</td></tr>
       <tr><td><strong>🟢 ok</strong></td><td>Capa <em>comprobada con fuente</em>. NO es causa del bug.</td></tr>
       <tr><td><strong>🟡 supuesta</strong></td><td>No se pudo comprobar (falta documentación o info externa).</td></tr>
       <tr><td><strong>⚪ N/A</strong></td><td>Esta capa no aplica al tipo de bug analizado.</td></tr>
     </table>
-    <p style="margin-top:16px;">Las marcas <strong>🔴</strong> y <strong>🟢</strong> requieren citar la fuente entre paréntesis (ej: <code>Read compra.yaml</code>, <code>git log</code>, <code>gh pr view</code>, <code>gcloud logging</code>, <code>curl URL</code>).</p>
+    <p style="margin-top:12px;">Las marcas <strong>🔴</strong> y <strong>🟢</strong> requieren citar la fuente (ej: <code>Read compra.yaml</code>, <code>git log</code>, <code>gh pr view</code>, <code>gcloud logging</code>, <code>curl URL</code>).</p>
   </div>
 </div>
 <script>
 function toggle(el){el.nextElementSibling.classList.toggle('open');el.querySelector('.arrow').classList.toggle('open')}
+function togglePatterns(){var b=document.querySelector('.patterns-body');var a=document.querySelector('.patterns-arrow');if(b){b.classList.toggle('open');a.classList.toggle('open');}}
+function openRoiModal(btn){var val=btn.dataset.roiVal,tcs=btn.dataset.roiTcs,esf=btn.dataset.roiEsf;var b=document.getElementById('roi-modal-body');if(!b)return;b.innerHTML='<p class="rmi-def"><strong>Tasa de resolución</strong> — cuántos TCs puedes cerrar por hora de trabajo invertida en el fix.</p><div class="rmi-section"><div class="rmi-lbl">Fórmula</div><div class="rmi-formula">ROI = TCs resueltos ÷ esfuerzo (h)</div></div><div class="rmi-section"><div class="rmi-lbl">Este fix</div><div class="rmi-row"><span>TCs resueltos</span><span>'+(tcs||'—')+'</span></div><div class="rmi-row"><span>Esfuerzo estimado</span><span>'+(esf||'—')+'</span></div><div class="rmi-row rmi-result"><span>ROI resultante</span><span>'+(val||'—')+' TCs/h</span></div></div>';document.getElementById('roi-modal-overlay').classList.add('open');}
+function closeRoiModal(){var o=document.getElementById('roi-modal-overlay');if(o)o.classList.remove('open');}
+function toggleSelectAll(cb){document.querySelectorAll('.opt-check').forEach(function(c){c.checked=cb.checked});updateRunButton();}
 function filterBy(s){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>{if(s==='all'){t.classList.remove('hidden')}else{t.classList.toggle('hidden',t.dataset.status!==s)}});if(s!=='all')document.querySelectorAll('.card[data-filter="'+s+'"]').forEach(c=>c.classList.add('active'))}
 function filterByGroup(g){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
 function filterByType(tp){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',t.dataset.type!==tp))}
@@ -766,7 +794,7 @@ function setPanelMode(mode){
     title.textContent = 'TCs en FAIL — selecciona los que quieras optimizar';
     run.textContent = '▶ Run';
     run.setAttribute('onclick', 'runOptimize()');
-    thead.innerHTML = '<th></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
+    thead.innerHTML = '<th><input type="checkbox" id="opt-select-all" title="Seleccionar todos" onchange="toggleSelectAll(this)"></th><th>ID</th><th>Nombre</th><th>Check fallido</th><th>Respuesta del agente</th>';
   } else {
     title.textContent = 'TCs con análisis LLM aplicado — selecciona los que quieras borrar';
     run.textContent = '🗑 Borrar seleccionados';
@@ -865,59 +893,9 @@ function runOptimize(){
   if (run.classList.contains('dl-disabled')) return;
   var checked = document.querySelectorAll('.opt-check:checked');
   if (checked.length === 0) return;
-  var P = '\n';
-  var prompt = 'Eres un experto en Dialogflow CX Playbooks con Gemini como LLM, ayudando a optimizar el agente Petal (floristería) desplegado en Dialogflow CX.' + P + P;
-  prompt += 'Analiza los siguientes TCs en FAIL y devuelve para cada uno un análisis estructurado en Markdown con el formato EXACTO que se indica al final.' + P + P;
-  prompt += '==== DATOS DE LOS TCs ====' + P + P;
-  checked.forEach(function(cb){
-    prompt += 'TC: ' + cb.dataset.tid + ' — ' + cb.dataset.tname + P +
-              'Grupo: ' + cb.dataset.group + P +
-              'Usuario dijo: "' + cb.dataset.user + '"' + P +
-              'Agente respondió (primeros 120 chars): "' + cb.dataset.agent + '"' + P +
-              'Check que falló: ' + cb.dataset.check + P +
-              'Log JSON completo: ' + cb.dataset.jsonurl + P + P;
-  });
-  prompt += '==== FORMATO DE RESPUESTA ====' + P + P;
-  prompt += 'Para CADA TC, devuelve un bloque Markdown con esta estructura EXACTA (que se guardará en qa/tc_analysis/{TC-ID}.md):' + P + P;
-  prompt += '```markdown' + P;
-  prompt += '---' + P;
-  prompt += 'status: FAIL' + P;
-  prompt += 'tipo: <Bug Playbook | Bug Catálogo | Test mal calibrado | Falso negativo | Flakiness | Bug Tool | Bug Orquestador>' + P;
-  prompt += 'estimacion: ~<N> min (Solución #<X> recomendada)' + P;
-  prompt += '---' + P + P;
-  prompt += '## T1' + P + P;
-  prompt += '### Turnos vs Problemas detectados' + P + P;
-  prompt += '| # | Quién | Acción / Texto | Problema detectado |' + P;
-  prompt += '|---|-------|----------------|--------------------|' + P;
-  prompt += '| 1 | User | *"texto del usuario"* | — |' + P;
-  prompt += '| 2 | Orquestador | clasifica como Gx → handoff a Y | ✅ Correcto / ⚠️ Observación / 🔴 Problema |' + P;
-  prompt += '| 3 | Compra | extrae slots, llama tool, etc. | descripción del problema |' + P;
-  prompt += '| ... | ... | ... | ... |' + P + P;
-  prompt += '### Causa raíz (descompuesta en N capas)' + P + P;
-  prompt += '1. **Capa 1 (ej. Playbook)**: descripción concreta' + P;
-  prompt += '2. **Capa 2 (ej. Catálogo)**: descripción concreta' + P + P;
-  prompt += '## Recomendación' + P + P;
-  prompt += '### Solución recomendada: #<N> — <título>' + P + P;
-  prompt += '🟢 **<score>/10** · ~<tiempo> · <dependencias o "Sin dependencias externas">' + P + P;
-  prompt += '**Por qué**: razonamiento conciso' + P + P;
-  prompt += '### Soluciones evaluadas (ordenadas por score)' + P + P;
-  prompt += '| # | Solución | Score | Dependencias | Por qué este scoring |' + P;
-  prompt += '|---|----------|-------|--------------|----------------------|' + P;
-  prompt += '| <N> | **<solución>** | 🟢 <X>/10 | <deps o "—"> | <razonamiento> |' + P;
-  prompt += '| ... (7 soluciones, ordenadas DESC por score) |' + P + P;
-  prompt += '### Plan de acción (Solución #<N>)' + P + P;
-  prompt += '1. **Acción concreta** → archivo a editar' + P;
-  prompt += '2. **Acción concreta** → archivo' + P;
-  prompt += '3. **Re-ejecutar QA** con `--runs 3`' + P + P;
-  prompt += '**Coste total**: ~<tiempo>' + P;
-  prompt += '```' + P + P;
-  prompt += '==== REGLAS ====' + P;
-  prompt += '- SIEMPRE 7 soluciones por TC, scores 1-10' + P;
-  prompt += '- Emojis: 🟢 (8-10), 🟡 (5-7), 🔴 (1-4)' + P;
-  prompt += '- "Dependencias" concreto (ej. "Aprobación de negocio", "Redeploy backend") o "—" si no hay' + P;
-  prompt += '- Si quieres más contexto, descarga el log JSON de cada TC (URL arriba) — incluye conversación completa, params, slots y trace' + P;
-  prompt += '- Prefiere fix más conservador: ajustar el check antes que cambiar playbook, salvo que el agente esté claramente equivocado' + P;
-  prompt += '- Sé honesto en "Por qué este scoring" — incluye trade-offs reales' + P;
+  var ids = [];
+  checked.forEach(function(cb){ ids.push(cb.dataset.tid); });
+  var prompt = '/qa-tc-analyzer ' + ids.join(' ');
   navigator.clipboard.writeText(prompt).then(function(){
     var fb = document.getElementById('btn-run-feedback');
     fb.textContent = '✓ Copiado — pega en Claude';
