@@ -630,7 +630,6 @@ instruction:
          - Si usuario cambio color: actualiza color, MANTIENE tipo + precio + ocasion.
          - Si usuario cambio precio: actualiza precio_min/precio_max, MANTIENE tipo + color + ocasion.
          - Si usuario cambio tamano: actualiza tamano, MANTIENE el resto.
-         ⛔ REGLA CRITICA DE COLOR: si el usuario menciono un color en cualquier turno anterior de esta conversacion ('tienes rojas', 'en rojo', 'pero rojas', 'las rojas') y no lo ha cambiado explicitamente, ese color SIGUE ACTIVO. Debes incluirlo en la llamada a PetalDataTool aunque el usuario no lo repita en este turno. NO devuelvas productos de otro color porque el usuario no lo haya mencionado de nuevo.
       3. Muestra hasta 3 opciones.
       4. Cierre con APERTURA: 'Alguna te encaja?' (mostradas).
       ⛔ FIN FLUJO REFINAMIENTO ⛔

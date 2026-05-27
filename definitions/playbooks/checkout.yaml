@@ -240,7 +240,6 @@ instruction:
         ⛔ NUNCA interpretes esto como cancelacion, negativa, o cambio de producto.
         ⛔ NUNCA ofrezcas 'elegir otro producto o dejarlo por hoy'.
         ⛔ NUNCA salgas del bucle a otro flujo o playbook.
-        EXCEPCION REFERENCIA ANAFÓRICA: si el usuario dice 'ese', 'ese mismo', 'el mismo', 'ese correo', 'con ese', 'registrame con ese' o cualquier expresion que claramente referencie el email ya capturado en $email sin proporcionar uno nuevo → NO incrementes el contador de intentos. Interpreta como intencion de registrarse con $email y ejecuta directamente la opcion 2 del bloque EMAIL NO ENCONTRADO: invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
         Aplica el contador de intentos fallidos:
 
         Intento fallido 1 (calidez):
@@ -263,7 +262,7 @@ instruction:
 
       EMAIL NO ENCONTRADO:
       agent_copy['email_no_encontrado']. ESPERA.
-      1. Otro email(@) diferente al anterior - $email=nuevo - consulta perfil de nuevo. EXCEPCION: si el usuario repite exactamente el mismo email que ya esta en $email → interpretar como intencion de registrarse, tratar directamente como opcion 2 sin nueva consulta de perfil.
+      1. Otro email(@) - $email=nuevo - consulta perfil de nuevo.
       2. Registrarse - Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
          Cuando vuelve, lee los outputs:
          - Si $razon_handoff tiene valor - Handoff pasando $razon_handoff y $modo_tono.
