@@ -264,12 +264,7 @@ instruction:
       EMAIL NO ENCONTRADO:
       agent_copy['email_no_encontrado']. ESPERA.
       1. Otro email(@) diferente al anterior - $email=nuevo - consulta perfil de nuevo. EXCEPCION: si el usuario repite exactamente el mismo email que ya esta en $email → interpretar como intencion de registrarse, tratar directamente como opcion 2 sin nueva consulta de perfil.
-      2. Registrarse - disparado por CUALQUIERA de estos triggers:
-         - Léxico afirmativo de registro: 'registrar', 'registrame', 'me registro', 'registrarme', 'regístrame', 'quiero registrarme', 'nuevo cliente', 'cliente nuevo', 'soy nuevo'.
-         - Afirmación corta tras la pregunta de email_no_encontrado: 'si', 'sí', 'claro', 'vale', 'ok', 'dale', 'venga', 'perfecto'.
-         - Referencia anafórica a la opción ofrecida: 'ese', 'esa', 'eso', 'lo segundo', 'la segunda', 'la última', 'la opción 2'.
-         - Cualquier referencia al email ya capturado: 'ese mismo', 'el mismo', 'con ese', 'ese correo', 'registrame con ese' (cubierto también por la EXCEPCION REFERENCIA ANAFÓRICA del BUCLE EMAIL).
-         Acción: Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
+      2. Registrarse - Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
          Cuando vuelve, lee los outputs:
          - Si $razon_handoff tiene valor - Handoff pasando $razon_handoff y $modo_tono.
          - Si $sesion_cerrada=true - FIN.
