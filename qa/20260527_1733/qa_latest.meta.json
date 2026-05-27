@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
+  "total": 51,
+  "pass": 47,
+  "inst": 0,
+  "fail": 4,
+  "pct": 92,
+  "runs_per_tc": 3,
+  "note": "Run para demo — 51 TCs frescos contra CX"
+}
