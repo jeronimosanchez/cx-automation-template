@@ -23,6 +23,12 @@ name: QA Petal
 
 on:
   workflow_dispatch:
+    inputs:
+      runs:
+        description: 'Número de runs por TC (default 1; usa 3 para detectar flakiness)'
+        required: false
+        default: '1'
+        type: string
   workflow_run:
     workflows: ["Deploy to Petal CX"]
     types: [completed]
@@ -108,7 +114,7 @@ jobs:
       - name: Run QA (29 TCs)
         id: qa_run
         continue-on-error: true
-        run: python qa/test_QA_Playbooks_v23.py --runs 1
+        run: python qa/test_QA_Playbooks_v23.py --runs ${{ inputs.runs || '1' }}
 
       - name: Upload reports as artifact
         if: always()
