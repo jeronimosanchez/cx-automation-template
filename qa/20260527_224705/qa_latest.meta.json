@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-05-27 22:47",
+  "ts_file": "20260527_2247",
+  "total": 51,
+  "pass": 50,
+  "inst": 0,
+  "fail": 1,
+  "pct": 98,
+  "runs_per_tc": 1,
+  "versions": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

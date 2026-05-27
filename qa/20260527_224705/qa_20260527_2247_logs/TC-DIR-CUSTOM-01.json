@@ -1,0 +1,60 @@
+{
+  "tc_id": "TC-DIR-CUSTOM-01",
+  "tc_name": "Override direccion habitual — cliente identificado pide otra direccion",
+  "group": "G5>CK",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-27 22:47",
+  "ts_file": "20260527_2247",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa",
+          "agent": "¡Hola, Ana! Ya veo que quieres un ramo de rosas rojas talla M para regalo y que lo enviemos a la oficina. Te gestiono el pedido. Entendido, Ana. Tu pedido es un Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántas unidades necesitas?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa",
+            "email": "ana@email.com",
+            "nombre_cliente": "Ana",
+            "modo_tono": "corporativo",
+            "Direccion_Habitual": "Calle Mayor 10, 28013 Madrid",
+            "ocasion_detectada": "Regalo",
+            "producto": "Ramo de Rosas Rojas -- M",
+            "tipo_cliente": "particular",
+            "estado_pago": "Al dia",
+            "id_cliente": "101"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
