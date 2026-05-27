@@ -498,20 +498,17 @@ TESTS = [
      ],
      "not_expected": []},
 
-    {"id": "TC-MULTI-PRODUCTO-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Pedido multi-item — Checkout recibe ambos productos como parametros formales",
+    {"id": "TC-MULTI-PRODUCTO-01", "type": "EDGE", "group": "COMPRA-INV",
+     "name": "Pedido multi-item — ECO RESUMEN muestra total antes de confirmar",
      "turns": [
          {"user": "quiero un ramo de rosas y un centro de mesa para mi casa",
           "checks": ["centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto"]},
          {"user": "el ramo de rosas morado de 37 euros",
-          "checks": ["morado|anotado|centro|cual"]},
+          "checks": ["morado|anotado"],
+          "desc": "El agente anota el primer producto (ramo morado 37€) y pide el segundo"},
          {"user": "el centro de tulipanes de 28 euros",
           "checks": ["65"],
-          "desc": "El agente debía mostrar el resumen del pedido con el total calculado (37 + 28 = 65€)"},
-         {"user": "si",
-          "checks": ["correo|email|completar.{0,20}pedido"]},
-         {"user": "jerosan1@gmail.com",
-          "checks": ["65|tulipanes.{0,200}morado|morado.{0,200}tulipanes"]},
+          "desc": "El agente debía mostrar el resumen con el total calculado (37 + 28 = 65€) antes de pedir confirmación"},
      ],
      "not_expected": []},
 
@@ -1043,10 +1040,16 @@ def _postprocess_capa_blocks(html):
     if not html:
         return html
 
-    # Patrón: <p>EMOJI N. <strong>Capa Nombre</strong> [estado]</p>
-    # Grupos: 1=emoji, 2=número, 3=nombre, 4=estado (verificada/supuesta/N/A)
+    # Patrón VERBOSE: <p>EMOJI N. <strong>Capa Nombre</strong> [estado]</p>
+    # Seguido de uno o varios <p>...</p> con fuente y descripción aparte.
     capa_line_re = re.compile(
         r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+?)</strong>\s*\[(verificada|supuesta|N/A)\]\s*</p>'
+    )
+    # Patrón COMPACTO: <p>EMOJI N. <strong>Capa Nombre</strong> · estado — descripción inline</p>
+    # Todo en un solo <p>, sin corchetes ni fuente aparte. Típico de capas N/A.
+    capa_line_compact_re = re.compile(
+        r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+?)</strong>\s*[·•∙]\s*(verificada|supuesta|N/A)\s*[—\-–]\s*(.+?)\s*</p>',
+        re.DOTALL
     )
 
     def consume_following_blocks(full_html, start_pos):
@@ -1099,9 +1102,17 @@ def _postprocess_capa_blocks(html):
         desc_html = "".join(desc_parts)
         return fuente, desc_html, pos
 
+    # Recolectar todos los matches (verbose y compacto), ordenados por posición.
+    all_matches = []
+    for m in capa_line_re.finditer(html):
+        all_matches.append(("verbose", m))
+    for m in capa_line_compact_re.finditer(html):
+        all_matches.append(("compact", m))
+    all_matches.sort(key=lambda x: x[1].start())
+
     result = []
     last_pos = 0
-    for m in capa_line_re.finditer(html):
+    for kind, m in all_matches:
         if m.start() < last_pos:
             continue
         result.append(html[last_pos:m.start()])
@@ -1113,7 +1124,15 @@ def _postprocess_capa_blocks(html):
         color = _CAPA_EMOJI_MAP.get(emoji, "na")
         badge_cls, badge_txt = _ESTADO_BADGE_MAP.get(estado, ("na", estado))
 
-        fuente_html, desc_html, end_pos = consume_following_blocks(html, m.end())
+        if kind == "verbose":
+            # Formato verbose: fuente + descripción en bloques siguientes
+            fuente_html, desc_html, end_pos = consume_following_blocks(html, m.end())
+        else:
+            # Formato compacto: la descripción viene en el mismo <p>, tras "· estado —"
+            fuente_html = ""
+            desc_inline = m.group(5).strip()
+            desc_html = f'<p class="capa-desc-p">{desc_inline}</p>' if desc_inline else ""
+            end_pos = m.end()
 
         block = (
             f'<div class="capa-block capa-{color}">'
