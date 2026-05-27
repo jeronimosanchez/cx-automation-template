@@ -73,7 +73,8 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .tipo-tag{font-size:10px;padding:2px 8px;border-radius:3px;background:#f9731622;color:#f97316;font-family:'DM Mono',monospace;font-weight:600}
 /* Banda de recomendación al final del TC */
 /* Banda de DIAGNÓSTICO — mismo ancho/letra que .recomendacion, color azul */
-.diagnostico{margin:14px 0 4px;padding:14px 16px;background:#0c172f;border:1px solid #1e3a5f;border-left:4px solid #3b82f6;border-radius:6px}
+.diagnostico,.dimensionamiento{margin:14px 0 4px;padding:14px 16px;background:#0c172f;border:1px solid #1e3a5f;border-left:4px solid #3b82f6;border-radius:6px}
+.dimensionamiento{margin-top:8px;background:#0a1322}
 .diagnostico.pendiente{background:#1a1a1a;border-color:#444;border-left-color:#777}
 .diagnostico .diag-band-title{color:#93c5fd}
 .diagnostico .diag-tag{background:#3b82f622;color:#93c5fd}
@@ -89,6 +90,17 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .diagnostico .diag-band-content .md-table th{background:#0c172f;color:#93c5fd;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
 .diagnostico .diag-band-content .md-table tr:nth-child(even){background:#0a1530}
 .diagnostico .wip-disclaimer-sm{font-size:10px;color:#7a7a7a;margin-top:10px;padding-top:8px;border-top:1px solid #1a3a5f;font-style:italic}
+/* Dimensionamiento: hereda el estilo del contenido del diagnóstico */
+.dimensionamiento .diag-band-title{color:#93c5fd}
+.dimensionamiento .diag-band-content p{font-size:11px;color:#cce;line-height:1.5;margin:3px 0}
+.dimensionamiento .diag-band-content code{background:#1a2e3a;color:#93c5fd;padding:1px 4px;border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}
+.dimensionamiento .diag-band-content strong{color:#93c5fd;font-weight:600}
+.dimensionamiento .diag-band-content h2,.dimensionamiento .diag-band-content h3,.dimensionamiento .diag-band-content h4{color:#3b82f6;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 3px}
+.dimensionamiento .diag-band-content h4:first-child{margin-top:0}
+.dimensionamiento .diag-band-content .md-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
+.dimensionamiento .diag-band-content .md-table th,.dimensionamiento .diag-band-content .md-table td{border:1px solid #1a3a5f;padding:5px 7px;text-align:left;vertical-align:top}
+.dimensionamiento .diag-band-content .md-table th{background:#0c172f;color:#93c5fd;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
+.dimensionamiento .diag-band-content .md-table tr:nth-child(even){background:#0a1530}
 .recomendacion{margin:14px 0 4px;padding:14px 16px;background:#0c1f0c;border:1px solid #1e3a1e;border-left:4px solid #22c55e;border-radius:6px}
 .recomendacion.fail{background:#1f0e0c;border-color:#3a1e1e;border-left-color:#ef4444}
 .recomendacion.fail .rec-title{color:#fca5a5}
@@ -197,12 +209,14 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .ta-right .manual-analysis ul li{margin:6px 0}
 .diag-block{margin-top:24px;padding-top:14px;border-top:1px solid #2a2a2a}
 .diag-header{color:#c8f060 !important;font-size:12px !important;margin:0 0 10px !important;font-family:'DM Mono',monospace;letter-spacing:.5px}
-/* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz') */
-.capa-block{margin:14px 0;padding:14px 16px;border-radius:6px;border-left:4px solid transparent;min-height:48px}
-.capa-block.capa-rojo{background:rgba(255,80,80,0.07);border-left-color:#e85050}
-.capa-block.capa-verde{background:rgba(80,200,80,0.05);border-left-color:#5dc870}
-.capa-block.capa-amarillo{background:rgba(220,180,50,0.06);border-left-color:#d4b32f}
-.capa-block.capa-na{background:rgba(255,255,255,0.02);border-left-color:#555}
+/* Capa blocks: renderizado estructurado de cada capa del análisis ('Causa raíz')
+   NOTA: las capas internas NO tienen barra lateral coloreada (solo el bloque
+   Diagnóstico exterior la tiene). El emoji 🔴🟢🟡⚪ es el indicador de marca. */
+.capa-block{margin:14px 0;padding:14px 16px;border-radius:6px;min-height:48px}
+.capa-block.capa-rojo{background:rgba(255,80,80,0.07)}
+.capa-block.capa-verde{background:rgba(80,200,80,0.05)}
+.capa-block.capa-amarillo{background:rgba(220,180,50,0.06)}
+.capa-block.capa-na{background:rgba(255,255,255,0.02)}
 .capa-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .capa-emoji{font-size:18px;line-height:1;flex-shrink:0}
 .capa-titulo{flex:1;font-size:14px;color:#fff}
@@ -216,6 +230,11 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .capa-desc{margin-top:8px;margin-left:30px}
 .capa-desc p,.capa-desc-p{color:#ddd;font-size:13px;line-height:1.6;margin:6px 0}
 .capa-desc code{background:#2a2a2a;color:#ddd;padding:1px 6px;border-radius:3px;font-size:11px;font-family:'DM Mono',monospace;word-break:break-word;overflow-wrap:anywhere}
+/* Cualquier tabla/pre/blockquote dentro de una capa hereda el sangrado del título */
+.capa-block .md-table,.capa-block table,.capa-block pre,.capa-block blockquote,.capa-block ul,.capa-block ol{margin-left:30px;margin-top:8px;margin-bottom:8px;max-width:calc(100% - 30px)}
+.capa-block .md-table{width:calc(100% - 30px);border-collapse:collapse;font-size:11px}
+.capa-block .md-table th,.capa-block .md-table td{border:1px solid #2a2a2a;padding:6px 8px;text-align:left;vertical-align:top;color:#ddd}
+.capa-block .md-table th{background:#1a1a1a;color:#c8f060;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
 .badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;margin-left:8px;font-family:'DM Mono',monospace;letter-spacing:.4px;vertical-align:middle;font-weight:600}
 .badge-auto{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}
 .badge-llm{background:#1a2818;color:#c8f060;border:1px solid #2a4818}
@@ -9486,35 +9505,21 @@ Perfecto, para regalo tenemos: Ramo de Rosas Rojas — S (8 flores, 22€), Ramo
 
 <p>⚪ 4. <strong>Capa Integración</strong> · N/A — el FAIL ocurre antes de cualquier tool call. La trace muestra <code>matchType=PLAYBOOK</code>, <code>confidence=1</code>, sin invocaciones a <code>inventario</code> ni a <code>business</code>.</p>
 
-<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>5. Capa Datos</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-desc"><p class="capa-desc-p"><code>curl</code> al backend <code>petal-sheet-api</code> (<code>/business</code> y endpoints relacionados — variables confirmadas en <code>_shared_context.md</code>).</p><p class="capa-desc-p">El Sheet expone variables que cubrirían este caso con precisión:</p></div></div>
-
-<table class="md-table"><thead><tr><th>Variable</th><th>Valor</th></tr></thead><tbody><tr><td><code>tiempo_entrega_estimado</code></td><td>"24h en Madrid y Barcelona, resto de ciudades 48 horas"</td></tr><tr><td><code>horario_corte_mismo_dia</code></td><td>"14:00" (Madrid ciudad)</td></tr><tr><td><code>horario_apertura</code></td><td>"Lunes-Sábado 9:00-20:00"</td></tr><tr><td><code>zonas_entrega_resumen</code></td><td>Madrid, Barcelona, Valencia, Sevilla, Bilbao</td></tr></tbody></table>
-
-<p><strong>La política real de Petal es: same-day SÍ existe en Madrid ciudad si el pedido entra antes de las 14:00; resto, 24-48h.</strong> A las 18:00 ya pasó el corte: la respuesta correcta sería "hoy a las 18:00 no llego — te lo dejo mañana" (o derivación a humano).</p>
-
-<p><strong>Doble fallo en esta capa:</strong></p>
-<ul>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>5. Capa Datos</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-desc"><p class="capa-desc-p"><code>curl</code> al backend <code>petal-sheet-api</code> (<code>/business</code> y endpoints relacionados — variables confirmadas en <code>_shared_context.md</code>).</p><p class="capa-desc-p">El Sheet expone variables que cubrirían este caso con precisión:</p><table class="md-table"><thead><tr><th>Variable</th><th>Valor</th></tr></thead><tbody><tr><td><code>tiempo_entrega_estimado</code></td><td>"24h en Madrid y Barcelona, resto de ciudades 48 horas"</td></tr><tr><td><code>horario_corte_mismo_dia</code></td><td>"14:00" (Madrid ciudad)</td></tr><tr><td><code>horario_apertura</code></td><td>"Lunes-Sábado 9:00-20:00"</td></tr><tr><td><code>zonas_entrega_resumen</code></td><td>Madrid, Barcelona, Valencia, Sevilla, Bilbao</td></tr></tbody></table><p class="capa-desc-p"><strong>La política real de Petal es: same-day SÍ existe en Madrid ciudad si el pedido entra antes de las 14:00; resto, 24-48h.</strong> A las 18:00 ya pasó el corte: la respuesta correcta sería "hoy a las 18:00 no llego — te lo dejo mañana" (o derivación a humano).</p><p class="capa-desc-p"><strong>Doble fallo en esta capa:</strong></p><ul>
 <li>El playbook <strong>no consulta</strong> <code>horario_corte_mismo_dia</code> ni <code>tiempo_entrega_estimado</code>. La política existe en el Sheet pero está huérfana — ningún playbook la lee.</li>
 <li>Análisis anteriores (run 20260525_1611) asumieron incorrectamente "Petal no soporta same-day" y propusieron fixes que negaban same-day en todos los casos. Eso habría sido un parche que contradice la política real del negocio. <strong>Este análisis corrige esa premisa.</strong></li>
-</ul>
+</ul></div></div>
 
 <p>⚪ 6. <strong>Capa Infraestructura</strong> · N/A — sin errores de deploy, timeouts, ni de Environment. El agente responde en los 3 runs; el problema es de contenido, no de salud del sistema.</p>
 
 <div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>7. Capa Modelo / LLM</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-desc"><p class="capa-desc-p">El comportamiento del LLM en run 3 ("te puedo entregar hoy") es <strong>alucinación</strong> clásica: el modelo rellena el vacío de política con una promesa plausible pero falsa. En run 1 y 2 el LLM ignora la marca temporal por defecto (continúa el flujo estándar). Esto es síntoma, no causa: con el bloque de detección + consulta al Sheet, el LLM tendría la instrucción y los datos para responder correctamente. Marcado 🟡 porque no es estrictamente verificable sin reproducibilidad controlada — pero la diferencia entre los 3 runs (ignora / ignora / inventa) es consistente con ausencia de instrucción + temperatura alta.</p></div></div>
 
-<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-fuente"><code>git log --oneline -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">Historia de ping-pong sobre este mismo fix:</p></div></div>
+<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-fuente"><code>git log --oneline -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">Historia de ping-pong sobre este mismo fix:</p><table class="md-table"><thead><tr><th>Commit</th><th>Acción</th></tr></thead><tbody><tr><td><code>3f041df</code> (PR #83)</td><td>Añade CASO ESPECIAL urgencia/plazo</td></tr><tr><td><code>aca187c</code> (PR #84)</td><td>Revert de #83</td></tr><tr><td><code>3e0b2d1</code></td><td>Re-añade bloque DETECCION URGENCIA TEMPORAL</td></tr><tr><td><code>1f95cae</code></td><td>Revert</td></tr><tr><td><code>a10ab02</code></td><td>Re-añade</td></tr><tr><td><code>2126c52</code></td><td>Revert (HEAD actual)</td></tr></tbody></table><p class="capa-desc-p"><strong>Seis movimientos sobre el mismo bug.</strong> Los fixes anteriores funcionaban a nivel de check (el regex matcheaba "no puedo entregar hoy") pero asumían "no hay same-day", que ahora sabemos que es incorrecto. El revert recurrente sugiere que cada fix introducía un trade-off no resuelto (probable: rompía TCs que sí querían same-day en Madrid antes de las 14:00, o introducía rigidez no deseada). Marcado 🟡 porque la causa exacta de los reverts no consta en este JSON — se infiere del patrón.</p></div></div>
 
-<table class="md-table"><thead><tr><th>Commit</th><th>Acción</th></tr></thead><tbody><tr><td><code>3f041df</code> (PR #83)</td><td>Añade CASO ESPECIAL urgencia/plazo</td></tr><tr><td><code>aca187c</code> (PR #84)</td><td>Revert de #83</td></tr><tr><td><code>3e0b2d1</code></td><td>Re-añade bloque DETECCION URGENCIA TEMPORAL</td></tr><tr><td><code>1f95cae</code></td><td>Revert</td></tr><tr><td><code>a10ab02</code></td><td>Re-añade</td></tr><tr><td><code>2126c52</code></td><td>Revert (HEAD actual)</td></tr></tbody></table>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>9. Capa Test</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-desc"><p class="capa-desc-p">El regex <code>hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano</code> mide exactamente lo correcto: cualquier respuesta del agente que acote, niegue, contextualice plazo o derive a humano da PASS. Es laxo en intención y firme en sustancia. No es test mal calibrado: el FAIL es un verdadero positivo.</p><p class="capa-desc-p"><strong>Resumen visual:</strong> 3 🔴 problema · 1 🟢 ok · 2 🟡 supuesta · 3 ⚪ N/A</p><p class="capa-desc-p">---</p></div></div></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<div class="dimensionamiento" data-tcid="TC-URGENCIA-01"><div class="rec-header"><span class="rec-icon">📐</span><span class="rec-title diag-band-title">Dimensionamiento del bug</span></div><div class="rec-content diag-band-content"><table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td><strong>Alcance</strong></td><td>Medio</td><td>Toca <code>compra.yaml</code> y, en la solución completa, requiere consulta al Sheet (<code>business</code> endpoint).</td></tr><tr><td><strong>Profundidad</strong></td><td>Medio</td><td>Nuevo bloque condicional con lógica ciudad + hora actual + corte. No es 1 línea.</td></tr><tr><td><strong>Riesgo</strong></td><td>Medio</td><td>TC-URGENCIA-03 (variante misma familia) probablemente falla por la misma causa. Cualquier fix debe no romper TCs que sí pidan same-day legítimo en Madrid antes de 14:00.</td></tr><tr><td><strong>Nivel final</strong></td><td><strong>Medio</strong></td><td>→ 5 soluciones</td></tr></tbody></table>
 
-<p><strong>Seis movimientos sobre el mismo bug.</strong> Los fixes anteriores funcionaban a nivel de check (el regex matcheaba "no puedo entregar hoy") pero asumían "no hay same-day", que ahora sabemos que es incorrecto. El revert recurrente sugiere que cada fix introducía un trade-off no resuelto (probable: rompía TCs que sí querían same-day en Madrid antes de las 14:00, o introducía rigidez no deseada). Marcado 🟡 porque la causa exacta de los reverts no consta en este JSON — se infiere del patrón.</p>
-
-<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>9. Capa Test</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-desc"><p class="capa-desc-p">El regex <code>hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano</code> mide exactamente lo correcto: cualquier respuesta del agente que acote, niegue, contextualice plazo o derive a humano da PASS. Es laxo en intención y firme en sustancia. No es test mal calibrado: el FAIL es un verdadero positivo.</p><p class="capa-desc-p"><strong>Resumen visual:</strong> 3 🔴 problema · 1 🟢 ok · 2 🟡 supuesta · 3 ⚪ N/A</p><p class="capa-desc-p">---</p></div></div>
-
-<h4>Dimensionamiento del bug</h4>
-
-<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td><strong>Alcance</strong></td><td>Medio</td><td>Toca <code>compra.yaml</code> y, en la solución completa, requiere consulta al Sheet (<code>business</code> endpoint).</td></tr><tr><td><strong>Profundidad</strong></td><td>Medio</td><td>Nuevo bloque condicional con lógica ciudad + hora actual + corte. No es 1 línea.</td></tr><tr><td><strong>Riesgo</strong></td><td>Medio</td><td>TC-URGENCIA-03 (variante misma familia) probablemente falla por la misma causa. Cualquier fix debe no romper TCs que sí pidan same-day legítimo en Madrid antes de 14:00.</td></tr><tr><td><strong>Nivel final</strong></td><td><strong>Medio</strong></td><td>→ 5 soluciones</td></tr></tbody></table>
-
-<p>---</p></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<p>---</p></div></div>
 <div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #2 — Re-aplicar bloque DETECCIÓN URGENCIA TEMPORAL (versión simple, sin Sheet)</h4>
 
 <p>Re-aplicar el bloque ya validado en <code>3e0b2d1</code> / <code>a10ab02</code> con un único ajuste: hacer explícito que Madrid antes de las 14:00 sí permite same-day, resto no. Sin consulta al Sheet (hardcoded). Fix rápido, restaura comportamiento ya probado, cubre TC-URGENCIA-01 y -03 simultáneamente, y la diferencia con la versión revertida es mínima (solo añadir el caso Madrid).</p>
@@ -9683,16 +9688,13 @@ Perfecto, para regalo tenemos: Ramo de Rosas Rojas — S (8 flores, 22€), Ramo
 <p><strong>Capa 9 — Test:</strong> 🟢 [verificada · regex del check]</p>
 <p>El check <code>24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo</code> es razonable y amplio. Acepta múltiples formulaciones válidas (ej. "te llega el jueves", "el plazo es 24h", "el tiempo de entrega son 2 días"). No es restrictivo en exceso.</p>
 
-<p><strong>Resumen visual:</strong> 1 🔴 · 2 🟢 · 3 🟡 · 4 ⚪</p>
-
-<h4>Dimensionamiento del bug</h4>
-
-<ul>
+<p><strong>Resumen visual:</strong> 1 🔴 · 2 🟢 · 3 🟡 · 4 ⚪</p></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<div class="dimensionamiento" data-tcid="TC-URGENCIA-03"><div class="rec-header"><span class="rec-icon">📐</span><span class="rec-title diag-band-title">Dimensionamiento del bug</span></div><div class="rec-content diag-band-content"><ul>
 <li><strong>Alcance:</strong> Medio — afecta a TC-URGENCIA-01 (mismo patrón con "hoy a las 18:00") y a TC-URGENCIA-03 (este TC). Probablemente afecta a cualquier expresión temporal del usuario en T1.</li>
 <li><strong>Profundidad:</strong> Medio — requiere añadir un bloque al playbook Compra y, opcionalmente, un slot estructurado en el Orquestador. No requiere cambios en backend ni en Sheet.</li>
 <li><strong>Riesgo:</strong> Medio — hay historial de reverts. El cambio puede tener efectos colaterales sobre otros TCs de Compra (especialmente los que usan "viernes" como ejemplo de EXPANSION DE CONTEXTO en línea 475).</li>
 <li><strong>Nivel final: Medio → 5 soluciones</strong></li>
-</ul></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+</ul></div></div>
 <div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><p><strong>Solución #1 — añadir bloque DETECCIÓN PLAZO/FECHA en compra.yaml</strong> que cubra simultáneamente expresiones absolutas ("hoy a las 18:00") y relativas ("este viernes", "el lunes", "para el día X"). Esto cierra <strong>a la vez TC-URGENCIA-01 y TC-URGENCIA-03</strong> (misma causa raíz, mismo fix). Antes de aplicarlo, revisar los diffs de los reverts anteriores (<code>aca187c</code>, <code>1f95cae</code>, <code>2126c52</code>) para entender qué efecto colateral disparó cada revert y mitigarlo en esta iteración — sin ese paso, alta probabilidad de un cuarto ping-pong.</p>
 
 <h4>Solución recomendada: #1 — Bloque DETECCIÓN PLAZO/FECHA en compra.yaml</h4>
@@ -10248,17 +10250,11 @@ Confirmamos?"</div>
 
 <h4>Causa raíz — evaluación de las 9 capas del sistema</h4>
 
-<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>1. Capa Comportamiento</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-desc"><p class="capa-desc-p"><code>Read definitions/playbooks/compra.yaml</code> (líneas 601-606, Paso 7 del FLUJO MULTI-PRODUCTO):</p><p class="capa-desc-p">```</p><p class="capa-desc-p">7. ECO RESUMEN OBLIGATORIO (NO saltarse, NO ir directo a Checkout):</p><p class="capa-desc-p">Usa el template EXACTO segun modo, sin anadir productos extra:</p></div></div>
-<ul>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>1. Capa Comportamiento</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-desc"><p class="capa-desc-p"><code>Read definitions/playbooks/compra.yaml</code> (líneas 601-606, Paso 7 del FLUJO MULTI-PRODUCTO):</p><p class="capa-desc-p">```</p><p class="capa-desc-p">7. ECO RESUMEN OBLIGATORIO (NO saltarse, NO ir directo a Checkout):</p><p class="capa-desc-p">Usa el template EXACTO segun modo, sin anadir productos extra:</p><ul>
 <li>Estandar: 'Tu pedido: $cantidad x $producto ($precio_estimadoeuros). Lo confirmo?'</li>
 <li>Solemne: 'El pedido queda: $cantidad x $producto ($precio_estimadoeuros). Lo confirmamos?'</li>
 <li>Corporativo: 'Resumen del pedido: $cantidad x $producto ($precio_estimadoeuros). Confirmamos?'</li>
-</ul>
-<p>```</p>
-
-<p>El template del Paso 7 está <strong>roto a propósito</strong>: solo referencia <code>$producto</code> y <code>$precio_estimado</code>, omite <code>$producto_2</code>, <code>$precio_2</code> y el cálculo del total combinado. El LLM sigue el template al pie de la letra y emite un resumen incompleto. El instruction "sin anadir productos extra" refuerza activamente el bug.</p>
-
-<p>El agente en T3 logra <strong>mencionar el segundo producto</strong> ("1 x Centro de Mesa Tulipanes Multicolor — S (28.0euros)") porque tiene el contexto conversacional, pero <strong>no incluye el total</strong> — exactamente lo que el commit <code>c9ce667</code> indica que iba a pasar.</p>
+</ul><p class="capa-desc-p">```</p><p class="capa-desc-p">El template del Paso 7 está <strong>roto a propósito</strong>: solo referencia <code>$producto</code> y <code>$precio_estimado</code>, omite <code>$producto_2</code>, <code>$precio_2</code> y el cálculo del total combinado. El LLM sigue el template al pie de la letra y emite un resumen incompleto. El instruction "sin anadir productos extra" refuerza activamente el bug.</p><p class="capa-desc-p">El agente en T3 logra <strong>mencionar el segundo producto</strong> ("1 x Centro de Mesa Tulipanes Multicolor — S (28.0euros)") porque tiene el contexto conversacional, pero <strong>no incluye el total</strong> — exactamente lo que el commit <code>c9ce667</code> indica que iba a pasar.</p></div></div>
 
 <p>⚪ 2. <strong>Capa Routing</strong> · N/A — Petal usa Playbooks puros, no Flows/Pages/Intents para este flujo.</p>
 
@@ -10276,13 +10272,10 @@ Confirmamos?"</div>
 
 <p>🟢 9. <strong>Capa Test</strong> [verificada] — El check <code>[65]</code> en T3 es razonable y bien diseñado: exige que el agente calcule explícitamente el total combinado de un pedido multi-producto, lo cual es comportamiento esperado de un asistente de comercio. El test ha detectado correctamente la regresión introducida por <code>c9ce667</code>. Los checks de T4 y T5 también son válidos.</p>
 
-<p><strong>Resumen visual:</strong> 2 🔴 problema · 5 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A</p>
+<p><strong>Resumen visual:</strong> 2 🔴 problema · 5 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A</p></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<div class="dimensionamiento" data-tcid="TC-MULTI-PRODUCTO-01"><div class="rec-header"><span class="rec-icon">📐</span><span class="rec-title diag-band-title">Dimensionamiento del bug</span></div><div class="rec-content diag-band-content"><table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td><strong>Alcance</strong></td><td>Trivial</td><td>Un único archivo (<code>compra.yaml</code>), una única sección (Paso 7 del FLUJO MULTI-PRODUCTO, 6 líneas).</td></tr><tr><td><strong>Profundidad</strong></td><td>Medio</td><td>Lógica del Paso 7 — requiere restaurar 3 templates (estandar/solemne/corporativo) + cálculo del total + instrucción explícita.</td></tr><tr><td><strong>Riesgo</strong></td><td>Trivial</td><td>Afecta solo a TCs de multi-producto. El resto de la suite (compra simple, urgencia, etc.) no se ve afectado. Checkout sigue funcionando — el cliente nunca llega a confirmar un total erróneo en producción porque el resumen final lo corrige.</td></tr></tbody></table>
 
-<h4>Dimensionamiento del bug</h4>
-
-<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td><strong>Alcance</strong></td><td>Trivial</td><td>Un único archivo (<code>compra.yaml</code>), una única sección (Paso 7 del FLUJO MULTI-PRODUCTO, 6 líneas).</td></tr><tr><td><strong>Profundidad</strong></td><td>Medio</td><td>Lógica del Paso 7 — requiere restaurar 3 templates (estandar/solemne/corporativo) + cálculo del total + instrucción explícita.</td></tr><tr><td><strong>Riesgo</strong></td><td>Trivial</td><td>Afecta solo a TCs de multi-producto. El resto de la suite (compra simple, urgencia, etc.) no se ve afectado. Checkout sigue funcionando — el cliente nunca llega a confirmar un total erróneo en producción porque el resumen final lo corrige.</td></tr></tbody></table>
-
-<p><strong>Nivel final: Medio → proponemos 5 soluciones.</strong></p></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<p><strong>Nivel final: Medio → proponemos 5 soluciones.</strong></p></div></div>
 <div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Revertir el commit <code>c9ce667</code> y restaurar el template original</h4>
 
 <p>Es la solución más rápida (~5 min), con el menor riesgo de regresión (el template revertido ya estuvo en producción y funcionaba) y deja el repo limpio del marcador "DEMO BREAK". El propio mensaje del commit lo anuncia: _"Fix mañana: restaurar el template original"_.</p>
