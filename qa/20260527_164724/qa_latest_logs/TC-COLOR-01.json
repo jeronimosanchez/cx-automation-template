@@ -1,0 +1,109 @@
+{
+  "tc_id": "TC-COLOR-01",
+  "tc_name": "Compra con color especifico no-rojo (tulipanes blancos)",
+  "group": "G5",
+  "type": "NEW",
+  "status": "PASS",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 13:53",
+  "ts_file": "20260527_1353",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero tulipanes blancos",
+          "agent": "Tenemos Ramos de Tulipanes Blancos en varios tamaños:\n\n*   **Pequeño (S):** 5 flores por 12 euros.\n*   **Mediano (M):** 10 flores por 20 euros.\n*   **Grande (L):** 17 flores por 32 euros.\n\n¿Cuál te gustaría? Claro, tulipanes blancos tenemos en estos tamaños:\n\n*   Ramo de Tulipanes — S (5 flores, 12€)\n*   Ramo de Tulipanes — M (10 flores, 20€)\n*   Ramo de Tulipanes — L (17 flores, 32€)\n\n¿Cuál te convence?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero tulipanes blancos",
+            "grupo_intent": "G5",
+            "modo_tono": "estandar",
+            "producto": "Ramo de Tulipanes"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Tulipan]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero tulipanes blancos",
+          "agent": "Mira, tengo estas opciones de tulipanes blancos:\n\n*   **Ramo de Tulipanes (M):** 10 flores por 20€.\n*   **Ramo de Tulipanes (S):** 5 flores por 12€.\n*   **Ramo de Tulipanes (L):** 17 flores por 32€.\n\n¿Cuál te gustaría?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Tulipan]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero tulipanes blancos",
+          "agent": "Tenemos Ramos de Tulipanes Blancos en varios tamaños:\n\n*   **Pequeño (S):** 5 flores por 12 euros.\n*   **Mediano (M):** 10 flores por 20 euros.\n*   **Grande (L):** 17 flores por 32 euros.\n\n¿Cuál te gustaría?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Tulipan]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
