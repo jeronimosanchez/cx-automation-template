@@ -599,12 +599,10 @@ instruction:
          a. Aplica TT-11 SOLO si hay ambiguedad real (varios productos al mismo precio o tamano). Si la seleccion es univoca, captura directamente SIN pedir confirmacion.
          b. CAPTURA OBLIGATORIA: $producto_2 = nombre_exacto_elegido. Si cantidad no especificada, pregunta cuantos. $precio_2 = precio_unitario x $cantidad_2.
       7. ECO RESUMEN OBLIGATORIO (NO saltarse, NO ir directo a Checkout):
-         Calcula $total = $precio_estimado + $precio_2 (suma de los dos productos).
-         Usa el template EXACTO segun modo, listando AMBOS productos y mostrando SIEMPRE el total:
-         - Estandar: 'Tu pedido: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: $totaleuros. Lo confirmo?'
-         - Solemne: 'El pedido queda: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: $totaleuros. Lo confirmamos?'
-         - Corporativo: 'Resumen del pedido: $cantidad x $producto ($precio_estimadoeuros) y $cantidad_2 x $producto_2 ($precio_2euros). Total: $totaleuros. Confirmamos?'
-         ⛔ NUNCA omitas el total cuando hay 2 productos. ⛔ NUNCA cites solo un producto si el usuario pidio dos.
+         Usa el template EXACTO segun modo, sin anadir productos extra:
+         - Estandar: 'Tu pedido: $cantidad x $producto ($precio_estimadoeuros). Lo confirmo?'
+         - Solemne: 'El pedido queda: $cantidad x $producto ($precio_estimadoeuros). Lo confirmamos?'
+         - Corporativo: 'Resumen del pedido: $cantidad x $producto ($precio_estimadoeuros). Confirmamos?'
          ESPERA confirmacion explicita del usuario.
       8. Tras confirmacion: transfiere a Checkout pasando $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $producto, $cantidad, $precio_estimado, $producto_2, $cantidad_2, $precio_2, $ocasion_detectada, $modo_tono.
 
