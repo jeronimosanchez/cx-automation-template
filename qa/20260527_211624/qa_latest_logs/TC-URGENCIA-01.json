@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-URGENCIA-01",
+  "tc_name": "Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-05-27 21:16",
+  "ts_file": "20260527_2116",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para hoy a las 18:00",
+          "agent": "¿Para qué ocasión es el ramo de rosas?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "producto": "ramo de rosas",
+            "intencion_inicial": "quiero un ramo de rosas para hoy a las 18:00",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
