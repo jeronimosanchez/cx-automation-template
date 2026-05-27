@@ -1,0 +1,753 @@
+QA Petal — 2026-05-27 21:27
+Orq v65 | Compra v39 | Checkout v33 | Registro v7 (Task)
+Script: v23 | Runs: 1/TC
+Total: 51 | PASS: 47 | INESTABLE: 0 | FAIL: 4
+
+TC-R01 [REG] [G1] — Info negocio - horario: PASS (1/1)
+  Run 1: PASS
+    T1 User: A que hora abris?
+    T1 Agent: Nuestro horario es de lunes a sábado de 9:00 a 20:00. ¿Hay algo más en lo que pueda ayudarte?
+      OK: Agente dijo [horario]
+
+TC-R02 [REG] [G2] — Info catalogo - precio tulipanes: PASS (1/1)
+  Run 1: PASS
+    T1 User: Cuanto cuestan los tulipanes?
+    T1 Agent: Mira, tenemos varias opciones de ramos de tulipanes:
+
+*   **Ramo Primavera Tulipanes Mix (M)**: 12 flores, 28€.
+*   **Ramo Gracias Tulipanes Mix (M)**: 15 flores, 30€.
+*   **Ramo de Tulipanes (M)**: 10 flores, 20€.
+
+¿Te gustaría pedir alguno?
+      OK: Agente dijo [tulipan]
+
+TC-R03 [REG] [G4] — Saludo: PASS (1/1)
+  Run 1: PASS
+    T1 User: Hola
+    T1 Agent: Hola! Bienvenido a Floristeria Petal 🌸 Estoy aqui para ayudarte a encontrar el arreglo perfecto. ¿Es para una ocasion especial, un regalo o tienes algo concreto en mente?
+      OK: Agente dijo [hola]
+
+TC-R04 [REG] [G5] — Compra directa sin email: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero comprar rosas rojas
+    T1 Agent: Claro, rosas rojas tenemos. Mira:
+
+*   Ramo de Rosas Rojo — M (15 flores, 37€)
+*   Ramo de Rosas Rojo — S (8 flores, 22€)
+*   Ramo de Rosas Rojo — L (26 flores, 59€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [rosas]
+
+TC-R06 [REG] [ESP] — Email espontaneo: PASS (1/1)
+  Run 1: PASS
+    T1 User: Mi email es ana@email.com
+    T1 Agent: Hola, Ana! ¿En qué puedo ayudarte?
+      OK: Agente dijo [Ana]
+
+TC-N01 [REG] [G3] — Recomendacion - transfiere a Compra: PASS (1/1)
+  Run 1: PASS
+    T1 User: Necesito flores para un cumpleanos
+    T1 Agent: Fenomenal, un cumpleaños. ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?
+    T1 $grupo_intent: G3
+      OK: Agente dijo [presupuesto]
+
+TC-N03 [REG] [G6] — Requiere perfil - pide email: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero ver mi saldo
+    T1 Agent: Para consultar tu saldo necesito identificarte. ¿Me dices tu email?
+      OK: Agente dijo [email]
+
+TC-E01 [REG] [ESP] — Hablar con humano - sin pedir email: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero hablar con una persona
+    T1 Agent: Entiendo que prefieras hablar con un agente. Te pongo en contacto ahora mismo. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!
+
+TC-REG01 [NEW] [G7] — Registro completo happy path desde Orquestador: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero registrarme
+    T1 Agent: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos. Para registrarte, necesito tu correo electrónico.
+      OK: Agente dijo [registr]
+    T2 User: nuevoreg01_r916786_1@test.com
+    T2 Agent: Entendido. ¿Cuál es tu nombre?
+      OK: Agente dijo [nombre]
+    T3 User: Maria
+    T3 Agent: Maria. ¿Y tus apellidos?
+      OK: Agente dijo [apellido]
+    T4 User: Garcia Lopez
+    T4 Agent: Garcia Lopez. ¿Eres particular o empresa?
+      OK: Agente dijo [particular]
+    T5 User: particular
+    T5 Agent: Perfecto. Indícame tu dirección completa: calle con número, portal, planta y letra si aplica, código postal y ciudad.
+      OK: Agente dijo [direcci]
+    T6 User: Calle Alcala 42, 28014 Madrid
+    T6 Agent: Calle Alcala 42, 28014 Madrid. ¿Tu dirección incluye portal, planta o letra?
+      OK: Agente dijo [portal]
+    T7 User: No, es bajo
+    T7 Agent: Bajo, anotado. ¿Tienes un teléfono de contacto? Facilita mucho las entregas.
+      OK: Agente dijo [telefono]
+    T8 User: 612345678
+    T8 Agent: Antes de completar tu registro, revisa tus datos:
+
+ • Nombre: Maria Garcia Lopez 
+• Email: nuevoreg01_r916786_1@test.com 
+• Tipo: particular 
+• Dirección: Calle Alcala 42, bajo, 28014 Madrid 
+• Teléfono: 612345678 
+
+¿Es todo correcto? 
+Revisa especialmente la dirección — portal, planta y letra si ap
+      OK: Agente dijo [correcto]
+    T9 User: Si, correcto
+    T9 Agent: ¡Perfecto, Maria! Ya estás registrado/a. Continuamos con lo que me pedías. ¿En que puedo ayudarte, Maria?
+      OK: Agente dijo [registrad]
+
+TC-REG02 [NEW] [G7>ERR] — Registro con email invalido desde Orquestador: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero registrarme
+    T1 Agent: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos. Para registrarte, necesito tu correo electrónico.
+      OK: Agente dijo [registr]
+    T2 User: esto no es un email
+    T2 Agent: Eso no parece un email válido. ¿Podrías darme uno con @?
+      OK: Agente dijo [valido]
+    T3 User: ahora tampoco
+    T3 Agent: Sigo necesitando un email válido con @. ¿Lo intentamos de nuevo?
+      OK: Agente dijo [valido]
+
+TC-REG03 [NEW] [G7>CANCEL] — Registro cancelado a mitad desde Orquestador: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero registrarme
+    T1 Agent: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos. Para registrarte, necesito tu correo electrónico.
+      OK: Agente dijo [registr]
+    T2 User: nuevoreg03_r916786_1@test.com
+    T2 Agent: Entendido. ¿Cuál es tu nombre?
+      OK: Agente dijo [nombre]
+    T3 User: Dejalo, no quiero registrarme
+    T3 Agent: ¿Seguro que no quieres registrarte?
+      OK: Agente dijo [seguro]
+
+TC-REG04 [NEW] [G5>CK>REG] — Flujo COMPLETO: Compra → Checkout → Registro_Task → completa pedido: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero comprar un ramo de rosas rojas para un cumpleanos
+    T1 Agent: Perfecto, un cumpleaños. Mira, para un cumpleaños tengo opciones que suelen gustar. Te muestro:
+
+*   Ramo de Rosas Rojo — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)
+*   Ramo de Rosas Rojo — S (8 flores, 22€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [rosas]
+    T2 User: El mediano
+    T2 Agent: Perfecto, Ramo de Rosas Rojo — M (15 flores, 37€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [M]
+    T3 User: 1
+    T3 Agent: Perfecto, para completar tu pedido necesito tu correo electronico.
+    T3 $grupo_intent: G5
+      OK: Agente dijo [correo]
+    T4 User: nuevoreg04_r916786_1@test.com
+    T4 Agent: No encuentro una cuenta con ese email. ¿Quieres probar con otro correo o registrarte como nuevo cliente?
+    T4 $grupo_intent: G5
+      OK: Agente dijo [registr]
+    T5 User: Si, registrame con ese
+    T5 Agent: Entendido. ¿Cuál es tu nombre?
+    T5 $grupo_intent: G5
+      OK: Agente dijo [nombre]
+    T6 User: Laura
+    T6 Agent: Laura. ¿Y tus apellidos?
+    T6 $grupo_intent: G5
+      OK: Agente dijo [apellido]
+    T7 User: Martinez
+    T7 Agent: Martinez, anotado. ¿Eres particular o empresa?
+    T7 $grupo_intent: G5
+      OK: Agente dijo [particular]
+    T8 User: particular
+    T8 Agent: Perfecto. Indicame tu direccion completa: calle con numero, portal, planta y letra si aplica, codigo postal y ciudad.
+    T8 $grupo_intent: G5
+      OK: Agente dijo [direcci]
+    T9 User: Avenida de la Paz 15, 08017 Barcelona
+    T9 Agent: Avenida de la Paz 15, 08017 Barcelona. ¿Tu direccion incluye portal, planta o letra?
+    T9 $grupo_intent: G5
+      OK: Agente dijo [portal]
+    T10 User: No
+    T10 Agent: Vale, sin portal, planta o letra. ¿Tienes un telefono de contacto? Facilita mucho las entregas.
+    T10 $grupo_intent: G5
+      OK: Agente dijo [telefono]
+    T11 User: 933456789
+    T11 Agent: Antes de completar tu registro, revisa tus datos:
+• Nombre: Laura Martinez
+• Email: nuevoreg04_r916786_1@test.com
+• Tipo: particular
+• Direccion: Avenida de la Paz 15, 08017 Barcelona
+• Telefono: 933456789
+¿Es todo correcto? Revisa especialmente la direccion — portal, planta y letra si aplica.
+    T11 $grupo_intent: G5
+      OK: Agente dijo [correcto]
+    T12 User: Si, correcto
+    T12 Agent: ¡Perfecto, Laura! Ya estas registrado/a. Continuamos con lo que me pedias. Ya estas registrado/a.
+
+Perfecto Laura, te resumo tu pedido:
+
+🌸 1 x Ramo de Rosas Rojo — M
+💳 37€
+📍 Avenida de la Paz 15, 08017 Barcelona
+
+Confirmamos?
+    T12 $grupo_intent: G5
+      OK: Agente dijo [registrad]
+    T13 User: Si, confirmo
+    T13 Agent: ¡Pedido confirmado, Laura! Referencia: PED-0357. (Compra simulada, sin cobro real). ¡Esperamos que lo disfrutes!
+    T13 $grupo_intent: G5
+      OK: Agente dijo [pedido]
+
+TC-REG06 [NEW] [G7>POST] — Post-registro: Orquestador retoma y ofrece ayuda: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero registrarme
+    T1 Agent: ¡Perfecto! Vamos a registrarte. Solo necesito unos datos. Para registrarte, necesito tu correo electrónico.
+      OK: Agente dijo [registr]
+    T2 User: nuevoreg06_r916786_1@test.com
+    T2 Agent: Entendido. ¿Cuál es tu nombre?
+      OK: Agente dijo [nombre]
+    T3 User: Pedro
+    T3 Agent: Pedro. ¿Y tus apellidos?
+      OK: Agente dijo [apellido]
+    T4 User: Sanchez
+    T4 Agent: Sanchez, anotado. ¿Eres particular o empresa?
+      OK: Agente dijo [particular]
+    T5 User: particular
+    T5 Agent: Perfecto. Indícame tu dirección completa: calle con número, portal, planta y letra si aplica, código postal y ciudad.
+      OK: Agente dijo [direcci]
+    T6 User: Gran Via 50, 28013 Madrid
+    T6 Agent: Gran Via 50, 28013 Madrid. ¿Tu dirección incluye portal, planta o letra?
+      OK: Agente dijo [portal]
+    T7 User: No tengo portal
+    T7 Agent: De acuerdo, sin portal. ¿Tienes un teléfono de contacto? Facilita mucho las entregas.
+      OK: Agente dijo [telefono]
+    T8 User: No tengo
+    T8 Agent: Antes de completar tu registro, revisa tus datos:
+
+• Nombre: Pedro Sanchez
+• Email: nuevoreg06_r916786_1@test.com
+• Tipo: particular
+• Dirección: Gran Via 50, 28013 Madrid
+• Teléfono: no facilitado
+
+¿Es todo correcto? Revisa especialmente la dirección — portal, planta y letra si aplica.
+      OK: Agente dijo [correcto]
+    T9 User: Si, correcto
+    T9 Agent: ¡Perfecto, Pedro! Ya estás registrado/a. Continuamos con lo que me pedías. En que puedo ayudarte, Pedro?
+      OK: Agente dijo [registrad]
+    T10 User: Quiero comprar rosas
+    T10 Agent: ¡Claro! Te ayudo a encontrar las rosas perfectas. ¿Para qué ocasión son las rosas, Pedro?
+    T10 $grupo_intent: G5
+      OK: Agente dijo [rosas]
+
+TC-E04 [REG] [G6>SALDO] — Consulta saldo con email valido: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero ver mi saldo
+    T1 Agent: Para consultar tu saldo necesito identificarte. ¿Me dices tu email?
+      OK: Agente dijo [email]
+    T2 User: ana@email.com
+    T2 Agent: Tu saldo es 300 euros. ¿Hay algo más en lo que pueda ayudarte, Ana?
+      OK: Agente dijo [Ana]
+
+TC-C29 [EDGE] [COMPRA-ZG] — Ambigüedad total sin datos: PASS (1/1)
+  Run 1: PASS
+    T1 User: Algo bonito para mi madre
+    T1 Agent: Perfecto, un regalo para tu madre. ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?
+    T1 $grupo_intent: G3
+      OK: Agente dijo [tipo]
+
+TC-C31 [EDGE] [COMPRA-ZG] — Presupuesto sin producto: PASS (1/1)
+  Run 1: PASS
+    T1 User: Algo no muy caro
+    T1 Agent: Perfecto, algo no muy caro. Mira, te muestro opciones por debajo de 20 euros:
+
+*   Ramo de Girasoles Amarillo — M (10 flores, 20€)
+*   Ramo de Gerberas Amarillo — M (10 flores, 18€)
+*   Ramo de Gladiolos Rosa — M (3 tallos, 19€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G3
+      OK: Agente dijo [flor]
+
+TC-C32 [EDGE] [COMPRA-ZG] — Cantidad ambigua — un par: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero rosas rojas para cumpleaños
+    T1 Agent: Perfecto, rosas rojas para cumpleaños. Mira, para regalo tengo estas opciones que suelen gustar:
+
+*   Ramo de Rosas Rojo — S (8 flores, 22€)
+*   Ramo de Rosas Rojo — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [S]
+    T2 User: El mediano
+    T2 Agent: Perfecto, Ramo de Rosas Rojo — M (15 flores, 37€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [cu.ntos]
+    T3 User: Un par
+    T3 Agent: ¿Confirmo 2 unidades?
+    T3 $grupo_intent: G5
+      OK: Agente dijo [2]
+
+TC-C33 [EDGE] [COMPRA-ZG] — Cantidad ambigua — varios: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero rosas rojas para cumpleaños
+    T1 Agent: Perfecto, unas rosas rojas para cumpleaños. Mira, tengo estas opciones:
+
+*   Ramo de Rosas Rojas — S (8 flores, 22€)
+*   Ramo de Rosas Rojas — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojas — XL (36 flores, 132€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [S]
+    T2 User: El mediano
+    T2 Agent: Perfecto, Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [cu.ntos]
+    T3 User: Varios
+    T3 Agent: ¿Cuántos exactamente?
+    T3 $grupo_intent: G5
+      OK: Agente dijo [cuantos]
+
+TC-C34 [EDGE] [COMPRA-ZG] — Cantidad por función: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero rosas rojas para cumpleaños
+    T1 Agent: Perfecto, rosas rojas para cumpleaños. Mira, tenemos estas opciones:
+
+*   Ramo de Rosas Rojas — S (8 flores, 22€)
+*   Ramo de Rosas Rojas — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojas — XL (36 flores, 132€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [S]
+    T2 User: El mediano
+    T2 Agent: Perfecto, Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [cu.ntos]
+    T3 User: Para llenar una mesa
+    T3 Agent: ¿Cuántas unidades necesitas exactamente?
+    T3 $grupo_intent: G5
+      OK: Agente dijo [exactamente]
+
+TC-C35 [EDGE] [COMPRA-ZG] — Ocasión ambigua emocional: PASS (1/1)
+  Run 1: PASS
+    T1 User: Es para alguien especial
+    T1 Agent: Perfecto, un regalo. Mira, para alguien especial tengo opciones que suelen gustar. Echa un vistazo:
+
+Ramo de Peonías Coral — M (15 flores, 35€)
+Ramo de Girasoles Amarillo — M (10 flores, 20€)
+Ramo de Gerberas Amarillo — M (10 flores, 18€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G3
+      OK: Agente dijo [regalo]
+
+TC-C36 [EDGE] [COMPRA-ZG] — Urgencia sin ocasión: PASS (1/1)
+  Run 1: PASS
+    T1 User: Necesito flores para mañana
+    T1 Agent: ¿Es para alguna ocasion especial o tienes algun tipo de flor en mente?
+      OK: Agente dijo [ocasion]
+
+TC-C37 [EDGE] [COMPRA-ZG] — Input numérico fuera de contexto: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero rosas rojas para cumpleaños
+    T1 Agent: Perfecto, rosas rojas para cumpleaños. Mira, tengo estas opciones:
+
+*   Ramo de Rosas Rojo — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)
+*   Ramo de Rosas Rojo — S (8 flores, 22€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [S]
+    T2 User: El 3
+    T2 Agent: Entiendo que te refieres al Ramo de Rosas Rojo — S por 22€. ¿Es correcto?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [refiere]
+
+TC-C39 [EDGE] [COMPRA-ZG] — Emoji solo: PASS (1/1)
+  Run 1: PASS
+    T1 User: 🌹
+    T1 Agent: Hola! En que puedo ayudarte?
+      OK: Agente dijo [ayudar]
+
+TC-C40 [EDGE] [COMPRA-ZG] — Pregunta out of scope en PASO 2: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero rosas rojas para cumpleaños
+    T1 Agent: Perfecto, para cumpleaños tengo estas opciones de rosas rojas:
+
+*   Ramo de Rosas Rojas — S (8 flores, 22€)
+*   Ramo de Rosas Rojas — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojas — XL (36 flores, 132€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [S]
+    T2 User: ¿Cuál es vuestra política de devoluciones?
+    T2 Agent: Nuestra política de devoluciones permite cambios o devoluciones dentro de los 15 días posteriores a la compra, siempre que el producto esté en perfectas condiciones y con el ticket original. ¿Te gusta alguna de las opciones que te mostré o miramos otras?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [devolucion]
+
+TC-C42 [EDGE] [COMPRA-ZG] — Handoff Compra → Checkout (pide email tras cantidad): PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero rosas rojas para cumpleaños
+    T1 Agent: Fenomenal, unas rosas rojas para un cumpleaños. Mira, tengo estas opciones:
+
+*   Ramo de Rosas Rojas — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojas — XL (36 flores, 132€)
+*   Ramo de Rosas Rojas — S (8 flores, 22€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [S]
+    T2 User: El mediano
+    T2 Agent: Perfecto, Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [cu.ntos]
+    T3 User: 1
+    T3 Agent: Perfecto, para completar tu pedido necesito tu correo electronico.
+    T3 $grupo_intent: G5
+      OK: Agente dijo [correo]
+
+TC-C43 [EDGE] [COMPRA-ZG] — Input ambiguo en PASO 0 Checkout — no cancela, re-pide email: PASS (1/1)
+  Run 1: PASS
+    T1 User: Quiero rosas rojas para cumpleaños
+    T1 Agent: Perfecto, rosas rojas para cumpleaños. Mira, tengo estas opciones:
+
+*   Ramo de Rosas Rojo — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)
+*   Ramo de Rosas Rojo — S (8 flores, 22€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [S]
+    T2 User: El mediano
+    T2 Agent: Perfecto, Ramo de Rosas Rojo — M (15 flores, 37€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [cu.ntos]
+    T3 User: 1
+    T3 Agent: Perfecto, para completar tu pedido necesito tu correo electronico.
+    T3 $grupo_intent: G5
+      OK: Agente dijo [correo]
+    T4 User: Mmm no sé
+    T4 Agent: Disculpa, no he captado tu correo. ¿Me lo das otra vez? Por ejemplo: nombre@dominio.com
+    T4 $grupo_intent: G5
+      OK: Agente dijo [correo]
+
+TC-DECO-01 [EDGE] [COMPRA-INV] — Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –): PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero un ramo de margaritas para decorar mi recibidor
+    T1 Agent: Fenomenal, un ramo de margaritas para decorar. Mira, tengo estas opciones que suelen gustar:
+
+Ramo de Margaritas Blanco — M (10 flores, 20€)
+Ramo de Margaritas Blanco — L (17 flores, 25€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [Margarita.{0,40}—.{0,5}[SMLX]]
+
+TC-DECO-02 [EDGE] [COMPRA-INV] — Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –): PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero un ramo de rosas para decorar mi salon
+    T1 Agent: Perfecto, para decorar tu salón. Mira, tengo estos ramos de rosas que te pueden encajar:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [Rosa.{0,40}—.{0,5}[SMLX]]
+
+TC-FUNERAL-01 [NEW] [G5] — Modo solemne — corona para funeral: PASS (1/1)
+  Run 1: PASS
+    T1 User: necesito una corona para un funeral
+    T1 Agent: De acuerdo, para un funeral tenemos estas coronas:
+
+*   Corona Fúnebre Claveles Blanca — M (40 flores, 97€)
+*   Corona Fúnebre Gerberas Multicolor — M (30 flores, 85€)
+*   Corona Fúnebre Gladiolos Blanca — M (40 tallos, 90€)
+
+¿Alguna encaja con lo que buscas?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [corona]
+
+TC-PRESUPUESTO-01 [NEW] [G5] — Presupuesto duro — precio_max explicito: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero rosas maximo 30 euros
+    T1 Agent: Claro, rosas por debajo de 30 euros. Mira, tengo estas opciones:
+
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+*   Ramo de Rosas Rosa — M (6 flores, 15€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [rosa]
+
+TC-COLOR-01 [NEW] [G5] — Compra con color especifico no-rojo (tulipanes blancos): PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero tulipanes blancos
+    T1 Agent: Mira, tenemos Ramos de Tulipanes Blancos en varios tamaños:
+
+*   **Pequeño (S):** 5 flores por 12 euros.
+*   **Mediano (M):** 10 flores por 20 euros.
+*   **Grande (L):** 17 flores por 32 euros.
+
+¿Cuál te gustaría?
+      OK: Agente dijo [Tulipan]
+
+TC-REFINAR-01 [NEW] [G5] — Refinamiento de precio mid-flow — mas baratas: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero un ramo de rosas para cumpleaños
+    T1 Agent: Perfecto, un ramo de rosas para un cumpleaños. Mira, tengo estas opciones que suelen gustar:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [ramo]
+    T2 User: mas baratas
+    T2 Agent: Vale, más baratas. Te muestro:
+
+*   Ramo de Rosas Rosa — M (6 flores, 15€)
+*   Ramo de Rosas Rosa — S (3 flores, 9€)
+*   Ramo de Rosas Naranja — S (8 flores, 22€)
+
+¿Alguna te convence?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [rosa]
+
+TC-BODA-01 [NEW] [G5] — Modo Boda — ramo nupcial: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero un ramo de novia para mi boda
+    T1 Agent: ¡Claro! Para tu boda tenemos estas opciones de ramos de novia:
+
+*   Ramo de Novia Orquídeas Blanco — L (7 tallos, 70€)
+*   Ramo de Novia Rosas Blanco — L (12 flores, 45€)
+*   Ramo de Novia Calas Blanco — L (15 flores, 55€)
+
+¿Cuál te gusta más?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [ramo]
+
+TC-CAMBIO-OP-01 [EDGE] [COMPRA-ZG] — Cambio de opinion mid-flow — usuario abandona tras seleccionar: FAIL (0/1)
+  Run 1: FAIL
+    T1 User: quiero rosas rojas para cumpleaños
+    T1 Agent: Perfecto, unas rosas rojas para cumpleaños. Mira, tengo estas opciones que suelen gustar:
+
+*   Ramo de Rosas Rojo — S (8 flores, 22€)
+*   Ramo de Rosas Rojo — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [rosa]
+    T2 User: el mediano
+    T2 Agent: Perfecto, Ramo de Rosas Rojo — M (15 flores, 37€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [cu.ntos]
+    T3 User: uy, mejor no, dejalo
+    T3 Agent: Vale, no hay problema. ¿Quieres que miremos otras opciones o te ayudo con otra cosa?
+    T3 $grupo_intent: G5
+      FAIL: Agente debía decir [pronto|hasta|gracias|otro momento|ayudar|algo mas|entendido]
+
+TC-FRUSTRACION-01 [EDGE] [COMPRA-ZG] — Multiples rechazos consecutivos — debe escalar o reformular: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero rosas
+    T1 Agent: ¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
+    T1 $grupo_intent: G5
+      OK: Agente dijo [ocasion]
+    T2 User: no me gustan
+    T2 Agent: ¿No te gustan las rosas o no te gusta la pregunta? Si no te gustan las rosas, ¿qué tipo de flor te gustaría?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [tipo]
+    T3 User: tampoco me convencen, dame otras
+    T3 Agent: Entiendo, disculpa la confusión. Te busco una alternativa. ¿Qué tipo de flor te gustaría?
+    T3 $grupo_intent: G5
+      OK: Agente dijo [alternativ.{0,30}tipo]
+    T4 User: ninguna me gusta
+    T4 Agent: Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!
+    T4 $grupo_intent: G5
+      OK: Agente dijo [equipo]
+
+TC-VARIANTES-SML-01 [EDGE] [COMPRA-ZG] — TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero un ramo de rosas rojas para cumpleaños
+    T1 Agent: Perfecto, un cumpleaños. Mira, para regalo tengo estas opciones de ramos de rosas rojas:
+
+*   Ramo de Rosas Rojas — S (8 flores, 22€)
+*   Ramo de Rosas Rojas — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojas — XL (36 flores, 132€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [ramo]
+    T2 User: la mediana
+    T2 Agent: Perfecto, Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [M]
+
+TC-ROBUSTEZ-01 [EDGE] [COMPRA-ZG] — Robustez parser — input en MAYUSCULAS sin acentos: PASS (1/1)
+  Run 1: PASS
+    T1 User: QUIERO ROSAS ROJAS PARA CUMPLEANOS
+    T1 Agent: Perfecto, unas rosas rojas para un cumpleaños. Mira, tenemos estas opciones:
+
+*   Ramo de Rosas Rojas — M (15 flores, 37€)
+*   Ramo San Valentín Rosas Rojas — XL (36 flores, 132€)
+*   Ramo de Rosas Rojas — S (8 flores, 22€)
+
+¿Alguna te convence?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [rosa]
+
+TC-STOCK-EXCESO-01 [EDGE] [COMPRA-ZG] — TT-25 — cantidad > stock disponible, agente debe avisar: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero un ramo de rosas rojas pequeño
+    T1 Agent: Perfecto, Ramo de Rosas Rojas — S (8 flores, 22€). ¿Cuántos quieres?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [rosa]
+    T2 User: el pequeño
+    T2 Agent: Perfecto, Ramo de Rosas Rojas — S (8 flores, 22€). ¿Cuántos quieres?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [cu.ntos]
+    T3 User: 50
+    T3 Agent: Solo tengo 5 en stock del Ramo de Rosas Rojas — S. ¿Te quedas con los 5 o prefieres otro?
+    T3 $grupo_intent: G5
+      OK: Agente dijo [stock]
+
+TC-URGENCIA-01 [EDGE] [COMPRA-ZG] — Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00'): FAIL (0/1)
+  Run 1: FAIL
+    T1 User: quiero un ramo de rosas para hoy a las 18:00
+    T1 Agent: Claro, ramos de rosas tenemos:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
+
+¿Cuál te gusta?
+    T1 $grupo_intent: G5
+      FAIL: Agente debía decir [hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano]
+
+TC-URGENCIA-02 [EDGE] [COMPRA-ZG] — Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana: PASS (1/1)
+  Run 1: PASS
+    T1 User: lo necesito urgente, ¿en cuánto tiempo entregáis?
+    T1 Agent: No te preocupes, te ayudo con eso. Para entregas urgentes, solemos tardar entre 2 y 4 horas en Madrid capital. Si es fuera de Madrid, el tiempo puede variar. ¿Para dónde sería la entrega?
+      OK: Agente dijo [entrega]
+    T2 User: mañana por la mañana
+    T2 Agent: Perfecto, si haces tu pedido hoy, podemos entregarlo mañana por la mañana sin problema. ¿Te gustaría que te ayude a elegir algo?
+      OK: Agente dijo [mañana]
+
+TC-URGENCIA-03 [EDGE] [COMPRA-ZG] — Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio: FAIL (0/1)
+  Run 1: FAIL
+    T1 User: lo necesito para este viernes
+    T1 Agent: De acuerdo, para este viernes. ¿Qué tipo de flor o presupuesto tienes en mente?
+    T1 $grupo_intent: G3
+      FAIL: Agente debía decir [24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo]
+
+TC-FRUSTRACION-LEX-01 [EDGE] [COMPRA-ZG] — Lexico negativo del usuario — agente reconoce frustracion: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero rosas
+    T1 Agent: ¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
+    T1 $grupo_intent: G5
+      OK: Agente dijo [ocasion]
+    T2 User: esto no funciona, que desastre
+    T2 Agent: Entiendo, disculpa la confusión. Creo que lo mejor es que hables con mi equipo - ellos te encontrarán exactamente lo que buscas. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!
+    T2 $grupo_intent: G5
+      OK: Agente dijo [disculp]
+
+TC-MULTI-SLOT-01 [EDGE] [COMPRA-ZG] — Parseo multi-info en un solo input — extraccion robusta: PASS (1/1)
+  Run 1: PASS
+    T1 User: hola, quiero un ramo de rosas rojas maximo 40 euros para mi boda
+    T1 Agent: Mira, para tu boda y con un máximo de 40 euros, no tengo ramos de rosas rojas. Pero tengo este Ramo Dama Honor Lirios — M (5 tallos, 30€). ¿Te encaja?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [rosa]
+
+TC-DESPEDIDA-01 [EDGE] [COMPRA-ZG] — Despedida abrupta — cierre amable sin pedido completo: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero rosas
+    T1 Agent: ¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
+    T1 $grupo_intent: G5
+      OK: Agente dijo [ocasion]
+    T2 User: déjalo, gracias
+    T2 Agent: ¡Perfecto! Si cambias de idea, aquí estamos. ¿Puedo ayudarte en algo más?
+    T2 $grupo_intent: G5
+      OK: Agente dijo [ayudar]
+
+TC-DIR-CUSTOM-01 [EDGE] [G5>CK] — Override direccion habitual — cliente identificado pide otra direccion: PASS (1/1)
+  Run 1: PASS
+    T1 User: mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa
+    T1 Agent: ¡Hola, Ana! Ya veo que quieres un ramo de rosas rojas talla M para regalo y que lo enviemos a la oficina. Te lo gestiono. Entendido, Ana. Tu email es ana@email.com.
+
+ El Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántas unidades necesitas?
+    T1 $grupo_intent: G5
+      OK: Agente dijo [rosa]
+
+TC-MULTI-PRODUCTO-01 [EDGE] [COMPRA-INV] — Pedido multi-item — ECO RESUMEN muestra total antes de confirmar: FAIL (0/1)
+  Run 1: FAIL
+    T1 User: quiero un ramo de rosas y un centro de mesa para mi casa
+    T1 Agent: Perfecto, te ayudo con los dos. Empiezo por el ramo y luego vemos el centro de mesa, ¿te parece? Mira, para un ramo de rosas tengo estas opciones que suelen gustar:
+
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores,
+    T1 $grupo_intent: G5
+      OK: Agente dijo [centro.{0,80}ramo]
+    T2 User: el ramo de rosas morado de 37 euros
+    T2 Agent: Anotado, 1 x Ramo de Rosas Morado — M (37€). Ahora el centro de mesa: Para centros de mesa tengo estas opciones:
+
+*   Centro de Mesa Orquídeas Blanco — S (8 tallos, 28€)
+*   Centro de Mesa Tulipanes Multicolor — S (8 flores, 28€)
+*   Centro de Mesa Rosas y Eucalipto Rosa y Verde — S (6 flores, 26€)
+
+    T2 $grupo_intent: G5
+      OK: Agente dijo [morado]
+    T3 User: el centro de tulipanes de 28 euros
+    T3 Agent: Tu pedido: 1 x Ramo de Rosas Morado — M (37€) y 1 x Centro de Mesa Tulipanes Multicolor — S (28€). ¿Lo confirmo?
+    T3 $grupo_intent: G5
+      FAIL: Agente debía decir [65]
+
+TC-MOROSO-01 [EDGE] [G6>DEUDA] — Cliente con deuda detectada — handoff a Gestion_Deuda: PASS (1/1)
+  Run 1: PASS
+    T1 User: mi email es pedro.moroso@test.com quiero comprar rosas
+    T1 Agent: No encontramos ninguna cuenta con ese correo. ¿Quieres probar con otro email o prefieres que te registremos con este? 🌸
+      OK: Agente dijo [email]
+
+TC-DEVOLUCION-01 [EDGE] [G6] — Solicitud de devolucion — out-of-scope, deriva a Handoff: PASS (1/1)
+  Run 1: PASS
+    T1 User: quiero devolver mi pedido
+    T1 Agent: Para gestionar la devolución de tu pedido necesito identificarte. ¿Me dices tu email?
+      OK: Agente dijo [devolucion]
+
+TC-SIGNOS-01 [EDGE] [COMPRA-ZG] — Input solo signos de puntuacion — robustez: PASS (1/1)
+  Run 1: PASS
+    T1 User: ???
+    T1 Agent: Eso está fuera de mi especialidad como asistente de Floristería Petal 🌿. ¿En qué puedo ayudarte con tus flores o plantas?
+      OK: Agente dijo [ayudar]
+
+TC-INSULTO-01 [EDGE] [COMPRA-ZG] — Lexico abusivo — agente mantiene tono profesional, no repite: PASS (1/1)
+  Run 1: PASS
+    T1 User: esto es una mierda, que porqueria
+    T1 Agent: Lamento mucho que te sientas así. Te pongo en contacto con un compañero para que te ayude. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!
+      OK: Agente dijo [lament]
+
+TC-IMPOSIBLE-01 [EDGE] [COMPRA-ZG] — Peticion fuera de scope — descuento del 50%: PASS (1/1)
+  Run 1: PASS
+    T1 User: hacedme un descuento del 50%
+    T1 Agent: Ahora mismo no tenemos descuentos del 50%. ¿Hay algo más en lo que pueda ayudarte?
+      OK: Agente dijo [no tenemos]
+
+NO PASS:
+  TC-CAMBIO-OP-01 [COMPRA-ZG] — Cambio de opinion mid-flow — usuario abandona tras seleccionar: FAIL (0/1)
+  TC-URGENCIA-01 [COMPRA-ZG] — Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00'): FAIL (0/1)
+  TC-URGENCIA-03 [COMPRA-ZG] — Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio: FAIL (0/1)
+  TC-MULTI-PRODUCTO-01 [COMPRA-INV] — Pedido multi-item — ECO RESUMEN muestra total antes de confirmar: FAIL (0/1)
