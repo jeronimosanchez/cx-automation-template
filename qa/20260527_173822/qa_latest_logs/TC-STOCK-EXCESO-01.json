@@ -1,0 +1,107 @@
+{
+  "tc_id": "TC-STOCK-EXCESO-01",
+  "tc_name": "TT-25 — cantidad > stock disponible, agente debe avisar",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-27 17:38",
+  "ts_file": "20260527_1738",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas rojas pequeño",
+          "agent": "Perfecto, Ramo de Rosas Rojas — S (8 flores, 22€). ¿Cuántos quieres?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "producto": "Ramo de Rosas Rojas S",
+            "modo_tono": "estandar",
+            "intencion_inicial": "quiero un ramo de rosas rojas pequeño"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "el pequeño",
+          "agent": "Perfecto, Ramo de Rosas Rojas — S (8 flores, 22€). ¿Cuántos quieres?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "Ramo de Rosas Rojas S",
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero un ramo de rosas rojas pequeño",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [cu.ntos]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "50",
+          "agent": "Solo tengo 5 en stock del Ramo de Rosas Rojas — S. ¿Te quedas con los 5 o prefieres otro?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero un ramo de rosas rojas pequeño",
+            "producto": "Ramo de Rosas Rojas S",
+            "grupo_intent": "G5",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [stock]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

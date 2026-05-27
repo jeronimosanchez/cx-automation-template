@@ -1,5 +1,49 @@
 [
   {
+    "timestamp": "2026-05-27 17:38",
+    "ts_file": "20260527_1738",
+    "total": 51,
+    "pass": 47,
+    "inst": 0,
+    "fail": 4,
+    "pct": 92,
+    "runs_per_tc": 1,
+    "versions": {
+      "orquestador": "v65",
+      "compra": "v39",
+      "checkout": "v33",
+      "registro": "v7 (Task)",
+      "script": "v23"
+    },
+    "dir": "20260527_173822"
+  },
+  {
+    "timestamp": "2026-05-27 17:12",
+    "ts_file": "20260527_171215",
+    "total": 1,
+    "pass": 0,
+    "inst": 0,
+    "fail": 1,
+    "pct": 0,
+    "runs_per_tc": 1,
+    "rerun_single_tc": "TC-MULTI-PRODUCTO-01",
+    "base_ts": "--runs",
+    "dir": "20260527_171215"
+  },
+  {
+    "timestamp": "2026-05-27 16:47",
+    "ts_file": "20260527_164724",
+    "total": 51,
+    "pass": 44,
+    "inst": 4,
+    "fail": 3,
+    "pct": 86,
+    "runs_per_tc": 1,
+    "rerun_single_tc": "TC-MULTI-PRODUCTO-01",
+    "base_ts": "20260527_151044",
+    "dir": "20260527_164724"
+  },
+  {
     "timestamp": "2026-05-27 15:10",
     "ts_file": "20260527_151044",
     "total": 51,
