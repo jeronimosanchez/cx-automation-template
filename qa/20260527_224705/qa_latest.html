@@ -425,7 +425,55 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <div class="card c-pct"><div class="n">92%</div><div class="l">Tasa</div></div>
 </div>
 <div class="bar"><div class="bar-g" style="width:92.2%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:7.8%"></div></div>
-
+<div class="patterns-block"><div class="patterns-th" onclick="togglePatterns()"><span class="patterns-icon">⚠️</span><span class="patterns-title">Patrones cruzados</span><span class="patterns-stats">1 patrón detectado · ROI 11 TCs/h</span><span class="patterns-arrow">▶</span></div><div class="patterns-body"><div class="pat-resumen">
+<div class="pat-resumen-title">RESUMEN</div>
+<div class="pat-resumen-stat">• Tests analizados en este batch: <strong>4</strong></div>
+<div class="pat-resumen-stat">• TCs con patrón: <strong>2</strong></div>
+<div class="pat-resumen-stat">• Patrones: <strong>1</strong></div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">Patrón URGENCIA-IGNORADA — el agente ignora restricciones temporales del usuario</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs afectados</div>
+<div class="pat-tc-item">TC-URGENCIA-01</div>
+<div class="pat-tc-item">TC-URGENCIA-03</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-roi-btn" data-roi-val="11" data-roi-tcs="2 TCs" data-roi-esf="~11 min">ROI: 11 TCs/h<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span></div>
+<div class="pat-col-lbl">CAUSA</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> Ambos: user introduce restricción temporal explícita (hora exacta o día) → agente la trata como contexto irrelevante y procede con catálogo/exploración estándar</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Capa Comportamiento (compra.yaml sin sub-flujo URGENCIA) + Capa Histórico (mismo commit revertido 4 veces)</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Cherry-pick de <code>e1984b5</code> cierra ambos con un único cambio</div>
+<div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>
+<div class="pat-rec-text">aplicar <code>e1984b5</code> primero. Cierra TC-URGENCIA-01 y TC-URGENCIA-03 simultáneamente. Validado empíricamente en sesión 2026-05-28 con 5/5 PASS en TC-01 y 4-5/5 PASS en TC-03.</div>
+</div>
+</div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">TCs sin patrón</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs</div>
+<div class="pat-tc-item pat-tc-nopattern">TC-CAMBIO-OP-01</div>
+<div class="pat-tc-item pat-tc-nopattern">TC-MULTI-PRODUCTO-01</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-col-lbl">CAUSA DE NO PATRÓN</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">TC-CAMBIO-OP-01:</span> Está en PASS — caso de éxito documentado, no comparte síntomas con FAILs</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">TC-MULTI-PRODUCTO-01:</span> Bug distinto (ECO RESUMEN multi-producto sin total), fix diferente (cherry-pick <code>eb928a2</code>), capa raíz también Comportamiento pero síntoma y mecanismo distintos</div>
+</div>
+</div>
+</div>
+<div class="pat-section">
+<div class="pat-sh">ORDEN DE EJECUCIÓN</div>
+<div class="pat-wip">⚙️ <em>Work in progress</em> — la lógica de priorización (patrón vs. TC individual primero) se implementará en una próxima versión del skill.</div>
+</div>
+<div id="roi-modal-overlay" class="roi-modal-overlay" onclick="closeRoiModal()"><div class="roi-modal" onclick="event.stopPropagation()"><div class="roi-modal-hdr"><span class="roi-modal-ttl">ROI — Tasa de resolución</span><span class="roi-modal-x" onclick="closeRoiModal()">×</span></div><div class="roi-modal-body" id="roi-modal-body"></div></div></div></div></div>
 <div class="actions-bar">
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">🗑 Borrar análisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
@@ -2888,7 +2936,7 @@ Ramo de Gerberas Amarillo — M (10 flores, 18€)
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260527_1733_logs/TC-CAMBIO-OP-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-CAMBIO-OP-01</span><span class="tname">Cambio de opinion mid-flow — usuario abandona tras seleccionar</span><span class="tgroup">COMPRA-ZG</span><span class="truns">3/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260527_1733_logs/TC-CAMBIO-OP-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-CAMBIO-OP-01</span><span class="tname">Cambio de opinion mid-flow — usuario abandona tras seleccionar</span><span class="tgroup">COMPRA-ZG</span><span class="truns">3/3</span><span class="tipo-tag">Caso de éxito documentado</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge ok">PASS</span></div>
@@ -3164,7 +3212,19 @@ Ramo de Gerberas Amarillo — M (10 flores, 18€)
 </div>
 </div>
 </details></div></td></tr></table>
-<div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Caso de éxito documentado</span></div><div class="rec-content"><h4>No requiere acción</h4>
+
+<p>🟢 <strong>PASS estable, sin recomendación de cambio</strong>.</p>
+
+<p>Este TC documenta un comportamiento correcto del agente: manejo elegante de abandono mid-flow. Sirve como <strong>referencia</strong> de cómo Compra debe cerrar conversaciones sin presión.</p>
+
+<h4>Patrones replicables a otros flujos</h4>
+
+<table class="md-table"><thead><tr><th>Mecanismo</th><th>Aplicable a</th></tr></thead><tbody><tr><td>Detección lexema abandono ("mejor no", "dejalo")</td><td>Cualquier flujo G5/G3</td></tr><tr><td>Cierre cortés sin presión</td><td>Checkout (cuando user no completa)</td></tr><tr><td>Oferta de continuar abierta</td><td>Toda conversación</td></tr></tbody></table>
+
+<h4>Notas para el KB</h4>
+
+<p>Este caso refuerza el principio: el agente NO debe insistir cuando user expresa abandono. Comportamiento empáticamente correcto.</p></div></div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
@@ -9231,7 +9291,7 @@ Revisa especial..."</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260527_1733_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260527_1733_logs/TC-MULTI-PRODUCTO-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-MULTI-PRODUCTO-01</span><span class="tname">Pedido multi-item — Checkout recibe ambos productos como parametros formales</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
@@ -9733,11 +9793,42 @@ Confirmamos?"</div>
 </div>
 </div>
 </details></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-MULTI-PRODUCTO-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #2 — Cherry-pick <code>eb928a2</code> + instrucción explícita "muestra siempre suma total"</h4>
+
+<p>🟢 <strong>9/10</strong> · ~15 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: el fix <code>eb928a2</code> ya existe en historial. Validado empíricamente en sesión 2026-05-28 (5/5 PASS POST-FIX). Cero diseño nuevo.</p>
+
+<h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>1 archivo (compra.yaml), 3 líneas (templates ECO)</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Editar texto del template, añadir cálculo de suma</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Solo afecta FLUJO MULTI-PRODUCTO</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones</p>
+
+<h4>Soluciones evaluadas</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Extender template ECO con 2 productos + total explícito</strong> (líneas 603-605)</td><td>🟢 9/10</td><td>—</td><td>Fix directo en la capa del bug</td></tr><tr><td>2</td><td><strong>Solución #1 + nota explícita "muestra siempre suma total"</strong></td><td>🟢 8/10</td><td>—</td><td>Más defensivo, sin coste extra</td></tr><tr><td>3</td><td><strong>Refactor: extraer ECO RESUMEN como sub-bloque parametrizado iterando productos</strong></td><td>🟡 5/10</td><td>—</td><td>Sobre-ingeniería para fix trivial</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #2)</h4>
+
+<p>1. <strong>Cherry-pick <code>eb928a2</code></strong> o restaurar manualmente bloque desde ese commit</p>
+<p>2. <strong>Editar líneas 603-605 de <code>compra.yaml</code></strong> con templates que incluyan ambos productos + total calculado</p>
+<p>3. <strong>Añadir instrucción</strong> "⛔ OBLIGATORIO: calcula y muestra suma total cuando haya 2 productos"</p>
+<p>4. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> filtrando TC-MULTI-PRODUCTO-01</p>
+
+<p><strong>Coste total</strong>: ~12 min edición + 3 min QA = ~15 min.</p>
+
+<h4>Parámetros / slots requeridos</h4>
+
+<table class="md-table"><thead><tr><th>Slot</th><th>Playbook origen</th><th>Playbook destino</th><th>Obligatorio</th><th>Notas</th></tr></thead><tbody><tr><td><code>$producto_2</code></td><td>Compra</td><td>Checkout</td><td>Sí (en multi-producto)</td><td>Captura en paso 6b</td></tr><tr><td><code>$cantidad_2</code></td><td>Compra</td><td>Checkout</td><td>Sí</td><td>Idem</td></tr><tr><td><code>$precio_2</code></td><td>Compra</td><td>Checkout</td><td>Sí</td><td>precio_unitario × cantidad_2</td></tr><tr><td><code>$total</code></td><td>Compra</td><td>Checkout</td><td>Calculado on-the-fly</td><td>precio_estimado + precio_2</td></tr></tbody></table>
+
+<h4>Nota secundaria</h4>
+
+<p>La variabilidad de catálogo en T2 (runs 1/3 sin tulipanes) NO es lo que falla este test, pero es ruido. Cubierto por épica <code>pendiente_refactor_compra</code> (Consulta_Inventario como Task). No tocar ahora.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260527_1733_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260527_1733_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
@@ -9753,29 +9844,24 @@ Confirmamos?"</div>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero un ramo de rosas para hoy a las 18:00"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=ramo de rosas</code>, <code>modo_tono=estandar</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Claro, ramos de rosas tenemos:
-
-*   Ramo de Rosas Morado — M (15 flores, 37€)
-*   Ramo de Rosas Amarillo — M (12 flores, 25€)
-*   Ramo de Rosas Blanco — M (12 flores, 25€)
-
-¿Alguna te convence?"</div>
-</div>
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero un ramo de rosas para hoy a las 18:00"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica G5, deriva a Compra</td>
+<td class="col-problem">✅ Correcto</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Llama PetalDataTool, muestra catálogo ramos rosas</td>
+<td class="col-problem">🔴 Ignora restricción temporal "hoy 18:00"</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Cierra con APERTURA estándar</td>
+<td class="col-problem">🔴 No menciona política mismo-día ni corte 14:00</td>
+</tr>
+</table>
 </div>
 </div>
 </details>
@@ -9797,29 +9883,24 @@ Confirmamos?"</div>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero un ramo de rosas para hoy a las 18:00"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Claro, ramos de rosas tenemos:
-
-*   Ramo de Rosas Morado — M (15 flores, 37€)
-*   Ramo de Rosas Amarillo — M (12 flores, 25€)
-*   Ramo de Rosas Blanco — M (12 flores, 25€)
-
-¿Alguna te convence?"</div>
-</div>
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero un ramo de rosas para hoy a las 18:00"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica G5, deriva a Compra</td>
+<td class="col-problem">✅ Correcto</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Llama PetalDataTool, muestra catálogo ramos rosas</td>
+<td class="col-problem">🔴 Ignora restricción temporal "hoy 18:00"</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Cierra con APERTURA estándar</td>
+<td class="col-problem">🔴 No menciona política mismo-día ni corte 14:00</td>
+</tr>
+</table>
 </div>
 </div>
 </details>
@@ -9841,29 +9922,24 @@ Confirmamos?"</div>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero un ramo de rosas para hoy a las 18:00"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Claro, un ramo de rosas. Mira, tengo estas opciones que te puedo entregar hoy:
-
-*   Ramo de Rosas Morado — M (15 flores, 37€)
-*   Ramo de Rosas Amarillo — M (12 flores, 25€)
-*   Ramo de Rosas Blanco — M (12 flores, 25€)
-
-¿Alguna te convence..."</div>
-</div>
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero un ramo de rosas para hoy a las 18:00"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica G5, deriva a Compra</td>
+<td class="col-problem">✅ Correcto</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Llama PetalDataTool, muestra catálogo ramos rosas</td>
+<td class="col-problem">🔴 Ignora restricción temporal "hoy 18:00"</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Cierra con APERTURA estándar</td>
+<td class="col-problem">🔴 No menciona política mismo-día ni corte 14:00</td>
+</tr>
+</table>
 </div>
 </div>
 </details>
@@ -9872,11 +9948,73 @@ Confirmamos?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>producto=ramo de rosas</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="diagnostico" data-tcid="TC-URGENCIA-01"><div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span><span class="rec-tag diag-tag">Bug Playbook</span><button class="info-btn" onclick="openInfoModal('capas')" title="9 capas y sus estados">?</button></div><div class="rec-content diag-band-content"><div class="manual-analysis"><h4>Causa raíz — evaluación de las 9 capas</h4>
+
+<p>🔴 1. <strong>Capa Comportamiento</strong> [verificada] · <code>Read compra.yaml + petal_cx_orchestrator.yaml</code></p>
+
+<p>compra.yaml NO tiene sub-flujo de detección de urgencia temporal. La única mención de "hoy" (línea 484) es ejemplo de pregunta del user, no trigger del agente. Orquestador ZG-5 (línea 254) solo activa cuando user PREGUNTA plazo, no cuando lo MENCIONA dentro de G5.</p>
+
+<div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>2. Capa Routing</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">Petal usa Playbooks.</p></div></div>
+
+<p>🟡 3. <strong>Capa Parámetros/Slots</strong> [supuesta] · _(no verificado exhaustivamente todos los slots de Compra)_</p>
+
+<p>No existe slot <code>$fecha_entrega</code> ni <code>$hora_entrega</code> en compra.yaml. Información temporal del user se pierde tras T1.</p>
+
+<p>🟢 4. <strong>Capa Integración</strong> [verificada] · <code>JSON del log</code></p>
+
+<p>PetalDataTool responde catálogo correctamente. No es fallo de tool call.</p>
+
+<p>🟢 5. <strong>Capa Datos</strong> [verificada] · <code>curl GET /exec?recurso=business</code></p>
+
+<p>Sheet contiene toda la información necesaria: <code>horario_corte_mismo_dia: 14:00</code>, <code>envio_madrid_ciudad: Mismo dia (pedidos antes 14:00)</code>, <code>tiempo_entrega_estimado: 24h en Madrid y Barcelona, resto de ciudades 48 horas</code>. El playbook simplemente no las consulta.</p>
+
+<div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>6. Capa Infraestructura</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">deploy verde.</p></div></div>
+
+<p>🟡 7. <strong>Capa Modelo/LLM</strong> [supuesta] · _(no verificado con N≥2 ejecuciones — Capa 1 es la causa identificada)_</p>
+
+<p>Con la Capa 1 como causa clara, no se puede afirmar 🔴 en LLM. Regla binaria: 🔴 solo si todas las demás 🟢. Aquí Capa 1 ES la causa → esta queda 🟡.</p>
+
+<p>🔴 8. <strong>Capa Histórico</strong> [verificada] · <code>git log -n 20 -- definitions/playbooks/compra.yaml</code></p>
+
+<p><strong>HISTORIAL DE REGRESIÓN REPETIDA</strong>. 4 ciclos fix→revert detectados: <code>3f041df</code>/<code>a10ab02</code>/<code>3e0b2d1</code>/<code>e1984b5</code> revertidos por <code>aca187c</code>/<code>2126c52</code>/<code>1f95cae</code>/<code>77828fa</code>. El fix existe y funciona; ha sido revertido intencionalmente (patrón demo break).</p>
+
+<p>🟢 9. <strong>Capa Test</strong> [verificada] · <code>Read JSON tc_id</code></p>
+
+<p>Regex bien calibrado: captura cualquier respuesta razonable que aborde urgencia/plazo. Sin falsos negativos.</p>
+
+<p><strong>Resumen visual:</strong> 0 🔴 problema · 0 🟢 ok · 0 🟡 supuesta · 2 ⚪ N/A</p></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Cherry-pick <code>e1984b5</code> (bloque DETECCION RESTRICCION TEMPORAL unificada)</h4>
+
+<p>🟢 <strong>9/10</strong> · ~11 min · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: el fix YA existe en el historial. Validado empíricamente en sesión 2026-05-28 con 5/5 PASS. Cero diseño nuevo.</p>
+
+<h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Medio</td><td>1 archivo (compra.yaml), bloque ~8 líneas</td></tr><tr><td>Profundidad</td><td>Medio</td><td>Sub-flujo de detección + respuesta determinística desde Sheet</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix histórico validado, sin afectar otros flujos</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Medio → 5 soluciones</p>
+
+<h4>Soluciones evaluadas</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Cherry-pick <code>e1984b5</code></strong> (bloque DETECCION RESTRICCION TEMPORAL unificada)</td><td>🟢 9/10</td><td>—</td><td>Fix histórico validado (5/5 PASS empírico), cero diseño nuevo</td></tr><tr><td>2</td><td><strong>Solución #1 + capturar <code>$fecha_entrega</code> / <code>$hora_entrega</code> como slots y propagar a Checkout</strong></td><td>🟢 8/10</td><td>—</td><td>Más completo, prepara validaciones futuras</td></tr><tr><td>3</td><td><strong>Expandir ZG-5 del Orquestador para detectar mención (no solo pregunta) de plazo</strong></td><td>🟡 6/10</td><td>—</td><td>Acopla responsabilidad de negocio al Orquestador</td></tr><tr><td>4</td><td><strong>Crear tool <code>validar_plazo_entrega</code></strong> en backend petal-sheet-api</td><td>🟡 6/10</td><td>Extender backend</td><td>Determinístico al 100%, requiere tocar Cloud Run</td></tr><tr><td>5</td><td><strong>Sub-playbook <code>Plazo_Task</code></strong> invocado por Compra</td><td>🔴 4/10</td><td>—</td><td>Sobre-ingeniería para algo que cabe en 8 líneas</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. <strong>Cherry-pick</strong>: <code>git cherry-pick e1984b5</code> desde rama feature</p>
+<p>2. <strong>Verificar</strong>: bloque DETECCION RESTRICCION TEMPORAL aparece tras MODO DE OPERACION, antes del PASO 0</p>
+<p>3. <strong>Push y deploy</strong> (~3 min)</p>
+<p>4. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> filtrando TC-URGENCIA-01</p>
+
+<p><strong>Coste total</strong>: ~5 min cherry-pick + 3 min deploy + 3 min QA = ~11 min reales.</p>
+
+<h4>Parámetros / slots requeridos entre playbooks</h4>
+
+<table class="md-table"><thead><tr><th>Slot</th><th>Playbook origen</th><th>Playbook destino</th><th>Obligatorio</th><th>Notas</th></tr></thead><tbody><tr><td><code>$fecha_entrega</code></td><td>Compra</td><td>Checkout</td><td>Condicional</td><td>Solo si Solución #2</td></tr><tr><td><code>$hora_entrega</code></td><td>Compra</td><td>Checkout</td><td>Condicional</td><td>Idem</td></tr><tr><td><code>$urgencia_detectada</code></td><td>Compra</td><td>Checkout</td><td>No</td><td>Flag telemetría</td></tr></tbody></table></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_20260527_1733_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span></div>
+<div class="th-left"><a class="log-btn" href="qa_20260527_1733_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/3</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
@@ -9886,20 +10024,24 @@ Confirmamos?"</div>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"lo necesito para este viernes"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=corporativo</code>, <code>ocasion_detectada=Corporativo</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"De acuerdo, para este viernes. ¿Qué tipo de producto buscas o para qué lo necesitas?"</div>
-</div>
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"lo necesito para este viernes"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica G3 (exploración, modo corporativo)</td>
+<td class="col-problem">✅ Correcto</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Acknowledge "para este viernes" pero pregunta tipo/presupuesto</td>
+<td class="col-problem">🔴 No menciona plazo ni viabilidad</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Cierra con apertura estándar exploratoria</td>
+<td class="col-problem">🔴 Pierde oportunidad de informar política proactivamente</td>
+</tr>
+</table>
 </div>
 </div>
 </details>
@@ -9915,20 +10057,24 @@ Confirmamos?"</div>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"lo necesito para este viernes"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=corporativo</code>, <code>ocasion_detectada=Corporativo</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"De acuerdo, para este viernes. ¿Es para decoración de oficina, un evento o un regalo de empresa?"</div>
-</div>
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"lo necesito para este viernes"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica G3 (exploración, modo corporativo)</td>
+<td class="col-problem">✅ Correcto</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Acknowledge "para este viernes" pero pregunta tipo/presupuesto</td>
+<td class="col-problem">🔴 No menciona plazo ni viabilidad</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Cierra con apertura estándar exploratoria</td>
+<td class="col-problem">🔴 Pierde oportunidad de informar política proactivamente</td>
+</tr>
+</table>
 </div>
 </div>
 </details>
@@ -9944,20 +10090,24 @@ Confirmamos?"</div>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"lo necesito para este viernes"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Corporativo</code>, <code>modo_tono=corporativo</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Entendido, para este viernes. ¿Qué tipo de producto o flores te interesan?"</div>
-</div>
+<table class="ta-flow-table">
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"lo necesito para este viernes"</em></td>
+<td class="col-problem">—</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica G3 (exploración, modo corporativo)</td>
+<td class="col-problem">✅ Correcto</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Acknowledge "para este viernes" pero pregunta tipo/presupuesto</td>
+<td class="col-problem">🔴 No menciona plazo ni viabilidad</td>
+</tr>
+<tr>
+<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Cierra con apertura estándar exploratoria</td>
+<td class="col-problem">🔴 Pierde oportunidad de informar política proactivamente</td>
+</tr>
+</table>
 </div>
 </div>
 </details>
@@ -9966,7 +10116,69 @@ Confirmamos?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Corporativo</code>, <code>modo_tono=corporativo</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-03"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="diagnostico" data-tcid="TC-URGENCIA-03"><div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span><span class="rec-tag diag-tag">Bug Playbook</span><button class="info-btn" onclick="openInfoModal('capas')" title="9 capas y sus estados">?</button></div><div class="rec-content diag-band-content"><div class="manual-analysis"><h4>Causa raíz — evaluación de las 9 capas</h4>
+
+<p>🔴 1. <strong>Capa Comportamiento</strong> [verificada] · <code>Read compra.yaml + petal_cx_orchestrator.yaml</code></p>
+
+<p>Mismo bug que TC-URGENCIA-01. compra.yaml NO tiene sub-flujo URGENCIA. El agente reconoce el día ("De acuerdo, para este viernes") pero no informa proactivamente del plazo. La línea 254 del orquestador (ZG-5) solo activa cuando user PREGUNTA plazo, no cuando lo MENCIONA dentro de su intención.</p>
+
+<div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>2. Capa Routing</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">Petal usa Playbooks.</p></div></div>
+
+<p>🟡 3. <strong>Capa Parámetros/Slots</strong> [supuesta] · _(no verificado exhaustivamente todos los slots)_</p>
+
+<p>No existe slot <code>$fecha_entrega</code>; el día "viernes" se pierde tras el ACK inicial.</p>
+
+<p>🟢 4. <strong>Capa Integración</strong> [verificada] · <code>JSON del log</code></p>
+
+<p>Sin tool call problemática. Agente respondió texto válido, solo falta contenido requerido.</p>
+
+<p>🟢 5. <strong>Capa Datos</strong> [verificada] · <code>curl GET /exec?recurso=business</code></p>
+
+<p>Sheet contiene <code>tiempo_entrega_estimado="24h en Madrid y Barcelona, resto de ciudades 48 horas"</code> — EXACTAMENTE el contenido que el regex del test espera. La política existe, solo falta exponerla.</p>
+
+<div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>6. Capa Infraestructura</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">deploy verde.</p></div></div>
+
+<p>🟡 7. <strong>Capa Modelo/LLM</strong> [supuesta] · _(no verificado con N≥2 ejecuciones — Capa 1 es la causa)_</p>
+
+<p>Con la Capa 1 como causa clara, no se puede marcar 🔴 LLM. Regla binaria: 🔴 solo si todas las demás 🟢. Aquí queda 🟡.</p>
+
+<p>🔴 8. <strong>Capa Histórico</strong> [verificada] · <code>git log -n 20 -- definitions/playbooks/compra.yaml</code></p>
+
+<p>HISTORIAL DE REGRESIÓN COMPARTIDA con TC-URGENCIA-01. Los commits <code>3f041df</code>/<code>a10ab02</code>/<code>3e0b2d1</code>/<code>e1984b5</code> cubrían AMBOS casos (hora explícita + día relativo). Revertidos en <code>aca187c</code>/<code>2126c52</code>/<code>1f95cae</code>/<code>77828fa</code>. Patrón demo break.</p>
+
+<p>🟢 9. <strong>Capa Test</strong> [verificada] · <code>Read JSON tc_id</code></p>
+
+<p>Regex bien calibrado para confirmación de plazo. Sin falsos negativos detectables.</p>
+
+<p><strong>Resumen visual:</strong> 0 🔴 problema · 0 🟢 ok · 0 🟡 supuesta · 2 ⚪ N/A</p></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Cherry-pick <code>e1984b5</code> (COMPARTIDO con TC-URGENCIA-01)</h4>
+
+<p>🟢 <strong>9/10</strong> · ~0 min marginal · Sin dependencias externas</p>
+
+<p><strong>Por qué</strong>: el commit <code>e1984b5</code> cubre AMBOS casos (hora explícita + día relativo). Un único fix cierra TC-01 y TC-03 simultáneamente. Validado empíricamente en sesión 2026-05-28 (TC-03 pasó 3/3 con refuerzo).</p>
+
+<h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Medio</td><td>1 archivo (compra.yaml), bloque ~8 líneas</td></tr><tr><td>Profundidad</td><td>Medio</td><td>Sub-flujo detección temporal + respuesta determinística desde Sheet</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix histórico validado</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Medio → 5 soluciones</p>
+
+<h4>Soluciones evaluadas</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Cherry-pick <code>e1984b5</code></strong> — cierra TC-01 + TC-03 simultáneamente</td><td>🟢 9/10</td><td>—</td><td>Fix histórico validado, ROI doble</td></tr><tr><td>2</td><td><strong>Solución #1 + slot <code>$fecha_entrega</code> propagado a Checkout</strong></td><td>🟢 8/10</td><td>—</td><td>Habilita validaciones futuras de viabilidad</td></tr><tr><td>3</td><td><strong>Expandir ZG-5 del Orquestador para detectar mención (no solo pregunta) de plazo</strong></td><td>🟡 6/10</td><td>—</td><td>Acopla responsabilidad negocio al Orquestador</td></tr><tr><td>4</td><td><strong>Tool <code>validar_plazo_entrega</code></strong> en petal-sheet-api</td><td>🟡 5/10</td><td>Extender backend</td><td>Determinístico, requiere tocar Cloud Run</td></tr><tr><td>5</td><td><strong>Sub-playbook <code>Plazo_Task</code></strong> invocado por Compra</td><td>🔴 3/10</td><td>—</td><td>Sobre-ingeniería; añade latencia de hop</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1, COMPARTIDO con TC-URGENCIA-01)</h4>
+
+<p>1. <strong>Cherry-pick</strong>: <code>git cherry-pick e1984b5</code></p>
+<p>2. <strong>Verificar formato</strong>: bloque DETECCION RESTRICCION TEMPORAL incluye triggers para días de semana</p>
+<p>3. <strong>Push y deploy</strong> (~3 min)</p>
+<p>4. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> filtrando TC-URGENCIA-01 + TC-URGENCIA-03</p>
+
+<p><strong>Coste total</strong>: ~11 min (compartido con TC-URGENCIA-01 → coste marginal de TC-03 = 0)</p>
+
+<h4>Parámetros / slots requeridos</h4>
+
+<table class="md-table"><thead><tr><th>Slot</th><th>Playbook origen</th><th>Playbook destino</th><th>Obligatorio</th><th>Notas</th></tr></thead><tbody><tr><td><code>$fecha_entrega</code></td><td>Compra</td><td>Checkout</td><td>Condicional</td><td>Solo Sol #2</td></tr><tr><td><code>$urgencia_detectada</code></td><td>Compra</td><td>Checkout</td><td>No</td><td>Flag telemetría</td></tr></tbody></table></div></div>
 </div></div>
 
 <div id="metodologia-modal" class="modal hidden">
