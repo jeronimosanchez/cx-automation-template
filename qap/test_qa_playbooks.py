@@ -435,10 +435,11 @@ TESTS = [
      "name": "Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')",
      "turns": [
          {"user": "quiero un ramo de rosas para hoy a las 18:00",
-          "checks": ["hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"],
-          "desc": "El agente debía reconocer la urgencia horaria y verificar el plazo de entrega antes de mostrar catálogo"},
+          "session_params": {"entrega_hoy_posible": "no", "hora_actual": "16:17", "dia_semana": "viernes"},
+          "checks": ["14:00|corte|manana|mañana|plazo|24h|no.{0,30}posib"],
+          "desc": "Agente detecta hora 18:00 > 14:00 (o entrega_hoy_posible=no), informa restricción y política de entrega"},
      ],
-     "not_expected": []},
+     "not_expected": ["ramo de rosas|flores.*€|¿alguna te convence"]},
 
     {"id": "TC-URGENCIA-02", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
@@ -452,13 +453,14 @@ TESTS = [
      "not_expected": []},
 
     {"id": "TC-URGENCIA-03", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio",
+     "name": "Entrega urgente — plazo viernes (hoy), agente detecta mismatch y comunica restriccion",
      "turns": [
          {"user": "lo necesito para este viernes",
-          "checks": ["24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo"],
-          "desc": "El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo"},
+          "session_params": {"entrega_hoy_posible": "no", "hora_actual": "16:17", "dia_semana": "viernes"},
+          "checks": ["14:00|corte|manana|mañana|plazo|no.{0,30}posib|viernes.{0,30}hoy"],
+          "desc": "Agente detecta viernes=hoy (dia_semana=viernes) y entrega_hoy_posible=no, informa restricción"},
      ],
-     "not_expected": []},
+     "not_expected": ["sin problema|de acuerdo.{0,30}viernes.{0,30}¿qué|entendido.{0,30}viernes.{0,30}te propongo"]},
 
     {"id": "TC-FRUSTRACION-LEX-01", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "Lexico negativo del usuario — agente reconoce frustracion",
@@ -568,10 +570,13 @@ def get_token():
         sys.exit(1)
 
 
-def detect_intent(token, session_id, text):
+def detect_intent(token, session_id, text, session_params=None):
     url = f"{BASE}/{AGENT}/environments/-/sessions/{session_id}:detectIntent"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "x-goog-user-project": PROJECT}
     body = {"queryInput": {"text": {"text": text}, "languageCode": "es"}}
+    if session_params:
+        fields = {k: {"stringValue": str(v)} for k, v in session_params.items()}
+        body["queryParams"] = {"parameters": {"fields": fields}}
     time.sleep(1.5)  # Throttle: LLM quota limit in europe-west1
     for attempt in range(3):
         try:
@@ -717,7 +722,9 @@ def run_single(token, test, run_num=1):
     turn_results = []
     for i, turn in enumerate(test["turns"]):
         user_text = turn["user"].replace("{RUN}", f"{RUN_ID}_{run_num}")
-        result = detect_intent(token, session_id, user_text)
+        # Inject session_params only on first turn (session start)
+        sp = turn.get("session_params") if i == 0 else None
+        result = detect_intent(token, session_id, user_text, session_params=sp)
         if result.get("is_quota_error"):
             has_quota_error = True
         response_text, playbook, params, trace = extract_response(result)
