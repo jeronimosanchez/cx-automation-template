@@ -64,7 +64,7 @@ gh run watch $RUN_ID --interval 15  # ~2 min
 ### Paso 5 — Confirmar estado roto
 
 ```bash
-./qa/rerun_single_tc.sh TC-XYZ
+./qap/rerun_single_tc.sh TC-XYZ
 ```
 
 Lee el resultado:
