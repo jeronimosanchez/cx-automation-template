@@ -1,5 +1,41 @@
 [
   {
+    "timestamp": "2026-05-29 08:18",
+    "ts_file": "20260529_0818",
+    "total": 51,
+    "pass": 48,
+    "inst": 0,
+    "fail": 3,
+    "pct": 94,
+    "runs_per_tc": 1,
+    "versions": {
+      "orquestador": "v65",
+      "compra": "v39",
+      "checkout": "v33",
+      "registro": "v7 (Task)",
+      "script": "v23"
+    },
+    "dir": "20260529_081827"
+  },
+  {
+    "timestamp": "2026-05-27 22:47",
+    "ts_file": "20260527_2247",
+    "total": 51,
+    "pass": 50,
+    "inst": 0,
+    "fail": 1,
+    "pct": 98,
+    "runs_per_tc": 1,
+    "versions": {
+      "orquestador": "v65",
+      "compra": "v39",
+      "checkout": "v33",
+      "registro": "v7 (Task)",
+      "script": "v23"
+    },
+    "dir": "20260527_224705"
+  },
+  {
     "timestamp": "2026-05-27 22:28",
     "ts_file": "20260527_2228",
     "total": 51,

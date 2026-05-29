@@ -1,0 +1,75 @@
+{
+  "tc_id": "TC-E04",
+  "tc_name": "Consulta saldo con email valido",
+  "group": "G6>SALDO",
+  "type": "REG",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-29 08:18",
+  "ts_file": "20260529_0818",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero ver mi saldo",
+          "agent": "Para consultar tu saldo necesito identificarte. ¿Me dices tu email?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [email]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "ana@email.com",
+          "agent": "Tu saldo es 300 euros. ¿Hay algo más en lo que pueda ayudarte, Ana?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "ver mi saldo",
+            "nombre_cliente": "Ana",
+            "estado_pago": "Al dia",
+            "id_cliente": "101"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Ana]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
