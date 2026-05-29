@@ -26,7 +26,7 @@ Si el usuario solo dice `/qa-fix TC-XYZ` sin número:
 
 ## Pre-requisitos
 
-1. Análisis previo del TC: `qa/tc_analysis/TC-XYZ.md` debe existir (lo crea `/qa-tc-analyzer`).
+1. Análisis previo del TC: `qap/tc_analysis/TC-XYZ.md` debe existir (lo crea `/qa-tc-analyzer`).
 2. `main` actualizado:
    ```bash
    cd ~/cx-automation-template
@@ -41,7 +41,7 @@ Si el `.md` no existe → reporta al usuario y sugiere correr `/qa-tc-analyzer T
 ### Paso 1 — Lee el análisis y la solución elegida
 
 ```bash
-cat qa/tc_analysis/TC-XYZ.md
+cat qap/tc_analysis/TC-XYZ.md
 ```
 
 Extrae:
@@ -58,7 +58,7 @@ Confirma al usuario qué vas a hacer:
 | **Bug Playbook** | `definitions/playbooks/<nombre>.yaml` | ✅ Sí |
 | **Bug Orquestador** | `definitions/playbooks/orquestador.yaml` | ✅ Sí |
 | **Bug Tool** | `definitions/tools/<nombre>.yaml` | ✅ Sí |
-| **Test mal calibrado** / **Falso negativo** | `qa/test_QA_Playbooks_v23.py` (regex) | ❌ No |
+| **Test mal calibrado** / **Falso negativo** | `qap/test_qa_playbooks.py` (regex) | ❌ No |
 | **Bug Catálogo** | Backend Cloud Run (fuera del repo) | ⚠️ Manual |
 | **Flakiness** | Examples o ajuste de test | Depende |
 
@@ -81,7 +81,7 @@ git push -u origin <branch>
 ### Paso 4 — PR + merge
 
 ```bash
-gh pr create --title "fix(...): ... (TC-XYZ)" --body "Solución #N del análisis qa/tc_analysis/TC-XYZ.md ..."
+gh pr create --title "fix(...): ... (TC-XYZ)" --body "Solución #N del análisis qap/tc_analysis/TC-XYZ.md ..."
 gh pr merge <PR> --squash --admin
 ```
 
@@ -100,7 +100,7 @@ Si no requiere deploy → skip a Paso 6.
 ### Paso 6 — Valida con rerun
 
 ```bash
-./qa/rerun_single_tc.sh TC-XYZ
+./qap/rerun_single_tc.sh TC-XYZ
 ```
 
 Lee el JSON resultado:
@@ -133,7 +133,7 @@ Si **FAIL** ❌:
 
 ```
 Usuario: /qa-fix TC-URGENCIA-01 1
-Claude:  → Lee qa/tc_analysis/TC-URGENCIA-01.md → tipo=Bug Playbook, solución #1
+Claude:  → Lee qap/tc_analysis/TC-URGENCIA-01.md → tipo=Bug Playbook, solución #1
          → "Aplico solución #1 (CASOS ESPECIALES urgencia/plazo) editando compra.yaml"
          → Branch fix/qa-fix-TC-URGENCIA-01-094530
          → Edit compra.yaml + commit + PR + merge
