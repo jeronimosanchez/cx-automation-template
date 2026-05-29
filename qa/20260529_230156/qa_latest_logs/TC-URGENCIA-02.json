@@ -1,0 +1,78 @@
+{
+  "tc_id": "TC-URGENCIA-02",
+  "tc_name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-29 23:01",
+  "ts_file": "20260529_2301",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "Para hoy el corte es a las 14:00 en Madrid ciudad — despues de esa hora la entrega es al dia siguiente. ¿Que tipo de arreglo buscas para hoy? Mira, las entregas suelen ser en 24-48 horas. ¿Te encaja?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "grupo_intent": "G3",
+            "intencion_inicial": "lo necesito urgente, ¿en cuánto tiempo entregáis?"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [entrega]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "mañana por la mañana",
+          "agent": "Entendido, mañana por la mañana. ¿Qué tipo de flores buscas?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "intencion_inicial": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [mañana]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

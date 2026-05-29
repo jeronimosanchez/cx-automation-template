@@ -1,0 +1,62 @@
+{
+  "tc_id": "TC-URGENCIA-03",
+  "tc_name": "Entrega urgente — plazo viernes (hoy), agente detecta mismatch y comunica restriccion",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-05-29 23:01",
+  "ts_file": "20260529_2301",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para este viernes",
+          "agent": "Sin problema para el viernes — el plazo minimo es 24h en Madrid y Barcelona, 48h en el resto. ¿Que arreglo tienes en mente? ¿Para que ocasion lo necesitas?",
+          "playbook": "unknown",
+          "params": {
+            "fields": {
+              "dia_semana": {
+                "stringValue": "viernes"
+              },
+              "hora_actual": {
+                "stringValue": "16:17"
+              },
+              "entrega_hoy_posible": {
+                "stringValue": "no"
+              }
+            },
+            "intencion_inicial": "lo necesito para este viernes"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "OK: Agente dijo [plazo]",
+              "FAIL: Agente NO debía decir [sin problema|de acuerdo.{0,30}viernes.{0,30}¿qué|entendido.{0,30}viernes.{0,30}te propongo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "tc_id": "TC-STOCK-EXCESO-01",
+  "tc_name": "TT-25 — cantidad > stock disponible, agente debe avisar",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-29 23:01",
+  "ts_file": "20260529_2301",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas rojas pequeño",
+          "agent": "No tengo ramos de rosas rojas pequeños, pero tengo otras opciones en rojo y tamaño pequeño:\n\n*   **Ramo de Gladiolos** (2 tallos) por 15€\n*   **Ramo de Gerberas** (6 flores) por 16€\n*   **Ramo de Claveles** (3 flores) por 9€\n\n¿Te interesa alguno de estos?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "el pequeño",
+          "agent": "Perfecto, Ramo de Claveles — S (12 claveles, 15€). ¿Cuántos quieres?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "el pequeño",
+            "cantidad": 1,
+            "modo_tono": "estandar",
+            "producto": "Ramo de Claveles -- S"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [cu.ntos]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "50",
+          "agent": "Solo tengo 48 en stock del Ramo de Claveles — S. ¿Te quedas con los 48 o prefieres otro?",
+          "playbook": "unknown",
+          "params": {
+            "cantidad": 1,
+            "producto": "Ramo de Claveles -- S",
+            "grupo_intent": "G5",
+            "intencion_inicial": "el pequeño",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [stock]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
