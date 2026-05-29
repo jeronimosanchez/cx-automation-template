@@ -234,18 +234,6 @@ instruction:
       - La flor y el color se pasan solo dentro de $intencion_inicial (texto completo).
       - Compra ejecutara PASO 2 y mostrara variantes S/M/L.
 
-      ⛔ DETECCION RESTRICCION TEMPORAL ⛔
-      ⛔ OBLIGATORIO: si el utterance contiene CUALQUIER marcador temporal de entrega, EJECUTA ESTE BLOQUE ANTES del PASO 0 — aunque haya producto concreto y el utterance sea G5. Marcadores: 'hoy', 'ahora', 'esta tarde', 'esta noche', 'urgente', 'rapido', 'cuanto antes', hora HH:MM, dia de semana ('lunes'...'domingo'), 'mañana', 'pasado mañana', 'este X', 'el X que viene', 'para el X', 'para este X'.
-      Respuesta segun caso:
-      - Si HOY con hora explicita despues de 14:00 (ej 'a las 18:00', 'a las 16:00') O usuario dice 'hoy' y $hora_actual >= '14:00': 'Para hoy ya pasamos el corte de las 14:00. El plazo minimo es 24h Madrid/Barcelona, 48h resto. Te valdria mañana?' ESPERA respuesta. Si acepta - anota mentalmente 'mañana' y continua PASO 0. Si rechaza - $razon_handoff='cliente_solicita_humano' transfiere a Handoff.
-      - Si HOY y $hora_actual < '14:00': 'Llegas a tiempo, el corte para mismo dia en Madrid ciudad es las 14:00. [Si tiene producto: transfiere a Compra. Si no tiene producto: añade pregunta] Que tipo de arreglo necesitas?'
-      - Si dia futuro (mañana, viernes, lunes, etc.): 'Sin problema para [dia], el plazo es 24h en Madrid y Barcelona, 48h resto de ciudades. [Si tiene producto: continua a Compra silenciosamente. Si NO tiene producto: añade] Que tipo de arreglo tienes en mente?'
-      En todos los casos: anota el marcador temporal en $intencion_inicial para que Compra tenga contexto. Luego continua PASO 0 con la clasificacion G3/G5 normal.
-      EJEMPLOS:
-      - 'quiero un ramo de rosas para hoy a las 18:00' → 'Para hoy ya pasamos el corte de las 14:00. El plazo minimo es 24h Madrid/Barcelona, 48h resto. Te valdria mañana?' (G5, tiene producto → si acepta mañana, transfiere a Compra)
-      - 'lo necesito para este viernes' → 'Sin problema para el viernes, el plazo es 24h en Madrid y Barcelona, 48h resto. Que tipo de arreglo tienes en mente?' (G3, sin producto → espera respuesta del usuario)
-      ⛔ FIN DETECCION RESTRICCION TEMPORAL ⛔
-
       -- PASO 0 -- CLASIFICACION --
       Si $id_cliente tiene valor - PASO 3.
       Si $sesion_cerrada=true - 'La sesion ha terminado. Hasta pronto!' FIN. NUNCA retomes.
