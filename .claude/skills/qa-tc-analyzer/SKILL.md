@@ -54,9 +54,9 @@ Cuando el usuario pida analizar uno o varios TCs del QA:
 
 **Modo INDIVIDUAL**: la lista es `[TC-ID]`.
 
-**Modo BATCH**: ejecuta `qa/list_fails.py` para obtener los FAILs pendientes:
+**Modo BATCH**: ejecuta `qap/list_fails.py` para obtener los FAILs pendientes:
 ```bash
-python qa/list_fails.py --ts $TS --only-pending --format ids
+python qap/list_fails.py --ts $TS --only-pending --format ids
 # Devuelve IDs separados por espacios: TC-XXX TC-YYY TC-ZZZ
 ```
 
@@ -177,7 +177,7 @@ Para identificar parámetros vacíos, status codes y causa exacta del fallo del 
 **Si hay ≥2 TCs:** lanzar un sub-agente por TC en PARALELO usando la herramienta Agent. Cada sub-agente recibe:
 - El JSON completo del TC (embebido en el prompt)
 - El formato exacto del MD (la plantilla completa de esta skill — sección Paso 3b)
-- La ruta exacta donde escribir: `qa/tc_analysis/{TS}/{TC-ID}.md` en `~/cx-automation-template` (**run-scoped** — subcarpeta con el timestamp compacto del run, ej: `qa/tc_analysis/20260525_1254/TC-URGENCIA-01.md`)
+- La ruta exacta donde escribir: `qap/tc_analysis/{TS}/{TC-ID}.md` en `~/cx-automation-template` (**run-scoped** — subcarpeta con el timestamp compacto del run, ej: `qap/tc_analysis/20260525_1254/TC-URGENCIA-01.md`)
 - Instrucción de retorno explícita: **"Genera el análisis y escríbelo en la ruta indicada. Cuando termines, devuelve SOLO esta línea: `{TC-ID}: OK — {tipo} · fix ~{X}min`. NO incluyas el contenido del MD en tu respuesta."**
 
 Esperar a que TODOS los sub-agentes devuelvan su línea de confirmación. El tool calling garantiza la sincronización — el agente principal no puede continuar hasta que todos respondan.
@@ -190,7 +190,7 @@ Ejecutar inmediatamente después de que todos los sub-agentes hayan confirmado, 
 
 ```bash
 cd ~/cx-automation-template
-git add qa/tc_analysis/{TS}/
+git add qap/tc_analysis/{TS}/
 git commit -m "qa(analysis): checkpoint — {N} MDs del run {TS}"
 git push -u origin qa/analyze-batch-{TS}
 ```
@@ -203,7 +203,7 @@ Tras el commit, proceder al Paso 3c (sub-agente de patrones).
 
 ### Paso 3b — Escribir el MD con formato rico
 
-Crea `qa/tc_analysis/{TC-ID}.md` con esta estructura EXACTA:
+Crea `qap/tc_analysis/{TC-ID}.md` con esta estructura EXACTA:
 
 ```markdown
 ---
@@ -388,7 +388,7 @@ Sustituir `{TS}`, `{N}` y `{LISTA_TC_IDS}` con los valores reales del run antes 
 **PASO A — Leer MDs del disco:**
 
 ```bash
-ls ~/cx-automation-template/qa/tc_analysis/{TS}/TC-*.md
+ls ~/cx-automation-template/qap/tc_analysis/{TS}/TC-*.md
 ```
 
 Leer cada MD con la herramienta Read. Extraer de cada uno:
@@ -421,7 +421,7 @@ Calcular ROI: `(TCs resueltos / minutos_fix) × 60 = TCs/h`
 
 **PASO C — Escribir `_patterns_{TS}.md`:**
 
-Ruta: `~/cx-automation-template/qa/tc_analysis/{TS}/_patterns_{TS}.md`
+Ruta: `~/cx-automation-template/qap/tc_analysis/{TS}/_patterns_{TS}.md`
 
 **FORMATO OBLIGATORIO — NO INFERIR. Copiar esta estructura exacta:**
 
@@ -462,7 +462,7 @@ TCs analizados en este batch: {TC-X, TC-Y, TC-Z}
 Texto libre: N patrones detectados, orden de ejecución recomendado, deuda técnica detectada.
 ```
 
-**Reglas de parseo críticas** (son las que consume `_render_patterns_html` en `test_QA_Playbooks_v23.py`):
+**Reglas de parseo críticas** (son las que consume `_render_patterns_html` en `test_qa_playbooks.py`):
 - `TCs analizados en este batch:` — texto literal exacto, línea sola tras el frontmatter
 - `## Patrón` — exactamente 2 hashes, no 3
 - `**TCs:**` — en negrita, dos puntos, sin variantes
@@ -505,9 +505,9 @@ cd ~/cx-automation-template && source .venv/bin/activate
 
 # Intentar con logs locales primero
 if [ -d ~/petal-qa/qa_{TS}_logs ]; then
-  python qa/regenerate_html.py --logs-dir ~/petal-qa/qa_{TS}_logs --out /tmp/qa_regen_{TS}.html
+  python qap/regenerate_html.py --logs-dir ~/petal-qa/qa_{TS}_logs --out /tmp/qa_regen_{TS}.html
 else
-  python qa/regenerate_html.py --ts {TS} --out /tmp/qa_regen_{TS}.html
+  python qap/regenerate_html.py --ts {TS} --out /tmp/qa_regen_{TS}.html
 fi
 ```
 
@@ -516,7 +516,7 @@ fi
 **PASO E — Publicar en gh-pages:**
 
 ```bash
-bash ~/cx-automation-template/qa/publish_html.sh /tmp/qa_regen_{TS}.html {TS}
+bash ~/cx-automation-template/qap/publish_html.sh /tmp/qa_regen_{TS}.html {TS}
 ```
 
 ---
@@ -525,7 +525,7 @@ bash ~/cx-automation-template/qa/publish_html.sh /tmp/qa_regen_{TS}.html {TS}
 
 ```bash
 cd ~/cx-automation-template
-git add qa/tc_analysis/{TS}/_patterns_{TS}.md
+git add qap/tc_analysis/{TS}/_patterns_{TS}.md
 git commit -m "qa(analysis): patrones cruzados + HTML publicado — run {TS}"
 git push
 gh pr create \
@@ -592,11 +592,11 @@ Confirmación sub-agente patrones:
 ## Reglas importantes
 
 - **NO ejecutes QA** salvo que el usuario lo pida explícitamente
-- Si un MD ya existe, sobreescríbelo sin preguntar (a menos que se use el flag `--keep-existing`). Los MDs viejos quedan en git, recuperables con `git show <commit>:qa/tc_analysis/{TS}/TC-X.md`
+- Si un MD ya existe, sobreescríbelo sin preguntar (a menos que se use el flag `--keep-existing`). Los MDs viejos quedan en git, recuperables con `git show <commit>:qap/tc_analysis/{TS}/TC-X.md`
 - **Sin confirmaciones en ningún caso.** Arranca siempre directo, independientemente del número de TCs.
 - **Para ≥2 TCs: siempre lanzar sub-agentes en paralelo** — no analizar secuencialmente
 - **Los sub-agentes devuelven una sola línea** — no el MD completo. El contexto del agente principal no crece con el contenido de los análisis
-- **Ruta siempre run-scoped:** `qa/tc_analysis/{TS}/{TC-ID}.md` — nunca el path plano sin subcarpeta de timestamp
+- **Ruta siempre run-scoped:** `qap/tc_analysis/{TS}/{TC-ID}.md` — nunca el path plano sin subcarpeta de timestamp
 - Si encuentras información en el JSON que requiere trace adicional (interno de CX), menciónalo como **limitación** en la causa raíz
 - Usa SIEMPRE el último TS de gh-pages a menos que el usuario diga otro
 - Después de publicar, recuerda al usuario: "El HTML puede tardar 1-2 min en propagarse en gh-pages"
@@ -609,9 +609,9 @@ Usuario: /qa-tc-analyzer TC-FRUSTRACION-01
 Claude:
   1. Detecta TS=20260518_192907 (último)
   2. Descarga TC-FRUSTRACION-01.json
-  3. Escribe qa/tc_analysis/TC-FRUSTRACION-01.md
-  4. python qa/regenerate_html.py --ts 20260518_192907
-  5. ./qa/publish_html.sh /tmp/qa_regen_*.html 20260518_192907
+  3. Escribe qap/tc_analysis/TC-FRUSTRACION-01.md
+  4. python qap/regenerate_html.py --ts 20260518_192907
+  5. ./qap/publish_html.sh /tmp/qa_regen_*.html 20260518_192907
   6. Commit + PR + merge
   7. Reporta URL
 Total: ~3 min, 0€
@@ -621,10 +621,10 @@ Total: ~3 min, 0€
 ```
 Usuario: analiza todos los fails
 Claude:
-  1. python qa/list_fails.py --only-pending → ["TC-A", "TC-B", "TC-C"]
+  1. python qap/list_fails.py --only-pending → ["TC-A", "TC-B", "TC-C"]
   2. Arranca directo sin confirmar (sin excepciones de número de TCs)
   3. Paso 3: lanza sub-agentes TC en paralelo
-     Cada sub-agente escribe MD en qa/tc_analysis/{TS}/ y devuelve UNA LÍNEA
+     Cada sub-agente escribe MD en qap/tc_analysis/{TS}/ y devuelve UNA LÍNEA
   4. Paso 3-checkpoint: git commit de los MDs (punto de recuperación)
   5. Paso 3c: lanza sub-agente de patrones con contexto limpio
      → Analiza patrones, escribe _patterns_{TS}.md, regenera HTML, publica, hace PR+merge
@@ -635,7 +635,7 @@ Total: ~12 min, 0€
 ```
 Usuario: analiza todos los fails
 Claude:
-  1. python qa/list_fails.py --only-pending → 20 TCs
+  1. python qap/list_fails.py --only-pending → 20 TCs
   2. Arranca directo sin confirmar
   3. Paso 3: 20 sub-agentes en paralelo. Cada uno carga su JSON + system_knowledge.md
      Devuelven solo una línea cada uno → contexto principal no se satura
