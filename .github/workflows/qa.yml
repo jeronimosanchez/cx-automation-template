@@ -1,6 +1,6 @@
-# Sprint 6 — QA Petal con runner real (test_QA_Playbooks_v23.py, 29 TCs).
+# Sprint 6 — QA Petal con runner real (test_qa_playbooks.py, 29 TCs).
 #
-# Sustituye el skeleton Promptfoo del Sprint 1 (archivado en qa/_legacy_promptfoo/).
+# Sustituye el skeleton Promptfoo del Sprint 1 (archivado en qap/_archive/).
 # Ejecuta los 29 TCs contra el Default Environment de CX (environments/-)
 # y publica reportes HTML + TXT en GitHub Pages (rama gh-pages, ruta /qa/).
 #
@@ -114,7 +114,7 @@ jobs:
       - name: Run QA (29 TCs)
         id: qa_run
         continue-on-error: true
-        run: python qa/test_QA_Playbooks_v23.py --runs ${{ inputs.runs || '1' }}
+        run: python qap/test_qa_playbooks.py --runs ${{ inputs.runs || '1' }}
 
       - name: Upload reports as artifact
         if: always()
@@ -186,7 +186,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 qa/rebuild_history.py \
+          python3 qap/rebuild_history.py \
             --include-local "${STAMP}" "gh_publish/${STAMP}/qa_latest.meta.json" \
             --out "gh_publish/history.json"
 

@@ -48,7 +48,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 | Sprint 3 | ✅ | Flows, Pages, Intents, Entity Types, Webhooks, Generators |
 | Sprint 4 | ✅ | CI/CD GitHub Actions + WIF, Environments, Versions, autopilot |
 | Sprint 5 | ✅ | Migración real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX) |
-| Sprint 6 | ✅ | Integración runner QA real (`test_QA_Playbooks_v23.py`, 29 TCs) en pipeline ACT contra Default Environment + publicación de reportes en GitHub Pages. Promptfoo skeleton archivado en `qa/_legacy_promptfoo/` |
+| Sprint 6 | ✅ | Integración runner QA real (`test_qa_playbooks.py`, 29 TCs) en pipeline ACT contra Default Environment + publicación de reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/` |
 
 ### Bugs resueltos en S58-S59 (no reintroducir)
 
@@ -93,16 +93,16 @@ Cuando se modifica un área, hay otras que deben actualizarse en el mismo cambio
 | Si cambias | Actualiza |
 |---|---|
 | `definitions/` | los 12 `push_*.py` · `deploy.yml` |
-| `src/` | `tests/` · `deploy.yml` · `qa.yml` · README |
-| `tests/` | `qa.yml` · README |
+| `act/` | `act/tests/` · `deploy.yml` · `qa.yml` · README |
+| `act/tests/` | `qa.yml` · README |
 | `.github/workflows/` | `docs/setup-cicd.md` · comandos de monitoreo |
-| `qa/` | `qa.yml` · README |
-| `qa/test_QA_Playbooks_v23.py` | `qa.yml` · Default Environment de CX · GitHub Pages (`docs/setup-qa.md`) |
+| `qap/` | `qa.yml` · README |
+| `qap/test_qa_playbooks.py` | `qa.yml` · Default Environment de CX · GitHub Pages (`docs/setup-qa.md`) |
 | `docs/` | README · `deploy.yml` · `docs/setup-qa.md` (Sprint 6) |
 | `reports/` | `qa.yml` · `.gitignore` (no committear) |
 | `requirements.txt` | cualquier script que use la librería nueva |
 
-**Regla pendiente (Sprint 5):** añadir test automático que verifique que todas las librerías importadas en `src/` están declaradas en `requirements.txt`.
+**Regla pendiente (Sprint 5):** añadir test automático que verifique que todas las librerías importadas en `act/` están declaradas en `requirements.txt`.
 
 ---
 
@@ -115,17 +115,17 @@ Set base. Se amplía con el uso vía protocolo de auto-mejora (ver final de secc
 source .venv/bin/activate
 
 # Tests
-python -m pytest tests/ -q
+python -m pytest act/tests/ -q
 
 # Deploy manual (SIEMPRE dry-run primero)
-python src/push_playbooks.py --all --dry-run
-python src/push_playbooks.py --all
+python act/push_playbooks.py --all --dry-run
+python act/push_playbooks.py --all
 
 # Listar versiones de un flow
-python src/push_versions.py --list --flow "Default Start Flow"
+python act/push_versions.py --list --flow "Default Start Flow"
 
 # Validar credenciales y conectividad con la API
-python src/validate_api.py
+python act/validate_api.py
 ```
 
 **Protocolo de auto-mejora:** si un comando se repite 2 o más veces en una sesión, Claude Code propone añadirlo a esta sección al cierre. Jero aprueba antes del commit.
@@ -203,7 +203,7 @@ Solo 3 gates. Todo lo demás es auto.
 | IAM / GitHub Secrets / GCP directo | Seguridad crítica, nunca negociable |
 
 **Auto-permitido sin gate (todo lo demás):**
-- Escribir/modificar archivos del repo (`definitions/`, `src/`, `qa/`, etc.)
+- Escribir/modificar archivos del repo (`definitions/`, `act/`, `qap/`, etc.)
 - `git push origin <rama-que-no-sea-main>`
 - `gh pr create`
 - `pip install`, `npm install`
