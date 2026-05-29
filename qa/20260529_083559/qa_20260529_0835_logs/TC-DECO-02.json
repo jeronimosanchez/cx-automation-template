@@ -1,0 +1,54 @@
+{
+  "tc_id": "TC-DECO-02",
+  "tc_name": "Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)",
+  "group": "COMPRA-INV",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-29 08:35",
+  "ts_file": "20260529_0835",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para decorar mi salon",
+          "agent": "Fenomenal, un ramo de rosas para decorar tu salón. Mira, tengo estas opciones que suelen gustar:\n\n*   Ramo de Rosas Morado — M (15 flores, 37€)\n*   Ramo de Rosas Amarillo — M (12 flores, 25€)\n*   Ramo de Rosas Blanco — M (12 flores, 25€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "ocasion_detectada": "Decoracion",
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero un ramo de rosas para decorar mi salon",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Rosa.{0,40}—.{0,5}[SMLX]]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
