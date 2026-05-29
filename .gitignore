@@ -216,15 +216,15 @@ __marimo__/
 # Reports timestamped (validate_api, audit, QA Sprint 6 runner, ...)
 reports/
 validation_report_*.txt
-audit_legacy_examples_*.txt
+audit_examples_*.txt
 
-# Node deps (qa/Promptfoo)
+# Node deps (qap/Promptfoo, archivado en qap/_archive/)
 node_modules/
-qa/node_modules/
+qap/node_modules/
 
 # Promptfoo cache local
 .promptfoo/
-qa/.promptfoo/
+qap/.promptfoo/
 
 # macOS metadata
 .DS_Store

@@ -6,7 +6,7 @@
 #   2) corre solo los push_*.py de los recursos afectados, en orden topologico;
 #   3) crea version snapshot al final solo si hubo cambios reales (audit log limpio).
 #
-# Si un commit no toca definitions/ (docs, README, src/, .github/), el job
+# Si un commit no toca definitions/ (docs, README, act/, .github/), el job
 # `deploy` se skipea entero — 0 segundos en CX, 0 snapshots inflando el manifest.
 #
 # Decisiones tecnicas (heredadas de Sprint 4):
@@ -145,47 +145,47 @@ jobs:
 
       - name: Deploy Agent Config
         if: needs.detect-changes.outputs.agent_config == 'true'
-        run: python src/push_agent_config.py
+        run: python act/push_agent_config.py
 
       - name: Deploy Entity Types
         if: needs.detect-changes.outputs.entity_types == 'true'
-        run: python src/push_entity_types.py --all
+        run: python act/push_entity_types.py --all
 
       - name: Deploy Intents
         if: needs.detect-changes.outputs.intents == 'true'
-        run: python src/push_intents.py --all
+        run: python act/push_intents.py --all
 
       - name: Deploy Webhooks
         if: needs.detect-changes.outputs.webhooks == 'true'
-        run: python src/push_webhooks.py --all
+        run: python act/push_webhooks.py --all
 
       - name: Deploy Generators
         if: needs.detect-changes.outputs.generators == 'true'
-        run: python src/push_generators.py --all
+        run: python act/push_generators.py --all
 
       - name: Deploy Tools
         if: needs.detect-changes.outputs.tools == 'true'
-        run: python src/push_tools.py --all
+        run: python act/push_tools.py --all
 
       - name: Deploy Flows
         if: needs.detect-changes.outputs.flows == 'true'
-        run: python src/push_flows.py --all
+        run: python act/push_flows.py --all
 
       - name: Deploy Pages
         if: needs.detect-changes.outputs.pages == 'true'
-        run: python src/push_pages.py --all
+        run: python act/push_pages.py --all
 
       - name: Deploy Playbooks
         if: needs.detect-changes.outputs.playbooks == 'true'
-        run: python src/push_playbooks.py --all
+        run: python act/push_playbooks.py --all
 
       - name: Deploy Examples
         if: needs.detect-changes.outputs.examples == 'true'
-        run: python src/push_examples.py --all
+        run: python act/push_examples.py --all
 
       - name: Deploy Environments
         if: needs.detect-changes.outputs.environments == 'true'
-        run: python src/push_environments.py --all
+        run: python act/push_environments.py --all
 
       # ----- Snapshot inmutable post-deploy -----
       # Solo se crea si hubo cambios reales en definitions/ (`any == true`,
@@ -194,7 +194,7 @@ jobs:
       # displayName es REQUERIDO por la API. run_number es monotonico.
       - name: Create Version snapshot
         run: |
-          python src/push_versions.py \
+          python act/push_versions.py \
             --create \
             --display-name="ci-${{ github.run_number }}" \
             --description="Auto deploy ${{ github.sha }}"

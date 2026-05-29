@@ -27,7 +27,7 @@ El análisis QA arranca cuando un TC sale FAIL en un run de la suite. El usuario
 - **7 soluciones** evaluadas con score 1-10 y trade-offs
 - **Plan de acción** para la solución recomendada
 
-El análisis se publica en `qa/tc_analysis/{TC-ID}.md` y se renderiza en el HTML de gh-pages.
+El análisis se publica en `qap/tc_analysis/{TC-ID}.md` y se renderiza en el HTML de gh-pages.
 
 ---
 
@@ -39,7 +39,7 @@ El análisis se publica en `qa/tc_analysis/{TC-ID}.md` y se renderiza en el HTML
 |---|---|---|---|
 | 1 | JSON del TC (turnos, params, trace, checks) | `curl` desde gh-pages (URL en el copy-paste) | Reconstruir la conversación que falló |
 | 2 | Texto truncado en el copy-paste del HTML | Embebido directamente | "Agente respondió (primeros 120 chars): ..." |
-| 3 | `qa/test_QA_Playbooks_v23.py` | Read tool, opcional | Ver definición del check regex |
+| 3 | `qap/test_qa_playbooks.py` | Read tool, opcional | Ver definición del check regex |
 | 4 | Playbooks (`compra.yaml`, `checkout.yaml`...) | Read tool, no obligatorio | Confirmar qué hay en el código actual |
 
 ### Flujo (extraído del SKILL.md)
@@ -118,7 +118,7 @@ En la sección "Causa raíz" del MD se evalúan **las 7 capas obligatorias** (Pl
 4. **Capa Orquestador** 🟢 ok (`Read orquestador.yaml`): la transferencia al sub-playbook es correcta.
 5. **Capa Backend / Tool** ⚪ N/A: el TC no invoca tool.
 6. **Capa Política / Negocio** 🟡 supuesta: Petal probablemente no soporta same-day delivery _(no verificado: variables de negocio no expuestas en repo)_.
-7. **Capa Test** 🟢 ok (`Read test_QA_Playbooks_v23.py`): el regex del check es correcto.
+7. **Capa Test** 🟢 ok (`Read test_qa_playbooks.py`): el regex del check es correcto.
 
 **Resumen visual:** 1 🔴 problema · 3 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A
 ```
@@ -168,7 +168,7 @@ Esto conecta con la deuda técnica `automatizacion/deuda_analisis_dependencias_T
 
 ### Aplicación v1.0
 
-**Análisis:** `qa/tc_analysis/TC-URGENCIA-01.md` (versión actual, generada el 21-may-2026 mañana).
+**Análisis:** `qap/tc_analysis/TC-URGENCIA-01.md` (versión actual, generada el 21-may-2026 mañana).
 
 **Solución recomendada:** #1 — Re-aplicar bloque DETECCION URGENCIA TEMPORAL.
 
@@ -179,7 +179,7 @@ Esto conecta con la deuda técnica `automatizacion/deuda_analisis_dependencias_T
 ### Aplicación v1.1 — Pendiente
 
 Plan:
-1. Borrar `qa/tc_analysis/TC-URGENCIA-01.md` actual
+1. Borrar `qap/tc_analysis/TC-URGENCIA-01.md` actual
 2. Re-invocar el skill `qa-tc-analyzer` con las mejoras de v1.1 aplicadas al SKILL.md
 3. Comparar el output nuevo con el anterior
 4. Documentar diferencias
