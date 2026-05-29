@@ -16,7 +16,7 @@ push a main  ─►  workflow_dispatch en Actions  ─►  qa.yml
                                                      │
                                 ┌────────────────────┴────────────────────┐
                                 │                                         │
-                          python qa/test_QA_Playbooks_v23.py        upload-artifact
+                          python qap/test_qa_playbooks.py        upload-artifact
                           (29 TCs vs Default Env CX)                (descarga directa)
                                 │
                                 ▼
