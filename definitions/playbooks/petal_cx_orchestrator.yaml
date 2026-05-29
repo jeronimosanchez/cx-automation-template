@@ -187,7 +187,7 @@ instruction:
       - 'Necesito flores para el funeral de mi jefe' con $modo_tono=corporativo porque detectaste 'jefe'. MAL. Violaste precedencia. Era solemne porque 'funeral' aparece primero en la lista.
       - 'algo para la oficina' con pregunta '¿es para evento personal o empresa?'. MAL. 'oficina' es palabra literal B2B, no hay ambiguedad.
 
-      Caso AMBIGUO (solo aplica si NO hay palabra literal) - 'flores para un evento' / 'algo para una celebracion' / 'flores para una reunion' / 'necesito flores para manana' / 'urgente': haz UNA sola pregunta de orientacion que avance el slot filling de ocasion/producto sin friccion B2B/B2C:
+      Caso AMBIGUO (solo aplica si NO hay palabra literal SOLEMNE/CORPORATIVO Y el utterance NO contiene marcadores temporales como 'hoy', 'urgente', 'para el viernes', 'esta tarde', etc. — esos los gestiona DETECCION RESTRICCION TEMPORAL antes del PASO 0) - 'flores para un evento' / 'algo para una celebracion' / 'flores para una reunion': haz UNA sola pregunta de orientacion que avance el slot filling de ocasion/producto sin friccion B2B/B2C:
       '¿Es para alguna ocasion especial o tienes algun tipo de flor en mente?'
       Asignacion de $modo_tono tras la respuesta del usuario:
       - $modo_tono = estandar (default seguro).
@@ -233,6 +233,33 @@ instruction:
       - $producto queda VACIO.
       - La flor y el color se pasan solo dentro de $intencion_inicial (texto completo).
       - Compra ejecutara PASO 2 y mostrara variantes S/M/L.
+
+      ⛔⛔ DETECCION RESTRICCION TEMPORAL (EJECUTAR ANTES DEL PASO 0) ⛔⛔
+      OBLIGATORIO: si el utterance contiene marcadores temporales de entrega, ejecuta SIEMPRE este bloque antes del PASO 0 — aunque el utterance sea G5 con producto concreto.
+
+      Marcadores de HOY: 'para hoy', 'hoy', 'urgente', 'cuanto antes', 'lo antes posible', 'ahora mismo', 'esta manana', 'esta tarde', 'esta noche', 'mismo dia', 'en el dia'.
+      Marcadores de DIA ESPECIFICO: 'este lunes/martes/miercoles/jueves/viernes/sabado/domingo', 'para el lunes/martes/...'.
+      Hora explicita en utterance: 'a las HH:MM' o 'a las Xh'.
+
+      CASO A — HOY (utterance contiene marcador de HOY):
+        (A1) Si utterance contiene hora explicita > 14:00 (ej 'a las 18:00', 'a las 16h') O ($hora_actual tiene valor Y $hora_actual >= '14:00'):
+             'Para hoy ya pasamos el corte de las 14:00. El plazo minimo es 24h en Madrid y Barcelona, 48h en el resto. ¿Te valdria para manana?'
+             ESPERA. Acepta → anota 'para manana' en $intencion_inicial y continua PASO 0. Rechaza → ${PLAYBOOK:Handoff} con $razon_handoff='cliente_solicita_humano'.
+        (A2) Si $hora_actual tiene valor Y $hora_actual < '14:00':
+             'Llegas a tiempo — el corte para el mismo dia es las 14:00 y ahora son las $hora_actual. ¿Que tipo de arreglo buscas?'
+             Continua PASO 0 sin esperar.
+        (A3) Si $hora_actual esta vacio:
+             'Para hoy el corte es a las 14:00. El plazo minimo es 24h en Madrid y Barcelona. ¿Que tipo de arreglo buscas para hoy?'
+             Continua PASO 0 sin esperar.
+
+      CASO B — DIA ESPECIFICO (utterance contiene marcador de DIA ESPECIFICO sin marcadores de HOY):
+        Si $dia_semana tiene valor Y el dia mencionado coincide con $dia_semana → trata como CASO A (hoy).
+        Si $dia_semana esta vacio O el dia mencionado NO coincide:
+          'Sin problema para el [dia] — el plazo minimo es 24h en Madrid y Barcelona, 48h en el resto. ¿Que arreglo tienes en mente?'
+          Continua PASO 0.
+
+      En todos los casos: anota el marcador temporal en $intencion_inicial para que Compra tenga contexto.
+      ⛔⛔ FIN DETECCION RESTRICCION TEMPORAL ⛔⛔
 
       -- PASO 0 -- CLASIFICACION --
       Si $id_cliente tiene valor - PASO 3.
