@@ -1,5 +1,5 @@
 # Python deps para cx-automation-template.
-# Promptfoo NO esta aqui: se instala via npm en qa/ (ver qa/README.md).
+# Promptfoo NO esta aqui (legacy archivado en qap/_archive/, ver qap/_archive/README.md).
 
 # Runtime
 requests>=2.31

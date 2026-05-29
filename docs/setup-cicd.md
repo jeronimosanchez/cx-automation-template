@@ -229,7 +229,7 @@ Con la configuracion ya en sitio, valida punta-a-punta sin tocar produccion.
 
 7. Comprueba que se creo una Version snapshot:
    ```
-   python src/push_versions.py --list --flow "Default Start Flow"
+   python act/push_versions.py --list --flow "Default Start Flow"
    ```
    Debes ver una Version nueva con descripcion `Auto deploy <sha>`.
 
