@@ -47,7 +47,7 @@ playbooks:
 agent_definition:
   displayName: Floristeria-Petal
   defaultLanguageCode: es
-  timeZone: Europe/Madrid
+  timeZone: America/Los_Angeles
   speechToTextSettings: {}
   advancedSettings:
     audioExportGcsDestination: {}
