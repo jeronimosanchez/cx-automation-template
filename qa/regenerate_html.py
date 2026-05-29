@@ -164,8 +164,16 @@ def main():
     ts_display = f"{ts[:4]}-{ts[4:6]}-{ts[6:8]} {ts[9:11]}:{ts[11:13]}" if len(ts) >= 13 and "_" in ts else ts
 
     # Generar HTML
+    # Pasamos ts compacto original como ts_compact_override para que generate_html
+    # encuentre los MDs en qa/tc_analysis/{ts_compact}/ con precisión de segundos.
+    # Antes pasábamos ts_display que perdía los segundos al re-comprimir
+    # ("2026-05-27 22:47" → "20260527_2247" en vez del original "20260527_224705").
     print("  Generando HTML...")
-    html = generate_html(results, ts_display, "regen.txt", logs_dir_name=logs_dir_name)
+    html = generate_html(
+        results, ts_display, "regen.txt",
+        logs_dir_name=logs_dir_name,
+        ts_compact_override=ts,
+    )
 
     # Guardar
     out_path = args.out if args.out else f"/tmp/qa_regen_{ts}.html"

@@ -1561,7 +1561,19 @@ def _render_patterns_html(md):
     return "\n".join(out)
 
 
-def generate_html(results, ts, txt_file, logs_dir_name=None):
+def generate_html(results, ts, txt_file, logs_dir_name=None, ts_compact_override=None):
+    """
+    Genera el HTML del dashboard.
+
+    Args:
+        results: lista de TC results
+        ts: timestamp (puede venir como display "YYYY-MM-DD HH:MM" o compacto "YYYYMMDD_HHMMSS")
+        txt_file: archivo txt asociado (legacy)
+        logs_dir_name: nombre de la carpeta de logs (para botones JSON)
+        ts_compact_override: si se pasa, se usa como _ts_compact en lugar de derivarlo del ts.
+            Útil cuando ts viene formateado para display (sin segundos) pero se necesita
+            el ts compacto original para localizar los MDs en qa/tc_analysis/{ts_compact}/.
+    """
     # Lookup: (tc_id, turn_number) → desc en lenguaje natural
     _tc_turn_desc = {}
     for _tc in TESTS:
@@ -1585,7 +1597,13 @@ def generate_html(results, ts, txt_file, logs_dir_name=None):
     # El skill escribe _patterns_<TS>.md en esa subcarpeta al ejecutar el análisis.
     import glob as _glob
     # ts_compact: "20260525_1254" — usado como nombre de subcarpeta run-scoped
-    _ts_compact = ts.replace("-", "").replace(" ", "_").replace(":", "")
+    # Si se pasa override (desde regenerate_html.py), se usa directamente para
+    # preservar la precisión de segundos. Si no, se deriva del ts (que puede venir
+    # como display "YYYY-MM-DD HH:MM" sin segundos).
+    if ts_compact_override:
+        _ts_compact = ts_compact_override
+    else:
+        _ts_compact = ts.replace("-", "").replace(" ", "_").replace(":", "")
     patterns_block = ""
     has_legacy_analyses = False
     try:
