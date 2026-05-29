@@ -4,10 +4,10 @@
   "group": "COMPRA-INV",
   "type": "EDGE",
   "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
@@ -16,13 +16,47 @@
         {
           "turn": 1,
           "user": "quiero un ramo de margaritas para decorar mi recibidor",
-          "agent": "Fenomenal, un ramo de margaritas para decorar. Mira, tengo estas opciones que suelen gustar:\n\n* Ramo de Margaritas Blanco — M (10 flores, 20€)\n* Ramo de Margaritas Blanco — L (17 flores, 25€)\n\n¿Alguna te convence?",
+          "agent": "Fenomenal, un ramo de margaritas para decorar. Mira, tenemos el Ramo de Margaritas Blanco — M (10 flores, 20€) y el Ramo de Margaritas Blanco — L (17 flores, 25€). ¿Cuál te gusta?",
           "playbook": "unknown",
           "params": {
-            "producto": "ramo de margaritas",
-            "intencion_inicial": "quiero un ramo de margaritas para decorar mi recibidor",
-            "modo_tono": "estandar",
             "ocasion_detectada": "Decoracion",
+            "modo_tono": "estandar",
+            "grupo_intent": "G5",
+            "producto": "ramo de margaritas",
+            "intencion_inicial": "quiero un ramo de margaritas para decorar mi recibidor"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Margarita.{0,40}—.{0,5}[SMLX]]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de margaritas para decorar mi recibidor",
+          "agent": "Perfecto, un ramo de margaritas para decorar. Mira, tenemos el Ramo de Margaritas Blanco — M (10 flores, 20€) y el Ramo de Margaritas Blanco — L (17 flores, 25€). ¿Cuál te encaja?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero un ramo de margaritas para decorar mi recibidor",
+            "ocasion_detectada": "Decoracion",
+            "modo_tono": "estandar",
+            "producto": "ramo de margaritas",
             "grupo_intent": "G5"
           },
           "checks": {
@@ -38,6 +72,40 @@
             "diagnosticInfo_keys": [
               "Session Id",
               "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de margaritas para decorar mi recibidor",
+          "agent": "Fenomenal, un ramo de margaritas para decorar. Mira, tengo estas opciones que suelen gustar:\n\n*   Ramo de Margaritas Blanco — M (10 flores, 20€)\n*   Ramo de Margaritas Blanco — L (17 flores, 25€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "modo_tono": "estandar",
+            "ocasion_detectada": "Decoracion",
+            "intencion_inicial": "quiero un ramo de margaritas para decorar mi recibidor",
+            "producto": "margaritas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Margarita.{0,40}—.{0,5}[SMLX]]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
             ]
           }
         }

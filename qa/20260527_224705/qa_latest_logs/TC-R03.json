@@ -4,10 +4,10 @@
   "group": "G4",
   "type": "REG",
   "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
@@ -30,8 +30,64 @@
             "matchType": "PLAYBOOK",
             "confidence": 1,
             "diagnosticInfo_keys": [
-              "Response Id",
-              "Session Id"
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Hola",
+          "agent": "Hola! Bienvenido a Floristeria Petal 🌸 Estoy aqui para ayudarte a encontrar el arreglo perfecto. ¿Es para una ocasion especial, un regalo o tienes algo concreto en mente?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [hola]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Hola",
+          "agent": "Hola! Bienvenido a Floristeria Petal 🌸 Estoy aqui para ayudarte a encontrar el arreglo perfecto. ¿Es para una ocasion especial, un regalo o tienes algo concreto en mente?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [hola]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
             ]
           }
         }

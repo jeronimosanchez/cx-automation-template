@@ -4,10 +4,10 @@
   "group": "G6>DEUDA",
   "type": "EDGE",
   "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
@@ -32,6 +32,62 @@
             "diagnosticInfo_keys": [
               "Response Id",
               "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "mi email es pedro.moroso@test.com quiero comprar rosas",
+          "agent": "No encontramos ninguna cuenta con ese correo. ¿Quieres probar con otro email o prefieres que te registremos con este? 🌸",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [email]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "mi email es pedro.moroso@test.com quiero comprar rosas",
+          "agent": "No encontramos ninguna cuenta con ese correo. ¿Quieres probar con otro email o prefieres que te registremos con este? 🌸",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [email]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
             ]
           }
         }

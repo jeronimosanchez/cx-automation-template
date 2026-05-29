@@ -3,20 +3,86 @@
   "tc_name": "Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio",
   "group": "COMPRA-ZG",
   "type": "EDGE",
-  "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
-      "pass": true,
+      "pass": false,
       "turns": [
         {
           "turn": 1,
           "user": "lo necesito para este viernes",
-          "agent": "Entendido, para el viernes. Sin problema, el plazo es 24h en Madrid y Barcelona, 48h en Valencia/Sevilla/Bilbao. ¿Para qué ocasión lo necesitas?",
+          "agent": "De acuerdo, para este viernes. ¿Qué tipo de producto buscas o para qué lo necesitas?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "modo_tono": "corporativo",
+            "intencion_inicial": "lo necesito para este viernes",
+            "ocasion_detectada": "Corporativo"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para este viernes",
+          "agent": "De acuerdo, para este viernes. ¿Es para decoración de oficina, un evento o un regalo de empresa?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "corporativo",
+            "grupo_intent": "G3",
+            "ocasion_detectada": "Corporativo",
+            "intencion_inicial": "lo necesito para este viernes"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para este viernes",
+          "agent": "Entendido, para este viernes. ¿Qué tipo de producto o flores te interesan?",
           "playbook": "unknown",
           "params": {
             "ocasion_detectada": "Corporativo",
@@ -25,9 +91,9 @@
             "grupo_intent": "G3"
           },
           "checks": {
-            "pass": true,
+            "pass": false,
             "details": [
-              "OK: Agente dijo [24h]"
+              "FAIL: Agente debía decir [24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo]"
             ]
           },
           "trace": {

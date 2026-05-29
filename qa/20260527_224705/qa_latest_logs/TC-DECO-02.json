@@ -4,10 +4,10 @@
   "group": "COMPRA-INV",
   "type": "EDGE",
   "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
@@ -16,13 +16,13 @@
         {
           "turn": 1,
           "user": "quiero un ramo de rosas para decorar mi salon",
-          "agent": "Fenomenal, un ramo de rosas para decorar tu salón. Mira, tengo estas opciones que suelen gustar:\n\n* Ramo de Rosas Morado — M (15 flores, 37€)\n* Ramo de Rosas Amarillo — M (12 flores, 25€)\n* Ramo de Rosas Blanco — M (12 flores, 25€)\n\n¿Alguna te convence?",
+          "agent": "Claro, para decorar tu salón tengo estas opciones de ramos de rosas:\n\n*   Ramo de Rosas Morado — M (15 flores, 37€)\n*   Ramo de Rosas Amarillo — M (12 flores, 25€)\n*   Ramo de Rosas Blanco — M (12 flores, 25€)\n\n¿Alguna te convence?",
           "playbook": "unknown",
           "params": {
-            "producto": "rosas",
             "grupo_intent": "G5",
-            "intencion_inicial": "quiero un ramo de rosas para decorar mi salon",
             "ocasion_detectada": "Decoracion",
+            "intencion_inicial": "quiero un ramo de rosas para decorar mi salon",
+            "producto": "rosas",
             "modo_tono": "estandar"
           },
           "checks": {
@@ -38,6 +38,74 @@
             "diagnosticInfo_keys": [
               "Session Id",
               "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para decorar mi salon",
+          "agent": "Fenomenal, un ramo de rosas para decorar. Mira, tengo estas opciones:\n\n*   Ramo de Rosas Morado — M (15 flores, 37€)\n*   Ramo de Rosas Amarillo — M (12 flores, 25€)\n*   Ramo de Rosas Blanco — M (12 flores, 25€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Decoracion",
+            "intencion_inicial": "quiero un ramo de rosas para decorar mi salon",
+            "modo_tono": "estandar",
+            "producto": "ramo de rosas",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Rosa.{0,40}—.{0,5}[SMLX]]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para decorar mi salon",
+          "agent": "Fenomenal, un ramo de rosas para decorar. Mira, tengo estas opciones que suelen gustar:\n\n*   Ramo de Rosas Morado — M (15 flores, 37€)\n*   Ramo de Rosas Amarillo — M (12 flores, 25€)\n*   Ramo de Rosas Blanco — M (12 flores, 25€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Decoracion",
+            "intencion_inicial": "quiero un ramo de rosas para decorar mi salon",
+            "modo_tono": "estandar",
+            "producto": "rosas",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Rosa.{0,40}—.{0,5}[SMLX]]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
             ]
           }
         }

@@ -4,10 +4,10 @@
   "group": "COMPRA-ZG",
   "type": "EDGE",
   "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
@@ -16,13 +16,137 @@
         {
           "turn": 1,
           "user": "Quiero rosas rojas para cumpleaños",
-          "agent": "Fenomenal, unas rosas rojas para un cumpleaños. Mira, tengo estas opciones:\n\n*   Ramo de Rosas Rojo — M (15 flores, 37€)\n*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)\n*   Ramo de Rosas Rojo — S (8 flores, 22€)\n\n¿Alguna te convence?",
+          "agent": "Perfecto, rosas rojas para cumpleaños. Mira, tengo estas opciones que suelen gustar:\n\n*   Ramo de Rosas Rojo — S (8 flores, 22€)\n*   Ramo de Rosas Rojo — M (15 flores, 37€)\n*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Regalo",
+            "grupo_intent": "G5",
+            "intencion_inicial": "rosas rojas para cumpleaños",
+            "modo_tono": "estandar",
+            "producto": "rosas rojas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [S]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "¿Cuál es vuestra política de devoluciones?",
+          "agent": "Nuestra política de devoluciones permite cambios o devoluciones dentro de los 15 días posteriores a la compra, siempre que el producto esté en perfectas condiciones. ¿Alguna de las opciones de rosas rojas te gusta o miramos otras?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "rosas rojas para cumpleaños",
+            "ocasion_detectada": "Regalo",
+            "modo_tono": "estandar",
+            "producto": "rosas rojas",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [devolucion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero rosas rojas para cumpleaños",
+          "agent": "Perfecto, rosas rojas para cumpleaños. Mira, tengo estas opciones que suelen gustar:\n\n*   Ramo de Rosas Rojo — S (8 flores, 22€)\n*   Ramo de Rosas Rojo — M (15 flores, 37€)\n*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)\n\n¿Alguna te convence?",
           "playbook": "unknown",
           "params": {
             "grupo_intent": "G5",
-            "ocasion_detectada": "Regalo",
+            "modo_tono": "estandar",
+            "producto": "rosas rojas",
+            "intencion_inicial": "rosas rojas para cumpleaños",
+            "ocasion_detectada": "Regalo"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [S]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "¿Cuál es vuestra política de devoluciones?",
+          "agent": "Nuestra política de devoluciones permite cambios o devoluciones dentro de los 15 días posteriores a la compra, siempre que el producto esté en perfectas condiciones y con su embalaje original.\n\n¿Alguna de las opciones de rosas rojas te convence?",
+          "playbook": "unknown",
+          "params": {
             "producto": "rosas rojas",
             "modo_tono": "estandar",
+            "intencion_inicial": "rosas rojas para cumpleaños",
+            "grupo_intent": "G5",
+            "ocasion_detectada": "Regalo"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [devolucion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero rosas rojas para cumpleaños",
+          "agent": "Perfecto, unas rosas rojas para cumpleaños. Mira, tengo estas opciones:\n\n*   Ramo de Rosas Rojas — M (15 flores, 37€)\n*   Ramo San Valentín Rosas Rojas — XL (36 flores, 132€)\n*   Ramo de Rosas Rojas — S (8 flores, 22€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Regalo",
+            "grupo_intent": "G5",
+            "modo_tono": "estandar",
+            "producto": "rosas rojas",
             "intencion_inicial": "rosas rojas para cumpleaños"
           },
           "checks": {
@@ -44,14 +168,14 @@
         {
           "turn": 2,
           "user": "¿Cuál es vuestra política de devoluciones?",
-          "agent": "Nuestra política de devoluciones es que no se aceptan devoluciones de flores frescas, ya que son productos perecederos. Solo se aceptan devoluciones si el producto llega dañado o incorrecto.\n\n¿Alguna de las opciones que te mostré te convence?",
+          "agent": "Nuestra política de devoluciones permite cambios o devoluciones dentro de los 15 días posteriores a la compra, siempre que el producto esté en perfectas condiciones y con el ticket de compra. ¿Alguna de las opciones que te mostré te convence?",
           "playbook": "unknown",
           "params": {
             "modo_tono": "estandar",
             "ocasion_detectada": "Regalo",
-            "producto": "rosas rojas",
             "grupo_intent": "G5",
-            "intencion_inicial": "rosas rojas para cumpleaños"
+            "intencion_inicial": "rosas rojas para cumpleaños",
+            "producto": "rosas rojas"
           },
           "checks": {
             "pass": true,

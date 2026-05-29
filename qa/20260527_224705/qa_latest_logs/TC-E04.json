@@ -4,10 +4,10 @@
   "group": "G6>SALDO",
   "type": "REG",
   "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
@@ -16,7 +16,63 @@
         {
           "turn": 1,
           "user": "Quiero ver mi saldo",
-          "agent": "Para ver tu saldo necesito tu email. ¿Me lo dices?",
+          "agent": "Para consultar tu saldo necesito identificarte. ¿Me dices tu email?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [email]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "ana@email.com",
+          "agent": "Tu saldo es 300 euros, Ana. ¿Hay algo más en lo que pueda ayudarte?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "nombre_cliente": "Ana",
+            "id_cliente": "101",
+            "estado_pago": "Al dia",
+            "intencion_inicial": "ver mi saldo"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Ana]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero ver mi saldo",
+          "agent": "Para consultar tu saldo necesito identificarte. ¿Me dices tu email?",
           "playbook": "unknown",
           "params": {},
           "checks": {
@@ -43,6 +99,7 @@
           "params": {
             "estado_pago": "Al dia",
             "id_cliente": "101",
+            "intencion_inicial": "ver mi saldo",
             "nombre_cliente": "Ana"
           },
           "checks": {
@@ -58,6 +115,61 @@
             "diagnosticInfo_keys": [
               "Session Id",
               "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero ver mi saldo",
+          "agent": "Para consultar tu saldo necesito identificarte. ¿Me dices tu email?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [email]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "ana@email.com",
+          "agent": "Tu saldo es 300 euros. ¿Hay algo más en lo que pueda ayudarte, Ana?",
+          "playbook": "unknown",
+          "params": {
+            "estado_pago": "Al dia",
+            "intencion_inicial": "ver mi saldo",
+            "id_cliente": "101",
+            "nombre_cliente": "Ana"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Ana]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
             ]
           }
         }

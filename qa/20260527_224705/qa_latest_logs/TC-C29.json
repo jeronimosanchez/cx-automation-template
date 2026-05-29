@@ -4,10 +4,10 @@
   "group": "COMPRA-ZG",
   "type": "EDGE",
   "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
@@ -16,18 +16,84 @@
         {
           "turn": 1,
           "user": "Algo bonito para mi madre",
-          "agent": "Fenomenal, un regalo para tu madre. Mira, tengo opciones que suelen gustar. Echa un vistazo: Ramo de Rosas Rojas — S (8 flores, 22€), Ramo de Tulipanes Mixtos — M (10 flores, 20€), Ramo de Peonías Rosas — S (4 flores, 21€). ¿Alguna te convence?",
+          "agent": "Perfecto, un regalo para tu madre. Mira, tengo varias opciones bonitas. ¿Tienes algún color en mente o lo dejo en mis manos?",
           "playbook": "unknown",
           "params": {
             "intencion_inicial": "Algo bonito para mi madre",
-            "ocasion_detectada": "Regalo",
             "grupo_intent": "G3",
-            "modo_tono": "estandar"
+            "modo_tono": "estandar",
+            "ocasion_detectada": "Regalo"
           },
           "checks": {
             "pass": true,
             "details": [
-              "OK: Agente dijo [flor]"
+              "OK: Agente dijo [color]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo bonito para mi madre",
+          "agent": "Perfecto, un regalo para tu madre. ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Regalo",
+            "intencion_inicial": "Algo bonito para mi madre",
+            "modo_tono": "estandar",
+            "grupo_intent": "G3"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [tipo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo bonito para mi madre",
+          "agent": "Fenomenal, un regalo para tu madre. Mira, tengo opciones que suelen gustar. ¿Tienes algún color en mente o lo dejo en mis manos?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "ocasion_detectada": "Regalo",
+            "grupo_intent": "G3",
+            "intencion_inicial": "Algo bonito para mi madre"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [color]"
             ]
           },
           "trace": {

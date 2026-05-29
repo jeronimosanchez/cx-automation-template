@@ -4,10 +4,10 @@
   "group": "G2",
   "type": "REG",
   "status": "PASS",
-  "pass_count": 1,
-  "total_runs": 1,
-  "ts": "2026-05-27 22:47",
-  "ts_file": "20260527_2247",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-05-27 17:33",
+  "ts_file": "20260527_1733",
   "runs": [
     {
       "run_id": 1,
@@ -16,7 +16,35 @@
         {
           "turn": 1,
           "user": "Cuanto cuestan los tulipanes?",
-          "agent": "Mira, tenemos varias opciones de ramos de tulipanes:\n\n*   **Ramo Primavera Tulipanes Mix (M):** 12 flores, 28€.\n*   **Ramo Gracias Tulipanes Mix (M):** 15 flores, 30€.\n*   **Ramo de Tulipanes (M):** 10 flores, 20€.\n\n¿Te gustaría pedir alguno?",
+          "agent": "Mira, los tulipanes que tenemos van desde 20€ hasta 30€. ¿Te gustaría pedir alguno?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [tulipan]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Cuanto cuestan los tulipanes?",
+          "agent": "Mira, los tulipanes que tenemos van desde 20€ hasta 30€. ¿Te gustaría pedir alguno?",
           "playbook": "unknown",
           "params": {},
           "checks": {
@@ -32,6 +60,34 @@
             "diagnosticInfo_keys": [
               "Session Id",
               "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Cuanto cuestan los tulipanes?",
+          "agent": "Mira, tenemos varias opciones de ramos de tulipanes:\n\n*   **Ramo Primavera Tulipanes Mix (M):** 12 flores multicolor por 28€.\n*   **Ramo Gracias Tulipanes Mix (M):** 15 flores multicolor por 30€.\n*   **Ramo de Tulipanes (M):** 10 flores multicolor por 20€.\n\n¿Te gustaría pedir alguno?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [tulipan]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
             ]
           }
         }
