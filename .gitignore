@@ -213,6 +213,9 @@ __marimo__/
 !.claude/skills/
 !.claude/skills/**
 
+# Memoria de sesiones — interna, NO versionar en repo público (estrategia/handoffs)
+memory/
+
 # Reports timestamped (validate_api, audit, QA Sprint 6 runner, ...)
 reports/
 validation_report_*.txt
