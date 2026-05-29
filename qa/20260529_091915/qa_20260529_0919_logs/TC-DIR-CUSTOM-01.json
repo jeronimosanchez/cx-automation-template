@@ -1,0 +1,63 @@
+{
+  "tc_id": "TC-DIR-CUSTOM-01",
+  "tc_name": "Override direccion habitual — cliente identificado pide otra direccion",
+  "group": "G5>CK",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-29 09:19",
+  "ts_file": "20260529_0919",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa",
+          "agent": "¡Hola, Ana! Veo que quieres un ramo de rosas rojas talla M para regalo, pero con envío a la oficina. Te gestiono esto. Perfecto Ana, te resumo tu pedido:\n\n🌸 1 x Ramo de Rosas Rojas — M\n💳 37€\n📍 oficina\n\nConfirmamos?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa",
+            "ocasion_detectada": "Regalo",
+            "producto": "Ramo de Rosas — M",
+            "grupo_intent": "G5",
+            "tipo_cliente": "particular",
+            "direccion_entrega": "oficina",
+            "email": "ana@email.com",
+            "precio_estimado": "37",
+            "cantidad": "1",
+            "id_cliente": "101",
+            "modo_tono": "estandar",
+            "Direccion_Habitual": "Calle Mayor 10, 28013 Madrid",
+            "nombre_cliente": "Ana",
+            "estado_pago": "Al dia"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

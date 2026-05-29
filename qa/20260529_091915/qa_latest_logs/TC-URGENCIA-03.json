@@ -1,0 +1,52 @@
+{
+  "tc_id": "TC-URGENCIA-03",
+  "tc_name": "Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-29 09:19",
+  "ts_file": "20260529_0919",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para este viernes",
+          "agent": "Sin problema para el viernes — el plazo minimo es 24h en Madrid y Barcelona, 48h en el resto. ¿Que arreglo tienes en mente? Perfecto, para este viernes. ¿Qué tipo de flores buscas o para qué ocasión son?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "grupo_intent": "G3",
+            "intencion_inicial": "lo necesito para este viernes"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [24h]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

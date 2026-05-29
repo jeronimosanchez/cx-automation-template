@@ -1,0 +1,56 @@
+{
+  "tc_id": "TC-R06",
+  "tc_name": "Email espontaneo",
+  "group": "ESP",
+  "type": "REG",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-29 09:19",
+  "ts_file": "20260529_0919",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Mi email es ana@email.com",
+          "agent": "Hola, Ana! En que puedo ayudarte?",
+          "playbook": "unknown",
+          "params": {
+            "email": "ana@email.com",
+            "recien_registrado": "false",
+            "id_cliente": "101",
+            "nombre_cliente": "Ana",
+            "estado_pago": "Al dia",
+            "Direccion_Habitual": "Calle Mayor 10, 28013 Madrid",
+            "tipo_cliente": "particular"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Ana]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
