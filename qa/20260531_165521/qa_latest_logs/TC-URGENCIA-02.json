@@ -1,0 +1,102 @@
+{
+  "tc_id": "TC-URGENCIA-02",
+  "tc_name": "Plazo de entrega con urgencia — agente da el plazo exacto (24h) sin rangos ni invenciones",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 3,
+  "total_runs": 3,
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "necesito un ramo urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [24h]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "necesito un ramo urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [24h]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "necesito un ramo urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [24h]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

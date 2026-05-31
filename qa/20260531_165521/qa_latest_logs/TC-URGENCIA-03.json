@@ -1,0 +1,210 @@
+{
+  "tc_id": "TC-URGENCIA-03",
+  "tc_name": "Entrega urgente — usuario nombra el dia de hoy (ambiguo), agente desambigua y aplica logica de hora",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 3,
+  "total_runs": 3,
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para el domingo",
+          "agent": "Como ya pasó el corte de las 14:00, no podemos entregarlo hoy domingo. Te lo podríamos entregar el lunes. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "dia_semana": "domingo",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "tiempo_entrega_estimado": "24h",
+            "hora_actual": "16:30",
+            "horario_limite_entrega_hoy": "19:00",
+            "horario_corte_mismo_dia": "14:00"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [hoy]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "hoy mismo",
+          "agent": "Como ya pasó el corte de las 14:00, hoy domingo ya no es posible la entrega. Te lo podríamos entregar el lunes. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "dia_semana": "domingo",
+            "hora_actual": "16:30",
+            "tiempo_entrega_estimado": "24h",
+            "horario_corte_mismo_dia": "14:00",
+            "horario_limite_entrega_hoy": "19:00"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [corte]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para el domingo",
+          "agent": "Ya pasó el corte de las 14:00 para entregas hoy. Si lo pides ahora, la entrega sería para mañana. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "hora_actual": "16:30",
+            "dia_semana": "domingo",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "horario_corte_mismo_dia": "14:00",
+            "tiempo_entrega_estimado": "24h",
+            "horario_limite_entrega_hoy": "19:00"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [hoy]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "hoy mismo",
+          "agent": "Ya pasó el corte de las 14:00 para entregas hoy. Si lo pides ahora, la entrega sería para mañana. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "dia_semana": "domingo",
+            "horario_corte_mismo_dia": "14:00",
+            "hora_actual": "16:30",
+            "horario_limite_entrega_hoy": "19:00",
+            "tiempo_entrega_estimado": "24h"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [corte]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para el domingo",
+          "agent": "Como ya pasó el corte de las 14:00, la entrega para hoy domingo ya no es posible. Podría ser para mañana lunes. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "horario_limite_entrega_hoy": "19:00",
+            "horario_corte_mismo_dia": "14:00",
+            "hora_actual": "16:30",
+            "tiempo_entrega_estimado": "24h",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "dia_semana": "domingo"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [hoy]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "hoy mismo",
+          "agent": "Como ya pasó el corte de las 14:00, hoy ya no es posible. La entrega sería para mañana lunes. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "horario_corte_mismo_dia": "14:00",
+            "horario_limite_entrega_hoy": "19:00",
+            "hora_actual": "16:30",
+            "tiempo_entrega_estimado": "24h",
+            "dia_semana": "domingo",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [corte]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

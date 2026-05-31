@@ -1,0 +1,123 @@
+{
+  "tc_id": "TC-URGENCIA-01",
+  "tc_name": "Entrega urgente — hora explicita (18:00) con corte pasado, agente informa restriccion",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 3,
+  "total_runs": 3,
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para hoy a las 18:00",
+          "agent": "Ya pasó el corte de las 14:00 para entregas hoy, así que la entrega de tu ramo de rosas sería para mañana. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "dia_semana": "domingo",
+            "hora_actual": "16:30",
+            "tiempo_entrega_estimado": "24h",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "horario_limite_entrega_hoy": "19:00",
+            "horario_corte_mismo_dia": "14:00"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [corte]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para hoy a las 18:00",
+          "agent": "Lo siento, pero como ya pasaron las 14:00, no podemos entregarte el ramo hoy. La entrega sería para mañana. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "dia_semana": "domingo",
+            "hora_actual": "16:30",
+            "horario_corte_mismo_dia": "14:00",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "horario_limite_entrega_hoy": "19:00",
+            "tiempo_entrega_estimado": "24h"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [14:00]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para hoy a las 18:00",
+          "agent": "Ya pasó la hora de corte de las 14:00 para entregas hoy, así que no podemos asegurar que llegue a las 18:00. La entrega sería para mañana. ¿Lo prefieres por la mañana o por la tarde?",
+          "playbook": "unknown",
+          "params": {
+            "dia_semana": "domingo",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "horario_limite_entrega_hoy": "19:00",
+            "tiempo_entrega_estimado": "24h",
+            "hora_actual": "16:30",
+            "horario_corte_mismo_dia": "14:00"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [corte]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

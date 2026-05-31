@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-05-31 18:55",
+  "ts_file": "20260531_1855",
+  "total": 51,
+  "pass": 49,
+  "inst": 0,
+  "fail": 2,
+  "pct": 96,
+  "runs_per_tc": 1,
+  "versions": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  },
+  "surgical": {
+    "base_ts": "20260531_102142",
+    "overridden": [
+      "TC-URGENCIA-01",
+      "TC-URGENCIA-02",
+      "TC-URGENCIA-03"
+    ],
+    "runs": 3
+  }
+}

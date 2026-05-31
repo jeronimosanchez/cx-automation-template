@@ -1,0 +1,134 @@
+{
+  "tc_id": "TC-FRUSTRACION-01",
+  "tc_name": "Multiples rechazos consecutivos — debe escalar o reformular",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-05-31 09:29",
+  "ts_file": "20260531_0929",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero rosas",
+          "agent": "¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "modo_tono": "estandar",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ocasion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "no me gustan",
+          "agent": "Vale, te busco otras. Mira:\n\nRamo de Rosas Morado — M (15 flores, 37€)\nRamo de Rosas Amarillo — M (12 flores, 25€)\nRamo de Rosas Blanco — M (12 flores, 25€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "producto": "rosas",
+            "intencion_inicial": "quiero rosas",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [otra]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "tampoco me convencen, dame otras",
+          "agent": "Vale, te enseño otras que tengo:\n\nRamo de Rosas Naranja — M (15 flores, 37€)\nRamo de Rosas Rosa — M (6 flores, 15€)\nRamo de Rosas Rosa — S (3 flores, 9€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "rosas",
+            "intencion_inicial": "quiero rosas",
+            "modo_tono": "estandar",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "user": "ninguna me gusta",
+          "agent": "Entiendo, disculpa la confusion. Te busco una alternativa. Mira estas opciones:\n\nRamo de Rosas Blanco — L (20 flores, 40€)\nRamo de Rosas Naranja — S (8 flores, 22€)\nRamo de Rosas Rojo — M (15 flores, 37€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "modo_tono": "estandar",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [disculpa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
