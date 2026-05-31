@@ -1,0 +1,65 @@
+{
+  "tc_id": "TC-URGENCIA-01",
+  "tc_name": "Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-05-31 09:29",
+  "ts_file": "20260531_0929",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para hoy a las 18:00",
+          "agent": "Claro, ramos de rosas tenemos en varios colores y tamaños. Mira:\n\n*   Ramo de Rosas Morado — M (15 flores, 37€)\n*   Ramo de Rosas Amarillo — M (12 flores, 25€)\n*   Ramo de Rosas Blanco — M (12 flores, 25€)\n\n¿Cuál te gusta más o miramos otras opciones?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "intencion_inicial": "quiero un ramo de rosas para hoy a las 18:00",
+            "grupo_intent": "G5",
+            "fields": {
+              "hora_actual": {
+                "stringValue": "11:21"
+              },
+              "dia_semana": {
+                "stringValue": "domingo"
+              },
+              "entrega_hoy_posible": {
+                "stringValue": "no"
+              }
+            },
+            "producto": "Ramo de Rosas"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [14:00|corte|manana|mañana|plazo|24h|no.{0,30}posib]",
+              "FAIL: Agente NO debía decir [ramo de rosas.*€|¿alguna te convence|Ramo de Rosas]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

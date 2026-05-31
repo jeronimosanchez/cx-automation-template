@@ -1,0 +1,63 @@
+{
+  "tc_id": "TC-URGENCIA-03",
+  "tc_name": "Entrega urgente — plazo hoy (domingo), agente verifica viabilidad según hora real",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-05-31 09:29",
+  "ts_file": "20260531_0929",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para este domingo",
+          "agent": "Perfecto, para el domingo. ¿Qué tipo de flores buscas? ¿O para qué ocasión?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "modo_tono": "estandar",
+            "fields": {
+              "dia_semana": {
+                "stringValue": "domingo"
+              },
+              "entrega_hoy_posible": {
+                "stringValue": "si"
+              },
+              "hora_actual": {
+                "stringValue": "11:21"
+              }
+            },
+            "intencion_inicial": "lo necesito para este domingo"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [sin problema|posible|llega|de acuerdo|manana.*temprano]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
