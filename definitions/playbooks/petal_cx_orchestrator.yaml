@@ -234,39 +234,6 @@ instruction:
       - La flor y el color se pasan solo dentro de $intencion_inicial (texto completo).
       - Compra ejecutara PASO 2 y mostrara variantes S/M/L.
 
-      ⛔⛔ DETECCION RESTRICCION TEMPORAL (EJECUTAR ANTES DEL PASO 0) ⛔⛔
-      OBLIGATORIO: si el utterance contiene marcadores temporales de entrega, ejecuta SIEMPRE este bloque antes del PASO 0.
-
-      Marcadores HOY: 'para hoy', 'hoy', 'urgente', 'cuanto antes', 'mismo dia', 'esta manana', 'esta tarde', 'esta noche'.
-      Marcadores DIA ESPECIFICO: 'este lunes/martes/miercoles/jueves/viernes/sabado/domingo', 'para el lunes/martes/...'.
-      Hora explicita en utterance: 'a las HH:MM' (ej: 'a las 18:00', 'a las 16h', 'a las 15:30').
-
-      POLITICA DE ENTREGA (usa estos datos en la respuesta):
-      - Madrid ciudad: mismo dia si el pedido es antes de las 14:00. Despues de las 14:00: entrega al dia siguiente.
-      - Madrid metropolitano y Barcelona: 24h.
-      - Valencia, Sevilla, Bilbao y resto: 48h.
-      - Hora de corte para mismo dia: 14:00.
-
-      CASO A — HOY (utterance contiene marcador HOY):
-        Si utterance contiene hora explicita MAYOR que 14:00 (ej: 'a las 18:00', 'a las 16h') O $entrega_hoy_posible = 'no':
-          Responde: 'Para hoy ya pasamos el corte de las 14:00. Mismo dia solo en Madrid ciudad antes de las 14:00; el plazo minimo es 24h en Madrid y Barcelona, 48h en el resto. ¿Te valdria para manana?'
-          ESPERA respuesta. Si acepta → anota 'para manana' en $intencion_inicial y continua PASO 0. Si rechaza → ${PLAYBOOK:Handoff} con $razon_handoff='cliente_solicita_humano'.
-        Si $entrega_hoy_posible = 'si':
-          Responde: 'Llegas a tiempo — el corte para mismo dia en Madrid ciudad es las 14:00. ¿Que tipo de arreglo buscas?'
-          Continua PASO 0.
-        Si no hay informacion de hora (ni en utterance ni en $entrega_hoy_posible):
-          Responde: 'Para hoy el corte es a las 14:00 en Madrid ciudad — despues de esa hora la entrega es al dia siguiente. ¿Que tipo de arreglo buscas para hoy?'
-          Continua PASO 0.
-
-      CASO B — DIA ESPECIFICO (utterance contiene dia de semana, SIN marcadores HOY):
-        Si $dia_semana tiene valor Y el dia mencionado en el utterance coincide con $dia_semana → trata como CASO A (es hoy).
-        Si $dia_semana esta vacio O el dia mencionado NO coincide con $dia_semana:
-          Responde: 'Sin problema para el [dia mencionado] — el plazo minimo es 24h en Madrid y Barcelona, 48h en el resto. ¿Que arreglo tienes en mente? ¿Para que ocasion lo necesitas?'
-          Continua PASO 0.
-
-      En todos los casos: anota el marcador temporal en $intencion_inicial para que Compra tenga contexto.
-      ⛔⛔ FIN DETECCION RESTRICCION TEMPORAL ⛔⛔
-
       -- PASO 0 -- CLASIFICACION --
       Si $id_cliente tiene valor - PASO 3.
       Si $sesion_cerrada=true - 'La sesion ha terminado. Hasta pronto!' FIN. NUNCA retomes.
