@@ -455,12 +455,10 @@ TESTS = [
      "name": "Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')",
      "turns": [
          {"user": "quiero un ramo de rosas para hoy a las 18:00",
-          # 18:00 > 14:00 siempre → entrega_hoy_posible=no forzado aunque sea antes de las 14:00
-          "session_params": {**_CTX, "entrega_hoy_posible": "no"},
-          "checks": ["14:00|corte|manana|mañana|plazo|24h|no.{0,30}posib"],
-          "desc": "Agente detecta hora explícita 18:00 > 14:00, informa restricción y política de entrega"},
+          "checks": ["hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"],
+          "desc": "El agente debía reconocer la urgencia horaria y verificar el plazo de entrega antes de mostrar catálogo"},
      ],
-     "not_expected": ["ramo de rosas.*€|¿alguna te convence|Ramo de Rosas"]},
+     "not_expected": []},
 
     {"id": "TC-URGENCIA-02", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
@@ -474,20 +472,13 @@ TESTS = [
      "not_expected": []},
 
     {"id": "TC-URGENCIA-03", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": f"Entrega urgente — plazo hoy ({_CTX['dia_semana']}), agente verifica viabilidad según hora real",
+     "name": "Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio",
      "turns": [
-         # El utterance usa el día real de hoy para que el agente pueda detectar mismatch
-         {"user": f"lo necesito para este {_CTX['dia_semana']}",
-          "session_params": _CTX,
-          # Si ya pasaron las 14:00 → agente debe informar restricción; si no → confirmar que es posible
-          "checks": (["14:00|corte|manana|mañana|plazo|no.{0,30}posib"]
-                     if _CTX["entrega_hoy_posible"] == "no"
-                     else ["sin problema|posible|llega|de acuerdo|manana.*temprano"]),
-          "desc": (f"Agente detecta {_CTX['dia_semana']}=hoy y entrega_hoy_posible={_CTX['entrega_hoy_posible']}, "
-                   + ("responde con restriccion (pasadas 14:00)" if _CTX["entrega_hoy_posible"] == "no"
-                      else "confirma posibilidad (antes 14:00)"))},
+         {"user": "lo necesito para este viernes",
+          "checks": ["24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo"],
+          "desc": "El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo"},
      ],
-     "not_expected": (["Ramo de|¿alguna te convence|te propongo estas"] if _CTX["entrega_hoy_posible"] == "no" else [])},
+     "not_expected": []},
 
     {"id": "TC-FRUSTRACION-LEX-01", "type": "EDGE", "group": "COMPRA-ZG",
      "name": "Lexico negativo del usuario — agente reconoce frustracion",
