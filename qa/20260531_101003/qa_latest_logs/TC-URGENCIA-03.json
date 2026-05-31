@@ -1,0 +1,58 @@
+{
+  "tc_id": "TC-URGENCIA-03",
+  "tc_name": "Entrega urgente — plazo hoy (domingo), agente verifica viabilidad según hora real",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para este domingo",
+          "agent": "Los domingos aplicamos un recargo de 5€ por ser día festivo. ¿Te parece bien?",
+          "playbook": "unknown",
+          "params": {
+            "fields": {
+              "entrega_hoy_posible": {
+                "stringValue": "si"
+              },
+              "hora_actual": {
+                "stringValue": "12:07"
+              },
+              "dia_semana": {
+                "stringValue": "domingo"
+              }
+            }
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [sin problema|posible|llega|de acuerdo|manana.*temprano]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
