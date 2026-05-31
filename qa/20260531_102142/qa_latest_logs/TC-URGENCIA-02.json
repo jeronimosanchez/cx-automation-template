@@ -1,0 +1,76 @@
+{
+  "tc_id": "TC-URGENCIA-02",
+  "tc_name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "No te preocupes, hacemos entregas urgentes. Te lo gestiono. Claro, las entregas son en 24-48 horas. ¿Te gustaría que te ayude a elegir algo?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "intencion_inicial": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [entrega]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "mañana por la mañana",
+          "agent": "Entendido, mañana por la mañana. ¿Qué tipo de flores buscas?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "modo_tono": "estandar",
+            "intencion_inicial": "lo necesito urgente, ¿en cuánto tiempo entregáis?"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [mañana]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
