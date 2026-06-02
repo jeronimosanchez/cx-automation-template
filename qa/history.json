@@ -1,5 +1,32 @@
 [
   {
+    "timestamp": "2026-06-02 15:59",
+    "ts_file": "20260602_1559",
+    "total": 51,
+    "pass": 47,
+    "inst": 0,
+    "fail": 4,
+    "pct": 92,
+    "runs_per_tc": 1,
+    "versions": {
+      "orquestador": "v65",
+      "compra": "v39",
+      "checkout": "v33",
+      "registro": "v7 (Task)",
+      "script": "v23"
+    },
+    "surgical": {
+      "base_ts": "20260602_125249",
+      "overridden": [
+        "TC-URGENCIA-01",
+        "TC-URGENCIA-02",
+        "TC-URGENCIA-03"
+      ],
+      "runs": 2
+    },
+    "dir": "20260602_135902"
+  },
+  {
     "timestamp": "2026-06-02 14:52",
     "ts_file": "20260602_1452",
     "total": 51,

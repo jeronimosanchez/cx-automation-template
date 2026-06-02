@@ -1,0 +1,110 @@
+{
+  "tc_id": "TC-C33",
+  "tc_name": "Cantidad ambigua — varios",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-31 09:29",
+  "ts_file": "20260531_0929",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero rosas rojas para cumpleaños",
+          "agent": "Perfecto, rosas rojas para cumpleaños. Mira, tengo estas opciones:\n\n*   Ramo de Rosas Rojo — S (8 flores, 22€)\n*   Ramo de Rosas Rojo — M (15 flores, 37€)\n*   Ramo San Valentín Rosas Rojo — XL (36 flores, 132€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "modo_tono": "estandar",
+            "intencion_inicial": "rosas rojas para cumpleaños",
+            "producto": "rosas rojas",
+            "ocasion_detectada": "Regalo"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [S]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "El mediano",
+          "agent": "Perfecto, Ramo de Rosas Rojo — M (15 flores, 37€). ¿Cuántos quieres?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Regalo",
+            "intencion_inicial": "rosas rojas para cumpleaños",
+            "producto": "rosas rojas",
+            "grupo_intent": "G5",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [cu.ntos]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "Varios",
+          "agent": "¿Cuántos exactamente?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Regalo",
+            "intencion_inicial": "rosas rojas para cumpleaños",
+            "modo_tono": "estandar",
+            "grupo_intent": "G5",
+            "producto": "rosas rojas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [cuantos]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

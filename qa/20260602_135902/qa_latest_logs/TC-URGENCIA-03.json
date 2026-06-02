@@ -1,0 +1,158 @@
+{
+  "tc_id": "TC-URGENCIA-03",
+  "tc_name": "Entrega urgente — usuario nombra el dia de hoy (ambiguo), agente desambigua y aplica logica de hora",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 2,
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para el martes",
+          "agent": "No te preocupes, te ayudo a encontrar algo. ¿Para qué ocasión buscas flores?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "lo necesito para el martes",
+            "tiempo_entrega_estimado": "24h",
+            "horario_corte_mismo_dia": "14:00",
+            "grupo_intent": "G3",
+            "hora_actual": "16:30",
+            "horario_limite_entrega_hoy": "19:00",
+            "modo_tono": "estandar",
+            "dia_semana": "martes",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [hoy|este|que viene|proxim|te refieres|mismo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "hoy mismo",
+          "agent": "¿Para qué ocasión buscas flores?",
+          "playbook": "unknown",
+          "params": {
+            "horario_corte_mismo_dia": "14:00",
+            "intencion_inicial": "lo necesito para el martes",
+            "grupo_intent": "G3",
+            "hora_actual": "16:30",
+            "tiempo_entrega_estimado": "24h",
+            "horario_limite_entrega_hoy": "19:00",
+            "dia_semana": "martes",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [corte|14:00|ma.ana|d.a siguiente|no.{0,20}hoy|hoy.{0,20}no]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para el martes",
+          "agent": "¿Qué necesitas para el martes?",
+          "playbook": "unknown",
+          "params": {
+            "horario_limite_entrega_hoy": "19:00",
+            "modo_tono": "estandar",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
+            "grupo_intent": "G3",
+            "dia_semana": "martes",
+            "tiempo_entrega_estimado": "24h",
+            "hora_actual": "16:30",
+            "horario_corte_mismo_dia": "14:00",
+            "intencion_inicial": "lo necesito para el martes"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [hoy|este|que viene|proxim|te refieres|mismo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "hoy mismo",
+          "agent": "¿Qué necesitas hoy mismo?",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "dia_semana": "martes",
+            "grupo_intent": "G3",
+            "horario_corte_mismo_dia": "14:00",
+            "intencion_inicial": "lo necesito para el martes",
+            "horario_limite_entrega_hoy": "19:00",
+            "hora_actual": "16:30",
+            "tiempo_entrega_estimado": "24h",
+            "entrega_hoy_posible": "DESPUES_DEL_CORTE"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [corte|14:00|ma.ana|d.a siguiente|no.{0,20}hoy|hoy.{0,20}no]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
