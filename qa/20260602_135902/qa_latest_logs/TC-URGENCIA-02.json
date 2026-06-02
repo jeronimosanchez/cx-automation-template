@@ -1,11 +1,13 @@
 {
   "tc_id": "TC-URGENCIA-02",
-  "tc_name": "Plazo de entrega con urgencia — agente da el plazo exacto (24h) sin rangos ni invenciones",
+  "tc_name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
   "group": "COMPRA-ZG",
   "type": "EDGE",
   "status": "PASS",
-  "pass_count": 2,
-  "total_runs": 2,
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-05-31 11:21",
+  "ts_file": "20260531_1121",
   "runs": [
     {
       "run_id": 1,
@@ -13,14 +15,14 @@
       "turns": [
         {
           "turn": 1,
-          "user": "necesito un ramo urgente, ¿en cuánto tiempo entregáis?",
-          "agent": "Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?",
+          "user": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "No tenemos un tiempo de entrega fijo, depende de la disponibilidad del producto y la dirección de envío. ¿Hay algo más en lo que pueda ayudarte?",
           "playbook": "unknown",
           "params": {},
           "checks": {
             "pass": true,
             "details": [
-              "OK: Agente dijo [24h]"
+              "OK: Agente dijo [entrega]"
             ]
           },
           "trace": {
@@ -32,23 +34,17 @@
               "Session Id"
             ]
           }
-        }
-      ]
-    },
-    {
-      "run_id": 2,
-      "pass": true,
-      "turns": [
+        },
         {
-          "turn": 1,
-          "user": "necesito un ramo urgente, ¿en cuánto tiempo entregáis?",
-          "agent": "Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?",
+          "turn": 2,
+          "user": "mañana por la mañana",
+          "agent": "No te preocupes, si haces tu pedido antes de las 17:00, podemos entregarlo mañana por la mañana. ¿Te gustaría que te ayude a elegir algo?",
           "playbook": "unknown",
           "params": {},
           "checks": {
             "pass": true,
             "details": [
-              "OK: Agente dijo [24h]"
+              "OK: Agente dijo [mañana]"
             ]
           },
           "trace": {
@@ -56,8 +52,8 @@
             "matchType": "PLAYBOOK",
             "confidence": 1,
             "diagnosticInfo_keys": [
-              "Response Id",
-              "Session Id"
+              "Session Id",
+              "Response Id"
             ]
           }
         }

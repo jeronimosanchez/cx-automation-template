@@ -1,11 +1,13 @@
 {
   "tc_id": "TC-URGENCIA-01",
-  "tc_name": "Entrega urgente — hora explicita (18:00) con corte pasado, agente informa restriccion",
+  "tc_name": "Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')",
   "group": "COMPRA-ZG",
   "type": "EDGE",
   "status": "FAIL",
   "pass_count": 0,
-  "total_runs": 2,
+  "total_runs": 1,
+  "ts": "2026-05-31 11:21",
+  "ts_file": "20260531_1121",
   "runs": [
     {
       "run_id": 1,
@@ -13,26 +15,31 @@
       "turns": [
         {
           "turn": 1,
-          "user": "quiero un ramo de rosas rojas para hoy a las 18:00",
-          "agent": "Claro, un ramo de rosas rojas. Tenemos estas opciones:\n\n*   Ramo de Rosas Rojas — S (8 flores, 22€)\n*   Ramo de Rosas Rojas — M (15 flores, 37€)\n*   Ramo de Rosas Rojas — L (26 flores, 59€)\n\n¿Cuál te convence?",
+          "user": "quiero un ramo de rosas para hoy a las 18:00",
+          "agent": "Claro, ramos de rosas tenemos:\n\n*   Ramo de Rosas Morado — M (15 flores, 37€)\n*   Ramo de Rosas Amarillo — M (12 flores, 25€)\n*   Ramo de Rosas Blanco — M (12 flores, 25€)\n\n¿Alguno te convence?",
           "playbook": "unknown",
           "params": {
-            "hora_actual": "16:30",
-            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
-            "tiempo_entrega_estimado": "24h",
-            "dia_semana": "martes",
-            "modo_tono": "estandar",
-            "producto": "Ramo de Rosas Rojas",
+            "fields": {
+              "hora_actual": {
+                "stringValue": "11:21"
+              },
+              "entrega_hoy_posible": {
+                "stringValue": "no"
+              },
+              "dia_semana": {
+                "stringValue": "domingo"
+              }
+            },
             "grupo_intent": "G5",
-            "horario_corte_mismo_dia": "14:00",
-            "intencion_inicial": "quiero un ramo de rosas rojas para hoy a las 18:00",
-            "horario_limite_entrega_hoy": "19:00"
+            "producto": "ramo de rosas",
+            "intencion_inicial": "quiero un ramo de rosas para hoy a las 18:00",
+            "modo_tono": "estandar"
           },
           "checks": {
             "pass": false,
             "details": [
-              "FAIL: Agente debía decir [corte|14:00|ma.ana|d.a siguiente|no.{0,20}hoy|hoy.{0,20}no]",
-              "FAIL: Agente NO debía decir [Ramo de Rosas .*\\d|¿alguna te convence|te propongo estas]"
+              "FAIL: Agente debía decir [14:00|corte|manana|mañana|plazo|24h|no.{0,30}posib]",
+              "FAIL: Agente NO debía decir [ramo de rosas.*€|¿alguna te convence|Ramo de Rosas]"
             ]
           },
           "trace": {
@@ -42,46 +49,6 @@
             "diagnosticInfo_keys": [
               "Session Id",
               "Response Id"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "run_id": 2,
-      "pass": false,
-      "turns": [
-        {
-          "turn": 1,
-          "user": "quiero un ramo de rosas rojas para hoy a las 18:00",
-          "agent": "Claro, ramos de rosas rojas tenemos:\n\n*   Ramo de Rosas Rojas — S (8 flores, 22€)\n*   Ramo de Rosas Rojas — M (15 flores, 37€)\n*   Ramo de Rosas Rojas — L (26 flores, 59€)\n\n¿Cuál te gusta más?",
-          "playbook": "unknown",
-          "params": {
-            "entrega_hoy_posible": "DESPUES_DEL_CORTE",
-            "dia_semana": "martes",
-            "horario_limite_entrega_hoy": "19:00",
-            "modo_tono": "estandar",
-            "hora_actual": "16:30",
-            "grupo_intent": "G5",
-            "producto": "Ramo de Rosas Rojas",
-            "horario_corte_mismo_dia": "14:00",
-            "intencion_inicial": "quiero un ramo de rosas rojas para hoy a las 18:00",
-            "tiempo_entrega_estimado": "24h"
-          },
-          "checks": {
-            "pass": false,
-            "details": [
-              "FAIL: Agente debía decir [corte|14:00|ma.ana|d.a siguiente|no.{0,20}hoy|hoy.{0,20}no]",
-              "FAIL: Agente NO debía decir [Ramo de Rosas .*\\d|¿alguna te convence|te propongo estas]"
-            ]
-          },
-          "trace": {
-            "currentPlaybook": "unknown",
-            "matchType": "PLAYBOOK",
-            "confidence": 1,
-            "diagnosticInfo_keys": [
-              "Response Id",
-              "Session Id"
             ]
           }
         }
