@@ -445,7 +445,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <div class="pat-roi-btn" data-roi-val="11" data-roi-tcs="2 TCs" data-roi-esf="~11 min">ROI: 11 TCs/h<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span></div>
 <div class="pat-col-lbl">CAUSA</div>
 <div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> Ambos: user introduce restricción temporal (hora "18:00" o día "este viernes") → agente reconoce el dato pero lo trata como irrelevante y procede con el flujo estándar (catálogo / apertura exploratoria) sin avisar de plazo ni viabilidad</div>
-<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Capa 1 Comportamiento (compra.yaml no consume los session_params/menciones temporales) + Capa 8 Histórico (bloque DETECCION RESTRICCION TEMPORAL aplicado y revertido varias veces — patrón demo break)</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Capa 1 Comportamiento (compra.yaml no consume los session_params/menciones temporales) + Capa 8 Histórico (bloque DETECCION RESTRICCION TEMPORAL disponible en commits anteriores del git)</div>
 <div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Bloque DETECCION RESTRICCION TEMPORAL cierra ambos con un único cambio: cubre hora explícita (TC-01) y día relativo (TC-03). Coste marginal de TC-03 = 0</div>
 <div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>
 <div class="pat-rec-text">aplicar el bloque temporal primero. Cierra TC-URGENCIA-01 y TC-URGENCIA-03 simultáneamente. Los session_params (entrega_hoy_posible, dia_semana, hora_actual) ya se inyectan correctamente al contexto — solo falta que el playbook los consuma y avise del plazo antes de mostrar catálogo.</div>
@@ -3823,7 +3823,7 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 
 <p>🔴 8. <strong>Capa Histórico</strong> [verificada] · <code>git log -n 20 -- definitions/playbooks/compra.yaml</code></p>
 
-<p>Historial de regresión: el bloque DETECCION RESTRICCION TEMPORAL se aplicó y revirtió varias veces (b32f773 session_params, reverts bce6c6b y 967452c). Patrón demo break — el fix existe pero se quita repetidamente.</p>
+<p>El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores (b32f773 session_params dinámicos). El fix está disponible en el git para aplicarse.</p>
 
 <p>🟢 9. <strong>Capa Test</strong> [verificada] · <code>Read JSON tc_id</code></p>
 
@@ -3922,7 +3922,7 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 
 <p>🔴 8. <strong>Capa Histórico</strong> [verificada] · <code>git log -n 20 -- definitions/playbooks/compra.yaml</code></p>
 
-<p>Historial de regresión COMPARTIDA con TC-URGENCIA-01. El bloque temporal cubría ambos casos (hora explícita + día relativo). Revertido varias veces. Patrón demo break.</p>
+<p>El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores y cubría ambos casos (hora explícita + día relativo). El fix está disponible en el git para aplicarse.</p>
 
 <p>🟢 9. <strong>Capa Test</strong> [verificada] · <code>Read JSON tc_id</code></p>
 
