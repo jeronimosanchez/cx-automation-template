@@ -1068,7 +1068,8 @@ def _postprocess_capa_blocks(html):
     # Patrón VERBOSE: <p>EMOJI N. <strong>Capa Nombre</strong> [estado]</p>
     # Seguido de uno o varios <p>...</p> con fuente y descripción aparte.
     capa_line_re = re.compile(
-        r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+?)</strong>\s*\[(verificada|supuesta|N/A)\]\s*</p>'
+        r'<p>(🔴|🟢|🟡|⚪)\s+(\d+)\.\s+<strong>([^<]+?)</strong>\s*\[(verificada|supuesta|N/A)\]'
+        r'(?:\s*[·•∙]\s*(?P<fuente_inline>.+?))?\s*</p>'
     )
     # Patrón COMPACTO: <p>EMOJI N. <strong>Capa Nombre</strong> [SEPARADOR] ESTADO [SEPARADOR] — descripción inline</p>
     # Todo en un solo <p>. Acepta tanto "· estado —" como "[estado] —".
@@ -1180,6 +1181,10 @@ def _postprocess_capa_blocks(html):
 
         if kind == "verbose":
             fuente_html, desc_html, end_pos = consume_following_blocks(html, m.end())
+            # Si la capa traía la fuente inline (· `Read X` en la misma línea), usarla
+            inline_f = m.groupdict().get("fuente_inline")
+            if inline_f and not fuente_html:
+                fuente_html = inline_f
         else:
             fuente_html = ""
             desc_inline = (m.groupdict().get("desc") or "").strip()
