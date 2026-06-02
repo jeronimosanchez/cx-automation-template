@@ -43,7 +43,7 @@ Con Capa 1 como causa clara, la regla binaria impide marcar 🔴 en LLM.
 
 🔴 8. **Capa Histórico** [verificada] · `git log -n 20 -- definitions/playbooks/compra.yaml`
 
-El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores y cubría ambos casos (hora explícita + día relativo). El fix está disponible en el git para aplicarse.
+El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe completo en el commit `c6f17bf` y cubre ambos casos (hora explícita + día relativo "viernes"). El fix está disponible en git para recuperarse.
 
 🟢 9. **Capa Test** [verificada] · `Read JSON tc_id`
 
@@ -53,19 +53,19 @@ Regex bien calibrado para confirmación de plazo. Sin falsos negativos.
 
 ## Recomendación
 
-### Solución recomendada: #1 — Bloque DETECCION RESTRICCION TEMPORAL (COMPARTIDO con TC-URGENCIA-01)
+### Solución recomendada: #1 — Recuperar el bloque desde git `c6f17bf` (COMPARTIDO con TC-URGENCIA-01)
 
 🟢 **9/10** · ~0 min marginal · Sin dependencias externas
 
-**Por qué**: el mismo bloque que arregla TC-URGENCIA-01 cubre también el caso de día relativo ("viernes"). Un único fix cierra ambos TCs.
+**Por qué**: el bloque DETECCION RESTRICCION TEMPORAL que ya existe en el commit `c6f17bf` cubre explícitamente el caso de día relativo ("este viernes" → "Sin problema para el viernes, el plazo es 24h Madrid/Barcelona, 48h resto"). El mismo bloque que se recupera para TC-URGENCIA-01 resuelve este TC. Un único `git restore` cierra ambos.
 
 ### Dimensionamiento del bug
 
 | Dimensión | Nivel | Justificación |
 |---|---|---|
-| Alcance | Medio | 1 archivo (compra.yaml), bloque ~8 líneas |
-| Profundidad | Medio | Sub-flujo temporal + respuesta determinística desde Sheet |
-| Riesgo de regresión | Trivial | Fix histórico validado |
+| Alcance | Medio | 1 archivo (compra.yaml), bloque ya existente en `c6f17bf` |
+| Profundidad | Medio | El bloque maneja día relativo + respuesta determinística desde Sheet |
+| Riesgo de regresión | Trivial | Bloque ya validado; recuperación de git limpia |
 
 **Nivel final:** Medio → 5 soluciones
 
@@ -73,18 +73,18 @@ Regex bien calibrado para confirmación de plazo. Sin falsos negativos.
 
 | # | Solución | Score | Dependencias | Por qué este scoring |
 |---|----------|-------|--------------|----------------------|
-| 1 | **Bloque DETECCION RESTRICCION TEMPORAL** — cierra TC-01 + TC-03 | 🟢 9/10 | — | Fix compartido, ROI doble |
-| 2 | **Solución #1 + slot $fecha_entrega propagado** | 🟢 8/10 | — | Habilita validaciones futuras |
-| 3 | **Expandir ZG-5 del Orquestador** para detectar mención de plazo | 🟡 6/10 | — | Acopla responsabilidad de negocio al Orquestador |
-| 4 | **Tool validar_plazo_entrega** en backend | 🟡 5/10 | Extender Cloud Run | Determinístico, requiere tocar backend |
+| 1 | **Recuperar bloque de git `c6f17bf`** — cierra TC-01 + TC-03 | 🟢 9/10 | — | El fix ya existe completo y cubre día relativo. ROI doble, no se reinventa nada |
+| 2 | **Recuperar `c6f17bf` + slot `$fecha_entrega` propagado** | 🟢 8/10 | — | Igual de fiable + habilita validaciones futuras |
+| 3 | **Reescribir el bloque desde cero** | 🟡 6/10 | — | Funciona pero reinventa algo que ya está en git |
+| 4 | **Expandir ZG-5 del Orquestador** para detectar mención de plazo | 🟡 5/10 | — | Acopla responsabilidad de negocio al Orquestador |
 | 5 | **Sub-playbook Plazo_Task** | 🔴 3/10 | — | Sobre-ingeniería + latencia |
 
 ### Plan de acción (Solución #1, COMPARTIDO con TC-URGENCIA-01)
 
-1. **Editar compra.yaml**: el mismo bloque DETECCION RESTRICCION TEMPORAL cubre día relativo
-2. **Verificar** triggers de días de semana
+1. **Recuperar el bloque** de `c6f17bf` (mismo que para TC-URGENCIA-01) — cubre día relativo además de hora explícita
+2. **Verificar** que el bloque incluye triggers de días de semana ("este viernes", "lunes"..."domingo")
 3. **Re-ejecutar QA** con `--runs 3` filtrando ambos TCs
 
-**Coste total**: ~11 min (compartido → coste marginal TC-03 = 0)
+**Coste total**: ~5 min (compartido → coste marginal TC-03 = 0)
 
-**Forma parte del patrón URGENCIA-IGNORADA.** Si el fix de TC-URGENCIA-01 resuelve la causa raíz común, este TC pasará a PASS sin cambios adicionales.
+**Forma parte del patrón URGENCIA-IGNORADA.** El bloque de `c6f17bf` resuelve la causa raíz común — al recuperarlo, este TC pasará a PASS sin cambios adicionales.
