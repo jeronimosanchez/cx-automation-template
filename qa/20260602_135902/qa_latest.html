@@ -3797,39 +3797,23 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 </ul></div></td></tr></table>
 <div class="diagnostico" data-tcid="TC-URGENCIA-01"><div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span><span class="rec-tag diag-tag">Bug Playbook</span><button class="info-btn" onclick="openInfoModal('capas')" title="9 capas y sus estados">?</button></div><div class="rec-content diag-band-content"><div class="manual-analysis"><h4>Causa raíz — evaluación de las 9 capas del sistema</h4>
 
-<p>🔴 1. <strong>Capa Comportamiento</strong> [verificada] · <code>Read compra.yaml</code></p>
-
-<p>El playbook NO tiene instrucción que consuma los session_params de urgencia (hora_actual, entrega_hoy_posible, dia_semana). El dato llega al contexto pero el playbook no lo lee ni lo usa para avisar al usuario.</p>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>1. Capa Comportamiento</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">El playbook NO tiene instrucción que consuma los session_params de urgencia (hora_actual, entrega_hoy_posible, dia_semana). El dato llega al contexto pero el playbook no lo lee ni lo usa para avisar al usuario.</p></div></div>
 
 <div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>2. Capa Routing</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">Petal usa Playbooks, no Flows.</p></div></div>
 
-<p>🟢 3. <strong>Capa Parámetros/Slots</strong> [verificada] · <code>JSON del log (params.fields)</code></p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>3. Capa Parámetros/Slots</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>JSON del log (params.fields)</code></div><div class="capa-desc"><p class="capa-desc-p">Los session_params SÍ se inyectan correctamente: hora_actual=11:21, entrega_hoy_posible=no, dia_semana=domingo. El contrato de slots funciona — el problema no es la inyección, es que el playbook no los consume (eso es Capa 1).</p></div></div>
 
-<p>Los session_params SÍ se inyectan correctamente: hora_actual=11:21, entrega_hoy_posible=no, dia_semana=domingo. El contrato de slots funciona — el problema no es la inyección, es que el playbook no los consume (eso es Capa 1).</p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>4. Capa Integración</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>JSON del log</code></div><div class="capa-desc"><p class="capa-desc-p">Sin tool call problemática. El catálogo se muestra correctamente.</p></div></div>
 
-<p>🟢 4. <strong>Capa Integración</strong> [verificada] · <code>JSON del log</code></p>
-
-<p>Sin tool call problemática. El catálogo se muestra correctamente.</p>
-
-<p>🟢 5. <strong>Capa Datos</strong> [verificada] · <code>curl GET /exec?recurso=business</code></p>
-
-<p>Sheet contiene horario_corte_mismo_dia=14:00 y tiempo_entrega_estimado. Datos completos y coherentes.</p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>5. Capa Datos</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>curl GET /exec?recurso=business</code></div><div class="capa-desc"><p class="capa-desc-p">Sheet contiene horario_corte_mismo_dia=14:00 y tiempo_entrega_estimado. Datos completos y coherentes.</p></div></div>
 
 <div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>6. Capa Infraestructura</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">deploy verde.</p></div></div>
 
-<p>🟡 7. <strong>Capa Modelo/LLM</strong> [supuesta] · _(no verificado con N≥2 ejecuciones idénticas — Capa 1 es la causa identificada)_</p>
+<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>7. Capa Modelo/LLM</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-fuente">_(no verificado con N≥2 ejecuciones idénticas — Capa 1 es la causa identificada)_</div><div class="capa-desc"><p class="capa-desc-p">Con Capa 1 como causa clara (falta instrucción), la regla binaria impide marcar 🔴 en LLM.</p></div></div>
 
-<p>Con Capa 1 como causa clara (falta instrucción), la regla binaria impide marcar 🔴 en LLM.</p>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>git log -n 20 -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores (b32f773 session_params dinámicos). El fix está disponible en el git para aplicarse.</p></div></div>
 
-<p>🔴 8. <strong>Capa Histórico</strong> [verificada] · <code>git log -n 20 -- definitions/playbooks/compra.yaml</code></p>
-
-<p>El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores (b32f773 session_params dinámicos). El fix está disponible en el git para aplicarse.</p>
-
-<p>🟢 9. <strong>Capa Test</strong> [verificada] · <code>Read JSON tc_id</code></p>
-
-<p>Regex bien calibrado: captura cualquier respuesta que mencione plazo/urgencia/no-disponible. Sin falsos negativos.</p>
-
-<p><strong>Resumen visual:</strong> 0 🔴 problema · 0 🟢 ok · 0 🟡 supuesta · 2 ⚪ N/A</p></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>9. Capa Test</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read JSON tc_id</code></div><div class="capa-desc"><p class="capa-desc-p">Regex bien calibrado: captura cualquier respuesta que mencione plazo/urgencia/no-disponible. Sin falsos negativos.</p><p class="capa-desc-p"><strong>Resumen visual:</strong> 2 🔴 problema · 4 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A</p></div></div></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
 <div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Bloque DETECCION RESTRICCION TEMPORAL que consuma session_params</h4>
 
 <p>🟢 <strong>9/10</strong> · ~11 min · Sin dependencias externas</p>
@@ -3896,39 +3880,23 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 </ul></div></td></tr></table>
 <div class="diagnostico" data-tcid="TC-URGENCIA-03"><div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span><span class="rec-tag diag-tag">Bug Playbook</span><button class="info-btn" onclick="openInfoModal('capas')" title="9 capas y sus estados">?</button></div><div class="rec-content diag-band-content"><div class="manual-analysis"><h4>Causa raíz — evaluación de las 9 capas del sistema</h4>
 
-<p>🔴 1. <strong>Capa Comportamiento</strong> [verificada] · <code>Read compra.yaml + petal_cx_orchestrator.yaml</code></p>
-
-<p>Mismo bug que TC-URGENCIA-01. compra.yaml NO tiene sub-flujo URGENCIA. El agente reconoce el día pero no informa del plazo. La regla ZG-5 del orquestador solo activa cuando el user PREGUNTA plazo, no cuando lo MENCIONA.</p>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>1. Capa Comportamiento</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read compra.yaml + petal_cx_orchestrator.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">Mismo bug que TC-URGENCIA-01. compra.yaml NO tiene sub-flujo URGENCIA. El agente reconoce el día pero no informa del plazo. La regla ZG-5 del orquestador solo activa cuando el user PREGUNTA plazo, no cuando lo MENCIONA.</p></div></div>
 
 <div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>2. Capa Routing</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">Petal usa Playbooks.</p></div></div>
 
-<p>🟡 3. <strong>Capa Parámetros/Slots</strong> [supuesta] · _(no verificado exhaustivamente)_</p>
+<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>3. Capa Parámetros/Slots</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-fuente">_(no verificado exhaustivamente)_</div><div class="capa-desc"><p class="capa-desc-p">No existe slot $fecha_entrega que capture "viernes" de forma estructurada para el playbook.</p></div></div>
 
-<p>No existe slot $fecha_entrega que capture "viernes" de forma estructurada para el playbook.</p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>4. Capa Integración</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>JSON del log</code></div><div class="capa-desc"><p class="capa-desc-p">Sin tool call problemática. Agente respondió texto válido.</p></div></div>
 
-<p>🟢 4. <strong>Capa Integración</strong> [verificada] · <code>JSON del log</code></p>
-
-<p>Sin tool call problemática. Agente respondió texto válido.</p>
-
-<p>🟢 5. <strong>Capa Datos</strong> [verificada] · <code>curl GET /exec?recurso=business</code></p>
-
-<p>Sheet contiene tiempo_entrega_estimado="24h Madrid/Barcelona, 48h resto" — exactamente lo que el regex del test espera. La política existe, el playbook no la expone.</p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>5. Capa Datos</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>curl GET /exec?recurso=business</code></div><div class="capa-desc"><p class="capa-desc-p">Sheet contiene tiempo_entrega_estimado="24h Madrid/Barcelona, 48h resto" — exactamente lo que el regex del test espera. La política existe, el playbook no la expone.</p></div></div>
 
 <div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>6. Capa Infraestructura</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">deploy verde.</p></div></div>
 
-<p>🟡 7. <strong>Capa Modelo/LLM</strong> [supuesta] · _(no verificado con N≥2 — Capa 1 es la causa)_</p>
+<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>7. Capa Modelo/LLM</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-fuente">_(no verificado con N≥2 — Capa 1 es la causa)_</div><div class="capa-desc"><p class="capa-desc-p">Con Capa 1 como causa clara, la regla binaria impide marcar 🔴 en LLM.</p></div></div>
 
-<p>Con Capa 1 como causa clara, la regla binaria impide marcar 🔴 en LLM.</p>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>git log -n 20 -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores y cubría ambos casos (hora explícita + día relativo). El fix está disponible en el git para aplicarse.</p></div></div>
 
-<p>🔴 8. <strong>Capa Histórico</strong> [verificada] · <code>git log -n 20 -- definitions/playbooks/compra.yaml</code></p>
-
-<p>El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores y cubría ambos casos (hora explícita + día relativo). El fix está disponible en el git para aplicarse.</p>
-
-<p>🟢 9. <strong>Capa Test</strong> [verificada] · <code>Read JSON tc_id</code></p>
-
-<p>Regex bien calibrado para confirmación de plazo. Sin falsos negativos.</p>
-
-<p><strong>Resumen visual:</strong> 0 🔴 problema · 0 🟢 ok · 0 🟡 supuesta · 2 ⚪ N/A</p></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>9. Capa Test</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read JSON tc_id</code></div><div class="capa-desc"><p class="capa-desc-p">Regex bien calibrado para confirmación de plazo. Sin falsos negativos.</p><p class="capa-desc-p"><strong>Resumen visual:</strong> 2 🔴 problema · 3 🟢 ok · 2 🟡 supuesta · 2 ⚪ N/A</p></div></div></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
 <div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Bloque DETECCION RESTRICCION TEMPORAL (COMPARTIDO con TC-URGENCIA-01)</h4>
 
 <p>🟢 <strong>9/10</strong> · ~0 min marginal · Sin dependencias externas</p>
@@ -4081,64 +4049,27 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 
 <h4>Causa raíz — evaluación de las 9 capas del sistema [v1.1]</h4>
 
-<p>🔴 1. <strong>Capa Comportamiento</strong> [verificada] · <code>Read definitions/playbooks/compra.yaml líneas 601-607</code></p>
-
-<p>El Paso 7 ECO RESUMEN OBLIGATORIO define:</p>
-<p>```</p>
-<p>7. ECO RESUMEN OBLIGATORIO (NO saltarse, NO ir directo a Checkout):</p>
-<p>Usa el template EXACTO segun modo, sin anadir productos extra:</p>
-<ul>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>1. Capa Comportamiento</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read definitions/playbooks/compra.yaml líneas 601-607</code></div><div class="capa-desc"><p class="capa-desc-p">El Paso 7 ECO RESUMEN OBLIGATORIO define:</p><p class="capa-desc-p">```</p><p class="capa-desc-p">7. ECO RESUMEN OBLIGATORIO (NO saltarse, NO ir directo a Checkout):</p><p class="capa-desc-p">Usa el template EXACTO segun modo, sin anadir productos extra:</p><ul>
 <li>Estandar: 'Tu pedido: $cantidad x $producto ($precio_estimadoeuros). Lo confirmo?'</li>
 <li>Solemne: 'El pedido queda: $cantidad x $producto ($precio_estimadoeuros). Lo confirmamos?'</li>
 <li>Corporativo: 'Resumen del pedido: $cantidad x $producto ($precio_estimadoeuros). Confirmamos?'</li>
-</ul>
-<p>```</p>
-<p>El template es <strong>mono-producto en los tres modos</strong>: solo referencia <code>$producto</code> y <code>$precio_estimado</code>. No existe variante multi-producto con <code>$producto_2</code>, <code>$precio_2</code> ni el cálculo del total. Además, la coletilla "sin anadir productos extra" instruye activamente al LLM a NO incluir el segundo ítem. Esto es una <strong>contradicción interna del propio playbook</strong>: el Paso 6b (<code>compra.yaml:600</code>) captura <code>$producto_2</code> y <code>$precio_2</code>, y el Paso 8 (<code>compra.yaml:607</code>) los transfiere a Checkout — pero el Paso 7 los ignora y prohíbe mostrarlos. El usuario, por tanto, nunca ve el total antes de confirmar. Causa directa del FAIL determinista en runs 1&amp;2.</p>
-
-<p>La misma capa explica el fallo secundario de run 3: el Paso 5d (<code>compra.yaml:597</code>) dice "Muestra hasta 3 opciones" sin anclaje a qué subset mostrar, generando selección no-determinista del catálogo de centros de mesa.</p>
+</ul><p class="capa-desc-p">```</p><p class="capa-desc-p">El template es <strong>mono-producto en los tres modos</strong>: solo referencia <code>$producto</code> y <code>$precio_estimado</code>. No existe variante multi-producto con <code>$producto_2</code>, <code>$precio_2</code> ni el cálculo del total. Además, la coletilla "sin anadir productos extra" instruye activamente al LLM a NO incluir el segundo ítem. Esto es una <strong>contradicción interna del propio playbook</strong>: el Paso 6b (<code>compra.yaml:600</code>) captura <code>$producto_2</code> y <code>$precio_2</code>, y el Paso 8 (<code>compra.yaml:607</code>) los transfiere a Checkout — pero el Paso 7 los ignora y prohíbe mostrarlos. El usuario, por tanto, nunca ve el total antes de confirmar. Causa directa del FAIL determinista en runs 1&amp;2.</p><p class="capa-desc-p">La misma capa explica el fallo secundario de run 3: el Paso 5d (<code>compra.yaml:597</code>) dice "Muestra hasta 3 opciones" sin anclaje a qué subset mostrar, generando selección no-determinista del catálogo de centros de mesa.</p></div></div>
 
 <div class="capa-block capa-na"><div class="capa-header"><span class="capa-emoji">⚪</span><span class="capa-titulo"><strong>2. Capa Routing</strong></span><span class="capa-badge capa-badge-na">N/A</span></div><div class="capa-desc"><p class="capa-desc-p">Petal usa Playbooks exclusivamente; no hay Flows, Pages ni Intents en este flujo. <code>matchType=PLAYBOOK</code> en los 3 runs.</p></div></div>
 
-<p>🟢 3. <strong>Capa Parámetros / Slots</strong> [verificada] · <code>Read definitions/playbooks/compra.yaml líneas 158-171, 600, 607</code></p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>3. Capa Parámetros / Slots</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read definitions/playbooks/compra.yaml líneas 158-171, 600, 607</code></div><div class="capa-desc"><p class="capa-desc-p"><code>producto_2</code> (línea 161) y <code>precio_2</code> (línea 171) están declarados como parámetros del playbook. El Paso 6b los captura ("CAPTURA OBLIGATORIA: $producto_2 = nombre_exacto_elegido ... $precio_2 = precio_unitario x $cantidad_2") y el Paso 8 los transfiere a Checkout. El paso de slots NO es el problema: el agente dispone de ambos productos (lo demuestra el texto de runs 1&amp;2, que sí los lista). El fallo es que el template del Paso 7 no los usa para calcular el total. La capa de slots funciona; la de comportamiento no la aprovecha.</p></div></div>
 
-<p><code>producto_2</code> (línea 161) y <code>precio_2</code> (línea 171) están declarados como parámetros del playbook. El Paso 6b los captura ("CAPTURA OBLIGATORIA: $producto_2 = nombre_exacto_elegido ... $precio_2 = precio_unitario x $cantidad_2") y el Paso 8 los transfiere a Checkout. El paso de slots NO es el problema: el agente dispone de ambos productos (lo demuestra el texto de runs 1&amp;2, que sí los lista). El fallo es que el template del Paso 7 no los usa para calcular el total. La capa de slots funciona; la de comportamiento no la aprovecha.</p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>4. Capa Integración</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>JSON T1-T2 runs 1&amp;2</code></div><div class="capa-desc"><p class="capa-desc-p">PetalDataTool devuelve inventario válido en T1 (ramos de rosas) y T2 (centros de mesa). Los productos mostrados existen en catálogo (Ramo de Rosas Morado 37€, Centro de Mesa Tulipanes Multicolor 28€ confirmados en runs 1&amp;2). Sin errores de backend ni respuestas "Lo siento, algo no ha funcionado". No es causa del fallo.</p></div></div>
 
-<p>🟢 4. <strong>Capa Integración</strong> [verificada] · <code>JSON T1-T2 runs 1&amp;2</code></p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>5. Capa Datos</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>JSON T1-T2 runs 1&amp;2</code></div><div class="capa-desc"><p class="capa-desc-p">El producto "Centro de Mesa Tulipanes Multicolor — S (28€)" existe en catálogo (aparece en T2 de runs 1&amp;2). La suma esperada por el test (37 + 28 = 65) es aritméticamente correcta sobre datos reales del Sheet. Run 3 muestra un subset diferente (Rosas y Eucalipto S/M) — coherente con un catálogo de centros de mesa con más de 3 SKUs y un LLM que elige el subset sin instrucción de prioridad. Los datos son correctos; la presentación no.</p></div></div>
 
-<p>PetalDataTool devuelve inventario válido en T1 (ramos de rosas) y T2 (centros de mesa). Los productos mostrados existen en catálogo (Ramo de Rosas Morado 37€, Centro de Mesa Tulipanes Multicolor 28€ confirmados en runs 1&amp;2). Sin errores de backend ni respuestas "Lo siento, algo no ha funcionado". No es causa del fallo.</p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>6. Capa Infraestructura</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>metadata del JSON (orquestador v65, compra v39, checkout v33, registro v7)</code></div><div class="capa-desc"><p class="capa-desc-p">Las versiones del agente son coherentes con el estado del repo. El deploy es correcto y la versión activa es la esperada. No introduce regresión.</p></div></div>
 
-<p>🟢 5. <strong>Capa Datos</strong> [verificada] · <code>JSON T1-T2 runs 1&amp;2</code></p>
+<div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>7. Capa Modelo / LLM</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-fuente">_(no verificado: requeriría múltiples runs con debug de tool calls para aislar el comportamiento del LLM frente al de la instrucción)_</div><div class="capa-desc"><p class="capa-desc-p">Run 3 muestra comportamiento no-determinista: el LLM seleccionó un subset de centros de mesa distinto al de runs 1&amp;2 ante una query de usuario equivalente. Es un síntoma conocido cuando el catálogo tiene más productos que el límite "hasta 3" sin instrucción de prioridad. No se marca 🔴 porque la Capa Comportamiento no está en 🟢 y run 3 es solo 1 de 3 ejecuciones. La regla binaria del skill exige las 8 capas restantes en 🟢 [verificada] para marcar 🔴 — no se cumple.</p></div></div>
 
-<p>El producto "Centro de Mesa Tulipanes Multicolor — S (28€)" existe en catálogo (aparece en T2 de runs 1&amp;2). La suma esperada por el test (37 + 28 = 65) es aritméticamente correcta sobre datos reales del Sheet. Run 3 muestra un subset diferente (Rosas y Eucalipto S/M) — coherente con un catálogo de centros de mesa con más de 3 SKUs y un LLM que elige el subset sin instrucción de prioridad. Los datos son correctos; la presentación no.</p>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>git log --oneline -n 25 -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">```</p><p class="capa-desc-p">a957a04  Revert "feat(compra): DETECCION RESTRICCION TEMPORAL..."  (revierte eb928a2)</p><p class="capa-desc-p">eb928a2  TEMP fix(compra): ECO RESUMEN multi-producto incluye 2 productos + total</p><p class="capa-desc-p">...</p><p class="capa-desc-p">c9ce667  DEMO BREAK v2: rompe ECO RESUMEN multi-producto (Paso 7) — solo muestra primer producto</p><p class="capa-desc-p">b8f9ee5  DEMO BREAK: quita captura de $producto_2 en compra.yaml Paso 6b</p><p class="capa-desc-p">4f7adea  fix(multi-producto): slots explícitos + ECO resumen + Checkout condicional (#94)</p><p class="capa-desc-p">5b05396  fix(playbook-compra): CASO ESPECIAL multi-producto (TC-MULTI-PRODUCTO-01) (#93)</p><p class="capa-desc-p">```</p><p class="capa-desc-p">El fix correcto <strong>ya existió</strong>: <code>eb928a2</code> ("ECO RESUMEN multi-producto incluye 2 productos + total") resolvía exactamente este TC. Fue <strong>revertido por <code>a957a04</code></strong> — patrón "demo break": el ECO de 2 productos + total se quita intencionadamente para reproducir el bug en demos. El estado actual del archivo (template mono-producto, línea 603) es el resultado de ese revert sumado al DEMO BREAK previo <code>c9ce667</code>. La regresión es intencionada y reversible; el fix de referencia es recuperable con <code>git show eb928a2:definitions/playbooks/compra.yaml</code>.</p></div></div>
 
-<p>🟢 6. <strong>Capa Infraestructura</strong> [verificada] · <code>metadata del JSON (orquestador v65, compra v39, checkout v33, registro v7)</code></p>
-
-<p>Las versiones del agente son coherentes con el estado del repo. El deploy es correcto y la versión activa es la esperada. No introduce regresión.</p>
-
-<p>🟡 7. <strong>Capa Modelo / LLM</strong> [supuesta] · _(no verificado: requeriría múltiples runs con debug de tool calls para aislar el comportamiento del LLM frente al de la instrucción)_</p>
-
-<p>Run 3 muestra comportamiento no-determinista: el LLM seleccionó un subset de centros de mesa distinto al de runs 1&amp;2 ante una query de usuario equivalente. Es un síntoma conocido cuando el catálogo tiene más productos que el límite "hasta 3" sin instrucción de prioridad. No se marca 🔴 porque la Capa Comportamiento no está en 🟢 y run 3 es solo 1 de 3 ejecuciones. La regla binaria del skill exige las 8 capas restantes en 🟢 [verificada] para marcar 🔴 — no se cumple.</p>
-
-<p>🔴 8. <strong>Capa Histórico</strong> [verificada] · <code>git log --oneline -n 25 -- definitions/playbooks/compra.yaml</code></p>
-
-<p>```</p>
-<p>a957a04  Revert "feat(compra): DETECCION RESTRICCION TEMPORAL..."  (revierte eb928a2)</p>
-<p>eb928a2  TEMP fix(compra): ECO RESUMEN multi-producto incluye 2 productos + total</p>
-<p>...</p>
-<p>c9ce667  DEMO BREAK v2: rompe ECO RESUMEN multi-producto (Paso 7) — solo muestra primer producto</p>
-<p>b8f9ee5  DEMO BREAK: quita captura de $producto_2 en compra.yaml Paso 6b</p>
-<p>4f7adea  fix(multi-producto): slots explícitos + ECO resumen + Checkout condicional (#94)</p>
-<p>5b05396  fix(playbook-compra): CASO ESPECIAL multi-producto (TC-MULTI-PRODUCTO-01) (#93)</p>
-<p>```</p>
-<p>El fix correcto <strong>ya existió</strong>: <code>eb928a2</code> ("ECO RESUMEN multi-producto incluye 2 productos + total") resolvía exactamente este TC. Fue <strong>revertido por <code>a957a04</code></strong> — patrón "demo break": el ECO de 2 productos + total se quita intencionadamente para reproducir el bug en demos. El estado actual del archivo (template mono-producto, línea 603) es el resultado de ese revert sumado al DEMO BREAK previo <code>c9ce667</code>. La regresión es intencionada y reversible; el fix de referencia es recuperable con <code>git show eb928a2:definitions/playbooks/compra.yaml</code>.</p>
-
-<p>🟢 9. <strong>Capa Test</strong> [verificada] · <code>JSON T3 (check "65")</code></p>
-
-<p>El check <code>[65]</code> es correcto: verifica que el total (37 + 28 = 65€) aparezca en el ECO RESUMEN antes de la confirmación. Es una condición de negocio válida — el usuario debe ver el precio total antes de confirmar. El FAIL es determinista en runs 1&amp;2 (template mono-producto) y coyuntural en run 3 (subset de catálogo). La calibración del test es correcta; no es un falso negativo.</p>
-
-<p><strong>Resumen visual:</strong> 0 🔴 problema · 0 🟢 ok · 0 🟡 supuesta · 1 ⚪ N/A</p>
-
-<p>---</p>
+<div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>9. Capa Test</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>JSON T3 (check "65")</code></div><div class="capa-desc"><p class="capa-desc-p">El check <code>[65]</code> es correcto: verifica que el total (37 + 28 = 65€) aparezca en el ECO RESUMEN antes de la confirmación. Es una condición de negocio válida — el usuario debe ver el precio total antes de confirmar. El FAIL es determinista en runs 1&amp;2 (template mono-producto) y coyuntural en run 3 (subset de catálogo). La calibración del test es correcta; no es un falso negativo.</p><p class="capa-desc-p"><strong>Resumen visual:</strong> 2 🔴 problema · 5 🟢 ok · 1 🟡 supuesta · 1 ⚪ N/A</p><p class="capa-desc-p">---</p></div></div>
 
 <h3>Dimensionamiento del bug</h3>
 
