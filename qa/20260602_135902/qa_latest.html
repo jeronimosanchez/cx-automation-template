@@ -3811,34 +3811,34 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 
 <div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>7. Capa Modelo/LLM</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-fuente">_(no verificado con N≥2 ejecuciones idénticas — Capa 1 es la causa identificada)_</div><div class="capa-desc"><p class="capa-desc-p">Con Capa 1 como causa clara (falta instrucción), la regla binaria impide marcar 🔴 en LLM.</p></div></div>
 
-<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>git log -n 20 -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores (b32f773 session_params dinámicos). El fix está disponible en el git para aplicarse.</p></div></div>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>git log -n 20 -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe completo en el commit <code>c6f17bf</code> (playbook que consume <code>$hora_actual</code>). Además, <code>b32f773</code> añadió la inyección de los session_params en el test. El fix de playbook está disponible en git para recuperarse.</p></div></div>
 
 <div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>9. Capa Test</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read JSON tc_id</code></div><div class="capa-desc"><p class="capa-desc-p">Regex bien calibrado: captura cualquier respuesta que mencione plazo/urgencia/no-disponible. Sin falsos negativos.</p><p class="capa-desc-p"><strong>Resumen visual:</strong> 2 🔴 problema · 4 🟢 ok · 1 🟡 supuesta · 2 ⚪ N/A</p></div></div></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
-<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Bloque DETECCION RESTRICCION TEMPORAL que consuma session_params</h4>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Recuperar el bloque DETECCION RESTRICCION TEMPORAL desde git (<code>c6f17bf</code>)</h4>
 
-<p>🟢 <strong>9/10</strong> · ~11 min · Sin dependencias externas</p>
+<p>🟢 <strong>9/10</strong> · ~5 min · Sin dependencias externas</p>
 
-<p><strong>Por qué</strong>: los session_params (entrega_hoy_posible) ya llegan al contexto. Solo falta el bloque de instrucción en compra.yaml que los lea y avise al usuario. El fix existe en el historial.</p>
+<p><strong>Por qué</strong>: el bloque que resuelve este bug <strong>ya existe completo y validado en el historial de git</strong> (commit <code>c6f17bf</code> — "DETECCION RESTRICCION TEMPORAL con $hora_actual inyectada"). No hay que construir nada nuevo: el bloque lee <code>$hora_actual</code> (que ya se inyecta como session_param), calcula el corte de las 14:00, y responde la política de entrega. Cubre tanto la hora explícita ("hoy a las 18:00") como el día relativo ("este viernes"). Recuperarlo de git es más rápido y seguro que reescribirlo. <strong>El humano valida que esta es la mejor opción frente a construir desde cero.</strong></p>
 
 <h4>Dimensionamiento del bug</h4>
 
-<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Medio</td><td>1 archivo (compra.yaml), bloque ~8 líneas</td></tr><tr><td>Profundidad</td><td>Medio</td><td>Sub-flujo que consume session_params + respuesta determinística</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix histórico validado</td></tr></tbody></table>
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Medio</td><td>1 archivo (compra.yaml), bloque ya existente en <code>c6f17bf</code></td></tr><tr><td>Profundidad</td><td>Medio</td><td>El bloque consume <code>$hora_actual</code> + responde política determinística</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Bloque ya validado en su momento; recuperación de git limpia</td></tr></tbody></table>
 
 <p><strong>Nivel final:</strong> Medio → 5 soluciones</p>
 
 <h4>Soluciones evaluadas (ordenadas por score)</h4>
 
-<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Bloque DETECCION RESTRICCION TEMPORAL</strong> que lee entrega_hoy_posible y avisa</td><td>🟢 9/10</td><td>—</td><td>Los datos ya llegan, solo falta consumirlos. Fix histórico validado</td></tr><tr><td>2</td><td><strong>Solución #1 + propagar a Checkout</strong> el flag de urgencia</td><td>🟢 8/10</td><td>—</td><td>Más completo para validaciones futuras</td></tr><tr><td>3</td><td><strong>Generator dedicado</strong> para respuestas de urgencia</td><td>🟡 6/10</td><td>—</td><td>Añade componente, más mantenimiento</td></tr><tr><td>4</td><td><strong>Tool validar_plazo en backend</strong></td><td>🟡 5/10</td><td>Extender Cloud Run</td><td>Determinístico pero toca backend</td></tr><tr><td>5</td><td><strong>Sub-playbook Plazo_Task</strong></td><td>🔴 3/10</td><td>—</td><td>Sobre-ingeniería + latencia de hop</td></tr></tbody></table>
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Recuperar bloque de git <code>c6f17bf</code></strong> (<code>git show c6f17bf:definitions/playbooks/compra.yaml</code> → restaurar el bloque)</td><td>🟢 9/10</td><td>—</td><td>El fix ya existe completo y validado. Usa <code>$hora_actual</code> inyectado. Cubre hoy + día futuro. La opción más rápida y segura: no se reinventa nada</td></tr><tr><td>2</td><td><strong>Recuperar <code>c6f17bf</code> + propagar flag de urgencia a Checkout</strong></td><td>🟢 8/10</td><td>—</td><td>Igual de fiable + prepara validaciones de viabilidad futuras</td></tr><tr><td>3</td><td><strong>Reescribir el bloque desde cero</strong> consumiendo session_params</td><td>🟡 6/10</td><td>—</td><td>Funciona pero reinventa algo que ya está en git. Más tiempo, más riesgo de introducir variaciones</td></tr><tr><td>4</td><td><strong>Tool validar_plazo en backend</strong></td><td>🟡 5/10</td><td>Extender Cloud Run</td><td>Determinístico al 100% pero toca el backend, sobredimensionado</td></tr><tr><td>5</td><td><strong>Sub-playbook Plazo_Task</strong></td><td>🔴 3/10</td><td>—</td><td>Sobre-ingeniería + latencia de hop adicional</td></tr></tbody></table>
 
 <h4>Plan de acción (Solución #1)</h4>
 
-<p>1. <strong>Editar compra.yaml</strong>: añadir bloque que lee <code>entrega_hoy_posible</code>; si es "no", avisar del plazo antes de mostrar catálogo</p>
-<p>2. <strong>Verificar</strong> que consume los session_params inyectados</p>
+<p>1. <strong>Recuperar el bloque</strong> de <code>c6f17bf</code>: <code>git show c6f17bf:definitions/playbooks/compra.yaml</code> → copiar el bloque DETECCION RESTRICCION TEMPORAL y aplicarlo a <code>compra.yaml</code> actual (tras el GOAL, antes del PASO 0)</p>
+<p>2. <strong>Verificar</strong> que el bloque consume <code>$hora_actual</code> (ya inyectado como session_param)</p>
 <p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code></p>
 
-<p><strong>Coste total</strong>: ~8 min edición + 3 min QA = ~11 min.</p>
+<p><strong>Coste total</strong>: ~3 min recuperación + 3 min QA = ~5 min (más rápido que reescribir).</p>
 
-<p><strong>Forma parte del patrón URGENCIA-IGNORADA.</strong> Si el fix resuelve la causa raíz, TC-URGENCIA-03 pasará a PASS sin cambios adicionales.</p></div></div>
+<p><strong>Forma parte del patrón URGENCIA-IGNORADA.</strong> Si el bloque recuperado resuelve la causa raíz, TC-URGENCIA-03 pasará a PASS sin cambios adicionales (el mismo bloque cubre día relativo).</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -3894,34 +3894,34 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 
 <div class="capa-block capa-amarillo"><div class="capa-header"><span class="capa-emoji">🟡</span><span class="capa-titulo"><strong>7. Capa Modelo/LLM</strong></span><span class="capa-badge capa-badge-supuesta">? supuesta</span></div><div class="capa-fuente">_(no verificado con N≥2 — Capa 1 es la causa)_</div><div class="capa-desc"><p class="capa-desc-p">Con Capa 1 como causa clara, la regla binaria impide marcar 🔴 en LLM.</p></div></div>
 
-<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>git log -n 20 -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores y cubría ambos casos (hora explícita + día relativo). El fix está disponible en el git para aplicarse.</p></div></div>
+<div class="capa-block capa-rojo"><div class="capa-header"><span class="capa-emoji">🔴</span><span class="capa-titulo"><strong>8. Capa Histórico</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>git log -n 20 -- definitions/playbooks/compra.yaml</code></div><div class="capa-desc"><p class="capa-desc-p">El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe completo en el commit <code>c6f17bf</code> y cubre ambos casos (hora explícita + día relativo "viernes"). El fix está disponible en git para recuperarse.</p></div></div>
 
 <div class="capa-block capa-verde"><div class="capa-header"><span class="capa-emoji">🟢</span><span class="capa-titulo"><strong>9. Capa Test</strong></span><span class="capa-badge capa-badge-verificada">✓ verificada</span></div><div class="capa-fuente"><code>Read JSON tc_id</code></div><div class="capa-desc"><p class="capa-desc-p">Regex bien calibrado para confirmación de plazo. Sin falsos negativos.</p><p class="capa-desc-p"><strong>Resumen visual:</strong> 2 🔴 problema · 3 🟢 ok · 2 🟡 supuesta · 2 ⚪ N/A</p></div></div></div></div><div class="wip-disclaimer-sm">ℹ Análisis sin acceso a Backlog — puede no distinguir bug de feature pendiente. Ver épica <em>system_knowledge.md</em>.</div></div>
-<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Bloque DETECCION RESTRICCION TEMPORAL (COMPARTIDO con TC-URGENCIA-01)</h4>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Solución recomendada: #1 — Recuperar el bloque desde git <code>c6f17bf</code> (COMPARTIDO con TC-URGENCIA-01)</h4>
 
 <p>🟢 <strong>9/10</strong> · ~0 min marginal · Sin dependencias externas</p>
 
-<p><strong>Por qué</strong>: el mismo bloque que arregla TC-URGENCIA-01 cubre también el caso de día relativo ("viernes"). Un único fix cierra ambos TCs.</p>
+<p><strong>Por qué</strong>: el bloque DETECCION RESTRICCION TEMPORAL que ya existe en el commit <code>c6f17bf</code> cubre explícitamente el caso de día relativo ("este viernes" → "Sin problema para el viernes, el plazo es 24h Madrid/Barcelona, 48h resto"). El mismo bloque que se recupera para TC-URGENCIA-01 resuelve este TC. Un único <code>git restore</code> cierra ambos.</p>
 
 <h4>Dimensionamiento del bug</h4>
 
-<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Medio</td><td>1 archivo (compra.yaml), bloque ~8 líneas</td></tr><tr><td>Profundidad</td><td>Medio</td><td>Sub-flujo temporal + respuesta determinística desde Sheet</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Fix histórico validado</td></tr></tbody></table>
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Medio</td><td>1 archivo (compra.yaml), bloque ya existente en <code>c6f17bf</code></td></tr><tr><td>Profundidad</td><td>Medio</td><td>El bloque maneja día relativo + respuesta determinística desde Sheet</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Bloque ya validado; recuperación de git limpia</td></tr></tbody></table>
 
 <p><strong>Nivel final:</strong> Medio → 5 soluciones</p>
 
 <h4>Soluciones evaluadas (ordenadas por score)</h4>
 
-<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Bloque DETECCION RESTRICCION TEMPORAL</strong> — cierra TC-01 + TC-03</td><td>🟢 9/10</td><td>—</td><td>Fix compartido, ROI doble</td></tr><tr><td>2</td><td><strong>Solución #1 + slot $fecha_entrega propagado</strong></td><td>🟢 8/10</td><td>—</td><td>Habilita validaciones futuras</td></tr><tr><td>3</td><td><strong>Expandir ZG-5 del Orquestador</strong> para detectar mención de plazo</td><td>🟡 6/10</td><td>—</td><td>Acopla responsabilidad de negocio al Orquestador</td></tr><tr><td>4</td><td><strong>Tool validar_plazo_entrega</strong> en backend</td><td>🟡 5/10</td><td>Extender Cloud Run</td><td>Determinístico, requiere tocar backend</td></tr><tr><td>5</td><td><strong>Sub-playbook Plazo_Task</strong></td><td>🔴 3/10</td><td>—</td><td>Sobre-ingeniería + latencia</td></tr></tbody></table>
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Recuperar bloque de git <code>c6f17bf</code></strong> — cierra TC-01 + TC-03</td><td>🟢 9/10</td><td>—</td><td>El fix ya existe completo y cubre día relativo. ROI doble, no se reinventa nada</td></tr><tr><td>2</td><td><strong>Recuperar <code>c6f17bf</code> + slot <code>$fecha_entrega</code> propagado</strong></td><td>🟢 8/10</td><td>—</td><td>Igual de fiable + habilita validaciones futuras</td></tr><tr><td>3</td><td><strong>Reescribir el bloque desde cero</strong></td><td>🟡 6/10</td><td>—</td><td>Funciona pero reinventa algo que ya está en git</td></tr><tr><td>4</td><td><strong>Expandir ZG-5 del Orquestador</strong> para detectar mención de plazo</td><td>🟡 5/10</td><td>—</td><td>Acopla responsabilidad de negocio al Orquestador</td></tr><tr><td>5</td><td><strong>Sub-playbook Plazo_Task</strong></td><td>🔴 3/10</td><td>—</td><td>Sobre-ingeniería + latencia</td></tr></tbody></table>
 
 <h4>Plan de acción (Solución #1, COMPARTIDO con TC-URGENCIA-01)</h4>
 
-<p>1. <strong>Editar compra.yaml</strong>: el mismo bloque DETECCION RESTRICCION TEMPORAL cubre día relativo</p>
-<p>2. <strong>Verificar</strong> triggers de días de semana</p>
+<p>1. <strong>Recuperar el bloque</strong> de <code>c6f17bf</code> (mismo que para TC-URGENCIA-01) — cubre día relativo además de hora explícita</p>
+<p>2. <strong>Verificar</strong> que el bloque incluye triggers de días de semana ("este viernes", "lunes"..."domingo")</p>
 <p>3. <strong>Re-ejecutar QA</strong> con <code>--runs 3</code> filtrando ambos TCs</p>
 
-<p><strong>Coste total</strong>: ~11 min (compartido → coste marginal TC-03 = 0)</p>
+<p><strong>Coste total</strong>: ~5 min (compartido → coste marginal TC-03 = 0)</p>
 
-<p><strong>Forma parte del patrón URGENCIA-IGNORADA.</strong> Si el fix de TC-URGENCIA-01 resuelve la causa raíz común, este TC pasará a PASS sin cambios adicionales.</p></div></div>
+<p><strong>Forma parte del patrón URGENCIA-IGNORADA.</strong> El bloque de <code>c6f17bf</code> resuelve la causa raíz común — al recuperarlo, este TC pasará a PASS sin cambios adicionales.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-INV" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
