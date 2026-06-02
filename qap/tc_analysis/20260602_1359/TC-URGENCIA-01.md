@@ -43,7 +43,7 @@ Con Capa 1 como causa clara (falta instrucción), la regla binaria impide marcar
 
 🔴 8. **Capa Histórico** [verificada] · `git log -n 20 -- definitions/playbooks/compra.yaml`
 
-Historial de regresión: el bloque DETECCION RESTRICCION TEMPORAL se aplicó y revirtió varias veces (b32f773 session_params, reverts bce6c6b y 967452c). Patrón demo break — el fix existe pero se quita repetidamente.
+El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores (b32f773 session_params dinámicos). El fix está disponible en el git para aplicarse.
 
 🟢 9. **Capa Test** [verificada] · `Read JSON tc_id`
 
