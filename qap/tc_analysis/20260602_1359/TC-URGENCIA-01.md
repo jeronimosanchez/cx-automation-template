@@ -43,7 +43,7 @@ Con Capa 1 como causa clara (falta instrucción), la regla binaria impide marcar
 
 🔴 8. **Capa Histórico** [verificada] · `git log -n 20 -- definitions/playbooks/compra.yaml`
 
-El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe en commits anteriores (b32f773 session_params dinámicos). El fix está disponible en el git para aplicarse.
+El historial muestra que el bloque DETECCION RESTRICCION TEMPORAL existe completo en el commit `c6f17bf` (playbook que consume `$hora_actual`). Además, `b32f773` añadió la inyección de los session_params en el test. El fix de playbook está disponible en git para recuperarse.
 
 🟢 9. **Capa Test** [verificada] · `Read JSON tc_id`
 
@@ -53,19 +53,19 @@ Regex bien calibrado: captura cualquier respuesta que mencione plazo/urgencia/no
 
 ## Recomendación
 
-### Solución recomendada: #1 — Bloque DETECCION RESTRICCION TEMPORAL que consuma session_params
+### Solución recomendada: #1 — Recuperar el bloque DETECCION RESTRICCION TEMPORAL desde git (`c6f17bf`)
 
-🟢 **9/10** · ~11 min · Sin dependencias externas
+🟢 **9/10** · ~5 min · Sin dependencias externas
 
-**Por qué**: los session_params (entrega_hoy_posible) ya llegan al contexto. Solo falta el bloque de instrucción en compra.yaml que los lea y avise al usuario. El fix existe en el historial.
+**Por qué**: el bloque que resuelve este bug **ya existe completo y validado en el historial de git** (commit `c6f17bf` — "DETECCION RESTRICCION TEMPORAL con $hora_actual inyectada"). No hay que construir nada nuevo: el bloque lee `$hora_actual` (que ya se inyecta como session_param), calcula el corte de las 14:00, y responde la política de entrega. Cubre tanto la hora explícita ("hoy a las 18:00") como el día relativo ("este viernes"). Recuperarlo de git es más rápido y seguro que reescribirlo. **El humano valida que esta es la mejor opción frente a construir desde cero.**
 
 ### Dimensionamiento del bug
 
 | Dimensión | Nivel | Justificación |
 |---|---|---|
-| Alcance | Medio | 1 archivo (compra.yaml), bloque ~8 líneas |
-| Profundidad | Medio | Sub-flujo que consume session_params + respuesta determinística |
-| Riesgo de regresión | Trivial | Fix histórico validado |
+| Alcance | Medio | 1 archivo (compra.yaml), bloque ya existente en `c6f17bf` |
+| Profundidad | Medio | El bloque consume `$hora_actual` + responde política determinística |
+| Riesgo de regresión | Trivial | Bloque ya validado en su momento; recuperación de git limpia |
 
 **Nivel final:** Medio → 5 soluciones
 
@@ -73,18 +73,18 @@ Regex bien calibrado: captura cualquier respuesta que mencione plazo/urgencia/no
 
 | # | Solución | Score | Dependencias | Por qué este scoring |
 |---|----------|-------|--------------|----------------------|
-| 1 | **Bloque DETECCION RESTRICCION TEMPORAL** que lee entrega_hoy_posible y avisa | 🟢 9/10 | — | Los datos ya llegan, solo falta consumirlos. Fix histórico validado |
-| 2 | **Solución #1 + propagar a Checkout** el flag de urgencia | 🟢 8/10 | — | Más completo para validaciones futuras |
-| 3 | **Generator dedicado** para respuestas de urgencia | 🟡 6/10 | — | Añade componente, más mantenimiento |
-| 4 | **Tool validar_plazo en backend** | 🟡 5/10 | Extender Cloud Run | Determinístico pero toca backend |
-| 5 | **Sub-playbook Plazo_Task** | 🔴 3/10 | — | Sobre-ingeniería + latencia de hop |
+| 1 | **Recuperar bloque de git `c6f17bf`** (`git show c6f17bf:definitions/playbooks/compra.yaml` → restaurar el bloque) | 🟢 9/10 | — | El fix ya existe completo y validado. Usa `$hora_actual` inyectado. Cubre hoy + día futuro. La opción más rápida y segura: no se reinventa nada |
+| 2 | **Recuperar `c6f17bf` + propagar flag de urgencia a Checkout** | 🟢 8/10 | — | Igual de fiable + prepara validaciones de viabilidad futuras |
+| 3 | **Reescribir el bloque desde cero** consumiendo session_params | 🟡 6/10 | — | Funciona pero reinventa algo que ya está en git. Más tiempo, más riesgo de introducir variaciones |
+| 4 | **Tool validar_plazo en backend** | 🟡 5/10 | Extender Cloud Run | Determinístico al 100% pero toca el backend, sobredimensionado |
+| 5 | **Sub-playbook Plazo_Task** | 🔴 3/10 | — | Sobre-ingeniería + latencia de hop adicional |
 
 ### Plan de acción (Solución #1)
 
-1. **Editar compra.yaml**: añadir bloque que lee `entrega_hoy_posible`; si es "no", avisar del plazo antes de mostrar catálogo
-2. **Verificar** que consume los session_params inyectados
+1. **Recuperar el bloque** de `c6f17bf`: `git show c6f17bf:definitions/playbooks/compra.yaml` → copiar el bloque DETECCION RESTRICCION TEMPORAL y aplicarlo a `compra.yaml` actual (tras el GOAL, antes del PASO 0)
+2. **Verificar** que el bloque consume `$hora_actual` (ya inyectado como session_param)
 3. **Re-ejecutar QA** con `--runs 3`
 
-**Coste total**: ~8 min edición + 3 min QA = ~11 min.
+**Coste total**: ~3 min recuperación + 3 min QA = ~5 min (más rápido que reescribir).
 
-**Forma parte del patrón URGENCIA-IGNORADA.** Si el fix resuelve la causa raíz, TC-URGENCIA-03 pasará a PASS sin cambios adicionales.
+**Forma parte del patrón URGENCIA-IGNORADA.** Si el bloque recuperado resuelve la causa raíz, TC-URGENCIA-03 pasará a PASS sin cambios adicionales (el mismo bloque cubre día relativo).
