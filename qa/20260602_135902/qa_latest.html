@@ -3183,43 +3183,42 @@ Confirmamos?"</div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-02</span><span class="tname">Plazo de entrega con urgencia — agente da el plazo exacto (24h) sin rangos ni invenciones</span><span class="tgroup">COMPRA-ZG</span><span class="truns">2/2</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-02</span><span class="tname">Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-p">PASS</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge ok">PASS</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo urgente, ¿en cuánto tiempo entregáis?"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: 24h</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[24h]</code></details>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"lo necesito urgente, ¿en cuánto tiempo entregáis?"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"No tenemos un tiempo de entrega fijo, depende de la disponibilidad del producto y la dirección de envío. ¿Hay algo más en lo que pueda ayudarte?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: entrega</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[entrega]</code></details>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
 <div class="trace-step trace-user">
 <span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"necesito un ramo urgente, ¿en cuánto tiempo entregáis?"</div>
+<div class="trace-text">"lo necesito urgente, ¿en cuánto tiempo entregáis?"</div>
 </div>
 <div class="trace-step trace-action" style="color:#666"><span class="trace-arrow">v</span> <em>Sin trace ni grupo_intent capturado en este turno</em></div>
 <div class="trace-step trace-agent">
 <span class="trace-lbl">Agente</span>
-<div class="trace-text">"Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?"</div>
+<div class="trace-text">"No tenemos un tiempo de entrega fijo, depende de la disponibilidad del producto y la dirección de envío. ¿Hay algo más en lo que pueda ayudarte?"</div>
 </div>
 </div>
 </div>
 </details></div></td></tr></table>
-<div class="ta-run-header"><span class="run-num">Run 2</span><span class="run-badge ok">PASS</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"necesito un ramo urgente, ¿en cuánto tiempo entregáis?"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: 24h</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[24h]</code></details>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"mañana por la mañana"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"No te preocupes, si haces tu pedido antes de las 17:00, podemos entregarlo mañana por la mañana. ¿Te gustaría que te ayude a elegir algo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: mañana</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[mañana]</code></details>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
 <div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"necesito un ramo urgente, ¿en cuánto tiempo entregáis?"</div>
+<span class="trace-lbl">Usuario (T2)</span>
+<div class="trace-text">"mañana por la mañana"</div>
 </div>
 <div class="trace-step trace-action" style="color:#666"><span class="trace-arrow">v</span> <em>Sin trace ni grupo_intent capturado en este turno</em></div>
 <div class="trace-step trace-agent">
 <span class="trace-lbl">Agente</span>
-<div class="trace-text">"Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?"</div>
+<div class="trace-text">"No te preocupes, si haces tu pedido antes de las 17:00, podemos entregarlo mañana por la mañana. ¿Te gustaría que te ayude a elegir algo?"</div>
 </div>
 </div>
 </div>
@@ -3753,20 +3752,20 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — hora explicita (18:00) con corte pasado, agente informa restriccion</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/2</span><span class="tipo-tag">Bug Playbook</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-01</span><span class="tname">Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas rojas para hoy a las 18:00"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, un ramo de rosas rojas. Tenemos estas opciones:
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas para hoy a las 18:00"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, ramos de rosas tenemos:
 
-*   Ramo de Rosas Rojas — S (8 flores, 22€)
-*   Ramo de Rosas Rojas — M (15 flores, 37€)
-*   Ramo de Rosas Rojas — L (26 flores, 59€)
+*   Ramo de Rosas Morado — M (15 flores, 37€)
+*   Ramo de Rosas Amarillo — M (12 flores, 25€)
+*   Ramo de Rosas Blanco — M (12 flores, 25€)
 
-¿Cuál te convence?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+¿Alguno te convence?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
 <p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">El agente debía reconocer la urgencia horaria y verificar el plazo de entrega antes de mostrar catálogo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[corte|14:00|ma.ana|d.a siguiente|no.{0,20}hoy|hoy.{0,20}no]</code></details>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[Ramo de Rosas .*\d|¿alguna te convence|te propongo estas]</code></details>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[14:00|corte|manana|mañana|plazo|24h|no.{0,30}posib]</code></details>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ramo de rosas.*€|¿alguna te convence|Ramo de Rosas]</code></details>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
@@ -3794,47 +3793,7 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 <h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>hora_actual=16:30</code>, <code>entrega_hoy_posible=DESPUES_DEL_CORTE</code>, <code>tiempo_entrega_estimado=24h</code>, <code>dia_semana=martes</code>, <code>modo_tono=estandar</code></li>
-</ul></div></td></tr></table>
-<div class="ta-run-header"><span class="run-num">Run 2</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas rojas para hoy a las 18:00"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, ramos de rosas rojas tenemos:
-
-*   Ramo de Rosas Rojas — S (8 flores, 22€)
-*   Ramo de Rosas Rojas — M (15 flores, 37€)
-*   Ramo de Rosas Rojas — L (26 flores, 59€)
-
-¿Cuál te gusta más?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">El agente debía reconocer la urgencia horaria y verificar el plazo de entrega antes de mostrar catálogo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[corte|14:00|ma.ana|d.a siguiente|no.{0,20}hoy|hoy.{0,20}no]</code></details>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[Ramo de Rosas .*\d|¿alguna te convence|te propongo estas]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<table class="ta-flow-table">
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"quiero un ramo de rosas para hoy a las 18:00"</em></td>
-<td class="col-problem">—</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Sistema</strong>: Inyecta session<em>params: hora</em>actual=11:21, entrega<em>hoy</em>posible=no, dia_semana=domingo</td>
-<td class="col-problem">✅ El dato de urgencia SÍ llega al contexto</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Muestra catálogo de rosas ignorando los session_params</td>
-<td class="col-problem">🔴 No consume entrega<em>hoy</em>posible=no</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Cierra con apertura estándar</td>
-<td class="col-problem">🔴 No avisa de plazo ni de que hoy no es posible</td>
-</tr>
-</table>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>entrega_hoy_posible=DESPUES_DEL_CORTE</code>, <code>dia_semana=martes</code>, <code>horario_limite_entrega_hoy=19:00</code>, <code>modo_tono=estandar</code>, <code>hora_actual=16:30</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>fields={'hora_actual': {'stringValue': '11:21'}</code>, <code>producto=ramo de rosas</code>, <code>modo_tono=estandar</code></li>
 </ul></div></td></tr></table>
 <div class="diagnostico" data-tcid="TC-URGENCIA-01"><div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span><span class="rec-tag diag-tag">Bug Playbook</span><button class="info-btn" onclick="openInfoModal('capas')" title="9 capas y sus estados">?</button></div><div class="rec-content diag-band-content"><div class="manual-analysis"><h4>Causa raíz — evaluación de las 9 capas del sistema</h4>
 
@@ -3899,13 +3858,13 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — usuario nombra el dia de hoy (ambiguo), agente desambigua y aplica logica de hora</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/2</span><span class="tipo-tag">Bug Playbook</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — plazo hoy (domingo), agente verifica viabilidad según hora real</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"lo necesito para el martes"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"No te preocupes, te ayudo a encontrar algo. ¿Para qué ocasión buscas flores?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"lo necesito para este domingo"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Los domingos aplicamos un recargo de 5€ por ser día festivo. ¿Te parece bien?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
 <p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[hoy|este|que viene|proxim|te refieres|mismo]</code></details>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[sin problema|posible|llega|de acuerdo|manana.*temprano]</code></details>
 <details class="ta-detail">
 <summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
 <div class="ta-detail-content">
@@ -3932,97 +3891,8 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
 </details>
 <h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
 <ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>tiempo_entrega_estimado=24h</code>, <code>horario_corte_mismo_dia=14:00</code>, <code>hora_actual=16:30</code>, <code>horario_limite_entrega_hoy=19:00</code>, <code>modo_tono=estandar</code></li>
-</ul></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"hoy mismo"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿Para qué ocasión buscas flores?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: corte / 14:00 / ma.ana / d.a siguiente / no…hoy / hoy…no</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[corte|14:00|ma.ana|d.a siguiente|no.{0,20}hoy|hoy.{0,20}no]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T2)</span>
-<div class="trace-text">"hoy mismo"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>horario_corte_mismo_dia=14:00</code>, <code>hora_actual=16:30</code>, <code>tiempo_entrega_estimado=24h</code>, <code>horario_limite_entrega_hoy=19:00</code>, <code>dia_semana=martes</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¿Para qué ocasión buscas flores?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>horario_corte_mismo_dia=14:00</code>, <code>hora_actual=16:30</code>, <code>tiempo_entrega_estimado=24h</code>, <code>horario_limite_entrega_hoy=19:00</code>, <code>dia_semana=martes</code></li>
-</ul></div></td></tr></table>
-<div class="ta-run-header"><span class="run-num">Run 2</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"lo necesito para el martes"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿Qué necesitas para el martes?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[hoy|este|que viene|proxim|te refieres|mismo]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<table class="ta-flow-table">
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">1</span><strong>User</strong>: <em>"lo necesito para este viernes"</em></td>
-<td class="col-problem">—</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">2</span><strong>Orquestador</strong>: Clasifica G3 (exploración)</td>
-<td class="col-problem">✅ Correcto</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">3</span><strong>Compra</strong>: Acknowledge "para este viernes" pero pregunta tipo/presupuesto</td>
-<td class="col-problem">🔴 No menciona plazo ni viabilidad</td>
-</tr>
-<tr>
-<td class="col-step"><span style="color:#666;margin-right:6px">4</span><strong>Compra</strong>: Cierra con apertura exploratoria</td>
-<td class="col-problem">🔴 Pierde oportunidad de informar política proactivamente</td>
-</tr>
-</table>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>horario_limite_entrega_hoy=19:00</code>, <code>modo_tono=estandar</code>, <code>entrega_hoy_posible=DESPUES_DEL_CORTE</code>, <code>dia_semana=martes</code>, <code>tiempo_entrega_estimado=24h</code></li>
-</ul></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"hoy mismo"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿Qué necesitas hoy mismo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: corte / 14:00 / ma.ana / d.a siguiente / no…hoy / hoy…no</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[corte|14:00|ma.ana|d.a siguiente|no.{0,20}hoy|hoy.{0,20}no]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T2)</span>
-<div class="trace-text">"hoy mismo"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>modo_tono=estandar</code>, <code>dia_semana=martes</code>, <code>horario_corte_mismo_dia=14:00</code>, <code>horario_limite_entrega_hoy=19:00</code>, <code>hora_actual=16:30</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¿Qué necesitas hoy mismo?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>modo_tono=estandar</code>, <code>dia_semana=martes</code>, <code>horario_corte_mismo_dia=14:00</code>, <code>horario_limite_entrega_hoy=19:00</code>, <code>hora_actual=16:30</code></li>
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>fields={'dia_semana': {'stringValue': 'domingo'</code></li>
 </ul></div></td></tr></table>
 <div class="diagnostico" data-tcid="TC-URGENCIA-03"><div class="rec-header"><span class="rec-icon">🔍</span><span class="rec-title diag-band-title">Diagnóstico</span><span class="rec-tag diag-tag">Bug Playbook</span><button class="info-btn" onclick="openInfoModal('capas')" title="9 capas y sus estados">?</button></div><div class="rec-content diag-band-content"><div class="manual-analysis"><h4>Causa raíz — evaluación de las 9 capas del sistema</h4>
 
@@ -4351,20 +4221,20 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
         <h4>Compra (slot-filling)</h4>
         <div class="kpi-bar-row" data-legend="% de turnos donde Compra extrajo el slot 'producto' del utterance del usuario (ej. 'rosas rojas', 'tulipanes'). Si baja: el Compra no está identificando qué producto pide el usuario.">
           <span class="kpi-label">Producto extraído</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:54.3%"></div></div>
-          <span class="kpi-value">54.3%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:55.4%"></div></div>
+          <span class="kpi-value">55.4%</span>
         </div>
         <div class="kpi-bar-row" data-legend="% de turnos donde Compra detectó la ocasión (Regalo, Decoracion, Funebre, etc.) del input del usuario. Si baja: el playbook no infiere la intención de uso.">
           <span class="kpi-label">Ocasión detectada</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:44.8%"></div></div>
-          <span class="kpi-value">44.8%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:46.4%"></div></div>
+          <span class="kpi-value">46.4%</span>
         </div>
         <div class="kpi-bar-row" data-legend="% de turnos donde se asignó modo_tono (estandar/solemne/corporativo). El Orquestador detecta esto en el primer utterance del usuario. Si baja: la detección de tono está fallando.">
           <span class="kpi-label">Modo_tono asignado</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:64.7%"></div></div>
-          <span class="kpi-value">64.7%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:62.5%"></div></div>
+          <span class="kpi-value">62.5%</span>
         </div>
-        <p class="kpi-sub">Sobre 116 turnos totales</p>
+        <p class="kpi-sub">Sobre 112 turnos totales</p>
       </div>
     </div>
     
@@ -4385,7 +4255,7 @@ Ramo de Rosas Rojo — M (15 flores, 37€)
       </div>
       <div class="kpi-component">
         <h4>Modos de tono (cómo modula el agente la respuesta) — 3/3 cubiertos (100.0%)</h4>
-        <table class="kpi-cobertura"><tr><td><code>estandar</code></td><td>✅ cubierto</td><td>73 TCs</td></tr><tr><td><code>solemne</code></td><td>✅ cubierto</td><td>1 TC</td></tr><tr><td><code>corporativo</code></td><td>✅ cubierto</td><td>1 TC</td></tr></table>
+        <table class="kpi-cobertura"><tr><td><code>estandar</code></td><td>✅ cubierto</td><td>68 TCs</td></tr><tr><td><code>solemne</code></td><td>✅ cubierto</td><td>1 TC</td></tr><tr><td><code>corporativo</code></td><td>✅ cubierto</td><td>1 TC</td></tr></table>
       </div>
     </div>
   </div>
