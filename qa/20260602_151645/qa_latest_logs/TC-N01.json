@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-N01",
+  "tc_name": "Recomendacion - transfiere a Compra",
+  "group": "G3",
+  "type": "REG",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-06-02 15:16",
+  "ts_file": "20260602_1516",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Necesito flores para un cumpleanos",
+          "agent": "Fenomenal, un cumpleaños. ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "flores para un cumpleanos",
+            "modo_tono": "estandar",
+            "grupo_intent": "G3",
+            "ocasion_detectada": "Regalo"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [presupuesto]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

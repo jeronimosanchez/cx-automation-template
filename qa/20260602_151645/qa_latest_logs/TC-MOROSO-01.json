@@ -1,0 +1,48 @@
+{
+  "tc_id": "TC-MOROSO-01",
+  "tc_name": "Cliente con deuda detectada — handoff a Gestion_Deuda",
+  "group": "G6>DEUDA",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-06-02 15:16",
+  "ts_file": "20260602_1516",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "mi email es pedro.moroso@test.com quiero comprar rosas",
+          "agent": "No encontramos ninguna cuenta con ese correo. ¿Quieres probar con otro email o prefieres que te registremos con este? 🌸",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [email]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

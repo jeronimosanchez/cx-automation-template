@@ -1,0 +1,70 @@
+{
+  "tc_id": "TC-URGENCIA-02",
+  "tc_name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-06-02 15:16",
+  "ts_file": "20260602_1516",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir algo?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [plazo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "mañana por la mañana",
+          "agent": "Para poder darte una respuesta más precisa sobre la entrega, necesito saber la dirección completa. ¿Me la podrías dar?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [mañana|perfecto|posible|24h|llega|pedido]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
