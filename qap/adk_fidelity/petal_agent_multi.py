@@ -23,13 +23,26 @@ from petal_agent import consultar_datos, _playbook_text, ADK_MODEL  # reusa la p
 # son lógica load-bearing; borrarlos rompería el comportamiento. Objetivo: ¿baja calls/TC + INVALID sin tirar el acuerdo?
 P3 = os.environ.get("ADK_P3") == "1"
 
+# Parte B (fuga): los $var/PASO/sourceMapping son lógica load-bearing → NO se borran. En CX el motor los
+# EJECUTA y el cliente nunca los ve; el LLM pelado no lo sabe y los imprime. Esta instrucción se lo dice.
+# Señal limpia: el gate no cambia (sigue cazando $var=), así que menos INVALID = comportamiento real, no evasión.
+ANTI_LEAK = (
+    "INSTRUCCIÓN DE SALIDA (CRÍTICA): las variables internas ($nombre_cliente, $grupo_intent, etc.), los "
+    "nombres de flujo/playbook y los marcadores de paso (PASO N, sourceMapping, [estado], asignaciones $x=...) "
+    "son tu LÓGICA INTERNA. En este sistema el motor los ejecuta; el cliente NUNCA los ve. Úsalos para razonar "
+    "y decidir, pero JAMÁS los escribas en tu respuesta. Responde SIEMPRE al cliente en lenguaje natural, "
+    "sin mostrar variables, asignaciones, nombres de flujo ni marcadores de paso.\n\n"
+)
+
 
 def _sanitize(text):
     if not P3:
         return text
+    # Parte A (loop): neutraliza la sintaxis de transferencia ejecutable.
     t = re.sub(r"\$\{PLAYBOOK:\s*([^}]+?)\s*\}", r"el flujo \1", text)  # ${PLAYBOOK:Handoff} -> "el flujo Handoff"
     t = re.sub(r"\$\{\s*([^}]+?)\s*\}", r"\1", t)                       # ${x} -> x
-    return t
+    # Parte B (fuga): antepone la instrucción de "andamiaje interno" (no borra $var/PASO, son lógica).
+    return ANTI_LEAK + t
 
 # Sub-playbooks que cuelgan del orquestador (el orquestador va aparte)
 SUB_PLAYBOOKS = ["compra", "checkout", "registro_task", "gestion_deuda", "handoff"]
