@@ -35,14 +35,19 @@ import leak_gate                       # P1+P2: pre-gate anti-fuga → veredicto
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-# Ground truth CORREGIDO (11-jun, según Jero): CX actual pasa TODOS los TCs menos 2.
-# Los 2 FAILs reales actuales son multiturno (urgencia ya arreglada el 2-jun).
-FAILS_ACTUALES = {"TC-FRUSTRACION-01", "TC-MULTI-PRODUCTO-01"}
+# Ground truth MEDIDO (12-jun, run 3/TC qa_20260612_1646 contra CX, Petal post-#116) — NO asumido.
+#   FAILs robustos (0/3): FRUSTRACION-01, STOCK-EXCESO-01, URGENCIA-03, MULTI-PRODUCTO-01.
+#   FLAKY/INESTABLE (2/3): C40, CAMBIO-OP-01 → CX no-determinista → NO es ground truth fiable → se EXCLUYEN.
+# OJO: URGENCIA-03 falla 0/3 → el fix 4bc33b2 NO la arregló (era para URGENCIA-01 + -03). URGENCIA-02 pasa 3/3
+# (el FAIL del run único del 2-jun era ruido). El hardcode viejo de 2 FAILs estaba mal.
+FAILS_ACTUALES = {"TC-FRUSTRACION-01", "TC-STOCK-EXCESO-01", "TC-URGENCIA-03", "TC-MULTI-PRODUCTO-01"}
+FLAKY_CX = {"TC-C40", "TC-CAMBIO-OP-01"}   # INESTABLE 2/3 → fuera del ground truth determinista
 
 
 def load_cx_truth():
-    # Todos PASS excepto los 2 FAILs actuales. Basado en la lista real de TCs.
-    return {t["id"]: ("FAIL" if t["id"] in FAILS_ACTUALES else "PASS") for t in q.TESTS}
+    # PASS/FAIL determinista del Petal actual; las flaky se excluyen (no son ground truth fiable).
+    return {t["id"]: ("FAIL" if t["id"] in FAILS_ACTUALES else "PASS")
+            for t in q.TESTS if t["id"] not in FLAKY_CX}
 
 
 async def run_tc_adk(runner, test, lexicon):
