@@ -1,0 +1,119 @@
+{
+  "tc_id": "TC-C31",
+  "tc_name": "Presupuesto sin producto",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-06-12 16:46",
+  "ts_file": "20260612_1646",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo no muy caro",
+          "agent": "Perfecto, algo no muy caro. Mira, para un regalo tengo opciones que suelen gustar. Echa un vistazo:\n\n*   Ramo de Gerberas Amarillo — M (10 flores, 18€)\n*   Ramo de Girasoles Amarillo — M (10 flores, 20€)\n*   Ramo de Peonías Coral — M (15 flores, 35€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "intencion_inicial": "Algo no muy caro",
+            "precio_max": 20,
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [flor]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo no muy caro",
+          "agent": "Perfecto, te propongo opciones que suelen gustar: Ramo de Girasoles — M (10 flores, 20€), Ramo de Gerberas — M (10 flores, 18€), Ramo de Gladiolos — M (3 tallos, 19€). ¿Alguna te encaja?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "Algo no muy caro",
+            "modo_tono": "estandar",
+            "grupo_intent": "G3",
+            "precio_max": 20
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [flor]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo no muy caro",
+          "agent": "¿Para qué ocasión buscas algo, y qué tipo de flor o color te gustaría? Así te puedo ayudar mejor.",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "Algo no muy caro",
+            "grupo_intent": "G3",
+            "modo_tono": "estandar",
+            "precio_max": 20
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ocasion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

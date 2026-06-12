@@ -1,0 +1,122 @@
+{
+  "tc_id": "TC-BODA-01",
+  "tc_name": "Modo Boda — ramo nupcial",
+  "group": "G5",
+  "type": "NEW",
+  "status": "PASS",
+  "pass_count": 3,
+  "total_runs": 3,
+  "ts": "2026-06-12 16:46",
+  "ts_file": "20260612_1646",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de novia para mi boda",
+          "agent": "Fenomenal, un ramo de novia. Mira, para bodas tengo estas opciones que suelen gustar:\n\n*   Ramo de Novia Orquídeas Blanco — L (7 tallos, 70€)\n*   Ramo de Novia Rosas Blanco — L (12 flores, 45€)\n*   Ramo de Novia Calas Blanco — L (15 flores, 55€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "ocasion_detectada": "Boda",
+            "producto": "ramo de novia",
+            "intencion_inicial": "quiero un ramo de novia para mi boda",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ramo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de novia para mi boda",
+          "agent": "¡Qué bien, una boda! Mira, para tu ramo de novia tenemos estas opciones:\n\n*   Ramo de Novia Orquídeas Blanco — L (7 tallos, 70€)\n*   Ramo de Novia Rosas Blanco — L (12 flores, 45€)\n*   Ramo de Novia Calas Blanco — L (15 flores, 55€)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero un ramo de novia para mi boda",
+            "modo_tono": "estandar",
+            "ocasion_detectada": "Boda",
+            "producto": "ramo de novia"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ramo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de novia para mi boda",
+          "agent": "¡Claro! Para tu boda tenemos estas opciones de ramos de novia:\n\n*   Ramo de Novia Orquídeas Blanco — L (7 tallos, 70€)\n*   Ramo de Novia Rosas Blanco — L (12 flores, 45€)\n*   Ramo de Novia Calas Blanco — L (15 flores, 55€)\n\n¿Cuál te gusta más?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero un ramo de novia para mi boda",
+            "modo_tono": "estandar",
+            "producto": "ramo de novia",
+            "ocasion_detectada": "Boda"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ramo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
