@@ -14,7 +14,22 @@ DESPUÉS del baseline plano, para comparar antes/después con TCs discriminantes
 
 Uso: ADK_RECON=multi python run_fidelity.py
 """
+import os, re
 from petal_agent import consultar_datos, _playbook_text, ADK_MODEL  # reusa la plana
+
+# P3 (experimento, flag ADK_P3=1): neutraliza SOLO las directivas ${PLAYBOOK:X} y ${...} — la sintaxis
+# EJECUTABLE de transferencia/interpolación de CX que el LLM fuga (C29/C31/C35) y que dispara el loop de
+# delegación (orquestador↔sub). Los $var (594, estado/slots) y PASO (99, referencias de flujo) se DEJAN:
+# son lógica load-bearing; borrarlos rompería el comportamiento. Objetivo: ¿baja calls/TC + INVALID sin tirar el acuerdo?
+P3 = os.environ.get("ADK_P3") == "1"
+
+
+def _sanitize(text):
+    if not P3:
+        return text
+    t = re.sub(r"\$\{PLAYBOOK:\s*([^}]+?)\s*\}", r"el flujo \1", text)  # ${PLAYBOOK:Handoff} -> "el flujo Handoff"
+    t = re.sub(r"\$\{\s*([^}]+?)\s*\}", r"\1", t)                       # ${x} -> x
+    return t
 
 # Sub-playbooks que cuelgan del orquestador (el orquestador va aparte)
 SUB_PLAYBOOKS = ["compra", "checkout", "registro_task", "gestion_deuda", "handoff"]
@@ -40,7 +55,7 @@ def _model():
 
 def _sub_agent(name):
     from google.adk.agents import LlmAgent
-    instr = _playbook_text(name)  # SOLO este playbook (literal) + sus examples
+    instr = _sanitize(_playbook_text(name))  # SOLO este playbook (literal) + sus examples; P3 neutraliza ${PLAYBOOK:}
     # t=instr en el lambda: captura la instrucción correcta por sub-agente (evita el
     # bug clásico de closure en bucle).
     return LlmAgent(
@@ -56,7 +71,7 @@ def build_agent():
     """Orquestador con los sub-agentes colgando. ADK auto-genera transfer_to_agent
     para la delegación; el orquestador (su playbook) guía cuándo derivar."""
     from google.adk.agents import LlmAgent
-    orch_instr = _playbook_text("petal_cx_orchestrator")
+    orch_instr = _sanitize(_playbook_text("petal_cx_orchestrator"))
     return LlmAgent(
         name="petal_orchestrator",
         model=_model(),
