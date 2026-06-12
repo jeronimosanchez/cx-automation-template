@@ -1,0 +1,425 @@
+{
+  "matrix": {
+    "pp": 43,
+    "pf": 6,
+    "fp": 0,
+    "ff": 2
+  },
+  "rows": [
+    {
+      "id": "TC-R01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-R02",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-R03",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-R04",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-R06",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-N01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-N03",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-E01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-REG01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-REG02",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-REG03",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-REG04",
+      "cx": "PASS",
+      "adk": "FAIL",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-REG06",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-E04",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C29",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C31",
+      "cx": "PASS",
+      "adk": "FAIL",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C32",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C33",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C34",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C35",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C36",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C37",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C39",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C40",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C42",
+      "cx": "PASS",
+      "adk": "FAIL",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-C43",
+      "cx": "PASS",
+      "adk": "FAIL",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-DECO-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-DECO-02",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-FUNERAL-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-PRESUPUESTO-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-COLOR-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-REFINAR-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-BODA-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-CAMBIO-OP-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-FRUSTRACION-01",
+      "cx": "FAIL",
+      "adk": "FAIL",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-VARIANTES-SML-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-ROBUSTEZ-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-STOCK-EXCESO-01",
+      "cx": "PASS",
+      "adk": "FAIL",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-URGENCIA-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-URGENCIA-02",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-URGENCIA-03",
+      "cx": "PASS",
+      "adk": "FAIL",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-FRUSTRACION-LEX-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-MULTI-SLOT-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-DESPEDIDA-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-DIR-CUSTOM-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-MULTI-PRODUCTO-01",
+      "cx": "FAIL",
+      "adk": "FAIL",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-MOROSO-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-DEVOLUCION-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-SIGNOS-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-INSULTO-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    },
+    {
+      "id": "TC-IMPOSIBLE-01",
+      "cx": "PASS",
+      "adk": "PASS",
+      "detail": {
+        "_recovered": "detalle turno-a-turno NO recuperado; regenerable con re-run en Mac"
+      }
+    }
+  ],
+  "_meta": {
+    "recovered_from": "conversacion (tras borrado accidental 12-jun)",
+    "env": "Mac/Metal · Qwen14b-q4 multi · ctx32k temp0",
+    "agreement": "88% (45/51)",
+    "fidelity": "FAIL-recall 2/2 · sesgo pesimista 6FA/0FN",
+    "warning": "CONTAMINADO por fuga de scaffolding; veredictos por-TC fieles, detalle de turnos parcial"
+  }
+}
