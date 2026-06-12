@@ -128,7 +128,8 @@ async def main():
 
     agent = petal_agent.build_agent()
     runner = InMemoryRunner(agent=agent, app_name="petal")
-    lexicon = leak_gate.build_lexicon(petal_agent.load_instruction())   # P2: lexicón autogenerado del prompt
+    import petal_agent as _flat                                          # módulo PLANO: tiene load_instruction()
+    lexicon = leak_gate.build_lexicon(_flat.load_instruction())          # P2: lexicón autogenerado del prompt compilado (vale para flat y multi)
     print(f"Lexicón anti-fuga: {len(lexicon['structural'])} patrones | "
           f"{len(lexicon['tokens']['variables'])} vars + {len(lexicon['tokens']['playbooks'])} playbooks cosechados\n")
 
