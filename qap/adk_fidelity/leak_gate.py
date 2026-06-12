@@ -39,8 +39,8 @@ def _degenerate(text):
     t = (text or "").strip()
     if not t:
         return "respuesta vacia"
-    if t.startswith("ERROR_TRAS_REINTENTOS"):
-        return "error tras reintentos"
+    if t.startswith("ERROR_"):
+        return t.split(":")[0].replace("ERROR_", "error: ").lower()
     lines = [l.strip() for l in t.splitlines() if l.strip()]
     for i in range(len(lines) - 2):                       # línea idéntica 3+ veces seguidas
         if lines[i] == lines[i + 1] == lines[i + 2]:

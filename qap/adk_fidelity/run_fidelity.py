@@ -33,7 +33,14 @@ else:
 import leak_gate                       # P1+P2: pre-gate anti-fuga → veredicto 3-estados (OK/INVALID)
 
 from google.adk.runners import InMemoryRunner
+from google.adk.agents.run_config import RunConfig
 from google.genai import types
+
+# Cap de llamadas LLM POR TURNO. Default de ADK = 500 → un loop de delegación
+# (${PLAYBOOK:Orchestrator} interpretado como transfer_to_agent → ping-pong) grinda ~140/TC.
+# Un turno limpio usa ~3-10 (route + respuesta + tool). 25 mata el loop sin cortar turnos legítimos;
+# el turno que lo excede cae como INVALID (la reconstrucción SE ROMPE ahí — honesto). Fix profundo = P3.
+MAX_LLM_CALLS = 25
 
 # Ground truth MEDIDO (12-jun, run 3/TC qa_20260612_1646 contra CX, Petal post-#116) — NO asumido.
 #   FAILs robustos (0/3): FRUSTRACION-01, STOCK-EXCESO-01, URGENCIA-03, MULTI-PRODUCTO-01.
@@ -68,7 +75,8 @@ async def run_tc_adk(runner, test, lexicon):
         for attempt in range(5):  # reintento ante 429 (rate limit) y transitorios
             try:
                 final_text = ""
-                kwargs = dict(user_id="u", session_id=sess.id, new_message=msg)
+                kwargs = dict(user_id="u", session_id=sess.id, new_message=msg,
+                              run_config=RunConfig(max_llm_calls=MAX_LLM_CALLS))
                 if state_delta:
                     kwargs["state_delta"] = state_delta
                 async for event in runner.run_async(**kwargs):
@@ -79,7 +87,14 @@ async def run_tc_adk(runner, test, lexicon):
                 break
             except Exception as e:
                 errored = True
-                is_quota = "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
+                emsg = str(e)
+                # Cap de llamadas excedido = loop de delegación. NO reintentar (es determinista,
+                # cada reintento volvería a gastar el cap) → cortar ya como INVALID.
+                if "max_llm_calls" in emsg.lower() or "llm calls" in emsg.lower() \
+                        or "LlmCallsLimit" in type(e).__name__:
+                    final_text = f"ERROR_LOOP_DELEGACION: cap {MAX_LLM_CALLS} llamadas excedido"
+                    break
+                is_quota = "429" in emsg or "RESOURCE_EXHAUSTED" in emsg
                 wait = (8 * (attempt + 1)) if is_quota else (2 * (attempt + 1))
                 if attempt < 4:
                     time.sleep(wait)
