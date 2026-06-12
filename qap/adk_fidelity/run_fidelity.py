@@ -97,6 +97,10 @@ async def main():
 
     cx = load_cx_truth()
     tests = [t for t in q.TESTS if t["id"] in cx]   # solo los que tienen ground truth CX
+    # ORDER-BY-CLASS (P0, 12-jun): agrupa TCs por clase (prefijo alfa del id) consecutivos → el prefijo del
+    # sub-agente se queda CALIENTE en caché (no re-prefilea entre TCs de su clase). Orden FIJO → va al fingerprint.
+    # Ver handoff velocidad 12-jun en memoria de proyecto.
+    tests.sort(key=lambda t: ((re.match(r"TC-([A-Za-z]+)", t["id"]) or re.match(r"(.+)", t["id"])).group(1), t["id"]))
     if args.only:
         wanted = set(args.only.split(","))
         tests = [t for t in tests if t["id"] in wanted]
