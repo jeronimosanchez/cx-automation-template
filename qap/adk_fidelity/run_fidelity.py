@@ -30,6 +30,7 @@ if os.environ.get("ADK_RECON") == "multi":
     import petal_agent_multi as petal_agent
 else:
     import petal_agent
+import leak_gate                       # P1+P2: pre-gate anti-fuga → veredicto 3-estados (OK/INVALID)
 
 from google.adk.runners import InMemoryRunner
 from google.genai import types
@@ -44,11 +45,13 @@ def load_cx_truth():
     return {t["id"]: ("FAIL" if t["id"] in FAILS_ACTUALES else "PASS") for t in q.TESTS}
 
 
-async def run_tc_adk(runner, test):
-    """Corre un TC (todos sus turnos en una sesión) por ADK. Devuelve PASS/FAIL + turnos."""
+async def run_tc_adk(runner, test, lexicon):
+    """Corre un TC (todos sus turnos en una sesión) por ADK. Devuelve veredicto 3-estados + turnos."""
     sess = await runner.session_service.create_session(app_name="petal", user_id="u")
     all_pass = True
     any_error = False
+    invalid = False
+    invalid_reason = ""
     turns_out = []
     for i, turn in enumerate(test["turns"]):
         user_text = turn["user"].replace("{RUN}", "adk_1")
@@ -84,9 +87,17 @@ async def run_tc_adk(runner, test):
         tc = q.check_turn(final_text, checks, not_exp)
         if not tc["pass"]:
             all_pass = False
+        lstate, lwhy = leak_gate.classify_turn(final_text, lexicon)   # P1+P2: ¿medida válida o andamiaje?
+        if lstate == "INVALID":
+            invalid = True
+            if not invalid_reason:
+                invalid_reason = lwhy
         turns_out.append({"user": user_text, "agent": final_text[:300], "pass": tc["pass"],
-                          "details": tc["details"]})
-    return {"pass": all_pass, "errored": any_error, "turns": turns_out}
+                          "valid": lstate == "OK", "invalid_reason": lwhy, "details": tc["details"]})
+    # Veredicto 3-estados: INVALID (fuga/degeneración/error) > FAIL > PASS. INVALID NO cuenta como fidelidad.
+    verdict = "INVALID" if (any_error or invalid) else ("PASS" if all_pass else "FAIL")
+    return {"pass": all_pass, "errored": any_error, "invalid": invalid,
+            "invalid_reason": invalid_reason, "verdict": verdict, "turns": turns_out}
 
 
 async def main():
@@ -112,38 +123,46 @@ async def main():
 
     agent = petal_agent.build_agent()
     runner = InMemoryRunner(agent=agent, app_name="petal")
+    lexicon = leak_gate.build_lexicon(petal_agent.load_instruction())   # P2: lexicón autogenerado del prompt
+    print(f"Lexicón anti-fuga: {len(lexicon['structural'])} patrones | "
+          f"{len(lexicon['tokens']['variables'])} vars + {len(lexicon['tokens']['playbooks'])} playbooks cosechados\n")
 
     rows = []
     for n, test in enumerate(tests, 1):
         cx_status = cx[test["id"]]
-        res = await run_tc_adk(runner, test)
-        adk_status = "ERROR" if res["errored"] else ("PASS" if res["pass"] else "FAIL")
-        match = "✅" if (cx_status == adk_status) else ("⚡" if adk_status == "ERROR" else "❌")
-        print(f"[{n:>2}/{len(tests)}] {test['id']:<22} CX={cx_status:<5} ADK={adk_status:<5} {match}")
+        res = await run_tc_adk(runner, test, lexicon)
+        adk_status = res["verdict"]   # PASS / FAIL / INVALID
+        if adk_status == "INVALID":
+            match = "⚠️"
+        else:
+            match = "✅" if (cx_status == adk_status) else "❌"
+        extra = f"  ⚠️ {res['invalid_reason']}" if adk_status == "INVALID" else ""
+        print(f"[{n:>2}/{len(tests)}] {test['id']:<22} CX={cx_status:<5} ADK={adk_status:<7} {match}{extra}")
         rows.append({"id": test["id"], "cx": cx_status, "adk": adk_status, "detail": res})
         time.sleep(1)  # respiro para el rate limit
 
-    # --- Matriz de confusión (solo PASS/FAIL de CX) ---
+    # --- Matriz de confusión: SOLO medidas VÁLIDAS (los INVALID no son fidelidad, van aparte) ---
     cm = {"pp": 0, "pf": 0, "fp": 0, "ff": 0}
     for r in rows:
+        if r["adk"] == "INVALID": continue
         if r["cx"] == "PASS" and r["adk"] == "PASS": cm["pp"] += 1
         elif r["cx"] == "PASS" and r["adk"] == "FAIL": cm["pf"] += 1
         elif r["cx"] == "FAIL" and r["adk"] == "PASS": cm["fp"] += 1
         elif r["cx"] == "FAIL" and r["adk"] == "FAIL": cm["ff"] += 1
 
-    errors = sum(1 for r in rows if r["adk"] == "ERROR")
-    n = len(rows) - errors   # el acuerdo se mide sobre los TCs sin error
+    invalids = sum(1 for r in rows if r["adk"] == "INVALID")
+    n = len(rows) - invalids   # el acuerdo se mide solo sobre medidas válidas
     agree = cm["pp"] + cm["ff"]
+    health = 100 * invalids // max(len(rows), 1)
     print("\n" + "=" * 56)
-    print("MATRIZ DE CONFUSIÓN  (filas = CX real, cols = ADK)")
+    print("MATRIZ DE CONFUSIÓN  (filas = CX real, cols = ADK) — solo VÁLIDAS")
     print("=" * 56)
     print(f"                 ADK PASS    ADK FAIL")
     print(f"  CX PASS          {cm['pp']:>3}         {cm['pf']:>3}    (falsas alarmas)")
     print(f"  CX FAIL          {cm['fp']:>3}         {cm['ff']:>3}    (fallos cazados)")
     print("=" * 56)
-    if errors:
-        print(f"  ⚡ TCs con error (excluidos): {errors}")
-    print(f"  Acuerdo total:        {agree}/{n}  ({100*agree//max(n,1)}%)")
+    print(f"  ⚠️  INVALID (fuga/degeneración):  {invalids}/{len(rows)}  → salud del harness: {100-health}% válidas")
+    print(f"  Acuerdo (solo válidas):  {agree}/{n}  ({100*agree//max(n,1)}%)")
     cx_pass = cm["pp"] + cm["pf"]
     cx_fail = cm["fp"] + cm["ff"]
     if cx_pass: print(f"  PASS reproducidos:    {cm['pp']}/{cx_pass}  (detecta lo que funciona)")
@@ -151,7 +170,8 @@ async def main():
     print("=" * 56)
 
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fidelity_result.json")
-    json.dump({"matrix": cm, "rows": rows}, open(out, "w"), ensure_ascii=False, indent=2)
+    json.dump({"matrix": cm, "invalids": invalids, "rows": rows}, open(out, "w"),
+              ensure_ascii=False, indent=2)
     print(f"\nDetalle guardado en: {out}")
 
 
