@@ -13,7 +13,12 @@ import requests
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PB_DIR = os.path.join(ROOT, "definitions", "playbooks")
 EX_DIR = os.path.join(ROOT, "definitions", "examples")
-PETAL_API = "https://petal-sheet-api-920225907399.europe-west1.run.app/exec"
+# URL del backend: del entorno o de .env (privado, fuera del repo público). Vacío si falta.
+PETAL_API = os.environ.get("PETAL_API_URL", "")
+if not PETAL_API and os.path.exists(os.path.join(ROOT, ".env")):
+    for _l in open(os.path.join(ROOT, ".env")):
+        if _l.startswith("PETAL_API_URL="):
+            PETAL_API = _l.split("=", 1)[1].strip()
 
 # Orden: orquestador primero, luego sub-playbooks (como los referencia CX)
 PLAYBOOK_ORDER = [

@@ -15,7 +15,12 @@ from google.adk.agents import LlmAgent
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-PETAL_API = "https://petal-sheet-api-920225907399.europe-west1.run.app/exec"
+# URL del backend: del entorno o de .env (privado, fuera del repo público). Vacío si falta.
+PETAL_API = os.environ.get("PETAL_API_URL", "")
+if not PETAL_API and os.path.exists(os.path.join(ROOT, ".env")):
+    for _l in open(os.path.join(ROOT, ".env")):
+        if _l.startswith("PETAL_API_URL="):
+            PETAL_API = _l.split("=", 1)[1].strip()
 
 # --- Webhook de inventario como tool de ADK ---
 def consultar_datos(recurso: str, producto: str = "", color: str = "", ocasion: str = "",
