@@ -18,7 +18,7 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 | **51 TCs end-to-end** | Runner QA real contra el agente CX vía `detectIntent`. Reportes HTML publicados en GitHub Pages |
 | **CI/CD con WIF** | GitHub Actions + Workload Identity Federation. Deploy automático al hacer push a `main` |
 | **Harness de validación local** | Reconstrucción del agente con LLMs locales (Qwen/Ollama via ADK) para validar playbooks sin coste de API |
-| **Linting estático** | Reglas L0 sobre los YAMLs de playbooks (sintaxis, consistencia, cobertura de examples) |
+| **Linting estático** | Reglas estáticas sobre los YAMLs de playbooks (sintaxis, consistencia, cobertura de examples) |
 
 > Adaptarlo a otro agente CX: cambia `definitions/agent.yaml`, no tocas código Python.
 

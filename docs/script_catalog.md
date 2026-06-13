@@ -71,7 +71,7 @@ Cómo correrlos: `python -m pytest act/tests/ -q` (ver CLAUDE.md §5).
 
 ---
 
-## QAP — Linting estático L0 (1 script — sin integrar en CI/CD)
+## QAP — Linting estático (1 script — sin integrar en CI/CD)
 
 Estos scripts analizan el YAML de los playbooks **sin ejecutar el agente**. Son independientes
 entre sí y actualmente ninguno está en el pipeline de `deploy.yml`.
@@ -80,7 +80,7 @@ entre sí y actualmente ninguno está en el pipeline de `deploy.yml`.
 |---|---|---|
 | `qap/static_audit.py` | Manual sobre el conjunto de playbooks | 9 criterios de consistencia inter-playbook: parámetros declarados vs. referenciados, naming, solapamiento de responsabilidades, etc. Baseline actual: 0✅ / 27⚠️ / 3❌. **Scope actual: solo playbooks.** Roadmap: Flows/Pages → Entity Types → Generators → Tools (se amplía cuando el proyecto lo requiere). |
 
-> **Deuda técnica:** `qap/adk_fidelity/static_leak_gate.py` también implementa reglas L0 (fuga de
+> **Deuda técnica:** `qap/adk_fidelity/static_leak_gate.py` también implementa reglas estáticas (fuga de
 > directivas CX en texto libre) pero vive dentro del harness ADK. Los dos (`static_audit` +
 > `static_leak_gate`) forman la base de un linter unificado pendiente (`lint_all.py`).
 
