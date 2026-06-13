@@ -71,19 +71,18 @@ Cómo correrlos: `python -m pytest act/tests/ -q` (ver CLAUDE.md §5).
 
 ---
 
-## QAP — Linting estático L0 (2 scripts — sin integrar en CI/CD)
+## QAP — Linting estático L0 (1 script — sin integrar en CI/CD)
 
 Estos scripts analizan el YAML de los playbooks **sin ejecutar el agente**. Son independientes
 entre sí y actualmente ninguno está en el pipeline de `deploy.yml`.
 
 | Script | Cuándo usarlo | Reglas implementadas |
 |---|---|---|
-| `qap/lint_playbook.py` | Manual sobre un archivo `.txt` de playbook | **R1** — acentos diacríticos en el texto · **R2** — referencias a playbooks con backticks en lugar de `${PLAYBOOK:Name}` · **R3** — uso de `$session_id` |
-| `qap/playbook_audit.py` | Manual sobre el conjunto de playbooks | 9 criterios de consistencia inter-playbook: parámetros declarados vs. referenciados, naming, solapamiento de responsabilidades, etc. Baseline actual: 0✅ / 27⚠️ / 3❌. **Scope actual: solo playbooks.** Roadmap: Flows/Pages → Entity Types → Generators → Tools (se amplía cuando el proyecto lo requiere). |
+| `qap/static_audit.py` | Manual sobre el conjunto de playbooks | 9 criterios de consistencia inter-playbook: parámetros declarados vs. referenciados, naming, solapamiento de responsabilidades, etc. Baseline actual: 0✅ / 27⚠️ / 3❌. **Scope actual: solo playbooks.** Roadmap: Flows/Pages → Entity Types → Generators → Tools (se amplía cuando el proyecto lo requiere). |
 
-> **Deuda técnica:** `qap/adk_fidelity/leak_gate.py` también implementa reglas L0 (fuga de
-> directivas CX en texto libre) pero vive dentro del harness ADK. Los tres forman la base
-> de un linter unificado pendiente (`lint_all.py`).
+> **Deuda técnica:** `qap/adk_fidelity/static_leak_gate.py` también implementa reglas L0 (fuga de
+> directivas CX en texto libre) pero vive dentro del harness ADK. Los dos (`static_audit` +
+> `static_leak_gate`) forman la base de un linter unificado pendiente (`lint_all.py`).
 
 ---
 
@@ -108,7 +107,7 @@ y mide cuántos de los 51 TCs coinciden con los veredictos de CX en vivo.
 | `qap/adk_fidelity/petal_agent.py` | Lo carga `run_fidelity.py` | Reconstrucción plana de Petal: un único `LlmAgent` con todos los playbooks en el prompt. Usa `LiteLlm(model=ADK_MODEL, temperature=0.0, seed=42)`. |
 | `qap/adk_fidelity/petal_agent_multi.py` | Lo carga `run_fidelity.py` con `ADK_RECON=multi` | Reconstrucción multi-agente: orquestador + 5 sub-agentes, cada uno con un único playbook. |
 | `qap/adk_fidelity/run_fidelity.py` | Arrancar un run de fidelidad | Runner principal: corre los 51 TCs contra la reconstrucción ADK y compara veredictos con `FAILS_ACTUALES` (ground truth CX). Genera `fidelity_result.json`. |
-| `qap/adk_fidelity/leak_gate.py` | Lo usa `run_fidelity.py` automáticamente | Pre-gate anti-fuga: detecta directivas CX ejecutables (`$var=`, `PASO N`, `${PLAYBOOK:X}`, `sourceMapping`) en los outputs del LLM. Un output con fuga → veredicto `INVALID`, no cuenta en la métrica de acuerdo. |
+| `qap/adk_fidelity/static_leak_gate.py` | Lo usa `run_fidelity.py` automáticamente | Pre-gate anti-fuga: detecta directivas CX ejecutables (`$var=`, `PASO N`, `${PLAYBOOK:X}`, `sourceMapping`) en los outputs del LLM. Un output con fuga → veredicto `INVALID`, no cuenta en la métrica de acuerdo. |
 | `qap/adk_fidelity/judge.py` | Pendiente de integrar en `run_fidelity.py` | Skeleton del juez suave: usa Gemma-27B vía Ollama para evaluar 6 dimensiones no-deterministas (tono, palabras clave, confirmación, etc.). No está conectado al runner aún. |
 | `qap/adk_fidelity/smoke_test.py` | Antes de un run completo si algo falla en arranque | Smoke test end-to-end: 1 turno con ADK + webhook de inventario + Gemini. Verifica que la cadena completa funciona antes de invertir tiempo en los 51 TCs. |
 | `qap/adk_fidelity/kaggle/_gen_notebook.py` | Al actualizar el harness para re-empaquetarlo | Genera `kaggle_fidelity.ipynb` a partir de las celdas definidas en el propio script. Correr después de cualquier cambio al harness que vaya a Kaggle. |
@@ -131,8 +130,7 @@ y mide cuántos de los 51 TCs coinciden con los veredictos de CX en vivo.
 
 | Script | Estado | Acción pendiente |
 |---|---|---|
-| `qap/lint_playbook.py` | Activo — huérfano | Integrar en `deploy.yml` como paso pre-deploy |
-| `qap/playbook_audit.py` | Activo — manual | Integrar en `deploy.yml` como paso pre-deploy |
+| `qap/static_audit.py` | Activo — manual | Integrar en `deploy.yml` como paso pre-deploy |
 | `qap/adk_fidelity/judge.py` | Skeleton — incompleto | Conectar a `run_fidelity.py` cuando Gemma-27B esté disponible localmente |
 | `act/audit_examples.py` | Activo — uso puntual | Archivar o convertir en test si la migración está completa |
 | `act/validate_api_v2.py` | Activo — solapado con v1 | Valorar unificar con `validate_api.py` o eliminar |

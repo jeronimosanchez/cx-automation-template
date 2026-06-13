@@ -51,8 +51,7 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 │
 ├── qap/                            # QA & validación
 │   ├── test_qa_playbooks.py        #   51 TCs end-to-end contra CX — runner principal
-│   ├── pb_audit.py                 #   linter: consistencia estructural entre playbooks
-│   ├── lint_playbook.py            #   linter: reglas sintácticas sobre texto de instrucciones
+│   ├── static_audit.py             #   linter estático: consistencia entre playbooks (9 criterios)
 │   ├── surgical_run.py             #   corre TCs específicos y publica en GitHub Pages sin relanzar los 51
 │   ├── regenerate_html.py          #   regenera el dashboard HTML desde JSONs sin llamar a CX
 │   ├── rebuild_history.py          #   genera history.json para el histórico del dashboard
@@ -61,7 +60,7 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 │       ├── petal_agent.py          #     reconstrucción plana del agente (Qwen via Ollama)
 │       ├── petal_agent_multi.py    #     reconstrucción multi-agente (orquestador + sub-agentes)
 │       ├── run_fidelity.py         #     runner: compara veredictos LLM local vs CX en vivo
-│       ├── leak_gate.py            #     detecta directivas CX filtradas en outputs del LLM
+│       ├── static_leak_gate.py            #     detecta directivas CX filtradas en outputs del LLM
 │       └── judge.py                #     juez suave (Gemma) para dimensiones no deterministas
 │
 ├── .github/workflows/

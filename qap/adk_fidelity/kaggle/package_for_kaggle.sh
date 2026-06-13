@@ -21,7 +21,7 @@ mkdir -p "$OUT/qap/adk_fidelity"
 cp qap/test_qa_playbooks.py "$OUT/qap/test_qa_playbooks.py"
 cp qap/adk_fidelity/petal_agent.py        "$OUT/qap/adk_fidelity/"
 cp qap/adk_fidelity/petal_agent_multi.py  "$OUT/qap/adk_fidelity/"
-cp qap/adk_fidelity/leak_gate.py          "$OUT/qap/adk_fidelity/"   # pre-gate anti-fuga (run_fidelity lo importa)
+cp qap/adk_fidelity/static_leak_gate.py          "$OUT/qap/adk_fidelity/"   # pre-gate anti-fuga (run_fidelity lo importa)
 cp qap/adk_fidelity/run_fidelity.py       "$OUT/qap/adk_fidelity/"
 cp qap/adk_fidelity/smoke_test.py         "$OUT/qap/adk_fidelity/" 2>/dev/null || true
 

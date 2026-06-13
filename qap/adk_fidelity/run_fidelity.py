@@ -30,7 +30,7 @@ if os.environ.get("ADK_RECON") == "multi":
     import petal_agent_multi as petal_agent
 else:
     import petal_agent
-import leak_gate                       # P1+P2: pre-gate anti-fuga → veredicto 3-estados (OK/INVALID)
+import static_leak_gate                       # P1+P2: pre-gate anti-fuga → veredicto 3-estados (OK/INVALID)
 
 from google.adk.runners import InMemoryRunner
 from google.adk.agents.run_config import RunConfig
@@ -107,7 +107,7 @@ async def run_tc_adk(runner, test, lexicon):
         tc = q.check_turn(final_text, checks, not_exp)
         if not tc["pass"]:
             all_pass = False
-        lstate, lwhy = leak_gate.classify_turn(final_text, lexicon)   # P1+P2: ¿medida válida o andamiaje?
+        lstate, lwhy = static_leak_gate.classify_turn(final_text, lexicon)   # P1+P2: ¿medida válida o andamiaje?
         if lstate == "INVALID":
             invalid = True
             if not invalid_reason:
@@ -144,7 +144,7 @@ async def main():
     agent = petal_agent.build_agent()
     runner = InMemoryRunner(agent=agent, app_name="petal")
     import petal_agent as _flat                                          # módulo PLANO: tiene load_instruction()
-    lexicon = leak_gate.build_lexicon(_flat.load_instruction())          # P2: lexicón autogenerado del prompt compilado (vale para flat y multi)
+    lexicon = static_leak_gate.build_lexicon(_flat.load_instruction())          # P2: lexicón autogenerado del prompt compilado (vale para flat y multi)
     print(f"Lexicón anti-fuga: {len(lexicon['structural'])} patrones | "
           f"{len(lexicon['tokens']['variables'])} vars + {len(lexicon['tokens']['playbooks'])} playbooks cosechados\n")
 
