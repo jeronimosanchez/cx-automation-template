@@ -79,7 +79,7 @@ entre sí y actualmente ninguno está en el pipeline de `deploy.yml`.
 | Script | Cuándo usarlo | Reglas implementadas |
 |---|---|---|
 | `qap/lint_playbook.py` | Manual sobre un archivo `.txt` de playbook | **R1** — acentos diacríticos en el texto · **R2** — referencias a playbooks con backticks en lugar de `${PLAYBOOK:Name}` · **R3** — uso de `$session_id` |
-| `qap/pb_audit.py` | Manual sobre el conjunto de playbooks | 9 criterios de consistencia inter-playbook: parámetros declarados vs. referenciados, naming, solapamiento de responsabilidades, etc. Baseline actual: 0✅ / 27⚠️ / 3❌. |
+| `qap/playbook_audit.py` | Manual sobre el conjunto de playbooks | 9 criterios de consistencia inter-playbook: parámetros declarados vs. referenciados, naming, solapamiento de responsabilidades, etc. Baseline actual: 0✅ / 27⚠️ / 3❌. **Scope actual: solo playbooks.** Roadmap: Flows/Pages → Entity Types → Generators → Tools (se amplía cuando el proyecto lo requiere). |
 
 > **Deuda técnica:** `qap/adk_fidelity/leak_gate.py` también implementa reglas L0 (fuga de
 > directivas CX en texto libre) pero vive dentro del harness ADK. Los tres forman la base
@@ -132,7 +132,7 @@ y mide cuántos de los 51 TCs coinciden con los veredictos de CX en vivo.
 | Script | Estado | Acción pendiente |
 |---|---|---|
 | `qap/lint_playbook.py` | Activo — huérfano | Integrar en `deploy.yml` como paso pre-deploy |
-| `qap/pb_audit.py` | Activo — manual | Integrar en `deploy.yml` como paso pre-deploy |
+| `qap/playbook_audit.py` | Activo — manual | Integrar en `deploy.yml` como paso pre-deploy |
 | `qap/adk_fidelity/judge.py` | Skeleton — incompleto | Conectar a `run_fidelity.py` cuando Gemma-27B esté disponible localmente |
 | `act/audit_examples.py` | Activo — uso puntual | Archivar o convertir en test si la migración está completa |
 | `act/validate_api_v2.py` | Activo — solapado con v1 | Valorar unificar con `validate_api.py` o eliminar |
