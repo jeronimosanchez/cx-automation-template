@@ -37,7 +37,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 
 ## 2. Estado actual
 
-**Commit HEAD:** `f3d8384` (pre-Sprint 6)
+**Estado:** Sprints 1-6 cerrados. Trabajo posterior (31-may / 2-jun): detección de restricción temporal/urgencia en el orquestador (rama `feature/urgencia-temporal`, validada contra CX) + arranque de la planificación de Petal 1.1 y del KB/metodología. El commit HEAD avanza por sesión — consultar `git log` para el estado exacto.
 
 ### Sprints
 
@@ -60,11 +60,11 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 
 ### Pendientes inmediatos
 
-- **Fáse B Sprint 6** — pasos manuales en `docs/setup-qa.md` (activar GitHub Pages, permisos workflow Read+Write, verificar email, primer run E2E).
-- TT-01-03 — siguiente tarea de la cadena de setup.
+- **Petal 1.1** — refactor arquitectónico (staging, auditoría de consistencia, extracción de Tasks, posible híbrido NLU+LLM). Scope en `memory/petal/petal_1_1.md`.
+- **KB + metodología** — formalizar `system_knowledge.md` (privado) y el modelo agnóstico de diseño conversacional.
+- **Seguridad** — cerrar el backend `petal-sheet-api` (Cloud Run público sin auth).
+- ~~**Deuda técnica (S60)**~~ — **RESUELTA** (2026-06-08): `push_playbooks.py` ya usa Full Update desde los commits `b6c241c` y PR #17. El CLAUDE.md estaba desactualizado.
 - EP-02 — orquestador central de las 4 líneas y su `CLAUDE.md` global.
-- EP-QA-02 — cerrar tras validación Fáse B del Sprint 6.
-- Deuda técnica anotada en S60: reconciliar `push_playbooks.py` (usa `PATCH+updateMask`) con §3.8 (Full Update obligatorio en `europe-west1`).
 
 ---
 
@@ -129,6 +129,8 @@ python act/validate_api.py
 ```
 
 **Protocolo de auto-mejora:** si un comando se repite 2 o más veces en una sesión, Claude Code propone añadirlo a esta sección al cierre. Jero aprueba antes del commit.
+
+**Mapa completo de scripts:** ver [`docs/script_catalog.md`](docs/script_catalog.md) — inventario de todos los `.py` del proyecto con función, cuándo usarlos y estado (activo / manual / pendiente de integrar).
 
 ---
 
