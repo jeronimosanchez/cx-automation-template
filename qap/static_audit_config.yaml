@@ -1,0 +1,36 @@
+# Auto-generado por sync_static_config.py — NO editar manualmente.
+# Fuente de verdad: bloques `static:` en el KB.
+# Regenerar: python qap/sync_static_config.py --kb-root ~/CD/kb/
+
+always_select: {}
+dsl_density:
+  fail: 0.3
+  warn: 0.15
+exit_paths:
+  keywords:
+  - handoff
+  - escalar
+  - agente humano
+  - no puedo
+  - transferir
+  - escalación
+min_examples:
+  min: 4
+negation_examples:
+  keywords:
+  - no quiero
+  - cancelar
+  - ya no
+  - no gracias
+  - lo cancelo
+param_hygiene: {}
+size:
+  propose: 5000
+  urgent: 10000
+tool_fail_examples:
+  keywords:
+  - error
+  - fallo
+  - no disponible
+  - no encontrado
+  - herramienta

@@ -78,11 +78,7 @@ entre sí y actualmente ninguno está en el pipeline de `deploy.yml`.
 
 | Script | Cuándo usarlo | Reglas implementadas |
 |---|---|---|
-| `qap/static_audit.py` | Manual sobre el conjunto de playbooks | 9 criterios de consistencia inter-playbook: parámetros declarados vs. referenciados, naming, solapamiento de responsabilidades, etc. Baseline actual: 0✅ / 27⚠️ / 3❌. **Scope actual: solo playbooks.** Roadmap: Flows/Pages → Entity Types → Generators → Tools (se amplía cuando el proyecto lo requiere). |
-
-> **Deuda técnica:** `qap/adk_fidelity/static_leak_gate.py` también implementa reglas estáticas (fuga de
-> directivas CX en texto libre) pero vive dentro del harness ADK. Los dos (`static_audit` +
-> `static_leak_gate`) forman la base de un linter unificado pendiente (`lint_all.py`).
+| `qap/static_audit.py` | Manual sobre el conjunto de playbooks | 8 checks sobre el YAML de playbooks y examples: tamaño (CX-25), DSL density (CX-34), exit paths (CX-27), params (CX-31), min examples (CX-13), always_select (CX-36), fallo de tool (CX-26), negación (CX-36). **Scope: solo playbooks.** Roadmap: Flows/Pages → Entity Types → Generators → Tools. |
 
 ---
 
@@ -124,13 +120,3 @@ y mide cuántos de los 51 TCs coinciden con los veredictos de CX en vivo.
 | `qap/adk_fidelity/start_ollama.sh` | Antes de cualquier run del harness ADK | Configura y arranca Ollama con los parámetros óptimos: `OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_CONTEXT_LENGTH=32768`, `OLLAMA_NUM_PARALLEL=1`. Persiste la config vía `launchctl setenv` para que sobreviva reinicios. |
 | `qap/adk_fidelity/kaggle/package_for_kaggle.sh` | Antes de subir el harness a Kaggle | Empaqueta el mínimo necesario (definitions/ + harness ADK) en `build/petal-fidelity.zip` listo para subir como Dataset a Kaggle. Excluye secretos (`.env` dummy incluido). |
 
----
-
-## Scripts sin integrar en CI/CD (deuda técnica)
-
-| Script | Estado | Acción pendiente |
-|---|---|---|
-| `qap/static_audit.py` | Activo — manual | Integrar en `deploy.yml` como paso pre-deploy |
-| `qap/adk_fidelity/judge.py` | Skeleton — incompleto | Conectar a `run_fidelity.py` cuando Gemma-27B esté disponible localmente |
-| `act/audit_examples.py` | Activo — uso puntual | Archivar o convertir en test si la migración está completa |
-| `act/validate_api_v2.py` | Activo — solapado con v1 | Valorar unificar con `validate_api.py` o eliminar |
