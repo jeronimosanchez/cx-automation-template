@@ -415,6 +415,45 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .pat-sh{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid #2a2a2a;padding-bottom:4px;margin-top:16px}
 .pat-empty{font-size:12px;color:#888;font-style:italic}
 .layer-format-note{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}
+/* ── Static Audit Matrix ── */
+.sa-panel{padding:12px 0}
+.sa-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sa-title{font-size:12px;font-weight:600;color:#c8f060;letter-spacing:.3px}
+.sa-meta{font-size:10px;color:#666}
+.sa-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sa-badge{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid #333}
+.sa-badge.pass{background:#071f07;color:#4ade80;border-color:#1a4a1a}
+.sa-badge.warn{background:#1f1700;color:#fbbf24;border-color:#4a3a00}
+.sa-badge.fail{background:#1f0707;color:#f87171;border-color:#4a1a1a}
+.sa-badge.info{background:#0d1b2b;color:#7dd3fc;border-color:#1a3a4a}
+.sa-table{width:100%;border-collapse:collapse;font-size:11px}
+.sa-table thead th{font-size:10px;color:#888;text-align:center;padding:6px;border-bottom:1px solid #222;font-weight:600;vertical-align:bottom;line-height:1.3}
+.sa-table thead th:first-child,.sa-table thead th:nth-child(2){text-align:left}
+.sa-table td.sa-crit{font-size:10px;color:#bbb;padding:5px 8px;white-space:nowrap;border-right:1px solid #111}
+.sa-table td.sa-cx{font-size:9px;color:#555;padding:5px 6px;white-space:nowrap;border-right:1px solid #111}
+.sa-cell{text-align:center;padding:5px 4px;border:1px solid #0a0a0a;position:relative;cursor:help;font-size:13px;min-width:44px}
+.sa-cell.pass{background:#071f07}.sa-cell.warn{background:#1f1700}.sa-cell.fail{background:#1f0707}.sa-cell.na{background:#0d0d0d}
+.sa-cell.pass::before{content:'✓';color:#4ade80}
+.sa-cell.warn::before{content:'⚠';color:#fbbf24}
+.sa-cell.fail::before{content:'✗';color:#f87171}
+.sa-cell.na::before{content:'—';color:#444}
+.sa-cell[title]:hover::after{content:attr(title);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#1f1f1f;color:#ddd;padding:6px 10px;border-radius:5px;font-size:10px;white-space:normal;max-width:240px;width:max-content;z-index:200;border:1px solid #333;pointer-events:none;line-height:1.4;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.sa-cell.warn,.sa-cell.fail{cursor:pointer}
+.sa-cell.warn:hover,.sa-cell.fail:hover{filter:brightness(1.4)}
+.sa-detail{background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:14px 18px;margin-top:14px;position:relative}
+.sa-detail.hidden{display:none}
+.sa-detail-close{position:absolute;top:10px;right:12px;cursor:pointer;color:#555;font-size:16px;line-height:1}
+.sa-detail-close:hover{color:#ccc}
+.sa-detail-header{font-size:12px;font-weight:600;color:#ccc;margin-bottom:12px}
+.sa-detail-sev-fail{color:#f87171}.sa-detail-sev-warn{color:#fbbf24}
+.sa-detail-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.9px;color:#555;margin-bottom:5px;font-weight:700}
+.sa-detail-sec{margin-bottom:12px}
+.sa-detail-text{font-size:11px;color:#999;line-height:1.6}
+.sa-detail-list{font-size:11px;color:#aaa;line-height:1.9;padding-left:20px;margin:4px 0 0}
+.sa-detail-list li{margin-bottom:1px}
+.sa-crit[title]{cursor:help;position:relative;text-decoration:underline dotted #555;text-underline-offset:3px}
+.sa-crit[title]:hover::after{content:attr(title);position:absolute;top:calc(100% + 5px);left:0;background:#1f1f1f;color:#ddd;padding:8px 12px;border-radius:5px;font-size:10px;white-space:normal;max-width:320px;width:max-content;z-index:300;border:1px solid #444;pointer-events:none;line-height:1.5;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.sa-crit[title]:hover::before{content:"";position:absolute;top:calc(100% + 1px);left:16px;border:5px solid transparent;border-bottom-color:#444;z-index:300;pointer-events:none}
 </style></head><body>
 <h1>QA Report — Floristería Petal</h1>
 <p class="sub">2026-06-15 00:05 · 3 runs/TC · MacBook-Air.local</p>
@@ -435,9 +474,9 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <div class="actions-bar">
   <div class="analysis-group">
     <span class="analysis-label">Análisis</span>
-    <a class="dl dl-tab-active" data-legend="Static YAML audit — conversational design issues: DSL density, token size, example coverage, negative &amp; tool-failure examples, param hygiene, exit paths, snake_case, single responsibility." style="cursor:pointer">📐 Diseño</a>
-    <a class="dl dl-coming" data-legend="Coming soon — NLU/flow structure validation via CX API: intent matching, entity types, webhook config, page routing." style="cursor:not-allowed">🔬 Estructura</a>
-    <a class="dl" data-legend="Live conversation testing against CX — turn-by-turn response checks, multi-run stability (pass/unstable/fail), param capture &amp; component attribution per turn." style="cursor:pointer">▶ Comportamiento</a>
+    <a class="dl dl-tab-active" data-legend="Static YAML audit — conversational design issues: DSL density, token size, example coverage, negative &amp; tool-failure examples, param hygiene, exit paths, snake_case, single responsibility." style="cursor:pointer" onclick="switchTab('diseno')">📐 Diseño</a>
+    <a class="dl dl-coming" data-legend="Not yet built — NLU/flow structure validation via CX API. Will check: intent coverage, entity types, webhook config, page routing, and orphan pages. Complements Diseño (offline) with live API checks." style="cursor:not-allowed;pointer-events:auto">🔬 Estructura</a>
+    <a class="dl" data-legend="Live conversation testing against CX — turn-by-turn response checks, multi-run stability (pass/unstable/fail), param capture &amp; component attribution per turn." style="cursor:pointer" onclick="switchTab('comportamiento')">▶ Comportamiento</a>
   </div>
   <div class="actions-right">
     <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
@@ -456,6 +495,166 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
     <tbody id="optimize-tbody"></tbody>
   </table>
 </div>
+
+<div id="diseno-panel" class="sa-panel">
+  <div class="sa-header">
+    <span class="sa-title">📐 Diseño — Static YAML Audit</span>
+    <span class="sa-meta">6 playbooks · 13 criteria · 2026-06-15 · tiktoken/cl100k</span>
+  </div>
+  <div class="sa-summary">
+    <span class="sa-badge fail">🔴 1 urgente: compra (16.2k tokens)</span>
+    <span class="sa-badge warn">🟡 2 refactor: checkout · orchestrator</span>
+    <span class="sa-badge pass">✅ MAX PB: 6/50</span>
+    <span class="sa-badge fail">⚠ 6/6 playbooks con checks fallidos</span>
+  </div>
+  <table class="sa-table" id="sa-matrix-table">
+    <thead>
+      <tr>
+        <th style="text-align:left;min-width:120px">Criterion</th>
+        <th style="text-align:left;min-width:42px;color:#555">Ref</th>
+        <th>checkout<br><small style="color:#555;font-weight:400">8.5k</small></th>
+        <th>compra<br><small style="color:#555;font-weight:400">16.2k</small></th>
+        <th>gest_deuda<br><small style="color:#555;font-weight:400">1.0k</small></th>
+        <th>handoff<br><small style="color:#555;font-weight:400">0.6k</small></th>
+        <th>orchestrator<br><small style="color:#555;font-weight:400">7.8k</small></th>
+        <th>registro<br><small style="color:#555;font-weight:400">4.2k</small></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="sa-crit" title="Total tokens in the playbook instruction. >5k → refactor; >10k → urgent. Large playbooks increase LLM latency and cause the model to lose track of instructions.">Token size</td><td class="sa-cx">CX-25</td>
+        <td class="sa-cell warn" title="🟡 refactor — 8538 tokens (limit: 5k)"></td>
+        <td class="sa-cell fail" title="🔴 URGENT — 16220 tokens (limit: 10k)"></td>
+        <td class="sa-cell pass" title="✅ 1025 tokens"></td>
+        <td class="sa-cell pass" title="✅ 611 tokens"></td>
+        <td class="sa-cell warn" title="🟡 refactor — 7782 tokens (limit: 5k)"></td>
+        <td class="sa-cell pass" title="✅ 4239 tokens"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="% of instruction lines that use a $ DSL variable. >30% means the instruction is dense and hard for the model to parse — high correlation with hallucinations.">DSL density</td><td class="sa-cx">CX-34</td>
+        <td class="sa-cell fail" title="🔴 32% DSL lines (limit: 30%)"></td>
+        <td class="sa-cell pass" title="✅ 13% DSL lines"></td>
+        <td class="sa-cell warn" title="🟡 23% DSL lines (range: 15–30%)"></td>
+        <td class="sa-cell fail" title="🔴 60% DSL lines (limit: 30%)"></td>
+        <td class="sa-cell fail" title="🔴 45% DSL lines (limit: 30%)"></td>
+        <td class="sa-cell fail" title="🔴 45% DSL lines (limit: 30%)"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="The instruction explicitly handles exit scenarios: human handoff, escalation, 'can't help'. Without these the agent loops or gives unhelpful non-answers.">Exit paths</td><td class="sa-cx">CX-27</td>
+        <td class="sa-cell pass" title="✅ Has exit-path keywords"></td>
+        <td class="sa-cell pass" title="✅ Has exit-path keywords"></td>
+        <td class="sa-cell pass" title="✅ Has exit-path keywords"></td>
+        <td class="sa-cell pass" title="✅ Has exit-path keywords"></td>
+        <td class="sa-cell pass" title="✅ Has exit-path keywords"></td>
+        <td class="sa-cell pass" title="✅ Has exit-path keywords"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="All $variable references in the instruction are declared as input/output parameters. Undeclared refs are invisible to CX → silent runtime failures and missing slot values.">Params declared</td><td class="sa-cx">CX-31</td>
+        <td class="sa-cell warn" title="🟡 Undeclared: saldo"></td>
+        <td class="sa-cell warn" title="🟡 Undeclared: email_capturado, filtros_activos, hora_actual, precio_max, precio_min, productos_mostrados"></td>
+        <td class="sa-cell pass" title="✅ All params declared"></td>
+        <td class="sa-cell pass" title="✅ All params declared"></td>
+        <td class="sa-cell warn" title="🟡 Undeclared: precio_estimado"></td>
+        <td class="sa-cell warn" title="🟡 Undeclared: calle, cif, ciudad, codigo_postal, fecha_nacimiento, nombre"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="Number of example conversations for this playbook. Google recommends ≥4 for reliable triggering. Too few examples → CX misroutes user inputs to the wrong playbook.">Examples (≥4)</td><td class="sa-cx">CX-13</td>
+        <td class="sa-cell warn" title="🟡 Only 2 examples (min: 4)"></td>
+        <td class="sa-cell pass" title="✅ 7 examples"></td>
+        <td class="sa-cell fail" title="🔴 0 examples — no examples folder"></td>
+        <td class="sa-cell fail" title="🔴 0 examples — no examples folder"></td>
+        <td class="sa-cell pass" title="✅ 10 examples"></td>
+        <td class="sa-cell pass" title="✅ 4 examples"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="At least one example uses the ALWAYS selectionStrategy, forcing this playbook to be selected in that scenario regardless of other candidates. Note: field not exported via REST API.">Always-select</td><td class="sa-cx">CX-36</td>
+        <td class="sa-cell na" title="➖ n/a — selectionStrategy not in REST export"></td>
+        <td class="sa-cell na" title="➖ n/a — selectionStrategy not in REST export"></td>
+        <td class="sa-cell fail" title="🔴 No always-select example (no examples folder)"></td>
+        <td class="sa-cell fail" title="🔴 No always-select example (no examples folder)"></td>
+        <td class="sa-cell na" title="➖ n/a — selectionStrategy not in REST export"></td>
+        <td class="sa-cell na" title="➖ n/a — selectionStrategy not in REST export"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="At least one example shows the agent handling a tool/webhook error gracefully. Without this the agent has no behavioral reference for when the backend is down or returns an error.">Tool failure ex.</td><td class="sa-cx">CX-26</td>
+        <td class="sa-cell warn" title="🟡 No tool-failure example in examples"></td>
+        <td class="sa-cell warn" title="🟡 No tool-failure example in examples"></td>
+        <td class="sa-cell fail" title="🔴 No tool-failure example (no examples folder)"></td>
+        <td class="sa-cell fail" title="🔴 No tool-failure example (no examples folder)"></td>
+        <td class="sa-cell warn" title="🟡 No tool-failure example in examples"></td>
+        <td class="sa-cell warn" title="🟡 No tool-failure example in examples"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="At least one example shows the user cancelling or declining ('no thanks', 'cancel', 'never mind'). Without this the agent may not exit gracefully when the user changes their mind.">Negation ex.</td><td class="sa-cx">CX-36</td>
+        <td class="sa-cell warn" title="🟡 No cancel/negation utterance in examples"></td>
+        <td class="sa-cell warn" title="🟡 No cancel/negation utterance in examples"></td>
+        <td class="sa-cell fail" title="🔴 No negation example (no examples folder)"></td>
+        <td class="sa-cell fail" title="🔴 No negation example (no examples folder)"></td>
+        <td class="sa-cell warn" title="🟡 No cancel/negation utterance in examples"></td>
+        <td class="sa-cell warn" title="🟡 No cancel/negation utterance in examples"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="displayName must be ≤64 characters. Hard limit enforced by Google CX — longer names are silently truncated or rejected at deploy time.">Name length</td><td class="sa-cx">CX-29</td>
+        <td class="sa-cell pass" title="✅ displayName ≤64 chars"></td>
+        <td class="sa-cell pass" title="✅ displayName ≤64 chars"></td>
+        <td class="sa-cell pass" title="✅ displayName ≤64 chars"></td>
+        <td class="sa-cell pass" title="✅ displayName ≤64 chars"></td>
+        <td class="sa-cell pass" title="✅ displayName ≤64 chars"></td>
+        <td class="sa-cell pass" title="✅ displayName ≤64 chars"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="All parameter names must follow snake_case (lowercase, underscores). CX requires this for reliable slot-filling and param passing between playbooks.">snake_case params</td><td class="sa-cx">CX-33</td>
+        <td class="sa-cell fail" title="🔴 Non-snake_case: Direccion_Habitual"></td>
+        <td class="sa-cell fail" title="🔴 Non-snake_case: Direccion_Habitual"></td>
+        <td class="sa-cell pass" title="✅ All params in snake_case"></td>
+        <td class="sa-cell pass" title="✅ All params in snake_case"></td>
+        <td class="sa-cell fail" title="🔴 Non-snake_case: Direccion_Habitual"></td>
+        <td class="sa-cell fail" title="🔴 Non-snake_case: Direccion_Habitual"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="Number of steps in the playbook instruction. ≤15 ✅ · 16-25 🟡 refactor · >25 🔴 urgent. Too many steps make the instruction hard to maintain and reduce LLM reliability.">Step count</td><td class="sa-cx">CX-35</td>
+        <td class="sa-cell pass" title="✅ 1 step (limit: ≤15)"></td>
+        <td class="sa-cell pass" title="✅ 1 step (limit: ≤15)"></td>
+        <td class="sa-cell pass" title="✅ 1 step (limit: ≤15)"></td>
+        <td class="sa-cell pass" title="✅ 1 step (limit: ≤15)"></td>
+        <td class="sa-cell pass" title="✅ 1 step (limit: ≤15)"></td>
+        <td class="sa-cell pass" title="✅ 1 step (limit: ≤15)"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="No cyclic delegation in the ${PLAYBOOK:X} graph. CX hard limit — if playbook A delegates to B and B delegates back to A, the agent enters an infinite redirect loop.">Deleg. cycle</td><td class="sa-cx">CX-28</td>
+        <td class="sa-cell pass" title="✅ No delegation cycles"></td>
+        <td class="sa-cell pass" title="✅ No delegation cycles"></td>
+        <td class="sa-cell pass" title="✅ No delegation cycles"></td>
+        <td class="sa-cell pass" title="✅ No delegation cycles"></td>
+        <td class="sa-cell pass" title="✅ No delegation cycles"></td>
+        <td class="sa-cell pass" title="✅ No delegation cycles"></td>
+      </tr>
+      <tr>
+        <td class="sa-crit" title="The playbook handles one responsibility. Flag raised when >1 distinct delegations AND >3 distinct tools are detected — candidate to split into sub-playbooks.">Single resp.</td><td class="sa-cx">CX-32</td>
+        <td class="sa-cell pass" title="✅ Single responsibility"></td>
+        <td class="sa-cell pass" title="✅ Single responsibility"></td>
+        <td class="sa-cell pass" title="✅ Single responsibility"></td>
+        <td class="sa-cell pass" title="✅ Single responsibility"></td>
+        <td class="sa-cell pass" title="✅ Single responsibility"></td>
+        <td class="sa-cell pass" title="✅ Single responsibility"></td>
+      </tr>
+    </tbody>
+  </table>
+  <div id="sa-detail-panel" class="sa-detail hidden">
+    <div class="sa-detail-close" onclick="closeSaDetail()">✕</div>
+    <div id="sa-detail-header" class="sa-detail-header"></div>
+    <div class="sa-detail-sec">
+      <div class="sa-detail-lbl">Why flagged</div>
+      <div id="sa-detail-reason" class="sa-detail-text"></div>
+    </div>
+    <div class="sa-detail-sec">
+      <div class="sa-detail-lbl">Recommended actions</div>
+      <ol id="sa-detail-actions" class="sa-detail-list"></ol>
+    </div>
+  </div>
+</div>
+
+<div id="comportamiento-panel">
 <div class="filter-bar">
 <div class="filter-row">
 <span class="filter-label">Categoría</span>
@@ -9598,6 +9797,7 @@ Confirmamos?"</div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
+</div><!-- /comportamiento-panel -->
 
 <div id="metodologia-modal" class="modal hidden">
   <div class="modal-overlay" onclick="closeMetodologia()"></div>
@@ -9713,46 +9913,76 @@ function togglePatterns(){var b=document.querySelector('.patterns-body');var a=d
 function openRoiModal(btn){var val=btn.dataset.roiVal,tcs=btn.dataset.roiTcs,esf=btn.dataset.roiEsf;var b=document.getElementById('roi-modal-body');if(!b)return;b.innerHTML='<p class="rmi-def"><strong>Tasa de resolución</strong> — cuántos TCs puedes cerrar por hora de trabajo invertida en el fix.</p><div class="rmi-section"><div class="rmi-lbl">Fórmula</div><div class="rmi-formula">ROI = TCs resueltos ÷ esfuerzo (h)</div></div><div class="rmi-section"><div class="rmi-lbl">Este fix</div><div class="rmi-row"><span>TCs resueltos</span><span>'+(tcs||'—')+'</span></div><div class="rmi-row"><span>Esfuerzo estimado</span><span>'+(esf||'—')+'</span></div><div class="rmi-row rmi-result"><span>ROI resultante</span><span>'+(val||'—')+' TCs/h</span></div></div>';document.getElementById('roi-modal-overlay').classList.add('open');}
 function closeRoiModal(){var o=document.getElementById('roi-modal-overlay');if(o)o.classList.remove('open');}
 function toggleSelectAll(cb){document.querySelectorAll('.opt-check').forEach(function(c){c.checked=cb.checked});updateRunButton();}
-function filterBy(s){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>{if(s==='all'){t.classList.remove('hidden')}else{t.classList.toggle('hidden',t.dataset.status!==s)}});if(s!=='all')document.querySelectorAll('.card[data-filter="'+s+'"]').forEach(c=>c.classList.add('active'))}
-function filterByGroup(g){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
-function filterByType(tp){document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',t.dataset.type!==tp))}
+function filterBy(s){switchTab('comportamiento');document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>{if(s==='all'){t.classList.remove('hidden')}else{t.classList.toggle('hidden',t.dataset.status!==s)}});if(s!=='all')document.querySelectorAll('.card[data-filter="'+s+'"]').forEach(c=>c.classList.add('active'))}
+function filterByGroup(g){switchTab('comportamiento');document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',!t.dataset.group.includes(g)))}
+function filterByType(tp){switchTab('comportamiento');document.querySelectorAll('.fbtn,.card').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.t').forEach(t=>t.classList.toggle('hidden',t.dataset.type!==tp))}
 
-// Histórico: fetch único a qa/history.json estático (publicado en gh-pages).
-// Antes: ~25 llamadas a GitHub API → rate limit 60 req/h sin auth.
-// Ahora: 1 fetch a ../history.json. Sin rate limit, sin latencia.
-async function openHistorial(){
+// Histórico: datos embebidos en el HTML (sin fetch, funciona local y en gh-pages).
+const HISTORY_DATA=[
+  {"timestamp":"2026-06-15 00:05","total":51,"pass":46,"inst":3,"fail":2,"pct":90,"runs_per_tc":3,"dir":"20260615_000500"},
+  {"timestamp":"2026-06-12 16:46","total":51,"pass":45,"inst":2,"fail":4,"pct":88,"runs_per_tc":3,"dir":"20260612_164600"},
+  {"timestamp":"2026-06-02 15:59","total":51,"pass":47,"inst":0,"fail":4,"pct":92,"runs_per_tc":1,"dir":"20260602_135902"},
+  {"timestamp":"2026-06-02 15:16","total":51,"pass":47,"inst":0,"fail":4,"pct":92,"runs_per_tc":1,"dir":"20260602_151645"},
+  {"timestamp":"2026-06-02 14:52","total":51,"pass":46,"inst":0,"fail":5,"pct":90,"runs_per_tc":1,"dir":"20260602_125249"},
+  {"timestamp":"2026-05-31 18:55","total":51,"pass":49,"inst":0,"fail":2,"pct":96,"runs_per_tc":1,"dir":"20260531_165521"},
+  {"timestamp":"2026-05-31 12:21","total":51,"pass":47,"inst":0,"fail":4,"pct":92,"runs_per_tc":1,"dir":"20260531_102142"},
+  {"timestamp":"2026-05-31 12:10","total":51,"pass":46,"inst":0,"fail":5,"pct":90,"runs_per_tc":1,"dir":"20260531_101003"},
+  {"timestamp":"2026-05-31 09:29","total":51,"pass":47,"inst":0,"fail":4,"pct":92,"runs_per_tc":1,"dir":"20260531_092913"},
+  {"timestamp":"2026-05-29 23:01","total":51,"pass":48,"inst":0,"fail":3,"pct":94,"runs_per_tc":1,"dir":"20260529_230156"},
+  {"timestamp":"2026-05-29 22:27","total":51,"pass":46,"inst":0,"fail":5,"pct":90,"runs_per_tc":1,"dir":"20260529_222756"},
+  {"timestamp":"2026-05-29 14:47","total":51,"pass":46,"inst":0,"fail":5,"pct":90,"runs_per_tc":1,"dir":"20260529_144724"},
+  {"timestamp":"2026-05-29 09:19","total":51,"pass":48,"inst":0,"fail":3,"pct":94,"runs_per_tc":1,"dir":"20260529_091915"},
+  {"timestamp":"2026-05-29 08:35","total":51,"pass":49,"inst":0,"fail":2,"pct":96,"runs_per_tc":1,"dir":"20260529_083559"},
+  {"timestamp":"2026-05-29 08:18","total":51,"pass":48,"inst":0,"fail":3,"pct":94,"runs_per_tc":1,"dir":"20260529_081827"},
+  {"timestamp":"2026-05-27 22:47","total":51,"pass":50,"inst":0,"fail":1,"pct":98,"runs_per_tc":1,"dir":"20260527_224705"},
+  {"timestamp":"2026-05-27 22:28","total":51,"pass":49,"inst":0,"fail":2,"pct":96,"runs_per_tc":1,"dir":"20260527_222846"},
+  {"timestamp":"2026-05-27 21:48","total":51,"pass":47,"inst":0,"fail":4,"pct":92,"runs_per_tc":1,"dir":"20260527_214828"},
+  {"timestamp":"2026-05-27 18:09","total":51,"pass":46,"inst":1,"fail":4,"pct":90,"runs_per_tc":3,"dir":"20260527_180926"},
+  {"timestamp":"2026-05-27 17:38","total":51,"pass":47,"inst":0,"fail":4,"pct":92,"runs_per_tc":1,"dir":"20260527_173822"},
+  {"timestamp":"2026-05-27 16:47","total":51,"pass":44,"inst":4,"fail":3,"pct":86,"runs_per_tc":1,"dir":"20260527_164724"},
+  {"timestamp":"2026-05-27 15:10","total":51,"pass":44,"inst":4,"fail":3,"pct":86,"runs_per_tc":3,"dir":"20260527_151044"},
+  {"timestamp":"2026-05-21 15:43","total":51,"pass":46,"inst":0,"fail":5,"pct":90,"runs_per_tc":1,"dir":"20260521_154302"},
+  {"timestamp":"2026-05-21 14:31","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260521_143113"},
+  {"timestamp":"2026-05-21 13:54","total":49,"pass":48,"inst":0,"fail":1,"pct":97,"runs_per_tc":1,"dir":"20260521_135404"},
+  {"timestamp":"2026-05-21 12:50","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260521_125002"},
+  {"timestamp":"2026-05-21 10:51","total":49,"pass":47,"inst":0,"fail":2,"pct":95,"runs_per_tc":1,"dir":"20260521_105105"},
+  {"timestamp":"2026-05-21 10:42","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260521_104202"},
+  {"timestamp":"2026-05-21 09:53","total":49,"pass":47,"inst":0,"fail":2,"pct":95,"runs_per_tc":1,"dir":"20260521_095317"},
+  {"timestamp":"2026-05-20 22:33","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260520_223358"},
+  {"timestamp":"2026-05-20 21:38","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260520_213840"},
+  {"timestamp":"2026-05-20 21:30","total":49,"pass":47,"inst":0,"fail":2,"pct":95,"runs_per_tc":1,"dir":"20260520_213048"},
+  {"timestamp":"2026-05-20 19:00","total":49,"pass":45,"inst":0,"fail":4,"pct":91,"runs_per_tc":1,"dir":"20260520_190016"},
+  {"timestamp":"2026-05-20 18:32","total":49,"pass":45,"inst":0,"fail":4,"pct":91,"runs_per_tc":1,"dir":"20260520_183204"},
+  {"timestamp":"2026-05-20 18:14","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260520_181445"},
+  {"timestamp":"2026-05-20 14:47","total":49,"pass":44,"inst":0,"fail":5,"pct":89,"runs_per_tc":1,"dir":"20260520_144742"},
+  {"timestamp":"2026-05-20 13:33","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260520_133318"},
+  {"timestamp":"2026-05-20 08:50","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260520_085020"},
+  {"timestamp":"2026-05-20 07:58","total":49,"pass":45,"inst":0,"fail":4,"pct":91,"runs_per_tc":1,"dir":"20260520_075849"},
+  {"timestamp":"2026-05-19 19:11","total":49,"pass":43,"inst":0,"fail":5,"pct":87,"runs_per_tc":1,"dir":"20260519_191133"},
+  {"timestamp":"2026-05-19 18:57","total":49,"pass":43,"inst":0,"fail":5,"pct":88,"runs_per_tc":1,"dir":"20260519_185700"},
+  {"timestamp":"2026-05-19 17:52","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260519_175219"},
+  {"timestamp":"2026-05-19 11:50","total":49,"pass":42,"inst":0,"fail":6,"pct":85,"runs_per_tc":1,"dir":"20260519_115033"},
+  {"timestamp":"2026-05-19 11:03","total":49,"pass":44,"inst":0,"fail":5,"pct":89,"runs_per_tc":1,"dir":"20260519_110352"},
+  {"timestamp":"2026-05-19 09:42","total":49,"pass":44,"inst":0,"fail":5,"pct":89,"runs_per_tc":1,"dir":"20260519_094238"},
+  {"timestamp":"2026-05-18 19:29","total":49,"pass":44,"inst":0,"fail":5,"pct":89,"runs_per_tc":1,"dir":"20260518_192907"},
+  {"timestamp":"2026-05-18 17:53","total":49,"pass":46,"inst":0,"fail":3,"pct":93,"runs_per_tc":1,"dir":"20260518_175357"}
+];
+function openHistorial(){
   const modal=document.getElementById('historial-modal');
   const loading=document.getElementById('hist-loading');
   const table=document.getElementById('hist-table');
   modal.classList.remove('hidden');
-  loading.classList.remove('hidden');
-  loading.textContent='Cargando histórico...';
-  table.classList.add('hidden');
-  try{
-    const rows=await fetch('../history.json',{cache:'no-cache'}).then(r=>{
-      if(!r.ok) throw new Error('history.json no disponible (HTTP '+r.status+')');
-      return r.json();
-    });
-    if(!Array.isArray(rows)||rows.length===0){
-      loading.textContent='No hay metadatos históricos disponibles.';
-      return;
-    }
-    const currentTs=document.title.match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/);
-    const tbody=table.querySelector('tbody');
-    tbody.innerHTML='';
-    rows.forEach(m=>{
-      const tr=document.createElement('tr');
-      if(currentTs && m.timestamp===currentTs[0]) tr.classList.add('current');
-      const backfilled=m.backfilled?' <span class="backfilled-tag">retroactivo</span>':'';
-      const url=`../${m.dir}/qa_latest.html`;
-      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${url}">Ver</a></td>`;
-      tbody.appendChild(tr);
-    });
-    loading.classList.add('hidden');
-    table.classList.remove('hidden');
-  }catch(e){
-    loading.textContent='Error cargando histórico: '+e.message;
-  }
+  loading.classList.add('hidden');
+  const tbody=table.querySelector('tbody');
+  tbody.innerHTML='';
+  HISTORY_DATA.forEach(m=>{
+    const tr=document.createElement('tr');
+    if(m.timestamp==='2026-06-15 00:05') tr.classList.add('current');
+    const url=`../${m.dir}/qa_latest.html`;
+    tr.innerHTML=`<td>${m.timestamp||'?'}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${url}">Ver</a></td>`;
+    tbody.appendChild(tr);
+  });
+  table.classList.remove('hidden');
 }
 function closeHistorial(){document.getElementById('historial-modal').classList.add('hidden')}
 function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
@@ -9944,6 +10174,89 @@ function closePanel(){
 function initButtons(){ initOptimizeButton(); initDeleteButton(); }
 document.addEventListener('DOMContentLoaded', initButtons);
 if (document.readyState !== 'loading') initButtons();
+function switchTab(tab){
+  var btns=document.querySelectorAll('.analysis-group .dl');
+  btns.forEach(function(b){b.classList.remove('dl-tab-active');});
+  var dp=document.getElementById('diseno-panel');
+  var cp=document.getElementById('comportamiento-panel');
+  var op=document.getElementById('optimize-panel');
+  if(tab==='diseno'){
+    btns[0].classList.add('dl-tab-active');
+    if(dp)dp.classList.remove('hidden');
+    if(cp)cp.classList.add('hidden');
+    if(op)op.classList.add('hidden');
+  }else{
+    btns[2].classList.add('dl-tab-active');
+    if(dp)dp.classList.add('hidden');
+    if(cp)cp.classList.remove('hidden');
+  }
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var cp=document.getElementById('comportamiento-panel');
+  if(cp)cp.classList.add('hidden');
+  var tbl=document.getElementById('sa-matrix-table');
+  if(tbl)tbl.addEventListener('click',function(e){
+    var cell=e.target.closest('.sa-cell');
+    if(!cell||cell.classList.contains('pass')||cell.classList.contains('na'))return;
+    var row=cell.closest('tr');
+    var cells=Array.from(row.cells);
+    var idx=cells.indexOf(cell);
+    var hdrs=tbl.querySelectorAll('thead th');
+    var pb=hdrs[idx]?hdrs[idx].childNodes[0].textContent.trim():'?';
+    var crit=row.cells[0].textContent.trim();
+    var sev=cell.classList.contains('fail')?'fail':'warn';
+    var reason=cell.getAttribute('title')||'No detail available.';
+    var acts=((SA_ACTIONS[crit]||{})[sev]||(SA_ACTIONS[crit]||{}).warn)||[];
+    showSaDetail(pb,crit,sev,reason,acts);
+  });
+});
+if(document.readyState!=='loading'){
+  var cp=document.getElementById('comportamiento-panel');
+  if(cp)cp.classList.add('hidden');
+}
+var SA_ACTIONS={
+  'Token size':{
+    warn:['Review instruction for blocks that could move to a Generator (static catalog, FAQs, rules)','Monitor — approaching the 10k urgent limit'],
+    fail:['URGENT: Extract the largest functional block as a Task sub-playbook','Move static content (product catalog, business rules) to a Generator','Split by user intent if multiple flows coexist in the instruction','Validate every current step is essential before the next deploy']
+  },
+  'DSL density':{
+    warn:['Monitor — approaching the 30% critical threshold','Simplify $var usage in the densest block'],
+    fail:['Replace redundant $var references with plain descriptive prose','Move DSL-heavy conditional blocks to a Generator','Reduce nested $if/$for structures — one level max per step']
+  },
+  'Params declared':{
+    warn:['Declare each undeclared param in inputParameterDefinitions (if received from another playbook) or outputParameterDefinitions (if set here)','Check if any are local computed values — use $var= syntax instead','Audit the cross-playbook call chain to trace param origin']
+  },
+  'Examples (≥4)':{
+    warn:['Add more example conversations until ≥4 total','Cover diversity: happy path · edge case · partial info provided','Add one tool-failure example and one cancel/negation example'],
+    fail:['Create the examples/ folder for this playbook','Add ≥4 example conversations covering main use cases','Add one tool-failure example','Add one cancel/negation example','Confirm examples deploy correctly via push_examples.py']
+  },
+  'Always-select':{
+    fail:['First: create the examples/ folder (see Examples criterion)','Then: add at least one example with selectionStrategy: ALWAYS for the forced-selection scenario']
+  },
+  'Tool failure ex.':{
+    warn:['Add an example where the tool or webhook returns an error or empty result','Define the expected graceful response in the example','Decide: retry, inform user, or exit to Orquestador'],
+    fail:['First: create the examples/ folder (see Examples criterion)','Then: include a tool-failure example in the initial batch — do not skip it']
+  },
+  'Negation ex.':{
+    warn:['Add an example where the user cancels mid-flow ("no gracias", "cancela", "ya no", "mejor lo dejo")','Define the exit behavior: acknowledge without insisting, return to Orquestador or close','Cover mid-flow cancellation, not only pre-start refusal'],
+    fail:['First: create the examples/ folder (see Examples criterion)','Then: include a cancel/negation example in the initial batch']
+  },
+  'snake_case params':{
+    fail:['Rename the offending param(s) to snake_case — see cell detail for the name','Update every $Param reference in the instruction text','Check if other playbooks receive or pass this param and update them too','Re-deploy all affected playbooks via push_playbooks.py']
+  }
+};
+function showSaDetail(pb,crit,sev,reason,acts){
+  var panel=document.getElementById('sa-detail-panel');
+  if(!panel)return;
+  var icon=sev==='fail'?'🔴':'🟡';
+  var cls=sev==='fail'?'sa-detail-sev-fail':'sa-detail-sev-warn';
+  document.getElementById('sa-detail-header').innerHTML='<span class="'+cls+'">'+icon+'</span> <strong>'+pb+'</strong> / '+crit;
+  document.getElementById('sa-detail-reason').textContent=reason;
+  document.getElementById('sa-detail-actions').innerHTML=acts.map(function(a){return'<li>'+a+'</li>';}).join('');
+  panel.classList.remove('hidden');
+  setTimeout(function(){panel.scrollIntoView({behavior:'smooth',block:'nearest'});},60);
+}
+function closeSaDetail(){document.getElementById('sa-detail-panel').classList.add('hidden');}
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHistorial();closeMetodologia();closePanel();}});
 
