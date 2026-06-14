@@ -231,3 +231,11 @@ qap/.promptfoo/
 
 # macOS metadata
 .DS_Store
+
+# === Validación ADK/Kaggle — entornos y secretos extra (repo PÚBLICO: nunca subir claves) ===
+.venv-adk/
+**/access_token
+**/kaggle.json
+*.key
+*.pem
+credentials.json

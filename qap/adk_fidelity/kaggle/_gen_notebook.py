@@ -32,8 +32,8 @@ cells = [
         "assert os.path.exists(ollama), f'ollama NO instalado en {ollama}'\n"
         "os.environ['PATH'] = os.path.dirname(ollama) + ':' + os.environ.get('PATH', '')\n"
         "os.environ['OLLAMA_FLASH_ATTENTION'] = '1'\n"
-        "os.environ['OLLAMA_NUM_PARALLEL'] = '1'          # 1 slot = contexto entero, sin trocear (alineado con start_ollama.sh)\n"
-        "os.environ['OLLAMA_CONTEXT_LENGTH'] = '24576'    # right-sized: prompt real max ~22k → 24k cabe sin truncar\n"
+        "os.environ['OLLAMA_NUM_PARALLEL'] = '2'          # 2 slots = orquestador + sub-agente calientes (multi-agente)\n"
+        "os.environ['OLLAMA_CONTEXT_LENGTH'] = '24576'    # cabe el prompt real max (~17.8k medido) sin truncar\n"
         "os.environ['OLLAMA_HOST'] = '127.0.0.1:11434'\n"
         "subprocess.Popen([ollama, 'serve'], env={**os.environ})\n"
         "time.sleep(8)\n"
@@ -46,8 +46,10 @@ cells = [
         "!nvidia-smi --query-gpu=name,memory.total,memory.used --format=csv\n"
         "!ollama list"
     ),
-    MD("## 2 · Dependencias Python"),
-    CODE("!pip install -q google-adk litellm google-genai pyyaml requests"),
+    MD("## 2 · Dependencias Python\n"
+       "**ADK 1.21.0 PINEADO** — 1.22.1+ tiene una regresión (`_rearrange_events_for_latest_function_response`) "
+       "que rompe el threading de function_response del AgentTool → loop. 1.21.0 lo arregla. NO subir a 2.x."),
+    CODE('!pip install -q "google-adk==1.21.0" litellm google-genai pyyaml requests'),
     MD("## 3 · Reconstruir el repo desde el Dataset\n"
        "Auto-detecta el bundle dentro de `/kaggle/input` (sin importar el slug del dataset)."),
     CODE(
@@ -76,8 +78,12 @@ cells = [
         "RECON = 'multi'          # 'multi' | 'flat'\n"
         "LIMIT = ''               # ej. '--limit 8' para prueba corta; '' = los 51\n"
         "env = ('ADK_RECON=multi ' if RECON == 'multi' else '')\n"
-        "cmd = (f'cd /kaggle/working/repo && OLLAMA_API_BASE=http://127.0.0.1:11434 '\n"
-        "       f'OLLAMA_FLASH_ATTENTION=1 OLLAMA_NUM_PARALLEL=1 OLLAMA_CONTEXT_LENGTH=24576 {env}'\n"
+        "# Provider openai/ (endpoint OpenAI-compat de Ollama) → esquiva el handler ollama_chat\n"
+        "# de litellm (roto para tool-calls). Mismo modelo qwen2.5:14b local.\n"
+        "cmd = (f'cd /kaggle/working/repo && '\n"
+        "       f'ADK_MODEL=openai/qwen2.5:14b OPENAI_API_BASE=http://127.0.0.1:11434/v1 OPENAI_API_KEY=ollama '\n"
+        "       f'ADK_CALL_CAP=15 '   # cap anti-churn: TC que re-llama >15 → INVALID (no se cuelga)\n"
+        "       f'OLLAMA_FLASH_ATTENTION=1 OLLAMA_NUM_PARALLEL=2 OLLAMA_CONTEXT_LENGTH=24576 {env}'\n"
         "       f'python -u qap/adk_fidelity/run_fidelity.py {LIMIT}')\n"
         "print(cmd)\n"
         "get_ipython().system(cmd)"

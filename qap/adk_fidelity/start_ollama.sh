@@ -8,7 +8,7 @@ set -e
 
 # --- Config de medición (los confounds que hay que fijar) ---
 export OLLAMA_FLASH_ATTENTION=1       # ADK: acelera el prefill, output idéntico (sin pérdida de fidelidad)
-export OLLAMA_NUM_PARALLEL=1          # P0 12-jun (config limpia): 1 slot = contexto entero, sin trocear → +60 tok/s vs auto=4
+export OLLAMA_NUM_PARALLEL=2          # 12-jun: el cribador es MULTI-AGENTE → alterna orquestador↔sub-agente (2 prefijos). 2 slots los mantienen calientes a la vez → cache hit en cada alternancia, no re-prefill. (np=1 era +rápido con 1 solo prefijo)
 export OLLAMA_CONTEXT_LENGTH=24576    # P0 12-jun right-size: prompt real max ~22k → 24k cabe + libera ~2GB → caché de 3 prefijos. Preflight guarda overflow. (era 32k: ADK-22)
 export OLLAMA_KEEP_ALIVE=-1           # modelo NO se descarga entre TCs/iteraciones → la KV-cache del prefijo persiste (ADK-24)
 export OLLAMA_HOST=127.0.0.1:11434
@@ -17,7 +17,7 @@ export OLLAMA_HOST=127.0.0.1:11434
 
 # --- Persistir para la app de Ollama (sesión GUI) ---
 launchctl setenv OLLAMA_FLASH_ATTENTION 1
-launchctl setenv OLLAMA_NUM_PARALLEL 1
+launchctl setenv OLLAMA_NUM_PARALLEL 2
 launchctl setenv OLLAMA_CONTEXT_LENGTH 24576
 launchctl setenv OLLAMA_KEEP_ALIVE -1
 

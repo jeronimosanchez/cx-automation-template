@@ -65,6 +65,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 - **Seguridad** — cerrar el backend `petal-sheet-api` (Cloud Run público sin auth).
 - ~~**Deuda técnica (S60)**~~ — **RESUELTA** (2026-06-08): `push_playbooks.py` ya usa Full Update desde los commits `b6c241c` y PR #17. El CLAUDE.md estaba desactualizado.
 - EP-02 — orquestador central de las 4 líneas y su `CLAUDE.md` global.
+- **Validación en 3 capas** — `static_audit` (diseño, hecho) · `cx_validate` (estructura NLU, por construir) · suite QA (comportamiento, hecho), persistiendo en el dashboard QA con 3 vistas (Diseño / Estructura / Comportamiento). Detalle en `memory/automatizacion/modelo_analisis_static_dynamic.md`.
 
 ---
 

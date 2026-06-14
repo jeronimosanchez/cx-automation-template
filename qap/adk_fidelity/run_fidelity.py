@@ -40,7 +40,7 @@ from google.genai import types
 # (${PLAYBOOK:Orchestrator} interpretado como transfer_to_agent → ping-pong) grinda ~140/TC.
 # Un turno limpio usa ~3-10 (route + respuesta + tool). 25 mata el loop sin cortar turnos legítimos;
 # el turno que lo excede cae como INVALID (la reconstrucción SE ROMPE ahí — honesto). Fix profundo = P3.
-MAX_LLM_CALLS = 25
+MAX_LLM_CALLS = 8
 
 # Ground truth MEDIDO (12-jun, run 3/TC qa_20260612_1646 contra CX, Petal post-#116) — NO asumido.
 #   FAILs robustos (0/3): FRUSTRACION-01, STOCK-EXCESO-01, URGENCIA-03, MULTI-PRODUCTO-01.
@@ -59,6 +59,8 @@ def load_cx_truth():
 
 async def run_tc_adk(runner, test, lexicon):
     """Corre un TC (todos sus turnos en una sesión) por ADK. Devuelve veredicto 3-estados + turnos."""
+    if hasattr(petal_agent, "reset_call_counter"):
+        petal_agent.reset_call_counter()   # cap global anti-churn: reset por TC (multi)
     sess = await runner.session_service.create_session(app_name="petal", user_id="u")
     all_pass = True
     any_error = False
