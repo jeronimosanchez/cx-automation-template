@@ -26,8 +26,7 @@ v21 — 14 abril 2026: +14 TCs metodología Compra (zona gris, edges)
 v20 — 14 abril 2026: Registro v12, Checkout v32, Orq v56, Compra v17
 """
 
-import argparse, json, sys, subprocess, requests, uuid, os, time, re, webbrowser, platform, shutil, threading
-from concurrent.futures import ThreadPoolExecutor
+import argparse, json, sys, subprocess, requests, uuid, os, time, re, webbrowser, platform, shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -2978,7 +2977,6 @@ def main():
     parser.add_argument("--test", help="Ejecutar TC(s). Uno: TC-C29. Varios: TC-C29,TC-C30,TC-DECO-02")
     parser.add_argument("--type", help="Filtrar: REG, NEW, EDGE")
     parser.add_argument("--runs", type=int, default=3, help="Runs por TC (default 3)")
-    parser.add_argument("--workers", type=int, default=1, help="TCs en paralelo (default 1). Seguro hasta 8 en europe-west1.")
     parser.add_argument("--list", action="store_true", help="Listar TCs")
     args = parser.parse_args()
     RUNS = max(1, min(args.runs, 5))
@@ -3001,24 +2999,12 @@ def main():
     print(f"Orq {ORQ_VERSION} | Compra {COMPRA_VERSION} | Checkout {CHECKOUT_VERSION} | Registro {REGISTRO_VERSION}")
     print(f"Ejecutando {len(tests)} tests \u00d7 {RUNS} runs...\n")
     token = get_token()
-    workers = max(1, min(args.workers, 10))
-    _print_lock = threading.Lock()
-
-    def _run_one(test):
-        with _print_lock:
-            print(f"  {test['id']} \u2014 {test['name']}...", end="", flush=True)
+    results = []
+    for test in tests:
+        print(f"  {test['id']} \u2014 {test['name']}...", end="", flush=True)
         r = run_test(token, test, RUNS)
-        with _print_lock:
-            print(f" {r['status']} ({r['pass_count']}/{r['total_runs']})")
-        return r
-
-    if workers > 1:
-        print(f"[paralelo: {workers} workers]\n")
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            results = list(executor.map(_run_one, tests))
-    else:
-        results = [_run_one(test) for test in tests]
-
+        results.append(r)
+        print(f" {r['status']} ({r['pass_count']}/{r['total_runs']})")
     for r in results: print_result(r)
     generate_reports(results)
 
