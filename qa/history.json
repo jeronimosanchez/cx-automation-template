@@ -1,13 +1,13 @@
 [
   {
-    "timestamp": "2026-06-15 00:05",
-    "ts_file": "20260615_0005",
+    "timestamp": "2026-06-15 17:21",
+    "ts_file": "20260615_1721",
     "total": 51,
     "pass": 46,
-    "inst": 3,
-    "fail": 2,
+    "inst": 0,
+    "fail": 5,
     "pct": 90,
-    "runs_per_tc": 3,
+    "runs_per_tc": 1,
     "versions": {
       "orquestador": "v65",
       "compra": "v39",
@@ -15,7 +15,7 @@
       "registro": "v7 (Task)",
       "script": "v23"
     },
-    "dir": "20260615_000500"
+    "dir": "20260615_172151"
   },
   {
     "timestamp": "2026-06-12 16:46",

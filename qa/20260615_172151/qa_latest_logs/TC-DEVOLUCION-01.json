@@ -1,0 +1,51 @@
+{
+  "tc_id": "TC-DEVOLUCION-01",
+  "tc_name": "Solicitud de devolucion — out-of-scope, deriva a Handoff",
+  "group": "G6",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-06-15 17:21",
+  "ts_file": "20260615_1721",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero devolver mi pedido",
+          "agent": "Para gestionar la devolución de tu pedido, te pongo en contacto con un compañero. Ellos te ayudarán con el proceso. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!",
+          "playbook": "unknown",
+          "params": {
+            "razon_handoff": "devolver",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [devolucion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

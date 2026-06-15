@@ -1,0 +1,48 @@
+{
+  "tc_id": "TC-PRESUPUESTO-01",
+  "tc_name": "Presupuesto duro — precio_max explicito",
+  "group": "G5",
+  "type": "NEW",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-06-15 17:21",
+  "ts_file": "20260615_1721",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero rosas maximo 30 euros",
+          "agent": "Mira, para un presupuesto de hasta 30 euros, te puedo ofrecer un Ramo de Rosas Amarillas o un Ramo de Rosas Blancas, ambos de tamaño mediano y por 25 euros. ¿Te gustaría alguno de ellos?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

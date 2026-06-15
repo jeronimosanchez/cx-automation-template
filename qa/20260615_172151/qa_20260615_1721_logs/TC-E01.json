@@ -1,0 +1,49 @@
+{
+  "tc_id": "TC-E01",
+  "tc_name": "Hablar con humano - sin pedir email",
+  "group": "ESP",
+  "type": "REG",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-06-15 17:21",
+  "ts_file": "20260615_1721",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero hablar con una persona",
+          "agent": "Entiendo que prefieras hablar con un agente. Te pongo en contacto ahora mismo. Hola, soy Alicia. He recibido tu solicitud. Me pondré en contacto enseguida. ¡Hasta pronto!",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "razon_handoff": "cliente_solicita_humano"
+          },
+          "checks": {
+            "pass": true,
+            "details": []
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

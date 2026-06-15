@@ -1,0 +1,82 @@
+{
+  "tc_id": "TC-REFINAR-01",
+  "tc_name": "Refinamiento de precio mid-flow — mas baratas",
+  "group": "G5",
+  "type": "NEW",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-06-15 17:21",
+  "ts_file": "20260615_1721",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para cumpleaños",
+          "agent": "Fenomenal, un ramo de rosas para un cumpleaños. Mira, tengo estas opciones que suelen gustar:\n\n*   Ramo de Rosas Morado -- M (15 flores, 37euros)\n*   Ramo de Rosas Amarillo -- M (12 flores, 25euros)\n*   Ramo de Rosas Blanco -- M (12 flores, 25euros)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "producto": "Ramo de Rosas",
+            "intencion_inicial": "quiero un ramo de rosas para cumpleaños",
+            "ocasion_detectada": "Regalo",
+            "modo_tono": "estandar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ramo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "mas baratas",
+          "agent": "Vale, más baratas. Te muestro:\n\n*   Ramo de Rosas Rosa -- M (6 flores, 15euros)\n*   Ramo de Rosas Rosa -- S (3 flores, 9euros)\n*   Ramo de Rosas Naranja -- S (8 flores, 22euros)\n\n¿Alguna te convence?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Regalo",
+            "producto": "Ramo de Rosas",
+            "modo_tono": "estandar",
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero un ramo de rosas para cumpleaños"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

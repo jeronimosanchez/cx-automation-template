@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-C31",
+  "tc_name": "Presupuesto sin producto",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-06-15 17:21",
+  "ts_file": "20260615_1721",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo no muy caro",
+          "agent": "Sin problema, cuéntame para quién es y te propongo algo.",
+          "playbook": "unknown",
+          "params": {
+            "modo_tono": "estandar",
+            "intencion_inicial": "Algo no muy caro",
+            "precio_max": 20,
+            "grupo_intent": "G3"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [ocasion|tipo|flor|motivo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
