@@ -30,7 +30,7 @@ import google.auth.transport.requests
 # ============================================================
 PROJECT = "floristeria-petal-digital"
 LOCATION = "europe-west1"
-AGENT_ID = "745375ba-ac7e-4eb8-b8a0-d742891f2aa4"
+AGENT_ID = "cea66b60-192d-4b5a-af10-28f8661032e0"  # Petal 1.1
 BASE = f"https://{LOCATION}-dialogflow.googleapis.com/v3beta1"
 PARENT = f"projects/{PROJECT}/locations/{LOCATION}/agents/{AGENT_ID}"
 
