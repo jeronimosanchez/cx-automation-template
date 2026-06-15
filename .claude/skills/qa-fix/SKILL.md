@@ -58,7 +58,7 @@ Confirma al usuario qué vas a hacer:
 | **Bug Playbook** | `definitions/playbooks/<nombre>.yaml` | ✅ Sí |
 | **Bug Orquestador** | `definitions/playbooks/orquestador.yaml` | ✅ Sí |
 | **Bug Tool** | `definitions/tools/<nombre>.yaml` | ✅ Sí |
-| **Test mal calibrado** / **Falso negativo** | `qap/test_qa_playbooks.py` (regex) | ❌ No |
+| **Test mal calibrado** / **Falso negativo** | `qap/petal_qa.py` (regex) | ❌ No |
 | **Bug Catálogo** | Backend Cloud Run (fuera del repo) | ⚠️ Manual |
 | **Flakiness** | Examples o ajuste de test | Depende |
 

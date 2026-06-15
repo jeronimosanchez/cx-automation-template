@@ -48,7 +48,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 | Sprint 3 | ✅ | Flows, Pages, Intents, Entity Types, Webhooks, Generators |
 | Sprint 4 | ✅ | CI/CD GitHub Actions + WIF, Environments, Versions, autopilot |
 | Sprint 5 | ✅ | Migración real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX) |
-| Sprint 6 | ✅ | Integración runner QA real (`test_qa_playbooks.py`, 29 TCs) en pipeline ACT contra Default Environment + publicación de reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/` |
+| Sprint 6 | ✅ | Integración runner QA real (`petal_qa.py`, 29 TCs) en pipeline ACT contra Default Environment + publicación de reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/` |
 
 ### Bugs resueltos en S58-S59 (no reintroducir)
 
@@ -98,7 +98,7 @@ Cuando se modifica un área, hay otras que deben actualizarse en el mismo cambio
 | `act/tests/` | `qa.yml` · README |
 | `.github/workflows/` | `docs/setup-cicd.md` · comandos de monitoreo |
 | `qap/` | `qa.yml` · README |
-| `qap/test_qa_playbooks.py` | `qa.yml` · Default Environment de CX · GitHub Pages (`docs/setup-qa.md`) |
+| `qap/petal_qa.py` | `qa.yml` · Default Environment de CX · GitHub Pages (`docs/setup-qa.md`) |
 | `docs/` | README · `deploy.yml` · `docs/setup-qa.md` (Sprint 6) |
 | `reports/` | `qa.yml` · `.gitignore` (no committear) |
 | `requirements.txt` | cualquier script que use la librería nueva |
@@ -148,7 +148,8 @@ Reglas operativas sobre cómo cualquier cambio llega a producción.
 ## 7. Constraints (nunca tocar sin aprobación explícita)
 
 1. **IAM y roles en GCP** — ningún cambio sin aprobación explícita de Jero.
-2. **Agente Petal en producción** — `745375ba-ac7e-4eb8-b8a0-d742891f2aa4`. Ningún cambio sin aprobación.
+2. **Agente Petal 1.0 (producción congelada)** — `745375ba-ac7e-4eb8-b8a0-d742891f2aa4`. Ningún cambio sin aprobación. El repo ya NO despliega aquí.
+   **Agente Petal 1.1 (activo)** — `cea66b60-192d-4b5a-af10-28f8661032e0`. Target activo del repo. Ningún cambio sin aprobación.
 3. **GitHub Secrets** — nunca crear, modificar ni leer sin aprobación.
 4. **`petal-sheet-api`** — proyecto separado (backend Cloud Run de inventario). Vive en tres instancias, ninguna se toca desde este repo:
    - `~/petal-sheet-api/` (local) — código fuente editable.
@@ -235,7 +236,8 @@ Ejemplo:
 - **Repo GitHub:** `jeronimosanchez/cx-automation-template`
 - **Proyecto GCP:** `floristeria-petal-digital`
 - **PROJECT_NUMBER:** `920225907399`
-- **Agente CX Petal:** `745375ba-ac7e-4eb8-b8a0-d742891f2aa4` (region `europe-west1`)
+- **Agente CX Petal 1.0 (congelado):** `745375ba-ac7e-4eb8-b8a0-d742891f2aa4` (region `europe-west1`)
+- **Agente CX Petal 1.1 (activo):** `cea66b60-192d-4b5a-af10-28f8661032e0` (region `europe-west1`)
 - **Service Account de despliegue:** `cx-template-deployer@floristeria-petal-digital.iam.gserviceaccount.com`
 - **Roles del SA:** `roles/dialogflow.admin` + `roles/serviceusage.serviceUsageConsumer`
 - **Workload Identity Pool:** `github-pool` (global)

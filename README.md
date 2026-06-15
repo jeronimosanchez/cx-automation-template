@@ -4,7 +4,7 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 
 **Qué hace:** convierte las definiciones de un agente CX (playbooks, intents, tools, ejemplos…) en ficheros YAML versionados en Git, y automatiza su despliegue idempotente a CX mediante CI/CD. Incluye una suite de QA end-to-end con reportes públicos y un harness de validación local con LLMs.
 
-**Agente de referencia:** [Petal](https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4) — floristería online en español, construida como simulación de un proyecto de producción real.
+**Agente de referencia:** [Petal 1.1](https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0) — floristería online en español, construida como simulación de un proyecto de producción real. (1.0 congelado: `745375ba-ac7e-4eb8-b8a0-d742891f2aa4`)
 
 ---
 
@@ -50,7 +50,7 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 │   └── tests/                      #   432 tests unitarios (pytest, sin red)
 │
 ├── qap/                            # QA & validación
-│   ├── test_qa_playbooks.py        #   51 TCs end-to-end contra CX — runner principal
+│   ├── petal_qa.py        #   51 TCs end-to-end contra CX — runner principal
 │   ├── static_audit.py             #   linter estático: consistencia entre playbooks (9 criterios)
 │   ├── surgical_run.py             #   corre TCs específicos y publica en GitHub Pages sin relanzar los 51
 │   ├── regenerate_html.py          #   regenera el dashboard HTML desde JSONs sin llamar a CX
@@ -105,14 +105,14 @@ gcloud config set project <PROJECT_ID>
 
 ```bash
 # Listar los 51 TCs sin ejecutar
-python qap/test_qa_playbooks.py --list
+python qap/petal_qa.py --list
 
 # Ejecutar todos (3 runs por TC, output en ~/petal-qa/)
-python qap/test_qa_playbooks.py
+python qap/petal_qa.py
 
 # Subset
-python qap/test_qa_playbooks.py --type REG
-python qap/test_qa_playbooks.py --test TC-URGENCIA-01 --runs 1
+python qap/petal_qa.py --difficulty core
+python qap/petal_qa.py --test TC-URGENCIA-01 --runs 1
 ```
 
 Reportes del último run: [GitHub Pages](https://jeronimosanchez.github.io/cx-automation-template/qa/)
@@ -186,10 +186,10 @@ pytest act/tests/ -v          # verbose
 ### QA — runner end-to-end
 
 ```bash
-python qap/test_qa_playbooks.py --list
-python qap/test_qa_playbooks.py
-python qap/test_qa_playbooks.py --type REG     # solo regresión
-python qap/test_qa_playbooks.py --test TC-URGENCIA-01 --runs 1
+python qap/petal_qa.py --list
+python qap/petal_qa.py
+python qap/petal_qa.py --difficulty core     # solo regresión
+python qap/petal_qa.py --test TC-URGENCIA-01 --runs 1
 ```
 
 ### QA — run quirúrgico (TCs específicos sin relanzar los 51)

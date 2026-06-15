@@ -108,8 +108,8 @@ El skill consulta el Sheet para obtener los valores reales de las variables de n
 
 **1. Cargar variables del Sheet (con timeout y verificación defensiva):**
 ```bash
-curl -s --max-time 30 "https://petal-sheet-api-920225907399.europe-west1.run.app/exec?recurso=business" -o /tmp/sheet_business.json
-curl -s --max-time 30 "https://petal-sheet-api-920225907399.europe-west1.run.app/exec?recurso=agent_copy" -o /tmp/sheet_agent_copy.json
+curl -s --max-time 30 "https://petal-sheet-api-v11-920225907399.europe-west1.run.app/exec?recurso=business" -o /tmp/sheet_business.json
+curl -s --max-time 30 "https://petal-sheet-api-v11-920225907399.europe-west1.run.app/exec?recurso=agent_copy" -o /tmp/sheet_agent_copy.json
 
 # Verificación defensiva — exigir que ambos archivos sean objetos JSON
 SHEET_OK=true
@@ -166,7 +166,7 @@ gh pr view <N>
 **4. Logs del backend (condicional):**
 Solo si el agente respondió con error de tool call ("Lo siento, algo no ha funcionado" o similar):
 ```bash
-gcloud logging read 'resource.labels.service_name="petal-sheet-api" AND severity>=ERROR' --freshness=1h --limit=20
+gcloud logging read 'resource.labels.service_name="petal-sheet-api-v11" AND severity>=ERROR' --freshness=1h --limit=20
 ```
 Para identificar parámetros vacíos, status codes y causa exacta del fallo del backend.
 
@@ -462,7 +462,7 @@ TCs analizados en este batch: {TC-X, TC-Y, TC-Z}
 Texto libre: N patrones detectados, orden de ejecución recomendado, deuda técnica detectada.
 ```
 
-**Reglas de parseo críticas** (son las que consume `_render_patterns_html` en `test_qa_playbooks.py`):
+**Reglas de parseo críticas** (son las que consume `_render_patterns_html` en `petal_qa.py`):
 - `TCs analizados en este batch:` — texto literal exacto, línea sola tras el frontmatter
 - `## Patrón` — exactamente 2 hashes, no 3
 - `**TCs:**` — en negrita, dos puntos, sin variantes

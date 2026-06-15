@@ -67,7 +67,7 @@ Cómo correrlos: `python -m pytest act/tests/ -q` (ver CLAUDE.md §5).
 
 | Script | Cuándo usarlo | Qué hace |
 |---|---|---|
-| `qap/test_qa_playbooks.py` | CI/CD automático (`qa.yml`) o manual con permiso | Suite principal: 51 TCs contra el agente CX en vivo. Genera reports HTML + JSON en `reports/` y publica en GitHub Pages. No modificar sin actualizar `qa.yml`. |
+| `qap/petal_qa.py` | CI/CD automático (`qa.yml`) o manual con permiso | Suite principal: 51 TCs contra el agente CX en vivo. Genera reports HTML + JSON en `reports/` y publica en GitHub Pages. No modificar sin actualizar `qa.yml`. |
 
 ---
 
