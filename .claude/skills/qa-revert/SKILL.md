@@ -64,7 +64,7 @@ gh run watch $RUN_ID --interval 15  # ~2 min
 ### Paso 5 — Confirmar estado roto
 
 ```bash
-./qap/rerun_single_tc.sh TC-XYZ
+python3 qap/surgical_run.py --test TC-XYZ --runs 1   # repo agent-validation-engine
 ```
 
 Lee el resultado:

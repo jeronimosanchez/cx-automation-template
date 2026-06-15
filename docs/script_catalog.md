@@ -116,7 +116,7 @@ y mide cuántos de los 51 TCs coinciden con los veredictos de CX en vivo.
 |---|---|---|
 | `qap/publish_html.sh` | Tras editar MDs de análisis y regenerar HTML | Sube un HTML regenerado a gh-pages sin tocar CX ni gastar tokens. Opcionalmente sincroniza también los JSONs de logs para evitar desincronización en el dashboard. Coste: €0. |
 | `qap/regenerate_all_html.sh` | Tras añadir/editar `qap/tc_analysis/*.md` en bloque | Regenera TODOS los HTMLs históricos de gh-pages con los MDs actuales. Clona gh-pages una vez y lee logs locales → ~5-10× más rápido que llamar a `regenerate_html.py` run a run. Publica en un único commit. |
-| `qap/rerun_single_tc.sh` | Demos rápidas tras aplicar un fix | Re-ejecuta UN solo TC contra CX y publica un run nuevo en gh-pages. Coste: ~€0.01 (1 llamada al agente). Tiempo: ~30 s. |
+| `qap/surgical_run.py` (repo agent-validation-engine) | Demos rápidas tras aplicar un fix | Re-ejecuta un subconjunto de TCs contra CX y publica un run nuevo en gh-pages mergeado sobre el histórico. Reemplaza al antiguo `rerun_single_tc.sh`. Coste: ~€0.01/TC. |
 | `qap/adk_fidelity/start_ollama.sh` | Antes de cualquier run del harness ADK | Configura y arranca Ollama con los parámetros óptimos: `OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_CONTEXT_LENGTH=32768`, `OLLAMA_NUM_PARALLEL=1`. Persiste la config vía `launchctl setenv` para que sobreviva reinicios. |
 | `qap/adk_fidelity/kaggle/package_for_kaggle.sh` | Antes de subir el harness a Kaggle | Empaqueta el mínimo necesario (definitions/ + harness ADK) en `build/petal-fidelity.zip` listo para subir como Dataset a Kaggle. Excluye secretos (`.env` dummy incluido). |
 

@@ -94,7 +94,7 @@ fi
 
 **Para batch:** ejecutar los chequeos en paralelo con `&` + `wait`.
 
-**Razón:** las suites completas de QA Petal se ejecutan en GitHub Actions y NO dejan JSONs locales — solo en gh-pages. Los `rerun_single_tc.sh` se ejecutan en local y dejan JSONs en `~/petal-qa/`. Esta estrategia funciona para ambos casos sin que el usuario haga nada distinto.
+**Razón:** las suites completas de QA Petal se ejecutan en GitHub Actions y NO dejan JSONs locales — solo en gh-pages. Los runs quirúrgicos (`surgical_run.py`) se ejecutan en local y dejan JSONs en `~/petal-qa/`. Esta estrategia funciona para ambos casos sin que el usuario haga nada distinto.
 
 **Tiempos esperados:**
 - Lectura local: ~0.002 segundos

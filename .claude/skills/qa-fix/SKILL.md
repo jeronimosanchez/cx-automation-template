@@ -100,7 +100,7 @@ Si no requiere deploy → skip a Paso 6.
 ### Paso 6 — Valida con rerun
 
 ```bash
-./qap/rerun_single_tc.sh TC-XYZ
+python3 qap/surgical_run.py --test TC-XYZ --runs 1   # repo agent-validation-engine
 ```
 
 Lee el JSON resultado:
