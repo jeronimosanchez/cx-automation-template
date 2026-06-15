@@ -9,9 +9,6 @@ Soporta `genericWebService` (caso comun: HTTP backend del cliente).
 `serviceDirectory` queda documentado en el schema pero no priorizado
 para el smoke test del sprint.
 
-Constraint Sprint 3: Petal NO usa Webhooks reales en este sprint.
-Modulo en --dry-run.
-
 Uso:
   python act/push_webhooks.py --file=definitions/webhooks/example_webhook.yaml --dry-run
   python act/push_webhooks.py --all --dry-run

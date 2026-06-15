@@ -11,9 +11,6 @@ Decisiones tecnicas no negociables:
   - PATCH parcial con updateMask (idempotencia).
   - `act/diff.py` es la fuente de verdad para el diff.
 
-Constraint Sprint 4: 0 PATCH/POST reales sobre Environments de Petal.
-Modulo en --dry-run durante el sprint.
-
 Uso:
   python act/push_environments.py --file=definitions/environments/example_environment.yaml --dry-run
   python act/push_environments.py --all --dry-run

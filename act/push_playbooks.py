@@ -16,10 +16,6 @@ Decisiones tecnicas no negociables:
   - `act/diff.py` es la fuente de verdad para el diff (decision binaria
     needs_update sí/no).
 
-Constraint Sprint 2: Cualquier cambio real en Playbooks de Petal
-requiere aprobacion humana explicita. Por defecto este modulo se
-ejecuta solo con `--dry-run` durante Sprint 2.
-
 Uso:
   python act/push_playbooks.py --file=definitions/playbooks/handoff.yaml --dry-run
   python act/push_playbooks.py --all --dry-run

@@ -9,9 +9,6 @@ Atencion: `trainingPhrases[].parts[]` puede contener tanto texto plano
 como partes con `parameterId`. El diff respeta la estructura completa
 porque listas se comparan como bloque (ver `diff.py`).
 
-Constraint Sprint 3: Petal NO usa Intents. Modulo en --dry-run en
-Sprint 3. Validacion completa diferida a un proyecto Flow-based.
-
 Uso:
   python act/push_intents.py --file=definitions/intents/example_intent.yaml --dry-run
   python act/push_intents.py --all --dry-run

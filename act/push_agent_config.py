@@ -12,12 +12,6 @@ Decisiones tecnicas no negociables:
   - PATCH parcial con updateMask. Sin full-update.
   - `act/diff.py` es la fuente de verdad para el diff.
 
-Constraint Sprint 2: Sin PATCH real sobre Agent Config de Petal en este
-sprint. Default operativo = `--dry-run`. Si los campos read-only no
-estan bien identificados y el dry-run reporta diff sospechoso, se
-loguea el diff completo y se ESCALA — NO se inventa la lista de
-ignore_fields.
-
 Uso:
   python act/push_agent_config.py --dry-run
   python act/push_agent_config.py --file=definitions/agent.yaml --dry-run
@@ -193,13 +187,8 @@ def main():
     print("     Detalles del diff:")
     print(json.dumps(result.patch_payload, indent=2, ensure_ascii=False))
 
-    # Constraint Sprint 2: NO PATCH real sobre Agent Config de Petal.
     if dry_run := args.dry_run:
         print(
-            "\n     ⚠ Sprint 2 constraint: NO PATCH real sobre Agent "
-            "Config. Si el diff tiene campos read-only no documentados, "
-            "ESCALAR — no anadir a AGENT_IGNORE_FIELDS sin aprobacion."
-        )
         print(
             f"\n{'='*55}\n"
             f"\U0001f4ca created=0  updated=1 (dry-run)  unchanged=0  failed=0"

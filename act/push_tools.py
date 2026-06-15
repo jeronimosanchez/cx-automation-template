@@ -11,10 +11,6 @@ Decisiones tecnicas no negociables:
   - PATCH parcial con updateMask. Sin full-update.
   - `act/diff.py` es la fuente de verdad para el diff.
 
-Constraint Sprint 2: Sin PATCH/POST real sobre Tools de Petal en este
-sprint. Default operativo = `--dry-run`. Si el dry-run reporta `update`,
-se loguea el `update_mask` y el diff completo antes de pedir aprobacion.
-
 Uso:
   python act/push_tools.py --file=definitions/tools/petaldatatool.yaml --dry-run
   python act/push_tools.py --all --dry-run
@@ -180,8 +176,6 @@ def upsert_tool(cfg, headers, body, existing_by_name, dry_run=False):
         print(f"  = {body['displayName']} (unchanged)")
         return "unchanged"
 
-    # Constraint Sprint 2: si dry-run reporta `update`, loguear diff
-    # completo antes de pedir aprobacion.
     print(f"  Δ  diff detectado: mask={result.update_mask}")
     if dry_run:
         for path in result.update_mask:

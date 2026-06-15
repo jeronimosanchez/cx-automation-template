@@ -13,10 +13,6 @@ Decisiones tecnicas no negociables (Sprint 2/3):
   - PATCH parcial con updateMask (idempotencia).
   - `act/diff.py` es la fuente de verdad para el diff.
 
-Constraint Sprint 3: Petal NO usa Pages reales (Playbook-only). Este
-modulo se ejecuta SIEMPRE con --dry-run en Sprint 3. Validacion completa
-diferida a un proyecto Flow-based.
-
 Uso:
   python act/push_pages.py --file=definitions/pages/example_page.yaml --dry-run
   python act/push_pages.py --all --dry-run

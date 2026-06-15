@@ -10,9 +10,6 @@ Soporta los 3 `kind` posibles del schema:
   - KIND_LIST: entries solo con value
   - KIND_REGEXP: entries con value=<regex pattern>
 
-Constraint Sprint 3: Petal NO usa Entity Types relevantes. Modulo en
---dry-run en Sprint 3.
-
 Uso:
   python act/push_entity_types.py --file=definitions/entity_types/example_entity_type.yaml --dry-run
   python act/push_entity_types.py --all --dry-run

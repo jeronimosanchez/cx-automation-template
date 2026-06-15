@@ -13,12 +13,6 @@ Decisiones tecnicas no negociables (Sprint 2/3):
   - PATCH parcial con updateMask (idempotencia).
   - `act/diff.py` es la fuente de verdad para el diff.
 
-Constraint Sprint 3: Petal NO usa Flows (es Playbook-based puro).
-LIST sobre Petal devuelve solo el flow Default. Por eso este modulo
-se ejecuta SIEMPRE en --dry-run en Sprint 3 (sin PATCH/POST reales).
-La validacion completa del camino unchanged/updated/created queda
-diferida a un proyecto Flow-based real (ej: ECH).
-
 Uso:
   python act/push_flows.py --file=definitions/flows/example_flow.yaml --dry-run
   python act/push_flows.py --all --dry-run

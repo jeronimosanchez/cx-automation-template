@@ -8,9 +8,6 @@ agente.
 Soporta `promptText` con placeholders ($variable) y `modelParameter`
 (config Gemini: model, temperature, maxDecodeSteps, topP, topK).
 
-Constraint Sprint 3: Petal NO tiene Generators relevantes en este
-sprint. Modulo en --dry-run.
-
 Uso:
   python act/push_generators.py --file=definitions/generators/example_generator.yaml --dry-run
   python act/push_generators.py --all --dry-run
