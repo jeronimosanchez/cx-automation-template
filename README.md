@@ -212,6 +212,16 @@ python act/validate_api.py --quick
 
 ---
 
+## Dependencias externas
+
+El agente Petal llama a **`petal-sheet-api`** (Cloud Run, `europe-west1`) para consultar inventario, perfiles y pedidos desde Google Sheets. Es un servicio separado — su código vive en [`jeronimosanchez/petal-sheet-api`](https://github.com/jeronimosanchez/petal-sheet-api) (privado).
+
+**Estado y deuda conocida:**
+- **Sin autenticación** — el endpoint es público. Aceptable para un PoC de demo; en producción real requeriría IAM o API key. Pendiente de cerrar.
+- **Regla de relajación de inventario (deuda de arquitectura)** — la lógica de fallback cuando no hay stock (`color_relajado` → `producto_y_color_relajados` → `sin_filtros_opcionales`) vive en el backend en lugar de en el playbook. Consecuencia: no es testeable por la suite QA ni versionada con el agente. Previsto moverla al playbook en Petal 1.1.
+
+---
+
 ## Decisiones de diseño
 
 Decisiones tomadas tras validación directa contra la API CX. No cambiar sin verificar en producción.
