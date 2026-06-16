@@ -102,7 +102,7 @@ Registrar PASS/FAIL por playbook en una tabla. Los 6 deben dar PASS en alta y en
 
 ### 5.B — Consumo desde ACT, QAP y preparación para GEN
 
-- **ACT:** `python act/validate_api.py` (no debe romperse por el cambio de estructura) + un `pull_playbooks.py --dry-run` para confirmar que sigue resolviendo rutas.
+- **ACT:** `python -m pytest act/tests/ -q` (432 tests verdes — no deben romperse por el cambio de estructura) + un `push_playbooks.py --all --dry-run` para confirmar que sigue resolviendo rutas.
 - **QAP:** `python -m pytest qap/tests/ -q` (los 60 tests verdes) + `python qap/petal_qa.py --test TC-C29 --runs 1 --dry-run` si existe dry-run, o confirmar que `agent.yaml` se lee correctamente desde el submodule.
 - **GEN (preparación):** documentar en el README de `petal-definitions` el comando exacto que un tercer repo usaría: `git submodule add https://github.com/jeronimosanchez/petal-definitions.git definitions`. No crear GEN, solo dejar el patrón listo.
 
@@ -119,7 +119,7 @@ Tras el push a main: confirmar que `deploy.yml` (ACT) y `qa.yml` (QAP) pasan en 
 - [ ] `petal-definitions` existe, privado, con historial preservado.
 - [ ] ACT y QAP montan `definitions/` como submodule; cero copias duplicadas.
 - [ ] Round-trip alta/baja PASS en los 6 playbooks (tabla 5.A).
-- [ ] Tests unitarios QAP verdes (60), `validate_api` ACT OK.
+- [ ] Tests unitarios QAP verdes (60) y ACT verdes (432).
 - [ ] `deploy.yml` y `qa.yml` con detección de cambios reformada (trampas 1-3 resueltas).
 - [ ] Clone recursivo limpio funciona en ambos repos (5.C).
 - [ ] CI verde en ambos repos tras push a main.

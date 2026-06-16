@@ -10,7 +10,7 @@ Guia exhaustiva paso a paso de la **Fase B** del Sprint 4 (configuracion humana)
 
 | Workflow | Trigger | Que hace |
 |---|---|---|
-| `.github/workflows/qa.yml` | push a `feature/**` o PR a `main` | Ejecuta `promptfoo eval` contra el Default Environment de Petal. Bloquea merge si falla. |
+| `.github/workflows/qa.yml` | push a `feature/**` o PR a `main` | Ejecuta la suite QA (`petal_qa.py`, 51 TCs) contra el Default Environment de Petal. Bloquea merge si falla. |
 | `.github/workflows/deploy.yml` | push a `main` (post-merge) | Despliega Examples / Playbooks / Tools / Agent Config a Petal y crea un snapshot inmutable de Version. |
 
 Ambos autentican a GCP via **Workload Identity Federation (WIF)**. NO Service Account Keys — son un riesgo de leak y rotacion.
@@ -54,17 +54,24 @@ Debe aparecer `cx-template-deployer@floristeria-petal-digital.iam.gserviceaccoun
 
 ---
 
-## Paso 2 — Asignar el rol `dialogflow.admin` al SA
+## Paso 2 — Asignar roles al SA (`dialogflow.admin` + `serviceUsageConsumer`)
 
-`dialogflow.admin` cubre todas las operaciones que hacen los `push_*.py` (LIST/GET/PATCH/POST/DELETE sobre Examples, Playbooks, Tools, Agent, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Environments y Versions).
+El SA necesita **dos roles**:
+
+1. `roles/dialogflow.admin` — cubre todas las operaciones que hacen los `push_*.py` (LIST/GET/PATCH/POST/DELETE sobre Examples, Playbooks, Tools, Agent, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Environments y Versions).
+2. `roles/serviceusage.serviceUsageConsumer` — **obligatorio** para llamar a la API CX con el header `x-goog-user-project`. Sin él, las llamadas fallan con 403 aunque `dialogflow.admin` esté presente (bug confirmado en S58-S59).
 
 ```
 gcloud projects add-iam-policy-binding floristeria-petal-digital \
     --member="serviceAccount:cx-template-deployer@floristeria-petal-digital.iam.gserviceaccount.com" \
     --role="roles/dialogflow.admin"
+
+gcloud projects add-iam-policy-binding floristeria-petal-digital \
+    --member="serviceAccount:cx-template-deployer@floristeria-petal-digital.iam.gserviceaccount.com" \
+    --role="roles/serviceusage.serviceUsageConsumer"
 ```
 
-Si quieres aplicar el principio de minimo privilegio en una iteracion futura, sustituye por `roles/dialogflow.editor` (no permite eliminar agentes ni ediciones de IAM internas) y verifica que los workflows siguen pasando.
+Si quieres aplicar el principio de minimo privilegio en una iteracion futura, sustituye `dialogflow.admin` por `roles/dialogflow.editor` (no permite eliminar agentes ni ediciones de IAM internas) y verifica que los workflows siguen pasando. `serviceUsageConsumer` se mantiene en cualquier caso.
 
 **Verifica:**
 
@@ -75,7 +82,7 @@ gcloud projects get-iam-policy floristeria-petal-digital \
     --format="table(bindings.role)"
 ```
 
-Debe aparecer `roles/dialogflow.admin`.
+Deben aparecer `roles/dialogflow.admin` **y** `roles/serviceusage.serviceUsageConsumer`.
 
 ---
 
@@ -221,9 +228,9 @@ Con la configuracion ya en sitio, valida punta-a-punta sin tocar produccion.
    git push -u origin feature/test-cicd
    ```
 
-4. Abre `https://github.com/jeronimosanchez/cx-automation-template/actions` y verifica que `QA Promptfoo` se dispara y termina **OK** (puede tardar 2-5 min).
+4. Abre `https://github.com/jeronimosanchez/cx-automation-template/actions` y verifica que el workflow de QA se dispara y termina **OK** (puede tardar 2-5 min).
 
-5. Abre PR a `main`. Verifica que `QA Promptfoo` se dispara de nuevo (esta vez con trigger `pull_request`).
+5. Abre PR a `main`. Verifica que el workflow de QA se dispara de nuevo (esta vez con trigger `pull_request`).
 
 6. Merge el PR. **Verifica** que `Deploy to Petal CX` se dispara tras el merge y termina OK.
 
@@ -272,9 +279,9 @@ gcloud iam workload-identity-pools providers update-oidc github-provider \
     --project=floristeria-petal-digital
 ```
 
-### Promptfoo falla con `detectIntent` 401/403
+### La suite QA falla con 401/403 al llamar a CX
 
-El SA no tiene permisos sobre el agente. Verifica Paso 2 y revisa que `definitions/agent.yaml` apunta al `agent_id` correcto del proyecto.
+El SA no tiene permisos sobre el agente. Verifica que **ambos** roles del Paso 2 están aplicados (`dialogflow.admin` y `serviceusage.serviceUsageConsumer`) y revisa que `definitions/agent.yaml` apunta al `agent_id` correcto del proyecto.
 
 ### El deploy crea una Version nueva en cada commit
 

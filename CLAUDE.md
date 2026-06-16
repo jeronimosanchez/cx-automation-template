@@ -94,14 +94,13 @@ Cuando se modifica un área, hay otras que deben actualizarse en el mismo cambio
 | Si cambias | Actualiza |
 |---|---|
 | `definitions/` | los 12 `push_*.py` · `deploy.yml` |
-| `act/` | `act/tests/` · `deploy.yml` · `qa.yml` · README |
-| `act/tests/` | `qa.yml` · README |
+| `act/` | `act/tests/` · `deploy.yml` · README |
+| `act/tests/` | README |
 | `.github/workflows/` | `docs/setup-cicd.md` · comandos de monitoreo |
-| `qap/` | `qa.yml` · README |
-| `qap/petal_qa.py` | `qa.yml` · Default Environment de CX · GitHub Pages (`docs/setup-qa.md`) |
-| `docs/` | README · `deploy.yml` · `docs/setup-qa.md` (Sprint 6) |
-| `reports/` | `qa.yml` · `.gitignore` (no committear) |
+| `docs/` | README · `deploy.yml` |
 | `requirements.txt` | cualquier script que use la librería nueva |
+
+> QA, validación y reportes (`qap/`, `qa.yml`, `petal_qa.py`, GitHub Pages) viven en el repo **agent-validation-engine**.
 
 **Regla pendiente (Sprint 5):** añadir test automático que verifique que todas las librerías importadas en `act/` están declaradas en `requirements.txt`.
 
@@ -124,9 +123,6 @@ python act/push_playbooks.py --all
 
 # Listar versiones de un flow
 python act/push_versions.py --list --flow "Default Start Flow"
-
-# Validar credenciales y conectividad con la API
-python act/validate_api.py
 ```
 
 **Protocolo de auto-mejora:** si un comando se repite 2 o más veces en una sesión, Claude Code propone añadirlo a esta sección al cierre. Jero aprueba antes del commit.

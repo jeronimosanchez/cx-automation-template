@@ -14,7 +14,7 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 |---|---|
 | **12 recursos CX cubiertos** | Playbooks, Examples, Tools, Agent Config, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Environments, Versions |
 | **Patrón idempotente** | `LIST → diff → PATCH/POST` en todos los recursos colectivos. Solo se envía lo que cambió |
-| **411 tests unitarios** | Sin red, sin auth. Mock de `requests`. Cubren todos los módulos de `act/` |
+| **432 tests unitarios** | Sin red, sin auth. Mock de `requests`. Cubren todos los módulos de `act/` |
 | **51 TCs end-to-end** | Runner QA real contra el agente CX vía `detectIntent`. Reportes HTML publicados en GitHub Pages (en agent-validation-engine) |
 | **CI/CD con WIF** | GitHub Actions + Workload Identity Federation. Deploy automático al hacer push a `main` |
 | **Harness de validación local** | Reconstrucción del agente con LLMs locales (Qwen/Ollama via ADK) para validar playbooks sin coste de API |
@@ -47,20 +47,15 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 │   ├── push_*.py                   #   12 scripts — uno por recurso CX
 │   ├── pull_*.py                   #   12 scripts — exporta CX → definitions/
 │   ├── diff.py                     #   función pura: dict local vs remoto → patch payload
-│   ├── validate_api.py             #   9 tests de conectividad y auth contra la API CX
-│   ├── audit_examples.py               #   auditoría de Examples legacy
-│   └── tests/                      #   411 tests unitarios (pytest, sin red)
+│   └── tests/                      #   432 tests unitarios (pytest, sin red)
 │                                   # QA y validación → ver repo agent-validation-engine
 │
 ├── .github/workflows/
-│   ├── deploy.yml                  #   push a main → deploy smart (solo recursos cambiados)
-│   └── qa.yml                      #   QA end-to-end + publicación en GitHub Pages
+│   └── deploy.yml                  #   push a main → deploy smart (solo recursos cambiados)
 │
 ├── docs/
-│   ├── script_catalog.md           #   inventario de todos los scripts con función y cuándo usarlos
-│   ├── setup-cicd.md               #   guía de configuración WIF + GitHub Variables
-│   ├── setup-qa.md                 #   guía de configuración GitHub Pages
-│   └── qa_analysis_process.md      #   proceso de análisis de FAILs
+│   ├── script_catalog.md           #   inventario de los scripts de ACT con función y cuándo usarlos
+│   └── setup-cicd.md               #   guía de configuración WIF + GitHub Variables
 │
 ├── requirements.txt
 └── .gitignore
@@ -160,13 +155,6 @@ pytest act/tests/ -q          # objetivo: <10s
 pytest act/tests/ -v          # verbose
 ```
 
-### Validar conectividad y auth
-
-```bash
-python act/validate_api.py
-python act/validate_api.py --quick
-```
-
 ---
 
 ## Dependencias externas
@@ -188,7 +176,7 @@ Decisiones tomadas tras validación directa contra la API CX. No cambiar sin ver
 - **Idempotencia:** PATCH parcial con `updateMask`. La función `act/diff.py` es pura (sin efectos secundarios) y calcula exactamente qué campos cambiaron.
 - **Playbooks — Full Update:** `PATCH` con `updateMask` falla en `europe-west1` para Playbooks (bug conocido del backend). Workaround validado: `GET` completo → modificar → `PATCH` sin `updateMask`.
 - **Versions — LRO polling:** `POST /versions` devuelve una Operation, no la Version. Hay que polear `GET /operations/{id}` hasta `done=true`.
-- **Tests sin red:** todos los tests de `act/tests/` usan mock de `requests`. Si un test necesita red, va en `qap/`.
+- **Tests sin red:** todos los tests de `act/tests/` usan mock de `requests`. Los tests que necesitan red (QA end-to-end) viven en el repo de validación (agent-validation-engine).
 - **WIF en CI:** Workload Identity Federation, sin Service Account key files.
 - **Concurrencia:** `concurrency: 1` en los workflows de GitHub Actions. La API CX no tiene optimistic locking.
 - **Agnosticismo:** todas las constantes del agente (project, location, IDs) viven en `definitions/agent.yaml`. Nada hardcodeado en Python.
@@ -242,12 +230,13 @@ openapi_spec_file: petaldatatool_openapi.yaml   # se lee como texto crudo — ev
 
 ## CI/CD
 
-Dos workflows GitHub Actions con autenticación via Workload Identity Federation:
+Deploy automático con GitHub Actions y autenticación via Workload Identity Federation:
 
 | Workflow | Trigger | Qué hace |
 |---|---|---|
 | `deploy.yml` | push a `main` | Detecta qué carpetas de `definitions/` cambiaron y corre solo los `push_*.py` afectados, en orden topológico. Crea Version snapshot al final. |
-| `qa.yml` | `workflow_dispatch` + PR a `main` | 51 TCs end-to-end contra Default Environment. Publica HTML + TXT en GitHub Pages. No bloquea merge. |
+
+El workflow de QA end-to-end (51 TCs + publicación de reportes) vive en el repo de validación [agent-validation-engine](https://github.com/jeronimosanchez/agent-validation-engine).
 
 Configuración inicial: ver [`docs/setup-cicd.md`](docs/setup-cicd.md) (~30-45 min).
 
@@ -255,8 +244,7 @@ Configuración inicial: ver [`docs/setup-cicd.md`](docs/setup-cicd.md) (~30-45 m
 
 ## Referencia
 
-- [Inventario de scripts](docs/script_catalog.md) — todos los `.py` y `.sh` con función y cuándo usarlos
-- [Proceso de análisis QA](docs/qa_analysis_process.md) — cómo interpretar y analizar FAILs
+- [Inventario de scripts](docs/script_catalog.md) — los scripts de ACT con función y cuándo usarlos
 - [Configuración CI/CD](docs/setup-cicd.md) — WIF + GitHub Variables
-- [Configuración QA](docs/setup-qa.md) — GitHub Pages + notificaciones
-- [Reportes QA en vivo](https://jeronimosanchez.github.io/cx-automation-template/qa/)
+- [Reportes QA en vivo](https://jeronimosanchez.github.io/cx-automation-template/qa/) — dashboard de la suite QA
+- [Repo de validación (QAP)](https://github.com/jeronimosanchez/agent-validation-engine) — suite QA, harness local de LLMs y linting estático

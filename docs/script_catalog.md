@@ -45,18 +45,15 @@ Patrón común: todos los `push_*.py` siguen `LIST → diff → PATCH/POST solo 
 
 ---
 
-## ACT — Utilidades (4 scripts)
+## ACT — Utilidades (1 script)
 
 | Script | Cuándo usarlo | Qué hace |
 |---|---|---|
 | `act/diff.py` | Librería — no se ejecuta directamente | Función pura `diff_resource(local, remote)` sin efectos secundarios. Compara dos dicts y devuelve `DiffResult` con `needs_update`, `update_mask` y `patch_payload` listos para PATCH. La usan todos los `push_*.py`. |
-| `act/audit_examples.py` | Migración puntual | Detecta examples que usan el `operationId` legacy `petaldatatool` en lugar del actual `consultarDatos`. Solo lectura — no modifica nada. |
-| `act/validate_api.py` | Antes de un sprint o tras cambios de IAM | 9 tests de conectividad y auth contra la API CX: verifica token, headers, LIST, GET, PATCH, etc. |
-| `act/validate_api_v2.py` | Diagnóstico avanzado | 4 tests adicionales: PATCH con `updateMask`, `displayName` duplicado, tamaño máximo de Example, paginación profunda. Complementa `validate_api.py`. |
 
 ---
 
-## ACT — Tests unitarios (26 archivos)
+## ACT — Tests unitarios (25 archivos, 432 tests)
 
 Ubicación: `act/tests/`. Nomenclatura: `test_push_<recurso>.py` / `test_pull_<recurso>.py`.
 
