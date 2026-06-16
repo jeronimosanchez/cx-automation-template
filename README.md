@@ -14,11 +14,12 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 |---|---|
 | **12 recursos CX cubiertos** | Playbooks, Examples, Tools, Agent Config, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Environments, Versions |
 | **Patrón idempotente** | `LIST → diff → PATCH/POST` en todos los recursos colectivos. Solo se envía lo que cambió |
-| **432 tests unitarios** | Sin red, sin auth. Mock de `requests`. Cubren todos los módulos de `act/` |
-| **51 TCs end-to-end** | Runner QA real contra el agente CX vía `detectIntent`. Reportes HTML publicados en GitHub Pages |
+| **411 tests unitarios** | Sin red, sin auth. Mock de `requests`. Cubren todos los módulos de `act/` |
+| **51 TCs end-to-end** | Runner QA real contra el agente CX vía `detectIntent`. Reportes HTML publicados en GitHub Pages (en agent-validation-engine) |
 | **CI/CD con WIF** | GitHub Actions + Workload Identity Federation. Deploy automático al hacer push a `main` |
 | **Harness de validación local** | Reconstrucción del agente con LLMs locales (Qwen/Ollama via ADK) para validar playbooks sin coste de API |
 | **Linting estático** | Reglas estáticas sobre los YAMLs de playbooks (sintaxis, consistencia, cobertura de examples) |
+| **agent-validation-engine** | QA end-to-end (51 TCs), harness local LLMs, linting estático — [ver repo](https://github.com/jeronimosanchez/agent-validation-engine) |
 
 > Adaptarlo a otro agente CX: cambia `definitions/agent.yaml`, no tocas código Python.
 
@@ -47,21 +48,9 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 │   ├── pull_*.py                   #   12 scripts — exporta CX → definitions/
 │   ├── diff.py                     #   función pura: dict local vs remoto → patch payload
 │   ├── validate_api.py             #   9 tests de conectividad y auth contra la API CX
-│   └── tests/                      #   432 tests unitarios (pytest, sin red)
-│
-├── qap/                            # QA & validación
-│   ├── petal_qa.py        #   51 TCs end-to-end contra CX — runner principal
-│   ├── static_audit.py             #   linter estático: consistencia entre playbooks (9 criterios)
-│   ├── surgical_run.py             #   corre TCs específicos y publica en GitHub Pages sin relanzar los 51
-│   ├── regenerate_html.py          #   regenera el dashboard HTML desde JSONs sin llamar a CX
-│   ├── rebuild_history.py          #   genera history.json para el histórico del dashboard
-│   ├── list_fails.py               #   lista FAILs del último run con estado de análisis
-│   └── adk_fidelity/               #   harness de validación local con LLMs
-│       ├── petal_agent.py          #     reconstrucción plana del agente (Qwen via Ollama)
-│       ├── petal_agent_multi.py    #     reconstrucción multi-agente (orquestador + sub-agentes)
-│       ├── run_fidelity.py         #     runner: compara veredictos LLM local vs CX en vivo
-│       ├── static_leak_gate.py            #     detecta directivas CX filtradas en outputs del LLM
-│       └── judge.py                #     juez suave (Gemma) para dimensiones no deterministas
+│   ├── audit_examples.py               #   auditoría de Examples legacy
+│   └── tests/                      #   411 tests unitarios (pytest, sin red)
+│                                   # QA y validación → ver repo agent-validation-engine
 │
 ├── .github/workflows/
 │   ├── deploy.yml                  #   push a main → deploy smart (solo recursos cambiados)
@@ -103,19 +92,7 @@ gcloud config set project <PROJECT_ID>
 
 ### 3. QA local (opcional)
 
-```bash
-# Listar los 51 TCs sin ejecutar
-python qap/petal_qa.py --list
-
-# Ejecutar todos (3 runs por TC, output en ~/petal-qa/)
-python qap/petal_qa.py
-
-# Subset
-python qap/petal_qa.py --difficulty core
-python qap/petal_qa.py --test TC-URGENCIA-01 --runs 1
-```
-
-Reportes del último run: [GitHub Pages](https://jeronimosanchez.github.io/cx-automation-template/qa/)
+> Los comandos de QA están documentados en [agent-validation-engine](https://github.com/jeronimosanchez/agent-validation-engine).
 
 ---
 
@@ -181,26 +158,6 @@ python act/push_generators.py --all --dry-run
 ```bash
 pytest act/tests/ -q          # objetivo: <10s
 pytest act/tests/ -v          # verbose
-```
-
-### QA — runner end-to-end
-
-```bash
-python qap/petal_qa.py --list
-python qap/petal_qa.py
-python qap/petal_qa.py --difficulty core     # solo regresión
-python qap/petal_qa.py --test TC-URGENCIA-01 --runs 1
-```
-
-### QA — run quirúrgico (TCs específicos sin relanzar los 51)
-
-```bash
-# Paso 1 — correr solo los TCs que necesitas
-python qap/surgical_run.py --test TC-URGENCIA-01,TC-URGENCIA-03 --runs 2
-
-# Paso 2 — publicar resultado en GitHub Pages (merge con el último run completo)
-python qap/surgical_run.py --publish
-python qap/surgical_run.py --publish --dry-run   # previsualiza sin hacer push
 ```
 
 ### Validar conectividad y auth
