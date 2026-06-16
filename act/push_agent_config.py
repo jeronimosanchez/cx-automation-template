@@ -189,7 +189,6 @@ def main():
 
     if dry_run := args.dry_run:
         print(
-        print(
             f"\n{'='*55}\n"
             f"\U0001f4ca created=0  updated=1 (dry-run)  unchanged=0  failed=0"
             f"\n{'='*55}"
