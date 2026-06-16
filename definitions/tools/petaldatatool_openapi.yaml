@@ -4,7 +4,7 @@ info:
   version: 3.9.0
   description: API para Floristeria Petal - perfil, registro, inventario, business, agent_copy, validar_pedido, pedidos.
 servers:
-  - url: https://petal-sheet-api-920225907399.europe-west1.run.app
+  - url: https://petal-sheet-api-v11-920225907399.europe-west1.run.app
 paths:
   /exec:
     get:

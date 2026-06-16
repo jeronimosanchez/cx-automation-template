@@ -8,7 +8,7 @@ actions:
 - agentUtterance:
     text: Entiendo que prefieras hablar con un agente. Te pongo en contacto ahora mismo.
 - playbookTransition:
-    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 playbookOutput:
   executionSummary: El usaurio solicita espontaneamente hablar con agente
   actionParameters:

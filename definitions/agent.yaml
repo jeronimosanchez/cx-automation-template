@@ -8,7 +8,7 @@
 
 project: floristeria-petal-digital
 location: europe-west1
-agent_id: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
+agent_id: cea66b60-192d-4b5a-af10-28f8661032e0  # Petal 1.1 (1.0: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4)
 
 api:
   base_v3beta1: https://europe-west1-dialogflow.googleapis.com/v3beta1

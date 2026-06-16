@@ -6,7 +6,7 @@ actions:
 - userUtterance:
     text: Algo para la oficina
 - playbookTransition:
-    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
 playbookOutput:
   executionSummary: 'Peticion directa de compra de un producto '
   actionParameters:

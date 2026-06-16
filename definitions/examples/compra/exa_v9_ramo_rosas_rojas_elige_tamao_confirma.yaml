@@ -4,7 +4,7 @@ displayName: 'ExA v9: Ramo rosas rojas → elige tamaño → confirma'
 description: Compra happy path — filtros combinados, 3 resultados, usuario elige tamaño.
 actions:
 - toolUse:
-    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
     inputActionParameters:
       recurso: inventario
@@ -49,7 +49,7 @@ actions:
 - userUtterance:
     text: El mediano
 - playbookTransition:
-    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
 playbookInput:
   precedingConversationSummary: Compra recibe $intencion_inicial="comprar ramo de rosas rojas para cumpleaños" con $ocasion_detectada=Regalo del Orquestador. Extrae tipo=Ramo, flor=rosas, color=Rojo. Hace tool call con filtros combinados. Presenta 3 tamaños (S/M/XL). Usuario elige M. Confirma y transfiere a Checkout.
   actionParameters:

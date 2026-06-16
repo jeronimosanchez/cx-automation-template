@@ -4,7 +4,7 @@ displayName: 'ExB v15: Funeral → tipo+producto con filtros'
 description: Producto con filtros
 actions:
 - toolUse:
-    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
     inputActionParameters:
       categoria: funeral
@@ -16,7 +16,7 @@ actions:
 - userUtterance:
     text: Un ramo de gladiolos
 - toolUse:
-    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
     inputActionParameters:
       producto: gladiolos
@@ -29,7 +29,7 @@ actions:
 - userUtterance:
     text: '3'
 - playbookTransition:
-    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
 playbookInput:
   precedingConversationSummary: Caso de recopilacion  completa
   actionParameters:

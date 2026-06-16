@@ -3,7 +3,7 @@ id: 8a3bc330-fb86-42d4-ac97-46252abc3367
 displayName: Ex_Reg_01 — Particular con bajo (captura planta + slot filling letra)
 actions:
 - toolUse:
-    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
     inputActionParameters:
       accion: leer
@@ -63,7 +63,7 @@ actions:
 - userUtterance:
     text: Si, correcto
 - toolUse:
-    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
     inputActionParameters:
       recurso: registro

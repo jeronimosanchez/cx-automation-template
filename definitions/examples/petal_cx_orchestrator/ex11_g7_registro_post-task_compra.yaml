@@ -6,7 +6,7 @@ actions:
 - userUtterance:
     text: Quiero registrarme
 - playbookInvocation:
-    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
     playbookInput:
       precedingConversationSummary: escalado a Registro
       actionParameters: {}
@@ -31,7 +31,7 @@ actions:
 - agentUtterance:
     text: ¡Perfecto! Vamos con tus rosas."
 - playbookTransition:
-    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
 playbookOutput:
   executionSummary: |
     Usuario pide registrarse (G7). Orquestador invoca Registro_Task sin inputs. Task completa registro y devuelve done con outputs. Orquestador carga datos del perfil, pregunta en qué ayudar. Usuario pide comprar rosas (G5). Orquestador clasifica, detecta ocasión=Regalo, y transfiere a Compra con $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $intencion_inicial, $ocasion_detectada=Regalo, $grupo_intent=G5.
