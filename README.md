@@ -54,7 +54,7 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 │   └── deploy.yml                  #   push a main → deploy smart (solo recursos cambiados)
 │
 ├── docs/
-│   ├── srs/                        #   especificación del sistema — Sistema A (diagnostica/repara/valida) + SRS
+│   ├── srs/                        #   SRS del sistema (Sistema A vive en QAP/agent-validation-engine)
 │   ├── figuras/                    #   diagramas del sistema
 │   ├── script_catalog.md           #   inventario de los scripts de ACT con función y cuándo usarlos
 │   ├── setup-cicd.md               #   guía de configuración WIF + GitHub Variables
@@ -248,7 +248,7 @@ Configuración inicial: ver [`docs/setup-cicd.md`](docs/setup-cicd.md) (~30-45 m
 
 ## Referencia
 
-- [Sistema A — diseño](docs/srs/) — el motor de optimización (diagnostica · repara · valida) + SRS del sistema
+- [Sistema A — diseño](https://github.com/jeronimosanchez/agent-validation-engine/tree/main/docs/sistema_a) — el motor de optimización (diagnostica · repara · valida) vive en QAP
 - [Inventario de scripts](docs/script_catalog.md) — los scripts de ACT con función y cuándo usarlos
 - [Configuración CI/CD](docs/setup-cicd.md) — WIF + GitHub Variables
 - [Reportes QA en vivo](https://jeronimosanchez.github.io/cx-automation-template/qa/) — dashboard de la suite QA
