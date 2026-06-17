@@ -24,6 +24,7 @@
 ## Futuro programado (experimentar más adelante)
 - **A favor y en contra** — argumentar también la evidencia que contradice cada hipótesis.
 - **Checklist de cobertura** — lista fija de familias (routing/slot/tool/diseño/NLU) para no saltarse ninguna.
+- **Diff pass-vs-fail** — en TCs inestables, comparar el run que pasó con el que falló para aislar la causa.
 - **Ranking dinámico** — VALIDA reordena (un fix barato que falla promueve la estructural). Requiere el bucle.
 - **Atribución por espectro** — sospecha estadística a escala.
 

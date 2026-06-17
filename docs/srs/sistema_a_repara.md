@@ -44,4 +44,9 @@ Hoy, sin ADK, generas 1-2 parches y dejas que CX (VALIDA) decida — funciona, s
 - **Dos guardas de regresión:** la re-auditoría estática (etapa 4) caza regresiones de *diseño*; las de *comportamiento* las caza VALIDA.
 - **Hoy se apuesta por el ranking de DIAGNOSTICA:** sin criba local, cada parche cuesta un deploy, así que la calidad del diferencial de entrada importa más.
 
+## Futuro programado (experimentar más adelante)
+- **Criba ADK ($0)** — la etapa 2 completa: probar parches en local con edge cases + muestra de regresión. Gated por ADK validado.
+- **Generación diversa multi-agente** — generar parches con razonamiento adversarial / varios modelos (*guided diversity*), no uno solo.
+- **Ranking dinámico de parches** — si el parche barato falla en VALIDA, promover el estructural.
+
 _Leyenda: ✅ operativo · 🟡 por construir · ❌ por construir._

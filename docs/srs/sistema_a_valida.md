@@ -17,4 +17,9 @@
 
 **Dos redes de regresión:** comportamiento (etapa 3, suite completa) + diseño (la re-auditoría estática de REPARA). Nada se da por bueno sin ambas.
 
+## Futuro programado (experimentar más adelante)
+- **Bucle automático** — "no resuelto → reintenta con la siguiente hipótesis del diferencial", sin intervención.
+- **Reordenado dinámico** — el resultado del re-test reordena el diferencial de DIAGNOSTICA.
+- **Entrega a Sistema B** — destilar el fix validado en receta reutilizable (motor de aprendizaje).
+
 _Leyenda: ✅ operativo · 🟡 por construir, esfuerzo bajo · ❌ por construir._
