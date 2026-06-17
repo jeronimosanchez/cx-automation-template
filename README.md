@@ -170,7 +170,7 @@ El agente Petal llama a **`petal-sheet-api`** (Cloud Run, `europe-west1`) para c
 
 ## Decisiones de diseño
 
-Decisiones tomadas tras validación directa contra la API CX. No cambiar sin verificar en producción.
+Decisiones tomadas tras validación directa contra la API de CX. No cambiar sin verificar contra la API de CX.
 
 - **Auth:** `gcloud auth print-access-token` en todos los scripts. `google.auth.default()` no se usa.
 - **Header obligatorio:** `x-goog-user-project: <project>` en todas las llamadas a la API.
