@@ -1,8 +1,8 @@
 # cx-automation-template
 
-Template reutilizable para automatizar el despliegue y validación de agentes conversacionales en Dialogflow CX (REST v3beta1).
+Template reutilizable para automatizar el **despliegue** de agentes conversacionales en Dialogflow CX (REST v3beta1).
 
-**Qué hace:** convierte las definiciones de un agente CX (playbooks, intents, tools, ejemplos…) en ficheros YAML versionados en Git, y automatiza su despliegue idempotente a CX mediante CI/CD. Incluye una suite de QA end-to-end con reportes públicos y un harness de validación local con LLMs.
+**Qué hace:** convierte las definiciones de un agente CX (playbooks, intents, tools, ejemplos…) en ficheros YAML versionados en Git, y automatiza su despliegue idempotente a CX mediante CI/CD. La **validación** (QA end-to-end + harness local con LLMs) vive en el repo QAP, [agent-validation-engine](https://github.com/jeronimosanchez/agent-validation-engine).
 
 **Agente de referencia:** [Petal 1.1](https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/cea66b60-192d-4b5a-af10-28f8661032e0) — floristería online en español, construida como simulación de un proyecto de producción real. (1.0 congelado: `745375ba-ac7e-4eb8-b8a0-d742891f2aa4`)
 
@@ -15,11 +15,8 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 | **12 recursos CX cubiertos** | Playbooks, Examples, Tools, Agent Config, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Environments, Versions |
 | **Patrón idempotente** | `LIST → diff → PATCH/POST` en todos los recursos colectivos. Solo se envía lo que cambió |
 | **432 tests unitarios** | Sin red, sin auth. Mock de `requests`. Cubren todos los módulos de `act/` |
-| **51 TCs end-to-end** | Runner QA real (en agent-validation-engine) contra el agente CX vía `detectIntent`. Reportes HTML publicados en GitHub Pages |
 | **CI/CD con WIF** | GitHub Actions + Workload Identity Federation. Deploy automático al hacer push a `main` |
-| **Harness de validación local** | Reconstrucción del agente con LLMs locales (Qwen/Ollama via ADK) para validar playbooks sin coste de API |
-| **Linting estático** | Reglas estáticas sobre los YAMLs de playbooks (sintaxis, consistencia, cobertura de examples) |
-| **agent-validation-engine** | QA end-to-end (51 TCs), harness local LLMs, linting estático — [ver repo](https://github.com/jeronimosanchez/agent-validation-engine) |
+| **Validación (QAP)** | QA end-to-end (51 TCs), harness local con LLMs y linting estático → en [agent-validation-engine](https://github.com/jeronimosanchez/agent-validation-engine) |
 
 > Adaptarlo a otro agente CX: cambia `definitions/agent.yaml`, no tocas código Python.
 
