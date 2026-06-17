@@ -15,7 +15,7 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 | **12 recursos CX cubiertos** | Playbooks, Examples, Tools, Agent Config, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Environments, Versions |
 | **Patrón idempotente** | `LIST → diff → PATCH/POST` en todos los recursos colectivos. Solo se envía lo que cambió |
 | **432 tests unitarios** | Sin red, sin auth. Mock de `requests`. Cubren todos los módulos de `act/` |
-| **51 TCs end-to-end** | Runner QA real contra el agente CX vía `detectIntent`. Reportes HTML publicados en GitHub Pages (en agent-validation-engine) |
+| **51 TCs end-to-end** | Runner QA real (en agent-validation-engine) contra el agente CX vía `detectIntent`. Reportes HTML publicados en GitHub Pages |
 | **CI/CD con WIF** | GitHub Actions + Workload Identity Federation. Deploy automático al hacer push a `main` |
 | **Harness de validación local** | Reconstrucción del agente con LLMs locales (Qwen/Ollama via ADK) para validar playbooks sin coste de API |
 | **Linting estático** | Reglas estáticas sobre los YAMLs de playbooks (sintaxis, consistencia, cobertura de examples) |
@@ -54,8 +54,12 @@ Template reutilizable para automatizar el despliegue y validación de agentes co
 │   └── deploy.yml                  #   push a main → deploy smart (solo recursos cambiados)
 │
 ├── docs/
+│   ├── srs/                        #   especificación del sistema — Sistema A (diagnostica/repara/valida) + SRS
+│   ├── figuras/                    #   diagramas del sistema
 │   ├── script_catalog.md           #   inventario de los scripts de ACT con función y cuándo usarlos
-│   └── setup-cicd.md               #   guía de configuración WIF + GitHub Variables
+│   ├── setup-cicd.md               #   guía de configuración WIF + GitHub Variables
+│   ├── migracion_definitions_submodule.md  # brief de migración definitions → repo único
+│   └── juez_estrategico_system_prompt.md   # system prompt del juez estratégico
 │
 ├── requirements.txt
 └── .gitignore
@@ -244,6 +248,7 @@ Configuración inicial: ver [`docs/setup-cicd.md`](docs/setup-cicd.md) (~30-45 m
 
 ## Referencia
 
+- [Sistema A — diseño](docs/srs/) — el motor de optimización (diagnostica · repara · valida) + SRS del sistema
 - [Inventario de scripts](docs/script_catalog.md) — los scripts de ACT con función y cuándo usarlos
 - [Configuración CI/CD](docs/setup-cicd.md) — WIF + GitHub Variables
 - [Reportes QA en vivo](https://jeronimosanchez.github.io/cx-automation-template/qa/) — dashboard de la suite QA
