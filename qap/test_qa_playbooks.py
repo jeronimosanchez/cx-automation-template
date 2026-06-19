@@ -2102,9 +2102,22 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .pat-sh{{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid #2a2a2a;padding-bottom:4px;margin-top:16px}}
 .pat-empty{{font-size:12px;color:#888;font-style:italic}}
 .layer-format-note{{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}}
+.agent-switch{{display:flex;align-items:center;gap:8px;margin:0 0 16px}}
+.agent-switch-lbl{{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace}}
+.agent-btn{{font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;background:#1a1a1a;border:1px solid #282828;color:#777;transition:all .15s}}
+.agent-btn:hover{{border-color:#444;color:#ccc}}
+.agent-btn.active{{background:#c8f06011;border-color:#c8f060;color:#c8f060}}
+.hist-filter{{display:flex;gap:6px;align-items:center;margin:0 0 12px}}
+.hist-fbtn{{font-size:11px;padding:4px 12px;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;background:#1a1a1a;border:1px solid #282828;color:#777}}
+.hist-fbtn.active{{background:#c8f06011;border-color:#c8f060;color:#c8f060}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
 <p class="sub">{ts} · {RUNS} runs/TC · {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
+<div class="agent-switch" data-current="{AGENT_LABEL}">
+<span class="agent-switch-lbl">Agente</span>
+<button class="agent-btn{' active' if AGENT_LABEL=='1.0' else ''}" onclick="switchAgent('1.0')">Petal 1.0</button>
+<button class="agent-btn{' active' if AGENT_LABEL=='1.1' else ''}" onclick="switchAgent('1.1')">Petal 1.1</button>
+</div>
 {legacy_note}
 <div class="hdr">
 <div><b>Orquestador:</b> {ORQ_VERSION}</div><div><b>Compra:</b> {COMPRA_VERSION}</div><div><b>Checkout:</b> {CHECKOUT_VERSION}</div>
@@ -2558,8 +2571,14 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
     <button class="modal-close" onclick="closeHistorial()">&times;</button>
     <h2>Histórico de QA Runs</h2>
     <div id="hist-loading" class="hist-loading">Cargando histórico...</div>
+    <div class="hist-filter" id="hist-filter" style="display:none">
+      <span class="agent-switch-lbl">Filtrar agente</span>
+      <button class="hist-fbtn active" data-af="all" onclick="filterHist('all')">Todos</button>
+      <button class="hist-fbtn" data-af="1.0" onclick="filterHist('1.0')">1.0</button>
+      <button class="hist-fbtn" data-af="1.1" onclick="filterHist('1.1')">1.1</button>
+    </div>
     <table id="hist-table" class="hist-table hidden">
-      <thead><tr><th>Fecha/hora</th><th>Total</th><th>Pass</th><th>Inestables</th><th>Fail</th><th>Tasa</th><th>Reporte</th></tr></thead>
+      <thead><tr><th>Fecha/hora</th><th>Agente</th><th>Total</th><th>Pass</th><th>Inestables</th><th>Fail</th><th>Tasa</th><th>Reporte</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -2612,6 +2631,7 @@ async function openHistorial(){
   loading.classList.remove('hidden');
   loading.textContent='Cargando histórico...';
   table.classList.add('hidden');
+  if(location.protocol==='file:'){ loading.textContent='Abre el dashboard vía servidor o gh-pages (http/https) — el navegador bloquea history.json desde file://.'; return; }
   try{
     const rows=await fetch('../history.json',{cache:'no-cache'}).then(r=>{
       if(!r.ok) throw new Error('history.json no disponible (HTTP '+r.status+')');
@@ -2626,17 +2646,39 @@ async function openHistorial(){
     tbody.innerHTML='';
     rows.forEach(m=>{
       const tr=document.createElement('tr');
+      const ag=m.agent||'1.0';
+      tr.dataset.agent=ag;
       if(currentTs && m.timestamp===currentTs[0]) tr.classList.add('current');
       const backfilled=m.backfilled?' <span class="backfilled-tag">retroactivo</span>':'';
       const url=`../${m.dir}/qa_latest.html`;
-      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${url}">Ver</a></td>`;
+      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${ag}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${url}">Ver</a></td>`;
       tbody.appendChild(tr);
     });
     loading.classList.add('hidden');
+    document.getElementById('hist-filter').style.display='flex';
     table.classList.remove('hidden');
+    const _curAg=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+    filterHist(_curAg);
   }catch(e){
     loading.textContent='Error cargando histórico: '+e.message;
   }
+}
+function filterHist(af){
+  document.querySelectorAll('.hist-fbtn').forEach(b=>b.classList.toggle('active',b.dataset.af===af));
+  document.querySelectorAll('#hist-table tbody tr').forEach(tr=>{
+    tr.style.display=(af==='all'||tr.dataset.agent===af)?'':'none';
+  });
+}
+async function switchAgent(label){
+  const sw=document.querySelector('.agent-switch');
+  if(!sw||label===sw.dataset.current) return;
+  if(location.protocol==='file:'){ alert('Este dashboard necesita abrirse vía servidor o gh-pages (http/https), no como archivo local: el navegador bloquea la carga de history.json desde file://.'); return; }
+  try{
+    const rows=await fetch('../history.json',{cache:'no-cache'}).then(r=>r.json());
+    const match=rows.filter(m=>(m.agent||'1.0')===label).sort((a,b)=>(b.ts_file||'').localeCompare(a.ts_file||''))[0];
+    if(!match){ alert('Sin runs de Petal '+label+' todavía. Genera uno: python3 qap/test_qa_playbooks.py --agent '+label); return; }
+    window.location.href='../'+match.dir+'/qa_latest.html';
+  }catch(e){ alert('No se pudo cargar history.json: '+e.message); }
 }
 function closeHistorial(){document.getElementById('historial-modal').classList.add('hidden')}
 function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
@@ -2967,8 +3009,50 @@ def generate_reports(results):
         subprocess.Popen(["python3", "-m", "http.server", "8080"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print(f"\n  \U0001f310 Web Preview \u2192 port 8080 \u2192 {html_path.name}\n  Parar: fuser -k 8080/tcp")
     else:
-        print(f"\n  \U0001f310 Abriendo en navegador...")
-        webbrowser.open(html_path.resolve().as_uri())
+        # Local: servir por http un mirror tipo gh-pages (qa/<ts>/qa_latest.html + qa/history.json).
+        # file:// bloquea fetch() de history.json -> el histórico y el switcher 1.0/1.1 no cargan.
+        site = out_dir / "site"; site_qa = site / "qa"
+        run_dir = site_qa / ts_file; run_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(html_path, run_dir / "qa_latest.html")
+        dst_logs = run_dir / "qa_latest_logs"; dst_logs.mkdir(exist_ok=True)
+        for r in results:
+            s = logs_dir / f'{r["id"]}.json'
+            if s.exists(): shutil.copy2(s, dst_logs / f'{r["id"]}.json')
+        # history.json desde las metas locales + materializar runs previos (para "Ver" y el switch entre agentes)
+        entries = []
+        for mp in sorted(out_dir.glob("qa_*.meta.json")):
+            try:
+                mm = json.load(open(mp, encoding="utf-8"))
+            except Exception:
+                continue
+            d = mm.get("ts_file")
+            if not d:
+                continue
+            mm["dir"] = d
+            entries.append(mm)
+            prev_html = out_dir / f"qa_{d}.html"
+            prev_target = site_qa / d / "qa_latest.html"
+            if prev_html.exists() and not prev_target.exists():
+                prev_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(prev_html, prev_target)
+        entries.sort(key=lambda x: x.get("ts_file") or "", reverse=True)
+        with open(site_qa / "history.json", "w", encoding="utf-8") as f:
+            json.dump(entries, f, indent=2, ensure_ascii=False)
+        PORT = 8080
+        url = f"http://localhost:{PORT}/qa/{ts_file}/qa_latest.html"
+        try:
+            subprocess.Popen(["python3", "-m", "http.server", str(PORT), "--directory", str(site)],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(0.6)
+        except Exception:
+            pass
+        print(f"\n  \U0001f310 Dashboard (http) → {url}")
+        print(f"  Servido en local para que el histórico y el switcher 1.0/1.1 funcionen (no file://).")
+        print(f"  Parar server: lsof -ti tcp:{PORT} | xargs kill")
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
 
 
 def main():
