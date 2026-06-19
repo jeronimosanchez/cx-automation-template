@@ -32,7 +32,13 @@ from pathlib import Path
 
 PROJECT = "floristeria-petal-digital"
 LOCATION = "europe-west1"
-AGENT_ID = "745375ba-ac7e-4eb8-b8a0-d742891f2aa4"
+# Agentes CX seleccionables vía --agent. 1.0 congelado · 1.1 activo (refactor/staging).
+AGENTS = {
+    "1.0": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
+    "1.1": "cea66b60-192d-4b5a-af10-28f8661032e0",
+}
+AGENT_LABEL = "1.0"                       # default; se sobreescribe en main() con --agent
+AGENT_ID = AGENTS[AGENT_LABEL]
 BASE = f"https://{LOCATION}-dialogflow.googleapis.com/v3beta1"
 AGENT = f"projects/{PROJECT}/locations/{LOCATION}/agents/{AGENT_ID}"
 
@@ -2899,6 +2905,8 @@ def generate_reports(results):
     pct_val = int((n_pass / total) * 100) if total else 0
     meta = {
         "timestamp": ts, "ts_file": ts_file,
+        "agent": AGENT_LABEL,
+        "report_format": "v1",   # interruptor de render: v1=estructura actual. 1.1 podrá usar v2 sin tocar el marco.
         "total": total, "pass": n_pass, "inst": n_inst, "fail": n_fail,
         "pct": pct_val, "runs_per_tc": RUNS,
         "versions": {
@@ -2964,14 +2972,19 @@ def generate_reports(results):
 
 
 def main():
-    global RUNS
+    global RUNS, AGENT_LABEL, AGENT_ID, AGENT
     parser = argparse.ArgumentParser(description="QA Petal v23 \u2014 29 tests")
     parser.add_argument("--test", help="Ejecutar TC(s). Uno: TC-C29. Varios: TC-C29,TC-C30,TC-DECO-02")
     parser.add_argument("--type", help="Filtrar: REG, NEW, EDGE")
     parser.add_argument("--runs", type=int, default=3, help="Runs por TC (default 3)")
+    parser.add_argument("--agent", choices=list(AGENTS), default="1.0",
+                        help="Agente CX objetivo: 1.0 (congelado) o 1.1 (activo). Default 1.0.")
     parser.add_argument("--list", action="store_true", help="Listar TCs")
     args = parser.parse_args()
     RUNS = max(1, min(args.runs, 5))
+    AGENT_LABEL = args.agent
+    AGENT_ID = AGENTS[AGENT_LABEL]
+    AGENT = f"projects/{PROJECT}/locations/{LOCATION}/agents/{AGENT_ID}"
     if args.list:
         for t in TESTS:
             print(f"  {t['id']:12s} [{t['type']:4s}] [{t['group']:12s}] {t['name']}")
@@ -2987,7 +3000,7 @@ def main():
         tests = [t for t in TESTS if t["type"] == args.type]
         if not tests: print(f"Tipo {args.type} no encontrado."); return
     env = "Cloud Shell" if IS_CLOUD_SHELL else f"Local ({platform.system()})"
-    print(f"QA Petal v23 \u2014 {env}")
+    print(f"QA Petal v23 \u2014 {env} \u2014 Agente Petal {AGENT_LABEL} ({AGENT_ID[:8]}\u2026)")
     print(f"Orq {ORQ_VERSION} | Compra {COMPRA_VERSION} | Checkout {CHECKOUT_VERSION} | Registro {REGISTRO_VERSION}")
     print(f"Ejecutando {len(tests)} tests \u00d7 {RUNS} runs...\n")
     token = get_token()
