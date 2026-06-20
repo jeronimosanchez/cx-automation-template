@@ -1691,6 +1691,8 @@ def generate_html(results, ts, txt_file, logs_dir_name=None, ts_compact_override
     legacy_note = ('<p class="layer-format-note" style="font-size:11px;color:#888;margin-bottom:12px">'
                    'Algunos análisis usan formato de 7 capas (v1.0). Los nuevos usan 9 capas (v1.1).'
                    '</p>') if has_legacy_analyses else ""
+    static_btn = ('<a class="dl" onclick="openEstatico()" style="cursor:pointer">\U0001f50d Análisis estático</a>'
+                  if AGENT_LABEL == '1.1' else '')
     h = f"""<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <title>QA Petal {ts}</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
@@ -2110,6 +2112,21 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .hist-filter{{display:flex;gap:6px;align-items:center;margin:0 0 12px}}
 .hist-fbtn{{font-size:11px;padding:4px 12px;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;background:#1a1a1a;border:1px solid #282828;color:#777}}
 .hist-fbtn.active{{background:#c8f06011;border-color:#c8f060;color:#c8f060}}
+.est-sum{{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;font-family:'DM Mono',monospace;margin:6px 0 12px;color:#aaa}}
+.est-grp{{font-size:12px;font-weight:600;color:#c8f060;margin:14px 0 4px;font-family:'DM Mono',monospace}}
+.est-mtx{{border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;margin:6px 0}}
+.est-mtx th,.est-mtx td{{border:1px solid #1a1a1a;text-align:center;padding:3px 5px}}
+.est-rowh{{text-align:left !important;color:#bbb;white-space:nowrap;padding-right:10px !important}}
+.est-colh{{color:#e2e2e2;font-weight:600;font-size:10px;white-space:normal;width:84px;min-width:76px;vertical-align:bottom;line-height:1.3;padding:5px 4px}}
+.est-leg{{display:block;font-size:9px;color:#777;font-weight:400;margin-top:6px;white-space:normal;line-height:1.4}}
+.est-doc{{text-align:left !important;color:#b8b8b8;font-size:10px;min-width:170px;max-width:210px;white-space:normal;line-height:1.3;padding:3px 8px !important}}
+.est-sig{{color:#ef4444;font-weight:600;background:#141414}}
+.est-c{{width:24px;cursor:default}}
+.est-c.est-ok{{color:#242424;background:transparent}}
+.est-c.est-na{{color:#3a3a3a;background:transparent}}
+.est-c.est-amb{{background:transparent}}
+.est-c.est-red{{background:transparent}}
+.est-mtx tfoot td{{background:#141414}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
 <p class="sub">{ts} · {RUNS} runs/TC · {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
@@ -2136,6 +2153,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">\U0001f5d1 Borrar an\u00e1lisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">\u2699 Optimizar</a>
 <a class="dl" onclick="openHistorial()" style="cursor:pointer">\U0001f4ca Hist\u00f3rico</a>
+{static_btn}
 </div>
 <div id="optimize-panel" class="optimize-panel hidden">
   <div class="optimize-panel-header">
@@ -2583,6 +2601,15 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
     </table>
   </div>
 </div>
+<div id="estatico-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeEstatico()"></div>
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeEstatico()">&times;</button>
+    <h2>Análisis estático</h2>
+    <div id="est-loading" class="hist-loading">Cargando análisis estático...</div>
+    <div id="est-body"></div>
+  </div>
+</div>
 <!-- Modal: Las 9 capas + estados (unificado) -->
 <div class="info-modal-overlay" id="modal-capas">
   <div class="info-modal">
@@ -2681,6 +2708,81 @@ async function switchAgent(label){
   }catch(e){ alert('No se pudo cargar history.json: '+e.message); }
 }
 function closeHistorial(){document.getElementById('historial-modal').classList.add('hidden')}
+async function openEstatico(){
+  const modal=document.getElementById('estatico-modal');
+  const loading=document.getElementById('est-loading');
+  const body=document.getElementById('est-body');
+  modal.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  loading.textContent='Cargando análisis estático...';
+  body.innerHTML='';
+  const ag=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+  if(location.protocol==='file:'){ loading.textContent='Abre el dashboard vía servidor o gh-pages (http/https) — el navegador bloquea fetch desde file://.'; return; }
+  try{
+    const data=await fetch('../static_'+ag+'.json',{cache:'no-cache'}).then(r=>{
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    });
+    const s=data.summary||{};
+    const res=(data.results||[]);
+    const agentLevel=res.filter(r=>r.target==='(agente)');
+    const pb=res.filter(r=>r.target!=='(agente)');
+    let checks=[...new Set(pb.map(r=>r.check))];
+    let targets=[...new Set(pb.map(r=>r.target))];
+    const cell={};
+    pb.forEach(r=>{ cell[r.check+'||'+r.target]=r; });
+    const redN=(c,t)=>{ const x=cell[c+'||'+t]; return x&&x.status==='🔴'?1:0; };
+    const ambN=(c,t)=>{ const x=cell[c+'||'+t]; return x&&x.status==='🟡'?1:0; };
+    const rowRed={},rowAmb={},colRed={};
+    checks.forEach(c=>{ rowRed[c]=targets.reduce((a,t)=>a+redN(c,t),0); rowAmb[c]=targets.reduce((a,t)=>a+ambN(c,t),0); });
+    targets.forEach(t=>{ colRed[t]=checks.reduce((a,c)=>a+redN(c,t),0); });
+    checks.sort((a,b)=> (rowRed[b]-rowRed[a]) || (rowAmb[b]-rowAmb[a]) || a.localeCompare(b));
+    targets.sort((a,b)=> (colRed[b]-colRed[a]) || a.localeCompare(b));
+    const docs=data.check_docs||{};
+    let html='<div class="est-sum">'
+      +'<span>'+(data.tool||'?')+' · agente '+(data.agent||ag)+'</span>'
+      +'<span style="color:#22c55e">✅ '+(s.ok||0)+'</span>'
+      +'<span style="color:#f59e0b">🟡 '+(s.warn||0)+'</span>'
+      +'<span style="color:#ef4444">🔴 '+(s.fail||0)+'</span>'
+      +'<span style="color:#666">➖ '+(s.na||0)+'</span>'
+      +'</div>';
+    html+='<div style="font-size:11px;color:#666;margin:0 0 8px">Filas = checks (más rojo arriba) · columnas = playbooks · análisis y recomendación solo en checks con incidencias · pasa el ratón por una celda para el detalle.</div>';
+    const hdr=name=>{ const idxs=[]; for(let i=0;i<name.length;i++){ if(name[i]==='_') idxs.push(i); } if(!idxs.length) return name; const mid=name.length/2; let best=idxs[0]; idxs.forEach(i=>{ if(Math.abs(i-mid)<Math.abs(best-mid)) best=i; }); return name.slice(0,best)+'<br>'+name.slice(best+1); };
+    html+='<div style="overflow-x:auto">';
+    html+='<table class="est-mtx"><thead><tr><th class="est-rowh" style="vertical-align:bottom">Check<span class="est-leg">🔴 fallo · 🟡 aviso<br>✅ ok · ➖ n/d</span></th>';
+    targets.forEach(t=>{ html+='<th class="est-colh" title="'+t+'">'+hdr(t)+'</th>'; });
+    html+='<th class="est-sig">Σ🔴</th><th class="est-doc">Análisis</th><th class="est-doc">Por qué importa</th><th class="est-doc">Recomendación</th></tr></thead><tbody>';
+    checks.forEach(c=>{
+      html+='<tr><td class="est-rowh">'+c+'</td>';
+      targets.forEach(t=>{
+        const x=cell[c+'||'+t]; const st=x?x.status:'';
+        let cls='est-ok', dot='·';
+        if(st==='🔴'){cls='est-red';dot='🔴';}
+        else if(st==='🟡'){cls='est-amb';dot='🟡';}
+        else if(st==='➖'){cls='est-na';dot='·';}
+        const tip=x?(c+' · '+t+': '+(x.message||x.status)):'';
+        html+='<td class="est-c '+cls+'" title="'+tip.replace(/"/g,'&quot;')+'">'+dot+'</td>';
+      });
+      const d=docs[c]||{}; const showDoc=((rowRed[c]||0)+(rowAmb[c]||0))>0;
+      html+='<td class="est-sig">'+(rowRed[c]||'')+'</td>';
+      html+='<td class="est-doc">'+(showDoc?(d.analisis||''):'')+'</td>';
+      html+='<td class="est-doc">'+(showDoc?(d.ejemplo||''):'')+'</td>';
+      html+='<td class="est-doc">'+(showDoc?(d.recomendacion||''):'')+'</td></tr>';
+    });
+    html+='</tbody><tfoot><tr><td class="est-rowh">Σ🔴 por playbook</td>';
+    targets.forEach(t=>{ html+='<td class="est-sig">'+(colRed[t]||'')+'</td>'; });
+    html+='<td class="est-sig"></td><td class="est-doc"></td><td class="est-doc"></td><td class="est-doc"></td></tr></tfoot></table></div>';
+    if(agentLevel.length){
+      html+='<div class="est-grp">Nivel agente</div>';
+      agentLevel.forEach(r=>{ html+='<div style="font-size:12px;color:#aaa;padding:2px 0">'+r.status+' '+r.check+' — '+(r.message||'')+'</div>'; });
+    }
+    loading.classList.add('hidden');
+    body.innerHTML=html;
+  }catch(e){
+    loading.textContent='Sin análisis estático para Petal '+ag+' todavía. Genéralo: python qap/static_audit.py --json --agent '+ag+' --out qa/static_'+ag+'.json';
+  }
+}
+function closeEstatico(){document.getElementById('estatico-modal').classList.add('hidden')}
 function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
 function closeMetodologia(){document.getElementById('metodologia-modal').classList.add('hidden')}
 

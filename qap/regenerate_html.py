@@ -31,6 +31,7 @@ from pathlib import Path
 
 # Importar generate_html del runner principal
 sys.path.insert(0, str(Path(__file__).parent))
+import test_qa_playbooks as _tq
 from test_qa_playbooks import generate_html
 
 
@@ -115,7 +116,9 @@ def main():
     parser.add_argument("--ts", help="Timestamp del run en gh-pages (ej: 20260518_192907)")
     parser.add_argument("--logs-dir", help="Carpeta local de JSONs")
     parser.add_argument("--out", default=None, help="Ruta de salida (default: /tmp/qa_regen_{TS}.html)")
+    parser.add_argument("--agent", default="1.0", help="Etiqueta de agente para el render (1.0/1.1)")
     args = parser.parse_args()
+    _tq.AGENT_LABEL = args.agent
 
     if args.logs_dir:
         logs_dir = Path(args.logs_dir)
