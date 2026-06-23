@@ -29,10 +29,17 @@ v20 — 14 abril 2026: Registro v12, Checkout v32, Orq v56, Compra v17
 import argparse, json, sys, subprocess, requests, uuid, os, time, re, webbrowser, platform, shutil
 from datetime import datetime
 from pathlib import Path
+import yaml
 
 PROJECT = "floristeria-petal-digital"
 LOCATION = "europe-west1"
-AGENT_ID = "745375ba-ac7e-4eb8-b8a0-d742891f2aa4"
+# Agentes CX seleccionables vía --agent. 1.0 congelado · 1.1 activo (refactor/staging).
+AGENTS = {
+    "1.0": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
+    "1.1": "cea66b60-192d-4b5a-af10-28f8661032e0",
+}
+AGENT_LABEL = "1.0"                       # default; se sobreescribe en main() con --agent
+AGENT_ID = AGENTS[AGENT_LABEL]
 BASE = f"https://{LOCATION}-dialogflow.googleapis.com/v3beta1"
 AGENT = f"projects/{PROJECT}/locations/{LOCATION}/agents/{AGENT_ID}"
 
@@ -81,499 +88,11 @@ def _temporal_ctx():
 _CTX = _temporal_ctx()  # {"hora_actual": "HH:MM", "dia_semana": "...", "entrega_hoy_posible": "si/no"}
 # -------------------------------------------------------------------------------
 
-TESTS = [
-    # =====================================================
-    # BASE — REGRESIÓN
-    # =====================================================
-    {"id": "TC-R01", "type": "REG", "group": "G1",
-     "name": "Info negocio - horario",
-     "turns": [{"user": "A que hora abris?", "checks": ["horario|lunes|sabado|9|20"]}],
-     "not_expected": ["email", "correo"]},
-
-    {"id": "TC-R02", "type": "REG", "group": "G2",
-     "name": "Info catalogo - precio tulipanes",
-     "turns": [{"user": "Cuanto cuestan los tulipanes?", "checks": ["euro|precio|tulipan"]}],
-     "not_expected": ["email", "correo"]},
-
-    {"id": "TC-R03", "type": "REG", "group": "G4",
-     "name": "Saludo",
-     "turns": [{"user": "Hola", "checks": ["hola|bienvenid|ayudar|Petal"]}],
-     "not_expected": ["email", "correo"]},
-
-    {"id": "TC-R04", "type": "REG", "group": "G5",
-     "name": "Compra directa sin email",
-     "turns": [{"user": "Quiero comprar rosas rojas", "checks": ["rosas|rosa|Ramo|Boutonniere|ocasi"]}],
-     "not_expected": ["email", "correo"]},
-
-    {"id": "TC-R06", "type": "REG", "group": "ESP",
-     "name": "Email espontaneo",
-     "turns": [{"user": "Mi email es ana@email.com", "checks": ["Ana|hola|ayudar|bienvenid|puedo|Hola"]}],
-     "not_expected": []},
-
-    {"id": "TC-N01", "type": "REG", "group": "G3",
-     "name": "Recomendacion - transfiere a Compra",
-     "turns": [{"user": "Necesito flores para un cumpleanos", "checks": ["regalo|presupuesto|ocasion|opciones|suger|buscar"]}],
-     "not_expected": ["email", "correo"]},
-
-    {"id": "TC-N03", "type": "REG", "group": "G6",
-     "name": "Requiere perfil - pide email",
-     "turns": [{"user": "Quiero ver mi saldo", "checks": ["email|correo"]}],
-     "not_expected": []},
-
-    {"id": "TC-E01", "type": "REG", "group": "ESP",
-     "name": "Hablar con humano - sin pedir email",
-     "turns": [{"user": "Quiero hablar con una persona", "checks": []}],
-     "not_expected": ["email", "correo"]},
-
-    # =====================================================
-    # BASE — REGISTRO
-    # =====================================================
-    {"id": "TC-REG01", "type": "NEW", "group": "G7",
-     "name": "Registro completo happy path desde Orquestador",
-     "turns": [
-         {"user": "Quiero registrarme", "checks": ["registr|nombre|email|correo|bienvenid|cuenta"]},
-         {"user": "nuevoreg01_r{RUN}@test.com", "checks": ["nombre|como te llam"]},
-         {"user": "Maria", "checks": ["apellido"]},
-         {"user": "Garcia Lopez", "checks": ["particular|empresa|tipo"]},
-         {"user": "particular", "checks": ["direcci|calle|domicilio|completa"]},
-         {"user": "Calle Alcala 42, 28014 Madrid", "checks": ["portal|planta|letra|telefono"]},
-         {"user": "No, es bajo", "checks": ["telefono|contacto"]},
-         {"user": "612345678", "checks": ["correcto|revisa|datos|Nombre|Maria|registro"]},
-         {"user": "Si, correcto", "checks": ["registrad|perfecto|Maria|ayudar|puedo"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-REG02", "type": "NEW", "group": "G7>ERR",
-     "name": "Registro con email invalido desde Orquestador",
-     "turns": [
-         {"user": "Quiero registrarme", "checks": ["registr|nombre|email|correo|bienvenid|cuenta"]},
-         {"user": "esto no es un email", "checks": ["valido|correo|email|@|formato"]},
-         {"user": "ahora tampoco", "checks": ["valido|correo|email|@|formato|intent"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-REG03", "type": "NEW", "group": "G7>CANCEL",
-     "name": "Registro cancelado a mitad desde Orquestador",
-     "turns": [
-         {"user": "Quiero registrarme", "checks": ["registr|nombre|email|correo|bienvenid|cuenta"]},
-         {"user": "nuevoreg03_r{RUN}@test.com", "checks": ["nombre|como te llam"]},
-         {"user": "Dejalo, no quiero registrarme", "checks": ["seguro|cancelar|entendido|pronto|registr"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-REG04", "type": "NEW", "group": "G5>CK>REG",
-     "name": "Flujo COMPLETO: Compra → Checkout → Registro_Task → completa pedido",
-     "turns": [
-         {"user": "Quiero comprar un ramo de rosas rojas para un cumpleanos", "checks": ["rosas|Ramo|rosa"]},
-         {"user": "El mediano", "checks": ["M|mediano|cantidad|cuantos|confirma"]},
-         {"user": "1", "checks": ["confirma|resumen|Rosas|Ramo|email|correo"]},
-         {"user": "nuevoreg04_r{RUN}@test.com", "checks": ["encontr|registr|otro|cuenta"]},
-         {"user": "Si, registrame con ese", "checks": ["nombre|registr|datos|empezar|como"]},
-         {"user": "Laura", "checks": ["apellido"]},
-         {"user": "Martinez", "checks": ["particular|empresa|tipo"]},
-         {"user": "particular", "checks": ["direcci|calle|domicilio|completa"]},
-         {"user": "Avenida de la Paz 15, 08017 Barcelona", "checks": ["portal|planta|letra|telefono"]},
-         {"user": "No", "checks": ["telefono|contacto"]},
-         {"user": "933456789", "checks": ["correcto|revisa|datos|Nombre|Laura|registro"]},
-         {"user": "Si, correcto", "checks": ["registrad|perfecto|Laura|continuamos"]},
-         {"user": "Si, confirmo", "checks": ["pedido|Laura|Rosas|entrega|simulada|perfecto|euro|referencia"]},
-     ],
-     "not_expected": []},
-
-    # =====================================================
-    # TC-REG05 DEPRECADO (sesion 52, 18 abril 2026)
-    # Razon: el flujo que validaba (Compra -> Checkout -> email-no-encontrado -> rechazo)
-    # ya no existe en el estado actual del sistema. Tras multiples refactorizaciones
-    # (email-tardio en Checkout, Registro_Task, PASO 1.5 Orquestador, Compra v28),
-    # el caso funcional queda cubierto por TC-REG04. Mantener este test generaba
-    # ruido (FAIL permanente) sin aportar cobertura nueva.
-    # Backlog: task registrada como Hecho.
-    # Se conserva comentado para rastreabilidad historica.
-    # -----------------------------------------------------
-    # {"id": "TC-REG05", "type": "NEW", "group": "G5>CK>CANCEL",
-    #  "name": "Compra -> Checkout -> email no encontrado -> no quiere registrarse",
-    #  "turns": [
-    #      {"user": "Quiero comprar un ramo de rosas rojas", "checks": ["rosas|Ramo|rosa"]},
-    #      {"user": "El pequeno", "checks": ["S|pequeno|cantidad|cuantos|confirma"]},
-    #      {"user": "1", "checks": ["confirma|resumen|Rosas|Ramo|email|correo"]},
-    #      {"user": "Si", "checks": ["email|correo"]},
-    #      {"user": "noexiste999@test.com", "checks": ["encontr|registr|otro|cuenta"]},
-    #      {"user": "No, dejalo", "checks": ["pronto|entendido|hasta|despedida|lament"]},
-    #  ],
-    #  "not_expected": []},
-
-    {"id": "TC-REG06", "type": "NEW", "group": "G7>POST",
-     "name": "Post-registro: Orquestador retoma y ofrece ayuda",
-     "turns": [
-         {"user": "Quiero registrarme", "checks": ["registr|nombre|email|correo|bienvenid|cuenta"]},
-         {"user": "nuevoreg06_r{RUN}@test.com", "checks": ["nombre|como te llam"]},
-         {"user": "Pedro", "checks": ["apellido"]},
-         {"user": "Sanchez", "checks": ["particular|empresa|tipo"]},
-         {"user": "particular", "checks": ["direcci|calle|domicilio|completa"]},
-         {"user": "Gran Via 50, 28013 Madrid", "checks": ["portal|planta|letra|telefono"]},
-         {"user": "No tengo portal", "checks": ["telefono|contacto"]},
-         {"user": "No tengo", "checks": ["correcto|revisa|datos|Nombre|Pedro|registro"]},
-         {"user": "Si, correcto", "checks": ["registrad|perfecto|Pedro|ayudar|puedo"]},
-         {"user": "Quiero comprar rosas", "checks": ["rosas|rosa|Ramo|color|tipo|ocasi"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-E04", "type": "REG", "group": "G6>SALDO",
-     "name": "Consulta saldo con email valido",
-     "turns": [
-         {"user": "Quiero ver mi saldo", "checks": ["email|correo"]},
-         {"user": "ana@email.com", "checks": ["Ana|saldo|300|pago|pendiente|Hola"]},
-     ],
-     "not_expected": []},
-
-    # =====================================================
-    # METODOLOGÍA — COMPRA ZONA GRIS
-    # =====================================================
-    {"id": "TC-C29", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Ambigüedad total sin datos",
-     "turns": [{"user": "Algo bonito para mi madre", "checks": ["tipo|flor|presupuesto|color|ocasion"]}],
-     "not_expected": []},
-
-    {"id": "TC-C31", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Presupuesto sin producto",
-     "turns": [{"user": "Algo no muy caro", "checks": ["ocasion|tipo|flor|motivo"]}],
-     "not_expected": []},
-
-    {"id": "TC-C32", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Cantidad ambigua — un par",
-     "turns": [
-         {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
-         {"user": "El mediano", "checks": ["cu.ntos|cantidad"]},
-         {"user": "Un par", "checks": ["2|dos|confirma|refiere"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-C33", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Cantidad ambigua — varios",
-     "turns": [
-         {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
-         {"user": "El mediano", "checks": ["cu.ntos|cantidad"]},
-         {"user": "Varios", "checks": ["cuantos|exactamente|numero|unidades"]},
-     ],
-     "not_expected": ["confirma|resumen"]},
-
-    {"id": "TC-C34", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Cantidad por función",
-     "turns": [
-         {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
-         {"user": "El mediano", "checks": ["cu.ntos|cantidad"]},
-         {"user": "Para llenar una mesa", "checks": ["cuantos|numero|exactamente|unidades"]},
-     ],
-     "not_expected": ["confirma|resumen"]},
-
-    {"id": "TC-C35", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Ocasión ambigua emocional",
-     "turns": [{"user": "Es para alguien especial", "checks": ["ocasion|celebra|regalo|cumpleanos|boda|tipo"]}],
-     "not_expected": []},
-
-    {"id": "TC-C36", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Urgencia sin ocasión",
-     "turns": [{"user": "Necesito flores para mañana", "checks": ["ocasion|motivo|tipo|flor|mente|especial"]}],
-     "not_expected": []},
-
-    {"id": "TC-C37", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Input numérico fuera de contexto",
-     "turns": [
-         {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
-         {"user": "El 3", "checks": ["refiere|cual|opcion|talla|tamano"]},
-     ],
-     "not_expected": ["confirma|resumen"]},
-
-    {"id": "TC-C39", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Emoji solo",
-     "turns": [{"user": "🌹", "checks": ["rosa|rosas|ocasion|motivo|color|flor|ayudar"]}],
-     "not_expected": []},
-
-    {"id": "TC-C40", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Pregunta out of scope en PASO 2",
-     "turns": [
-         {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
-         {"user": "¿Cuál es vuestra política de devoluciones?", "checks": ["devolucion|cambio|politica|plazo|scope"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-C42", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Handoff Compra → Checkout (pide email tras cantidad)",
-     "turns": [
-         {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
-         {"user": "El mediano", "checks": ["cu.ntos|cantidad"]},
-         {"user": "1", "checks": ["correo|email|pedido|confirma|resumen"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-C43", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Input ambiguo en PASO 0 Checkout — no cancela, re-pide email",
-     "turns": [
-         {"user": "Quiero rosas rojas para cumpleaños", "checks": ["talla|tamano|S|M|L|opcion"]},
-         {"user": "El mediano", "checks": ["cu.ntos|cantidad"]},
-         {"user": "1", "checks": ["correo|email|pedido|confirma|resumen"]},
-         {"user": "Mmm no sé", "checks": ["correo|email|arroba|nombre@"]},
-     ],
-     "not_expected": ["cancelar|adios|pronto|otro producto"]},
-
-    # =====================================================
-    # ANTI-REGRESION — DECORACION / INVENTARIO (S60, 15 may 2026)
-    # Origen: repro brief S60. Ver qa/repro_margaritas_20260515.txt
-    # Bug raiz: tool call con tipo='ramo' (minuscula) + ocasion=Decoracion
-    # no encuentra Ramo de Margaritas (Decoracion en Categoria_Uso, no en Ocasion).
-    # Agente improvisa "no tengo X" con alternativas que no son del producto pedido.
-    # =====================================================
-    {"id": "TC-DECO-01", "type": "EDGE", "group": "COMPRA-INV",
-     "name": "Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –)",
-     "turns": [
-         {"user": "quiero un ramo de margaritas para decorar mi recibidor",
-          "checks": ["Margarita.{0,40}--.{0,5}[SMLX]|Margarita.{0,40}—.{0,5}[SMLX]|Margarita.{0,40}–.{0,5}[SMLX]|Margarita.{0,80}euros"]},
-     ],
-     "not_expected": ["no tengo.{0,40}margarit", "no tenemos.{0,40}margarit"]},
-
-    {"id": "TC-DECO-02", "type": "EDGE", "group": "COMPRA-INV",
-     "name": "Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)",
-     "turns": [
-         {"user": "quiero un ramo de rosas para decorar mi salon",
-          "checks": ["Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros"]},
-     ],
-     "not_expected": ["no tengo.{0,40}rosa", "no tenemos.{0,40}rosa"]},
-
-    # =====================================================
-    # TIER 1 — NUEVOS HAPPY PATHS Y EDGE CASES (16 may, sesion post-Met-S63)
-    # 8 TCs alta probabilidad de uso real: modos de tono no cubiertos,
-    # refinamiento, cambio de opinion, frustracion, variantes S/M/L.
-    # =====================================================
-
-    {"id": "TC-FUNERAL-01", "type": "NEW", "group": "G5",
-     "name": "Modo solemne — corona para funeral",
-     "turns": [
-         {"user": "necesito una corona para un funeral",
-          "checks": ["corona|funebr|ceremonia|pesame|familia|opciones|tipo|encaja"]},
-     ],
-     "not_expected": ["mira,|genial|fenomenal|🌸"]},
-
-    {"id": "TC-PRESUPUESTO-01", "type": "NEW", "group": "G5",
-     "name": "Presupuesto duro — precio_max explicito",
-     "turns": [
-         {"user": "quiero rosas maximo 30 euros",
-          "checks": ["rosa|ramo|opcion|euro|22|25|presupuesto"]},
-     ],
-     "not_expected": ["132|premium.{0,30}euros"]},
-
-    {"id": "TC-COLOR-01", "type": "NEW", "group": "G5",
-     "name": "Compra con color especifico no-rojo (tulipanes blancos)",
-     "turns": [
-         {"user": "quiero tulipanes blancos",
-          "checks": ["Tulipan|tulipan|blanc|euro|opcion"]},
-     ],
-     "not_expected": ["no tengo.{0,40}tulipan"]},
-
-    {"id": "TC-REFINAR-01", "type": "NEW", "group": "G5",
-     "name": "Refinamiento de precio mid-flow — mas baratas",
-     "turns": [
-         {"user": "quiero un ramo de rosas para cumpleaños",
-          "checks": ["ramo|rosa|opcion|tamano|euro"]},
-         {"user": "mas baratas",
-          "checks": ["rosa|ramo|euro|22|menos|menor|opcion"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-BODA-01", "type": "NEW", "group": "G5",
-     "name": "Modo Boda — ramo nupcial",
-     "turns": [
-         {"user": "quiero un ramo de novia para mi boda",
-          "checks": ["ramo|novia|boda|opcion|encaja|propongo"]},
-     ],
-     "not_expected": ["🌸"]},
-
-    {"id": "TC-CAMBIO-OP-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Cambio de opinion mid-flow — usuario abandona tras seleccionar",
-     "turns": [
-         {"user": "quiero rosas rojas para cumpleaños",
-          "checks": ["rosa|ramo|opcion|tamano"]},
-         {"user": "el mediano",
-          "checks": ["cu.ntos|cantidad|M|37"]},
-         {"user": "uy, mejor no, dejalo",
-          "checks": ["pronto|hasta|gracias|otro momento|ayudar|algo mas|entendido"]},
-     ],
-     "not_expected": ["email|correo|checkout|direccion|confirma"]},
-
-    {"id": "TC-FRUSTRACION-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Multiples rechazos consecutivos — debe escalar o reformular",
-     "turns": [
-         {"user": "quiero rosas",
-          "checks": ["rosa|ramo|opcion|tamano|ocasion"]},
-         {"user": "no me gustan",
-          "checks": ["otra|alternativ|otras|propongo|encaja|tipo"]},
-         {"user": "tampoco me convencen, dame otras",
-          "checks": ["propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano"],
-          "desc": "Segundo rechazo consecutivo — el agente debía proponer alternativa por tipo u ocasión, o escalar al equipo"},
-         {"user": "ninguna me gusta",
-          "checks": ["equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion"]},
-     ],
-     "not_expected": ["Tienes algún color en mente.{0,80}Tienes algún color en mente"]},
-
-    {"id": "TC-VARIANTES-SML-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial",
-     "turns": [
-         {"user": "quiero un ramo de rosas rojas para cumpleaños",
-          "checks": ["ramo|rosa|opcion|tamano|S|M|L|X"]},
-         {"user": "la mediana",
-          "checks": ["M|mediano|cu.ntos|cantidad|euro|37"]},
-     ],
-     "not_expected": ["confirma.{0,30}es correcto"]},
-
-    # =====================================================
-    # TIER 2 — EDGE CASES ADICIONALES (16 may, sesion post-Met-S63)
-    # 13 TCs de robustez/escalacion/casos limite. Cortos (1-3 turnos).
-    # =====================================================
-
-    # --- Tier 2A: alta probabilidad (>40%) ---
-
-    {"id": "TC-ROBUSTEZ-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Robustez parser — input en MAYUSCULAS sin acentos",
-     "turns": [
-         {"user": "QUIERO ROSAS ROJAS PARA CUMPLEANOS",
-          "checks": ["rosa|ramo|opcion|tamano"]},
-     ],
-     "not_expected": ["no entiendo|disculpa.{0,30}no"]},
-
-    {"id": "TC-STOCK-EXCESO-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "TT-25 — cantidad > stock disponible, agente debe avisar",
-     "turns": [
-         {"user": "quiero un ramo de rosas rojas pequeño",
-          "checks": ["rosa|ramo|opcion|tamano|S"]},
-         {"user": "el pequeño",
-          "checks": ["cu.ntos|cantidad"]},
-         {"user": "50",
-          "checks": ["stock|disponible|solo|quedan|menos|tengo|prefieres|continuamos"]},
-     ],
-     "not_expected": ["pedido confirmado|checkout|email"]},
-
-    {"id": "TC-URGENCIA-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')",
-     "turns": [
-         {"user": "quiero un ramo de rosas para hoy a las 18:00",
-          "checks": ["hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano"],
-          "desc": "El agente debía reconocer la urgencia horaria y verificar el plazo de entrega antes de mostrar catálogo"},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-URGENCIA-02", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
-     "turns": [
-         {"user": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
-          "checks": ["plazo|24h|24 horas|entrega|hora|tiempo"],
-          "desc": "El agente debía informar sobre el plazo de entrega antes de continuar con la compra"},
-         {"user": "mañana por la mañana",
-          "checks": ["mañana|perfecto|posible|24h|llega|pedido"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-URGENCIA-03", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio",
-     "turns": [
-         {"user": "lo necesito para este viernes",
-          "checks": ["24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo"],
-          "desc": "El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo"},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-FRUSTRACION-LEX-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Lexico negativo del usuario — agente reconoce frustracion",
-     "turns": [
-         {"user": "quiero rosas",
-          "checks": ["rosa|ramo|opcion|tamano|ocasion"]},
-         {"user": "esto no funciona, que desastre",
-          "checks": ["disculp|entend|alternativ|equipo|persona|propong|reformul|tipo"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-MULTI-SLOT-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Parseo multi-info en un solo input — extraccion robusta",
-     "turns": [
-         {"user": "hola, quiero un ramo de rosas rojas maximo 40 euros para mi boda",
-          "checks": ["rosa|ramo|boda|euro|opcion|tamano"]},
-     ],
-     "not_expected": ["no entiendo|ocasion.*especial.{0,40}\\?"]},
-
-    # --- Tier 2B: media probabilidad (20-30%) ---
-
-    {"id": "TC-DESPEDIDA-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Despedida abrupta — cierre amable sin pedido completo",
-     "turns": [
-         {"user": "quiero rosas",
-          "checks": ["rosa|ramo|opcion|tamano|ocasion"]},
-         {"user": "déjalo, gracias",
-          "checks": ["pronto|hasta|gracias|otro momento|ayudar|algo mas|entendido"]},
-     ],
-     "not_expected": ["email|correo|checkout"]},
-
-    {"id": "TC-DIR-CUSTOM-01", "type": "EDGE", "group": "G5>CK",
-     "name": "Override direccion habitual — cliente identificado pide otra direccion",
-     "turns": [
-         {"user": "mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa",
-          "checks": ["rosa|ramo|oficina|otra direcc|nueva direcc|Ana|opcion"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-MULTI-PRODUCTO-01", "type": "EDGE", "group": "COMPRA-INV",
-     "name": "Pedido multi-item — ECO RESUMEN muestra total antes de confirmar",
-     "turns": [
-         {"user": "quiero un ramo de rosas y un centro de mesa para mi casa",
-          "checks": ["centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto"]},
-         {"user": "el ramo de rosas morado de 37 euros",
-          "checks": ["morado|anotado"],
-          "desc": "El agente anota el primer producto (ramo morado 37€) y pide el segundo"},
-         {"user": "el centro de tulipanes de 28 euros",
-          "checks": ["65"],
-          "desc": "El agente debía mostrar el resumen con el total calculado (37 + 28 = 65€) antes de pedir confirmación"},
-     ],
-     "not_expected": []},
-
-    # --- Tier 2C: baja probabilidad (<20%) ---
-
-    {"id": "TC-MOROSO-01", "type": "EDGE", "group": "G6>DEUDA",
-     "name": "Cliente con deuda detectada — handoff a Gestion_Deuda",
-     "turns": [
-         {"user": "mi email es pedro.moroso@test.com quiero comprar rosas",
-          "checks": ["deud|pago|pendiente|equipo|persona|gestion|saldo|email|verific"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-DEVOLUCION-01", "type": "EDGE", "group": "G6",
-     "name": "Solicitud de devolucion — out-of-scope, deriva a Handoff",
-     "turns": [
-         {"user": "quiero devolver mi pedido",
-          "checks": ["devolucion|equipo|persona|humano|reclamacion|email|correo|contacto|gestion"]},
-     ],
-     "not_expected": ["claro, te devuelvo|procesado"]},
-
-    {"id": "TC-SIGNOS-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Input solo signos de puntuacion — robustez",
-     "turns": [
-         {"user": "???",
-          "checks": ["entend|aclar|pregunta|ayudar|claro|repite|escribe|cuent"]},
-     ],
-     "not_expected": []},
-
-    {"id": "TC-INSULTO-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Lexico abusivo — agente mantiene tono profesional, no repite",
-     "turns": [
-         {"user": "esto es una mierda, que porqueria",
-          "checks": ["disculp|lament|entend|equipo|persona|propong|reformul|ayudar"]},
-     ],
-     "not_expected": ["mierda|porqueria"]},
-
-    {"id": "TC-IMPOSIBLE-01", "type": "EDGE", "group": "COMPRA-ZG",
-     "name": "Peticion fuera de scope — descuento del 50%",
-     "turns": [
-         {"user": "hacedme un descuento del 50%",
-          "checks": ["no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar|no tenemos|ayudar"]},
-     ],
-     "not_expected": ["50%.{0,30}aplicado|claro, descuento"]},
-]
+# TESTS se carga desde un YAML (fuente de verdad), no hardcodeado.
+# Configurable: --tests <archivo> o env QA_TESTS_FILE. Default: tc_51.yaml (51 TCs).
+# Para correr 1.1 sobre otro set: --tests tc_otro.yaml (misma estructura de campos).
+TESTS_FILE = os.environ.get('QA_TESTS_FILE', 'tc_51.yaml')
+TESTS = yaml.safe_load((Path(__file__).parent / TESTS_FILE).read_text(encoding='utf-8'))
 
 
 # === API ===
@@ -1685,6 +1204,8 @@ def generate_html(results, ts, txt_file, logs_dir_name=None, ts_compact_override
     legacy_note = ('<p class="layer-format-note" style="font-size:11px;color:#888;margin-bottom:12px">'
                    'Algunos análisis usan formato de 7 capas (v1.0). Los nuevos usan 9 capas (v1.1).'
                    '</p>') if has_legacy_analyses else ""
+    static_btn = ('<a class="dl" onclick="openEstatico()" style="cursor:pointer">\U0001f50d Análisis estático</a>'
+                  if AGENT_LABEL == '1.1' else '')
     h = f"""<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <title>QA Petal {ts}</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
@@ -2096,9 +1617,38 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .pat-sh{{font-size:10px;font-weight:700;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid #2a2a2a;padding-bottom:4px;margin-top:16px}}
 .pat-empty{{font-size:12px;color:#888;font-style:italic}}
 .layer-format-note{{font-size:11px;color:#888;font-style:italic;margin:4px 0 16px;font-family:'DM Mono',monospace}}
+.agent-switch{{display:flex;align-items:center;gap:8px;margin:0 0 16px}}
+.agent-switch-lbl{{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace}}
+.agent-btn{{font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;background:#1a1a1a;border:1px solid #282828;color:#777;transition:all .15s}}
+.agent-btn:hover{{border-color:#444;color:#ccc}}
+.agent-btn.active{{background:#c8f06011;border-color:#c8f060;color:#c8f060}}
+.hist-filter{{display:flex;gap:6px;align-items:center;margin:0 0 12px}}
+.hist-fbtn{{font-size:11px;padding:4px 12px;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;background:#1a1a1a;border:1px solid #282828;color:#777}}
+.hist-fbtn.active{{background:#c8f06011;border-color:#c8f060;color:#c8f060}}
+.est-sum{{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;font-family:'DM Mono',monospace;margin:6px 0 12px;color:#aaa}}
+.est-grp{{font-size:12px;font-weight:600;color:#c8f060;margin:14px 0 4px;font-family:'DM Mono',monospace}}
+.est-mtx{{border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;margin:6px 0}}
+.est-mtx th,.est-mtx td{{border:1px solid #1a1a1a;text-align:center;padding:3px 5px}}
+.est-rowh{{text-align:left !important;color:#bbb;white-space:nowrap;padding-right:10px !important}}
+.est-colh{{color:#e2e2e2;font-weight:600;font-size:10px;white-space:normal;width:84px;min-width:76px;vertical-align:bottom;line-height:1.3;padding:5px 4px}}
+.est-leg{{display:block;font-size:9px;color:#777;font-weight:400;margin-top:6px;white-space:normal;line-height:1.4}}
+.est-doc{{text-align:left !important;color:#b8b8b8;font-size:10px;min-width:170px;max-width:210px;white-space:normal;line-height:1.3;padding:3px 8px !important}}
+.est-sig{{color:#ef4444;font-weight:600;background:#141414}}
+.est-c{{width:24px;cursor:default}}
+.est-c.est-ok{{color:#242424;background:transparent}}
+.est-c.est-na{{color:#3a3a3a;background:transparent}}
+.est-c.est-amb{{background:transparent}}
+.est-c.est-red{{background:transparent}}
+.est-mtx tfoot td{{background:#141414}}
+.din-fp{{background:#16110a}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
 <p class="sub">{ts} · {RUNS} runs/TC · {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
+<div class="agent-switch" data-current="{AGENT_LABEL}">
+<span class="agent-switch-lbl">Agente</span>
+<button class="agent-btn{' active' if AGENT_LABEL=='1.0' else ''}" onclick="switchAgent('1.0')">Petal 1.0</button>
+<button class="agent-btn{' active' if AGENT_LABEL=='1.1' else ''}" onclick="switchAgent('1.1')">Petal 1.1</button>
+</div>
 {legacy_note}
 <div class="hdr">
 <div><b>Orquestador:</b> {ORQ_VERSION}</div><div><b>Compra:</b> {COMPRA_VERSION}</div><div><b>Checkout:</b> {CHECKOUT_VERSION}</div>
@@ -2117,6 +1667,8 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">\U0001f5d1 Borrar an\u00e1lisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">\u2699 Optimizar</a>
 <a class="dl" onclick="openHistorial()" style="cursor:pointer">\U0001f4ca Hist\u00f3rico</a>
+<a class="dl" onclick="openDinamico()" style="cursor:pointer">\U0001f4ca An\u00e1lisis din\u00e1mico</a>
+{static_btn}
 </div>
 <div id="optimize-panel" class="optimize-panel hidden">
   <div class="optimize-panel-header">
@@ -2552,10 +2104,34 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
     <button class="modal-close" onclick="closeHistorial()">&times;</button>
     <h2>Histórico de QA Runs</h2>
     <div id="hist-loading" class="hist-loading">Cargando histórico...</div>
+    <div class="hist-filter" id="hist-filter" style="display:none">
+      <span class="agent-switch-lbl">Filtrar agente</span>
+      <button class="hist-fbtn active" data-af="all" onclick="filterHist('all')">Todos</button>
+      <button class="hist-fbtn" data-af="1.0" onclick="filterHist('1.0')">1.0</button>
+      <button class="hist-fbtn" data-af="1.1" onclick="filterHist('1.1')">1.1</button>
+    </div>
     <table id="hist-table" class="hist-table hidden">
-      <thead><tr><th>Fecha/hora</th><th>Total</th><th>Pass</th><th>Inestables</th><th>Fail</th><th>Tasa</th><th>Reporte</th></tr></thead>
+      <thead><tr><th>Fecha/hora</th><th>Agente</th><th>Total</th><th>Pass</th><th>Inestables</th><th>Fail</th><th>Tasa</th><th>Reporte</th></tr></thead>
       <tbody></tbody>
     </table>
+  </div>
+</div>
+<div id="estatico-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeEstatico()"></div>
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeEstatico()">&times;</button>
+    <h2>Análisis estático</h2>
+    <div id="est-loading" class="hist-loading">Cargando análisis estático...</div>
+    <div id="est-body"></div>
+  </div>
+</div>
+<div id="dinamico-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeDinamico()"></div>
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeDinamico()">&times;</button>
+    <h2>Análisis dinámico</h2>
+    <div id="din-loading" class="hist-loading">Cargando análisis dinámico...</div>
+    <div id="din-body"></div>
   </div>
 </div>
 <!-- Modal: Las 9 capas + estados (unificado) -->
@@ -2606,6 +2182,7 @@ async function openHistorial(){
   loading.classList.remove('hidden');
   loading.textContent='Cargando histórico...';
   table.classList.add('hidden');
+  if(location.protocol==='file:'){ loading.textContent='Abre el dashboard vía servidor o gh-pages (http/https) — el navegador bloquea history.json desde file://.'; return; }
   try{
     const rows=await fetch('../history.json',{cache:'no-cache'}).then(r=>{
       if(!r.ok) throw new Error('history.json no disponible (HTTP '+r.status+')');
@@ -2620,19 +2197,167 @@ async function openHistorial(){
     tbody.innerHTML='';
     rows.forEach(m=>{
       const tr=document.createElement('tr');
+      const ag=m.agent||'1.0';
+      tr.dataset.agent=ag;
       if(currentTs && m.timestamp===currentTs[0]) tr.classList.add('current');
       const backfilled=m.backfilled?' <span class="backfilled-tag">retroactivo</span>':'';
       const url=`../${m.dir}/qa_latest.html`;
-      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${url}">Ver</a></td>`;
+      tr.innerHTML=`<td>${m.timestamp||'?'}${backfilled}</td><td>${ag}</td><td>${m.total??'?'}</td><td class="ok">${m.pass??'?'}</td><td class="inst">${m.inst??'?'}</td><td class="fail">${m.fail??'?'}</td><td>${m.pct??'?'}%</td><td><a href="${url}">Ver</a></td>`;
       tbody.appendChild(tr);
     });
     loading.classList.add('hidden');
+    document.getElementById('hist-filter').style.display='flex';
     table.classList.remove('hidden');
+    const _curAg=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+    filterHist(_curAg);
   }catch(e){
     loading.textContent='Error cargando histórico: '+e.message;
   }
 }
+function filterHist(af){
+  document.querySelectorAll('.hist-fbtn').forEach(b=>b.classList.toggle('active',b.dataset.af===af));
+  document.querySelectorAll('#hist-table tbody tr').forEach(tr=>{
+    tr.style.display=(af==='all'||tr.dataset.agent===af)?'':'none';
+  });
+}
+async function switchAgent(label){
+  const sw=document.querySelector('.agent-switch');
+  if(!sw||label===sw.dataset.current) return;
+  if(location.protocol==='file:'){ alert('Este dashboard necesita abrirse vía servidor o gh-pages (http/https), no como archivo local: el navegador bloquea la carga de history.json desde file://.'); return; }
+  try{
+    const rows=await fetch('../history.json',{cache:'no-cache'}).then(r=>r.json());
+    const match=rows.filter(m=>(m.agent||'1.0')===label).sort((a,b)=>(b.ts_file||'').localeCompare(a.ts_file||''))[0];
+    if(!match){ alert('Sin runs de Petal '+label+' todavía. Genera uno: python3 qap/test_qa_playbooks.py --agent '+label); return; }
+    window.location.href='../'+match.dir+'/qa_latest.html';
+  }catch(e){ alert('No se pudo cargar history.json: '+e.message); }
+}
 function closeHistorial(){document.getElementById('historial-modal').classList.add('hidden')}
+async function openEstatico(){
+  const modal=document.getElementById('estatico-modal');
+  const loading=document.getElementById('est-loading');
+  const body=document.getElementById('est-body');
+  modal.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  loading.textContent='Cargando análisis estático...';
+  body.innerHTML='';
+  const ag=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+  if(location.protocol==='file:'){ loading.textContent='Abre el dashboard vía servidor o gh-pages (http/https) — el navegador bloquea fetch desde file://.'; return; }
+  try{
+    const data=await fetch('../static_'+ag+'.json',{cache:'no-cache'}).then(r=>{
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    });
+    const s=data.summary||{};
+    const res=(data.results||[]);
+    const agentLevel=res.filter(r=>r.target==='(agente)');
+    const pb=res.filter(r=>r.target!=='(agente)');
+    let checks=[...new Set(pb.map(r=>r.check))];
+    let targets=[...new Set(pb.map(r=>r.target))];
+    const cell={};
+    pb.forEach(r=>{ cell[r.check+'||'+r.target]=r; });
+    const redN=(c,t)=>{ const x=cell[c+'||'+t]; return x&&x.status==='🔴'?1:0; };
+    const ambN=(c,t)=>{ const x=cell[c+'||'+t]; return x&&x.status==='🟡'?1:0; };
+    const rowRed={},rowAmb={},colRed={};
+    checks.forEach(c=>{ rowRed[c]=targets.reduce((a,t)=>a+redN(c,t),0); rowAmb[c]=targets.reduce((a,t)=>a+ambN(c,t),0); });
+    targets.forEach(t=>{ colRed[t]=checks.reduce((a,c)=>a+redN(c,t),0); });
+    checks.sort((a,b)=> (rowRed[b]-rowRed[a]) || (rowAmb[b]-rowAmb[a]) || a.localeCompare(b));
+    targets.sort((a,b)=> (colRed[b]-colRed[a]) || a.localeCompare(b));
+    const docs=data.check_docs||{};
+    let html='<div class="est-sum">'
+      +'<span>'+(data.tool||'?')+' · agente '+(data.agent||ag)+'</span>'
+      +'<span style="color:#22c55e">✅ '+(s.ok||0)+'</span>'
+      +'<span style="color:#f59e0b">🟡 '+(s.warn||0)+'</span>'
+      +'<span style="color:#ef4444">🔴 '+(s.fail||0)+'</span>'
+      +'<span style="color:#666">➖ '+(s.na||0)+'</span>'
+      +'</div>';
+    html+='<div style="font-size:11px;color:#666;margin:0 0 8px">Filas = checks (más rojo arriba) · columnas = playbooks · análisis y recomendación solo en checks con incidencias · pasa el ratón por una celda para el detalle.</div>';
+    const hdr=name=>{ const idxs=[]; for(let i=0;i<name.length;i++){ if(name[i]==='_') idxs.push(i); } if(!idxs.length) return name; const mid=name.length/2; let best=idxs[0]; idxs.forEach(i=>{ if(Math.abs(i-mid)<Math.abs(best-mid)) best=i; }); return name.slice(0,best)+'<br>'+name.slice(best+1); };
+    html+='<div style="overflow-x:auto">';
+    html+='<table class="est-mtx"><thead><tr><th class="est-rowh" style="vertical-align:bottom">Check<span class="est-leg">🔴 fallo · 🟡 aviso<br>✅ ok · ➖ n/d</span></th>';
+    targets.forEach(t=>{ html+='<th class="est-colh" title="'+t+'">'+hdr(t)+'</th>'; });
+    html+='<th class="est-sig">Σ🔴</th><th class="est-doc">Análisis</th><th class="est-doc">Por qué importa</th><th class="est-doc">Recomendación</th></tr></thead><tbody>';
+    checks.forEach(c=>{
+      html+='<tr><td class="est-rowh">'+c+'</td>';
+      targets.forEach(t=>{
+        const x=cell[c+'||'+t]; const st=x?x.status:'';
+        let cls='est-ok', dot='·';
+        if(st==='🔴'){cls='est-red';dot='🔴';}
+        else if(st==='🟡'){cls='est-amb';dot='🟡';}
+        else if(st==='➖'){cls='est-na';dot='·';}
+        const tip=x?(c+' · '+t+': '+(x.message||x.status)):'';
+        html+='<td class="est-c '+cls+'" title="'+tip.replace(/"/g,'&quot;')+'">'+dot+'</td>';
+      });
+      const d=docs[c]||{}; const showDoc=((rowRed[c]||0)+(rowAmb[c]||0))>0;
+      html+='<td class="est-sig">'+(rowRed[c]||'')+'</td>';
+      html+='<td class="est-doc">'+(showDoc?(d.analisis||''):'')+'</td>';
+      html+='<td class="est-doc">'+(showDoc?(d.ejemplo||''):'')+'</td>';
+      html+='<td class="est-doc">'+(showDoc?(d.recomendacion||''):'')+'</td></tr>';
+    });
+    html+='</tbody><tfoot><tr><td class="est-rowh">Σ🔴 por playbook</td>';
+    targets.forEach(t=>{ html+='<td class="est-sig">'+(colRed[t]||'')+'</td>'; });
+    html+='<td class="est-sig"></td><td class="est-doc"></td><td class="est-doc"></td><td class="est-doc"></td></tr></tfoot></table></div>';
+    if(agentLevel.length){
+      html+='<div class="est-grp">Nivel agente</div>';
+      agentLevel.forEach(r=>{ html+='<div style="font-size:12px;color:#aaa;padding:2px 0">'+r.status+' '+r.check+' — '+(r.message||'')+'</div>'; });
+    }
+    loading.classList.add('hidden');
+    body.innerHTML=html;
+  }catch(e){
+    loading.textContent='Sin análisis estático para Petal '+ag+' todavía. Genéralo: python qap/static_audit.py --json --agent '+ag+' --out qa/static_'+ag+'.json';
+  }
+}
+function closeEstatico(){document.getElementById('estatico-modal').classList.add('hidden')}
+async function openDinamico(){
+  const modal=document.getElementById('dinamico-modal');
+  const loading=document.getElementById('din-loading');
+  const body=document.getElementById('din-body');
+  modal.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  loading.textContent='Cargando análisis dinámico...';
+  body.innerHTML='';
+  const ag=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+  if(location.protocol==='file:'){ loading.textContent='Abre el dashboard vía servidor o gh-pages (http/https) — el navegador bloquea fetch desde file://.'; return; }
+  try{
+    const data=await fetch('../dynamic_'+ag+'.json',{cache:'no-cache'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+    const layers=data.layers||[];
+    const res=(data.results||[]);
+    const redOf=(r,l)=> (r.layers&&r.layers[l]==='🔴')?1:0;
+    const rowRed={}; res.forEach(r=>{ rowRed[r.tc]=layers.reduce((a,l)=>a+redOf(r,l),0); });
+    const colRed={}; layers.forEach(l=>{ colRed[l]=res.reduce((a,r)=>a+redOf(r,l),0); });
+    res.sort((a,b)=> (rowRed[b.tc]-rowRed[a.tc]) || a.tc.localeCompare(b.tc));
+    const hdr=name=>{ const w=name.split(' '); if(w.length<2) return name; const mid=Math.ceil(w.length/2); return w.slice(0,mid).join(' ')+'<br>'+w.slice(mid).join(' '); };
+    let html='<div class="est-sum">'
+      +'<span>'+(data.tool||'qa-tc-analyzer')+' · agente '+(data.agent||ag)+' · '+res.length+' TCs fallados</span>'
+      +'<span style="color:#ef4444">🔴 problema</span><span style="color:#22c55e">🟢 ok</span><span style="color:#f59e0b">🟡 supuesta</span><span style="color:#666">⚪ n/a</span>'
+      +'</div>';
+    if(data.note){ html+='<div style="font-size:11px;color:#f0b46a;margin:0 0 8px">⚠️ '+data.note+'</div>'; }
+    html+='<div style="font-size:11px;color:#666;margin:0 0 8px">Filas = TCs fallados (más rojo arriba) · columnas = capas de causa raíz · la columna Test aísla los falsos positivos.</div>';
+    html+='<div style="overflow-x:auto"><table class="est-mtx"><thead><tr><th class="est-rowh" style="vertical-align:bottom">TC fallado</th>';
+    layers.forEach(l=>{ const fp=/test|falso/i.test(l); html+='<th class="est-colh'+(fp?' din-fp':'')+'" title="'+l+'">'+hdr(l)+'</th>'; });
+    html+='<th class="est-sig">Σ🔴</th><th class="est-doc">Tipo</th><th class="est-doc">Recomendación</th></tr></thead><tbody>';
+    res.forEach(r=>{
+      html+='<tr><td class="est-rowh">'+r.tc+'</td>';
+      layers.forEach(l=>{
+        const st=(r.layers&&r.layers[l])||''; const fp=/test|falso/i.test(l);
+        let dot='·';
+        if(st==='🔴'){dot='🔴';} else if(st==='🟢'){dot='🟢';} else if(st==='🟡'){dot='🟡';} else if(st==='⚪'){dot='⚪';}
+        const tip=(r.tc+' · '+l+': '+(st||'n/a'));
+        html+='<td class="est-c'+(fp?' din-fp':'')+'" title="'+tip.replace(/"/g,'&quot;')+'">'+dot+'</td>';
+      });
+      html+='<td class="est-sig">'+(rowRed[r.tc]||'')+'</td>';
+      html+='<td class="est-doc">'+(r.tipo||'')+'</td>';
+      html+='<td class="est-doc">'+(r.recomendacion||'')+'</td></tr>';
+    });
+    html+='</tbody><tfoot><tr><td class="est-rowh">Σ🔴 por capa</td>';
+    layers.forEach(l=>{ const fp=/test|falso/i.test(l); html+='<td class="est-sig'+(fp?' din-fp':'')+'">'+(colRed[l]||'')+'</td>'; });
+    html+='<td class="est-sig"></td><td class="est-doc"></td><td class="est-doc"></td></tr></tfoot></table></div>';
+    loading.classList.add('hidden');
+    body.innerHTML=html;
+  }catch(e){
+    loading.textContent='Sin análisis dinámico para Petal '+ag+' todavía. Pasa qa-tc-analyzer sobre sus fallos para poblarlo.';
+  }
+}
+function closeDinamico(){document.getElementById('dinamico-modal').classList.add('hidden')}
 function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
 function closeMetodologia(){document.getElementById('metodologia-modal').classList.add('hidden')}
 
@@ -2899,6 +2624,8 @@ def generate_reports(results):
     pct_val = int((n_pass / total) * 100) if total else 0
     meta = {
         "timestamp": ts, "ts_file": ts_file,
+        "agent": AGENT_LABEL,
+        "report_format": "v1",   # interruptor de render: v1=estructura actual. 1.1 podrá usar v2 sin tocar el marco.
         "total": total, "pass": n_pass, "inst": n_inst, "fail": n_fail,
         "pct": pct_val, "runs_per_tc": RUNS,
         "versions": {
@@ -2959,19 +2686,71 @@ def generate_reports(results):
         subprocess.Popen(["python3", "-m", "http.server", "8080"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print(f"\n  \U0001f310 Web Preview \u2192 port 8080 \u2192 {html_path.name}\n  Parar: fuser -k 8080/tcp")
     else:
-        print(f"\n  \U0001f310 Abriendo en navegador...")
-        webbrowser.open(html_path.resolve().as_uri())
+        # Local: servir por http un mirror tipo gh-pages (qa/<ts>/qa_latest.html + qa/history.json).
+        # file:// bloquea fetch() de history.json -> el histórico y el switcher 1.0/1.1 no cargan.
+        site = out_dir / "site"; site_qa = site / "qa"
+        run_dir = site_qa / ts_file; run_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(html_path, run_dir / "qa_latest.html")
+        dst_logs = run_dir / "qa_latest_logs"; dst_logs.mkdir(exist_ok=True)
+        for r in results:
+            s = logs_dir / f'{r["id"]}.json'
+            if s.exists(): shutil.copy2(s, dst_logs / f'{r["id"]}.json')
+        # history.json desde las metas locales + materializar runs previos (para "Ver" y el switch entre agentes)
+        entries = []
+        for mp in sorted(out_dir.glob("qa_*.meta.json")):
+            try:
+                mm = json.load(open(mp, encoding="utf-8"))
+            except Exception:
+                continue
+            d = mm.get("ts_file")
+            if not d:
+                continue
+            mm["dir"] = d
+            entries.append(mm)
+            prev_html = out_dir / f"qa_{d}.html"
+            prev_target = site_qa / d / "qa_latest.html"
+            if prev_html.exists() and not prev_target.exists():
+                prev_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(prev_html, prev_target)
+        entries.sort(key=lambda x: x.get("ts_file") or "", reverse=True)
+        with open(site_qa / "history.json", "w", encoding="utf-8") as f:
+            json.dump(entries, f, indent=2, ensure_ascii=False)
+        PORT = 8080
+        url = f"http://localhost:{PORT}/qa/{ts_file}/qa_latest.html"
+        try:
+            subprocess.Popen(["python3", "-m", "http.server", str(PORT), "--directory", str(site)],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(0.6)
+        except Exception:
+            pass
+        print(f"\n  \U0001f310 Dashboard (http) → {url}")
+        print(f"  Servido en local para que el histórico y el switcher 1.0/1.1 funcionen (no file://).")
+        print(f"  Parar server: lsof -ti tcp:{PORT} | xargs kill")
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
 
 
 def main():
-    global RUNS
+    global RUNS, AGENT_LABEL, AGENT_ID, AGENT, TESTS
     parser = argparse.ArgumentParser(description="QA Petal v23 \u2014 29 tests")
     parser.add_argument("--test", help="Ejecutar TC(s). Uno: TC-C29. Varios: TC-C29,TC-C30,TC-DECO-02")
     parser.add_argument("--type", help="Filtrar: REG, NEW, EDGE")
     parser.add_argument("--runs", type=int, default=3, help="Runs por TC (default 3)")
+    parser.add_argument("--agent", choices=list(AGENTS), default="1.0",
+                        help="Agente CX objetivo: 1.0 (congelado) o 1.1 (activo). Default 1.0.")
+    parser.add_argument("--tests", default=None,
+                        help="Archivo YAML de TCs (default: tc_51.yaml o env QA_TESTS_FILE). Para correr otro set.")
     parser.add_argument("--list", action="store_true", help="Listar TCs")
     args = parser.parse_args()
+    if args.tests:
+        TESTS = yaml.safe_load((Path(__file__).parent / args.tests).read_text(encoding="utf-8"))
+        print(f"TCs cargados desde: {args.tests} ({len(TESTS)} TCs)")
     RUNS = max(1, min(args.runs, 5))
+    AGENT_LABEL = args.agent
+    AGENT_ID = AGENTS[AGENT_LABEL]
+    AGENT = f"projects/{PROJECT}/locations/{LOCATION}/agents/{AGENT_ID}"
     if args.list:
         for t in TESTS:
             print(f"  {t['id']:12s} [{t['type']:4s}] [{t['group']:12s}] {t['name']}")
@@ -2987,7 +2766,7 @@ def main():
         tests = [t for t in TESTS if t["type"] == args.type]
         if not tests: print(f"Tipo {args.type} no encontrado."); return
     env = "Cloud Shell" if IS_CLOUD_SHELL else f"Local ({platform.system()})"
-    print(f"QA Petal v23 \u2014 {env}")
+    print(f"QA Petal v23 \u2014 {env} \u2014 Agente Petal {AGENT_LABEL} ({AGENT_ID[:8]}\u2026)")
     print(f"Orq {ORQ_VERSION} | Compra {COMPRA_VERSION} | Checkout {CHECKOUT_VERSION} | Registro {REGISTRO_VERSION}")
     print(f"Ejecutando {len(tests)} tests \u00d7 {RUNS} runs...\n")
     token = get_token()
