@@ -1640,6 +1640,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 .est-c.est-amb{{background:transparent}}
 .est-c.est-red{{background:transparent}}
 .est-mtx tfoot td{{background:#141414}}
+.din-fp{{background:#16110a}}
 </style></head><body>
 <h1>QA Report \u2014 Florister\u00eda Petal</h1>
 <p class="sub">{ts} · {RUNS} runs/TC · {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
@@ -1666,6 +1667,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">\U0001f5d1 Borrar an\u00e1lisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">\u2699 Optimizar</a>
 <a class="dl" onclick="openHistorial()" style="cursor:pointer">\U0001f4ca Hist\u00f3rico</a>
+<a class="dl" onclick="openDinamico()" style="cursor:pointer">\U0001f4ca An\u00e1lisis din\u00e1mico</a>
 {static_btn}
 </div>
 <div id="optimize-panel" class="optimize-panel hidden">
@@ -2123,6 +2125,15 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
     <div id="est-body"></div>
   </div>
 </div>
+<div id="dinamico-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeDinamico()"></div>
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeDinamico()">&times;</button>
+    <h2>Análisis dinámico</h2>
+    <div id="din-loading" class="hist-loading">Cargando análisis dinámico...</div>
+    <div id="din-body"></div>
+  </div>
+</div>
 <!-- Modal: Las 9 capas + estados (unificado) -->
 <div class="info-modal-overlay" id="modal-capas">
   <div class="info-modal">
@@ -2296,6 +2307,57 @@ async function openEstatico(){
   }
 }
 function closeEstatico(){document.getElementById('estatico-modal').classList.add('hidden')}
+async function openDinamico(){
+  const modal=document.getElementById('dinamico-modal');
+  const loading=document.getElementById('din-loading');
+  const body=document.getElementById('din-body');
+  modal.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  loading.textContent='Cargando análisis dinámico...';
+  body.innerHTML='';
+  const ag=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+  if(location.protocol==='file:'){ loading.textContent='Abre el dashboard vía servidor o gh-pages (http/https) — el navegador bloquea fetch desde file://.'; return; }
+  try{
+    const data=await fetch('../dynamic_'+ag+'.json',{cache:'no-cache'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+    const layers=data.layers||[];
+    const res=(data.results||[]);
+    const redOf=(r,l)=> (r.layers&&r.layers[l]==='🔴')?1:0;
+    const rowRed={}; res.forEach(r=>{ rowRed[r.tc]=layers.reduce((a,l)=>a+redOf(r,l),0); });
+    const colRed={}; layers.forEach(l=>{ colRed[l]=res.reduce((a,r)=>a+redOf(r,l),0); });
+    res.sort((a,b)=> (rowRed[b.tc]-rowRed[a.tc]) || a.tc.localeCompare(b.tc));
+    const hdr=name=>{ const w=name.split(' '); if(w.length<2) return name; const mid=Math.ceil(w.length/2); return w.slice(0,mid).join(' ')+'<br>'+w.slice(mid).join(' '); };
+    let html='<div class="est-sum">'
+      +'<span>'+(data.tool||'qa-tc-analyzer')+' · agente '+(data.agent||ag)+' · '+res.length+' TCs fallados</span>'
+      +'<span style="color:#ef4444">🔴 problema</span><span style="color:#22c55e">🟢 ok</span><span style="color:#f59e0b">🟡 supuesta</span><span style="color:#666">⚪ n/a</span>'
+      +'</div>';
+    if(data.note){ html+='<div style="font-size:11px;color:#f0b46a;margin:0 0 8px">⚠️ '+data.note+'</div>'; }
+    html+='<div style="font-size:11px;color:#666;margin:0 0 8px">Filas = TCs fallados (más rojo arriba) · columnas = capas de causa raíz · la columna Test aísla los falsos positivos.</div>';
+    html+='<div style="overflow-x:auto"><table class="est-mtx"><thead><tr><th class="est-rowh" style="vertical-align:bottom">TC fallado</th>';
+    layers.forEach(l=>{ const fp=/test|falso/i.test(l); html+='<th class="est-colh'+(fp?' din-fp':'')+'" title="'+l+'">'+hdr(l)+'</th>'; });
+    html+='<th class="est-sig">Σ🔴</th><th class="est-doc">Tipo</th><th class="est-doc">Recomendación</th></tr></thead><tbody>';
+    res.forEach(r=>{
+      html+='<tr><td class="est-rowh">'+r.tc+'</td>';
+      layers.forEach(l=>{
+        const st=(r.layers&&r.layers[l])||''; const fp=/test|falso/i.test(l);
+        let dot='·';
+        if(st==='🔴'){dot='🔴';} else if(st==='🟢'){dot='🟢';} else if(st==='🟡'){dot='🟡';} else if(st==='⚪'){dot='⚪';}
+        const tip=(r.tc+' · '+l+': '+(st||'n/a'));
+        html+='<td class="est-c'+(fp?' din-fp':'')+'" title="'+tip.replace(/"/g,'&quot;')+'">'+dot+'</td>';
+      });
+      html+='<td class="est-sig">'+(rowRed[r.tc]||'')+'</td>';
+      html+='<td class="est-doc">'+(r.tipo||'')+'</td>';
+      html+='<td class="est-doc">'+(r.recomendacion||'')+'</td></tr>';
+    });
+    html+='</tbody><tfoot><tr><td class="est-rowh">Σ🔴 por capa</td>';
+    layers.forEach(l=>{ const fp=/test|falso/i.test(l); html+='<td class="est-sig'+(fp?' din-fp':'')+'">'+(colRed[l]||'')+'</td>'; });
+    html+='<td class="est-sig"></td><td class="est-doc"></td><td class="est-doc"></td></tr></tfoot></table></div>';
+    loading.classList.add('hidden');
+    body.innerHTML=html;
+  }catch(e){
+    loading.textContent='Sin análisis dinámico para Petal '+ag+' todavía. Pasa qa-tc-analyzer sobre sus fallos para poblarlo.';
+  }
+}
+function closeDinamico(){document.getElementById('dinamico-modal').classList.add('hidden')}
 function openMetodologia(){document.getElementById('metodologia-modal').classList.remove('hidden')}
 function closeMetodologia(){document.getElementById('metodologia-modal').classList.add('hidden')}
 
