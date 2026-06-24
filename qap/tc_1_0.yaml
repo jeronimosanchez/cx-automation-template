@@ -1,7 +1,7 @@
 # Fuente de verdad de los Test Cases de Petal (extraídos de test_qa_playbooks.py).
 # Estructura: id · type · group · name · turns · not_expected · cx_truth.
 # cx_truth = ground truth de CX (PASS|FAIL|flaky), MEDIDO 12-jun run qa_20260612_1646.
-# 51 TCs. Inmutable salvo bug crítico en un TC.
+# 55 TCs (51 base + 4 de tono, grupo TONO). Inmutable salvo bug crítico en un TC.
 - id: TC-R01
   cx_truth: PASS
   type: REG
@@ -734,3 +734,59 @@
     - no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar|no tenemos|ayudar
   not_expected:
   - 50%.{0,30}aplicado|claro, descuento
+- id: TC-TONO-CAMBIO-SOLEMNE-01
+  cx_truth: FAIL
+  type: EDGE
+  group: TONO
+  name: Cambio a solemne mid-conversacion — revela funeral en turno 2
+  turns:
+  - user: quiero un ramo bonito para regalar
+    checks:
+    - ramo|opcion|tipo|color|ocasion|para quien|para que
+  - user: es para el tanatorio de mi padre, ha fallecido esta manana
+    checks:
+    - siento|pesame|acompan|corona|funebr|ceremonia|opciones|sobri
+  not_expected:
+  - mira,|genial|fenomenal|perfecto!|que te parece|🌸
+- id: TC-TONO-CAMBIO-CORP-01
+  cx_truth: PASS
+  type: EDGE
+  group: TONO
+  name: Cambio a corporativo mid-conversacion — factura a empresa en turno 2
+  turns:
+  - user: busco un centro de flores
+    checks:
+    - centro|flores|opcion|ocasion|tipo|para que
+  - user: es para la recepcion de la oficina, y la factura a nombre de la empresa
+    checks:
+    - empresa|factura|oficina|opciones|presupuesto|corporativ|elegante
+  not_expected:
+  - mira,|genial|fenomenal|🌸
+- id: TC-TONO-PRECEDENCIA-01
+  cx_truth: PASS
+  type: EDGE
+  group: TONO
+  name: Precedencia solemne sobre corporativo — funeral del jefe
+  turns:
+  - user: necesito flores para el funeral de mi jefe
+    checks:
+    - siento|pesame|acompan|corona|funebr|ceremonia|opciones|sobri
+  not_expected:
+  - mira,|genial|fenomenal|🌸|factura|presupuesto corporativo
+- id: TC-TONO-APLICACION-CORP-01
+  cx_truth: FAIL
+  type: EDGE
+  group: TONO
+  name: Modo corporativo sostenido — arreglo para evento de empresa
+  turns:
+  - user: necesito un arreglo floral para la recepcion de mi empresa
+    checks:
+    - arreglo|flores|empresa|opcion|recepcion|elegante|corporativ
+  - user: algo elegante, presupuesto de 200 euros
+    checks:
+    - elegante|presupuesto|opcion|euro|200|encaja
+  - user: perfecto, ese mismo
+    checks:
+    - confirm|pedido|datos|checkout|registr|direcc
+  not_expected:
+  - mira,|genial|fenomenal|🌸
