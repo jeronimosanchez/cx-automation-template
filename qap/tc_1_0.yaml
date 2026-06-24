@@ -1,0 +1,736 @@
+# Fuente de verdad de los Test Cases de Petal (extraídos de test_qa_playbooks.py).
+# Estructura: id · type · group · name · turns · not_expected · cx_truth.
+# cx_truth = ground truth de CX (PASS|FAIL|flaky), MEDIDO 12-jun run qa_20260612_1646.
+# 51 TCs. Inmutable salvo bug crítico en un TC.
+- id: TC-R01
+  cx_truth: PASS
+  type: REG
+  group: G1
+  name: Info negocio - horario
+  turns:
+  - user: A que hora abris?
+    checks:
+    - horario|lunes|sabado|9|20
+  not_expected:
+  - email
+  - correo
+- id: TC-R02
+  cx_truth: PASS
+  type: REG
+  group: G2
+  name: Info catalogo - precio tulipanes
+  turns:
+  - user: Cuanto cuestan los tulipanes?
+    checks:
+    - euro|precio|tulipan
+  not_expected:
+  - email
+  - correo
+- id: TC-R03
+  cx_truth: PASS
+  type: REG
+  group: G4
+  name: Saludo
+  turns:
+  - user: Hola
+    checks:
+    - hola|bienvenid|ayudar|Petal
+  not_expected:
+  - email
+  - correo
+- id: TC-R04
+  cx_truth: PASS
+  type: REG
+  group: G5
+  name: Compra directa sin email
+  turns:
+  - user: Quiero comprar rosas rojas
+    checks:
+    - rosas|rosa|Ramo|Boutonniere|ocasi
+  not_expected:
+  - email
+  - correo
+- id: TC-R06
+  cx_truth: PASS
+  type: REG
+  group: ESP
+  name: Email espontaneo
+  turns:
+  - user: Mi email es ana@email.com
+    checks:
+    - Ana|hola|ayudar|bienvenid|puedo|Hola
+  not_expected: []
+- id: TC-N01
+  cx_truth: PASS
+  type: REG
+  group: G3
+  name: Recomendacion - transfiere a Compra
+  turns:
+  - user: Necesito flores para un cumpleanos
+    checks:
+    - regalo|presupuesto|ocasion|opciones|suger|buscar
+  not_expected:
+  - email
+  - correo
+- id: TC-N03
+  cx_truth: PASS
+  type: REG
+  group: G6
+  name: Requiere perfil - pide email
+  turns:
+  - user: Quiero ver mi saldo
+    checks:
+    - email|correo
+  not_expected: []
+- id: TC-E01
+  cx_truth: PASS
+  type: REG
+  group: ESP
+  name: Hablar con humano - sin pedir email
+  turns:
+  - user: Quiero hablar con una persona
+    checks: []
+  not_expected:
+  - email
+  - correo
+- id: TC-REG01
+  cx_truth: PASS
+  type: NEW
+  group: G7
+  name: Registro completo happy path desde Orquestador
+  turns:
+  - user: Quiero registrarme
+    checks:
+    - registr|nombre|email|correo|bienvenid|cuenta
+  - user: nuevoreg01_r{RUN}@test.com
+    checks:
+    - nombre|como te llam
+  - user: Maria
+    checks:
+    - apellido
+  - user: Garcia Lopez
+    checks:
+    - particular|empresa|tipo
+  - user: particular
+    checks:
+    - direcci|calle|domicilio|completa
+  - user: Calle Alcala 42, 28014 Madrid
+    checks:
+    - portal|planta|letra|telefono
+  - user: No, es bajo
+    checks:
+    - telefono|contacto
+  - user: '612345678'
+    checks:
+    - correcto|revisa|datos|Nombre|Maria|registro
+  - user: Si, correcto
+    checks:
+    - registrad|perfecto|Maria|ayudar|puedo
+  not_expected: []
+- id: TC-REG02
+  cx_truth: PASS
+  type: NEW
+  group: G7>ERR
+  name: Registro con email invalido desde Orquestador
+  turns:
+  - user: Quiero registrarme
+    checks:
+    - registr|nombre|email|correo|bienvenid|cuenta
+  - user: esto no es un email
+    checks:
+    - valido|correo|email|@|formato
+  - user: ahora tampoco
+    checks:
+    - valido|correo|email|@|formato|intent
+  not_expected: []
+- id: TC-REG03
+  cx_truth: PASS
+  type: NEW
+  group: G7>CANCEL
+  name: Registro cancelado a mitad desde Orquestador
+  turns:
+  - user: Quiero registrarme
+    checks:
+    - registr|nombre|email|correo|bienvenid|cuenta
+  - user: nuevoreg03_r{RUN}@test.com
+    checks:
+    - nombre|como te llam
+  - user: Dejalo, no quiero registrarme
+    checks:
+    - seguro|cancelar|entendido|pronto|registr
+  not_expected: []
+- id: TC-REG04
+  cx_truth: PASS
+  type: NEW
+  group: G5>CK>REG
+  name: 'Flujo COMPLETO: Compra → Checkout → Registro_Task → completa pedido'
+  turns:
+  - user: Quiero comprar un ramo de rosas rojas para un cumpleanos
+    checks:
+    - rosas|Ramo|rosa
+  - user: El mediano
+    checks:
+    - M|mediano|cantidad|cuantos|confirma
+  - user: '1'
+    checks:
+    - confirma|resumen|Rosas|Ramo|email|correo
+  - user: nuevoreg04_r{RUN}@test.com
+    checks:
+    - encontr|registr|otro|cuenta
+  - user: Si, registrame con ese
+    checks:
+    - nombre|registr|datos|empezar|como
+  - user: Laura
+    checks:
+    - apellido
+  - user: Martinez
+    checks:
+    - particular|empresa|tipo
+  - user: particular
+    checks:
+    - direcci|calle|domicilio|completa
+  - user: Avenida de la Paz 15, 08017 Barcelona
+    checks:
+    - portal|planta|letra|telefono
+  - user: 'No'
+    checks:
+    - telefono|contacto
+  - user: '933456789'
+    checks:
+    - correcto|revisa|datos|Nombre|Laura|registro
+  - user: Si, correcto
+    checks:
+    - registrad|perfecto|Laura|continuamos
+  - user: Si, confirmo
+    checks:
+    - pedido|Laura|Rosas|entrega|simulada|perfecto|euro|referencia
+  not_expected: []
+- id: TC-REG06
+  cx_truth: PASS
+  type: NEW
+  group: G7>POST
+  name: 'Post-registro: Orquestador retoma y ofrece ayuda'
+  turns:
+  - user: Quiero registrarme
+    checks:
+    - registr|nombre|email|correo|bienvenid|cuenta
+  - user: nuevoreg06_r{RUN}@test.com
+    checks:
+    - nombre|como te llam
+  - user: Pedro
+    checks:
+    - apellido
+  - user: Sanchez
+    checks:
+    - particular|empresa|tipo
+  - user: particular
+    checks:
+    - direcci|calle|domicilio|completa
+  - user: Gran Via 50, 28013 Madrid
+    checks:
+    - portal|planta|letra|telefono
+  - user: No tengo portal
+    checks:
+    - telefono|contacto
+  - user: No tengo
+    checks:
+    - correcto|revisa|datos|Nombre|Pedro|registro
+  - user: Si, correcto
+    checks:
+    - registrad|perfecto|Pedro|ayudar|puedo
+  - user: Quiero comprar rosas
+    checks:
+    - rosas|rosa|Ramo|color|tipo|ocasi
+  not_expected: []
+- id: TC-E04
+  cx_truth: PASS
+  type: REG
+  group: G6>SALDO
+  name: Consulta saldo con email valido
+  turns:
+  - user: Quiero ver mi saldo
+    checks:
+    - email|correo
+  - user: ana@email.com
+    checks:
+    - Ana|saldo|300|pago|pendiente|Hola
+  not_expected: []
+- id: TC-C29
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Ambigüedad total sin datos
+  turns:
+  - user: Algo bonito para mi madre
+    checks:
+    - tipo|flor|presupuesto|color|ocasion
+  not_expected: []
+- id: TC-C31
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Presupuesto sin producto
+  turns:
+  - user: Algo no muy caro
+    checks:
+    - ocasion|tipo|flor|motivo
+  not_expected: []
+- id: TC-C32
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Cantidad ambigua — un par
+  turns:
+  - user: Quiero rosas rojas para cumpleaños
+    checks:
+    - talla|tamano|S|M|L|opcion
+  - user: El mediano
+    checks:
+    - cu.ntos|cantidad
+  - user: Un par
+    checks:
+    - 2|dos|confirma|refiere
+  not_expected: []
+- id: TC-C33
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Cantidad ambigua — varios
+  turns:
+  - user: Quiero rosas rojas para cumpleaños
+    checks:
+    - talla|tamano|S|M|L|opcion
+  - user: El mediano
+    checks:
+    - cu.ntos|cantidad
+  - user: Varios
+    checks:
+    - cuantos|exactamente|numero|unidades
+  not_expected:
+  - confirma|resumen
+- id: TC-C34
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Cantidad por función
+  turns:
+  - user: Quiero rosas rojas para cumpleaños
+    checks:
+    - talla|tamano|S|M|L|opcion
+  - user: El mediano
+    checks:
+    - cu.ntos|cantidad
+  - user: Para llenar una mesa
+    checks:
+    - cuantos|numero|exactamente|unidades
+  not_expected:
+  - confirma|resumen
+- id: TC-C35
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Ocasión ambigua emocional
+  turns:
+  - user: Es para alguien especial
+    checks:
+    - ocasion|celebra|regalo|cumpleanos|boda|tipo
+  not_expected: []
+- id: TC-C36
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Urgencia sin ocasión
+  turns:
+  - user: Necesito flores para mañana
+    checks:
+    - ocasion|motivo|tipo|flor|mente|especial
+  not_expected: []
+- id: TC-C37
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Input numérico fuera de contexto
+  turns:
+  - user: Quiero rosas rojas para cumpleaños
+    checks:
+    - talla|tamano|S|M|L|opcion
+  - user: El 3
+    checks:
+    - refiere|cual|opcion|talla|tamano
+  not_expected:
+  - confirma|resumen
+- id: TC-C39
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Emoji solo
+  turns:
+  - user: 🌹
+    checks:
+    - rosa|rosas|ocasion|motivo|color|flor|ayudar
+  not_expected: []
+- id: TC-C40
+  cx_truth: flaky
+  type: EDGE
+  group: COMPRA-ZG
+  name: Pregunta out of scope en PASO 2
+  turns:
+  - user: Quiero rosas rojas para cumpleaños
+    checks:
+    - talla|tamano|S|M|L|opcion
+  - user: ¿Cuál es vuestra política de devoluciones?
+    checks:
+    - devolucion|cambio|politica|plazo|scope
+  not_expected: []
+- id: TC-C42
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Handoff Compra → Checkout (pide email tras cantidad)
+  turns:
+  - user: Quiero rosas rojas para cumpleaños
+    checks:
+    - talla|tamano|S|M|L|opcion
+  - user: El mediano
+    checks:
+    - cu.ntos|cantidad
+  - user: '1'
+    checks:
+    - correo|email|pedido|confirma|resumen
+  not_expected: []
+- id: TC-C43
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Input ambiguo en PASO 0 Checkout — no cancela, re-pide email
+  turns:
+  - user: Quiero rosas rojas para cumpleaños
+    checks:
+    - talla|tamano|S|M|L|opcion
+  - user: El mediano
+    checks:
+    - cu.ntos|cantidad
+  - user: '1'
+    checks:
+    - correo|email|pedido|confirma|resumen
+  - user: Mmm no sé
+    checks:
+    - correo|email|arroba|nombre@
+  not_expected:
+  - cancelar|adios|pronto|otro producto
+- id: TC-DECO-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-INV
+  name: Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –)
+  turns:
+  - user: quiero un ramo de margaritas para decorar mi recibidor
+    checks:
+    - Margarita.{0,40}--.{0,5}[SMLX]|Margarita.{0,40}—.{0,5}[SMLX]|Margarita.{0,40}–.{0,5}[SMLX]|Margarita.{0,80}euros
+  not_expected:
+  - no tengo.{0,40}margarit
+  - no tenemos.{0,40}margarit
+- id: TC-DECO-02
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-INV
+  name: Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)
+  turns:
+  - user: quiero un ramo de rosas para decorar mi salon
+    checks:
+    - Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros
+  not_expected:
+  - no tengo.{0,40}rosa
+  - no tenemos.{0,40}rosa
+- id: TC-FUNERAL-01
+  cx_truth: PASS
+  type: NEW
+  group: G5
+  name: Modo solemne — corona para funeral
+  turns:
+  - user: necesito una corona para un funeral
+    checks:
+    - corona|funebr|ceremonia|pesame|familia|opciones|tipo|encaja
+  not_expected:
+  - mira,|genial|fenomenal|🌸
+- id: TC-PRESUPUESTO-01
+  cx_truth: PASS
+  type: NEW
+  group: G5
+  name: Presupuesto duro — precio_max explicito
+  turns:
+  - user: quiero rosas maximo 30 euros
+    checks:
+    - rosa|ramo|opcion|euro|22|25|presupuesto
+  not_expected:
+  - 132|premium.{0,30}euros
+- id: TC-COLOR-01
+  cx_truth: PASS
+  type: NEW
+  group: G5
+  name: Compra con color especifico no-rojo (tulipanes blancos)
+  turns:
+  - user: quiero tulipanes blancos
+    checks:
+    - Tulipan|tulipan|blanc|euro|opcion
+  not_expected:
+  - no tengo.{0,40}tulipan
+- id: TC-REFINAR-01
+  cx_truth: PASS
+  type: NEW
+  group: G5
+  name: Refinamiento de precio mid-flow — mas baratas
+  turns:
+  - user: quiero un ramo de rosas para cumpleaños
+    checks:
+    - ramo|rosa|opcion|tamano|euro
+  - user: mas baratas
+    checks:
+    - rosa|ramo|euro|22|menos|menor|opcion
+  not_expected: []
+- id: TC-BODA-01
+  cx_truth: PASS
+  type: NEW
+  group: G5
+  name: Modo Boda — ramo nupcial
+  turns:
+  - user: quiero un ramo de novia para mi boda
+    checks:
+    - ramo|novia|boda|opcion|encaja|propongo
+  not_expected:
+  - 🌸
+- id: TC-CAMBIO-OP-01
+  cx_truth: flaky
+  type: EDGE
+  group: COMPRA-ZG
+  name: Cambio de opinion mid-flow — usuario abandona tras seleccionar
+  turns:
+  - user: quiero rosas rojas para cumpleaños
+    checks:
+    - rosa|ramo|opcion|tamano
+  - user: el mediano
+    checks:
+    - cu.ntos|cantidad|M|37
+  - user: uy, mejor no, dejalo
+    checks:
+    - pronto|hasta|gracias|otro momento|ayudar|algo mas|entendido
+  not_expected:
+  - email|correo|checkout|direccion|confirma
+- id: TC-FRUSTRACION-01
+  cx_truth: FAIL
+  type: EDGE
+  group: COMPRA-ZG
+  name: Multiples rechazos consecutivos — debe escalar o reformular
+  turns:
+  - user: quiero rosas
+    checks:
+    - rosa|ramo|opcion|tamano|ocasion
+  - user: no me gustan
+    checks:
+    - otra|alternativ|otras|propongo|encaja|tipo
+  - user: tampoco me convencen, dame otras
+    checks:
+    - propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano
+    desc: Segundo rechazo consecutivo — el agente debía proponer alternativa por tipo u ocasión, o escalar al equipo
+  - user: ninguna me gusta
+    checks:
+    - equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion
+  not_expected:
+  - Tienes algún color en mente.{0,80}Tienes algún color en mente
+- id: TC-VARIANTES-SML-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial
+  turns:
+  - user: quiero un ramo de rosas rojas para cumpleaños
+    checks:
+    - ramo|rosa|opcion|tamano|S|M|L|X
+  - user: la mediana
+    checks:
+    - M|mediano|cu.ntos|cantidad|euro|37
+  not_expected:
+  - confirma.{0,30}es correcto
+- id: TC-ROBUSTEZ-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Robustez parser — input en MAYUSCULAS sin acentos
+  turns:
+  - user: QUIERO ROSAS ROJAS PARA CUMPLEANOS
+    checks:
+    - rosa|ramo|opcion|tamano
+  not_expected:
+  - no entiendo|disculpa.{0,30}no
+- id: TC-STOCK-EXCESO-01
+  cx_truth: FAIL
+  type: EDGE
+  group: COMPRA-ZG
+  name: TT-25 — cantidad > stock disponible, agente debe avisar
+  turns:
+  - user: quiero un ramo de rosas rojas pequeño
+    checks:
+    - rosa|ramo|opcion|tamano|S
+  - user: el pequeño
+    checks:
+    - cu.ntos|cantidad
+  - user: '50'
+    checks:
+    - stock|disponible|solo|quedan|menos|tengo|prefieres|continuamos
+  not_expected:
+  - pedido confirmado|checkout|email
+- id: TC-URGENCIA-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')
+  turns:
+  - user: quiero un ramo de rosas para hoy a las 18:00
+    checks:
+    - hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano
+    desc: El agente debía reconocer la urgencia horaria y verificar el plazo de entrega antes de mostrar catálogo
+  not_expected: []
+- id: TC-URGENCIA-02
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana
+  turns:
+  - user: lo necesito urgente, ¿en cuánto tiempo entregáis?
+    checks:
+    - plazo|24h|24 horas|entrega|hora|tiempo
+    desc: El agente debía informar sobre el plazo de entrega antes de continuar con la compra
+  - user: mañana por la mañana
+    checks:
+    - mañana|perfecto|posible|24h|llega|pedido
+  not_expected: []
+- id: TC-URGENCIA-03
+  cx_truth: FAIL
+  type: EDGE
+  group: COMPRA-ZG
+  name: Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio
+  turns:
+  - user: lo necesito para este viernes
+    checks:
+    - 24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo
+    desc: El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo
+  not_expected: []
+- id: TC-FRUSTRACION-LEX-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Lexico negativo del usuario — agente reconoce frustracion
+  turns:
+  - user: quiero rosas
+    checks:
+    - rosa|ramo|opcion|tamano|ocasion
+  - user: esto no funciona, que desastre
+    checks:
+    - disculp|entend|alternativ|equipo|persona|propong|reformul|tipo
+  not_expected: []
+- id: TC-MULTI-SLOT-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Parseo multi-info en un solo input — extraccion robusta
+  turns:
+  - user: hola, quiero un ramo de rosas rojas maximo 40 euros para mi boda
+    checks:
+    - rosa|ramo|boda|euro|opcion|tamano
+  not_expected:
+  - no entiendo|ocasion.*especial.{0,40}\?
+- id: TC-DESPEDIDA-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Despedida abrupta — cierre amable sin pedido completo
+  turns:
+  - user: quiero rosas
+    checks:
+    - rosa|ramo|opcion|tamano|ocasion
+  - user: déjalo, gracias
+    checks:
+    - pronto|hasta|gracias|otro momento|ayudar|algo mas|entendido
+  not_expected:
+  - email|correo|checkout
+- id: TC-DIR-CUSTOM-01
+  cx_truth: PASS
+  type: EDGE
+  group: G5>CK
+  name: Override direccion habitual — cliente identificado pide otra direccion
+  turns:
+  - user: mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa
+    checks:
+    - rosa|ramo|oficina|otra direcc|nueva direcc|Ana|opcion
+  not_expected: []
+- id: TC-MULTI-PRODUCTO-01
+  cx_truth: FAIL
+  type: EDGE
+  group: COMPRA-INV
+  name: Pedido multi-item — ECO RESUMEN muestra total antes de confirmar
+  turns:
+  - user: quiero un ramo de rosas y un centro de mesa para mi casa
+    checks:
+    - centro.{0,80}ramo|ramo.{0,80}centro|empez.{0,20}por|uno.{0,20}vez|un producto
+  - user: el ramo de rosas morado de 37 euros
+    checks:
+    - morado|anotado
+    desc: El agente anota el primer producto (ramo morado 37€) y pide el segundo
+  - user: el centro de tulipanes de 28 euros
+    checks:
+    - '65'
+    desc: El agente debía mostrar el resumen con el total calculado (37 + 28 = 65€) antes de pedir confirmación
+  not_expected: []
+- id: TC-MOROSO-01
+  cx_truth: PASS
+  type: EDGE
+  group: G6>DEUDA
+  name: Cliente con deuda detectada — handoff a Gestion_Deuda
+  turns:
+  - user: mi email es pedro.moroso@test.com quiero comprar rosas
+    checks:
+    - deud|pago|pendiente|equipo|persona|gestion|saldo|email|verific
+  not_expected: []
+- id: TC-DEVOLUCION-01
+  cx_truth: PASS
+  type: EDGE
+  group: G6
+  name: Solicitud de devolucion — out-of-scope, deriva a Handoff
+  turns:
+  - user: quiero devolver mi pedido
+    checks:
+    - devolucion|equipo|persona|humano|reclamacion|email|correo|contacto|gestion
+  not_expected:
+  - claro, te devuelvo|procesado
+- id: TC-SIGNOS-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Input solo signos de puntuacion — robustez
+  turns:
+  - user: ???
+    checks:
+    - entend|aclar|pregunta|ayudar|claro|repite|escribe|cuent
+  not_expected: []
+- id: TC-INSULTO-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Lexico abusivo — agente mantiene tono profesional, no repite
+  turns:
+  - user: esto es una mierda, que porqueria
+    checks:
+    - disculp|lament|entend|equipo|persona|propong|reformul|ayudar
+  not_expected:
+  - mierda|porqueria
+- id: TC-IMPOSIBLE-01
+  cx_truth: PASS
+  type: EDGE
+  group: COMPRA-ZG
+  name: Peticion fuera de scope — descuento del 50%
+  turns:
+  - user: hacedme un descuento del 50%
+    checks:
+    - no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar|no tenemos|ayudar
+  not_expected:
+  - 50%.{0,30}aplicado|claro, descuento

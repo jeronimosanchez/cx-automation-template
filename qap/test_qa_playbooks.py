@@ -89,9 +89,9 @@ _CTX = _temporal_ctx()  # {"hora_actual": "HH:MM", "dia_semana": "...", "entrega
 # -------------------------------------------------------------------------------
 
 # TESTS se carga desde un YAML (fuente de verdad), no hardcodeado.
-# Configurable: --tests <archivo> o env QA_TESTS_FILE. Default: tc_51.yaml (51 TCs).
-# Para correr 1.1 sobre otro set: --tests tc_otro.yaml (misma estructura de campos).
-TESTS_FILE = os.environ.get('QA_TESTS_FILE', 'tc_51.yaml')
+# Configurable: --tests <archivo> o env QA_TESTS_FILE. Default: tc_1_0.yaml (TCs de Petal 1.0).
+# Para correr 1.1 sobre otro set: --tests tc_1_1.yaml (misma estructura de campos).
+TESTS_FILE = os.environ.get('QA_TESTS_FILE', 'tc_1_0.yaml')
 TESTS = yaml.safe_load((Path(__file__).parent / TESTS_FILE).read_text(encoding='utf-8'))
 
 
@@ -2741,7 +2741,7 @@ def main():
     parser.add_argument("--agent", choices=list(AGENTS), default="1.0",
                         help="Agente CX objetivo: 1.0 (congelado) o 1.1 (activo). Default 1.0.")
     parser.add_argument("--tests", default=None,
-                        help="Archivo YAML de TCs (default: tc_51.yaml o env QA_TESTS_FILE). Para correr otro set.")
+                        help="Archivo YAML de TCs (default: tc_1_0.yaml o env QA_TESTS_FILE). Para correr otro set.")
     parser.add_argument("--list", action="store_true", help="Listar TCs")
     args = parser.parse_args()
     if args.tests:
