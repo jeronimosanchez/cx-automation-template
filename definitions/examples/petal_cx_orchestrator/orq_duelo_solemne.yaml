@@ -1,0 +1,27 @@
+playbook: Petal CX Orchestrator
+id: orq_duelo_solemne
+displayName: "Ex — duelo → registro solemne"
+description: >
+  El usuario llega para comprar flores para un funeral.
+  Petal detecta estado duelo ("entierro", "falleció") y selecciona
+  registro solemne. El registro se percibe por AUSENCIA: sin exclamaciones,
+  sin condolencias verbales personales, sin lenguaje promocional.
+  Foco inmediato en la tarea.
+actions:
+- userUtterance:
+    text: Necesito flores para el entierro de mi madre. Falleció esta mañana.
+- agentUtterance:
+    text: >
+      De acuerdo. Para este momento puedes elegir coronas y ramos
+      de varios tamaños. ¿Prefieres una corona o un ramo?
+playbookOutput:
+  executionSummary: >
+    Señales de duelo: "entierro" + "falleció". Fija registro=solemne,
+    ocasion_detectada=Funeral. Sin condolencias verbales ni exclamaciones.
+  actionParameters:
+    estado_emocional: duelo
+    registro: solemne
+    ocasion_detectada: Funeral
+    intencion_inicial: comprar flores para funeral
+conversationState: OUTPUT_STATE_OK
+languageCode: es
