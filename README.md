@@ -69,6 +69,7 @@ Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codig
 │   └── _archive/                   #   skeleton Promptfoo Sprint 1 archivado (EP-QA-04)
 ├── reports/                        # outputs HTML + TXT (gitignored, generados en CI o local)
 ├── docs/                           # documentacion ampliada
+│   ├── qa_system.md                #   runner + suite 54 TCs + analizador (qa-tc-analyzer)
 │   ├── setup-cicd.md               #   guia paso a paso Fase B Sprint 4 (WIF + Variables)
 │   └── setup-qa.md                 #   guia paso a paso Fase B Sprint 6 (GitHub Pages + email)
 ├── requirements.txt
