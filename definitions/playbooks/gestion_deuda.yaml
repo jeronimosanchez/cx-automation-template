@@ -82,6 +82,8 @@ instruction:
 
       ⛔ VALOR ABSOLUTO: Si $saldo=-150, muestra 150. Elimina siempre signo negativo.
 
+      TONO: aplica $registro. Si $registro=solemne → sin exclamaciones ni emoji.
+
       SI PARTICULAR:
       Paso 1. agent_copy["deuda_particular"]. Sustituye {saldo}=valor absoluto. Di texto. ESPERA.
         - Acepta → $razon_handoff="deuda_particular" → "Te paso con especialista." → ${PLAYBOOK:Handoff}.
