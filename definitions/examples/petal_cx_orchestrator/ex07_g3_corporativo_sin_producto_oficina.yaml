@@ -12,6 +12,5 @@ playbookOutput:
   actionParameters:
     ocasion_detectada: Corporativo
     grupo_intent: G3
-    modo_tono: corporativo
     intencion_inicial: algo para la oficina
 languageCode: es

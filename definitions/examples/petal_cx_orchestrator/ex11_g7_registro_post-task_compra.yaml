@@ -44,7 +44,6 @@ playbookOutput:
     id_cliente: '155'
     estado_pago: Al dia
     recien_registrado: 'true'
-    modo_tono: estandar
     grupo_intent: G7
 conversationState: OUTPUT_STATE_OK
 languageCode: es

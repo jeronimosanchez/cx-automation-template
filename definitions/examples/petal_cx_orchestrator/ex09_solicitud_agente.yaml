@@ -13,5 +13,4 @@ playbookOutput:
   executionSummary: El usaurio solicita espontaneamente hablar con agente
   actionParameters:
     razon_handoff: cliente_solicita_humano
-    modo_tono: estandar
 languageCode: es

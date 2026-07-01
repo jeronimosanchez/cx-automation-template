@@ -12,5 +12,4 @@ playbookOutput:
   actionParameters:
     grupo_intent: G3
     intencion_inicial: Quiero flores
-    modo_tono: estandar
 languageCode: es
