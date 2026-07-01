@@ -53,6 +53,11 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: usuario_frustrado
+  description: 'Flag de frustración heredado de Checkout. No lo modifica. Se relay a Handoff.'
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
 outputParameterDefinitions:
 - name: razon_handoff
   description: |
@@ -70,6 +75,16 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: NUMBER
+- name: registro
+  description: 'Registro de tono relay a Handoff. Valores: solemne, celebracion, estandar.'
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: usuario_frustrado
+  description: 'Flag de frustración relay a Handoff.'
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
 instruction:
   steps:
   - text: |-

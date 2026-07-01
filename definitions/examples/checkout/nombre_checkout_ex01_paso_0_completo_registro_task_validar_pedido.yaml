@@ -100,6 +100,9 @@ playbookInput:
     id_cliente: ''
     cantidad: '1'
     precio_estimado: '45'
+    registro: estandar
+    es_urgente: false
+    usuario_frustrado: false
 playbookOutput:
   executionSummary: 'Email no encontrado. Cliente eligió registrarse. Invocó Registro_Task con email. Registro completado. Checkout continúa con PASO '
   actionParameters:
