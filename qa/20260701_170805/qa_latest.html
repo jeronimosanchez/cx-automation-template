@@ -444,16 +444,16 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 
 <div class="hdr">
 <div><b>Orquestador:</b> v65</div><div><b>Compra:</b> v39</div><div><b>Checkout:</b> v33</div>
-<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 54 × 3 runs</div>
+<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 55 × 3 runs</div>
 </div>
 <div class="cards">
-<div class="card c-total" onclick="filterBy('all')"><div class="n">54</div><div class="l">Total</div></div>
+<div class="card c-total" onclick="filterBy('all')"><div class="n">55</div><div class="l">Total</div></div>
 <div class="card c-pass" data-filter="PASS" onclick="filterBy('PASS')"><div class="n">47</div><div class="l">Pass</div></div>
 <div class="card c-inst" data-filter="INESTABLE" onclick="filterBy('INESTABLE')"><div class="n">0</div><div class="l">Inestable</div></div>
-<div class="card c-fail" data-filter="FAIL" onclick="filterBy('FAIL')"><div class="n">7</div><div class="l">Fail</div></div>
-<div class="card c-pct"><div class="n">87%</div><div class="l">Tasa</div></div>
+<div class="card c-fail" data-filter="FAIL" onclick="filterBy('FAIL')"><div class="n">8</div><div class="l">Fail</div></div>
+<div class="card c-pct"><div class="n">85%</div><div class="l">Tasa</div></div>
 </div>
-<div class="bar"><div class="bar-g" style="width:87.0%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:13.0%"></div></div>
+<div class="bar"><div class="bar-g" style="width:85.5%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:14.5%"></div></div>
 <div class="patterns-block"><div class="patterns-th" onclick="togglePatterns()"><span class="patterns-icon">⚠️</span><span class="patterns-title">Patrones cruzados</span><span class="patterns-stats">4 patrónes detectados · ROI 8 TCs/h</span><span class="patterns-arrow">▶</span></div><div class="patterns-body"><div class="pat-resumen">
 <div class="pat-resumen-title">RESUMEN</div>
 <div class="pat-resumen-stat">• Tests analizados en este batch: <strong>8</strong></div>
@@ -3627,6 +3627,66 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C35.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C35</span><span class="tname">Ocasión ambigua emocional</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Test mal calibrado</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"Es para alguien especial"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
+"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: ocasion / celebra / regalo / cumpleanos / boda / tipo</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ocasion|celebra|regalo|cumpleanos|boda|tipo]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"Es para alguien especial"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>estado_emocional=neutro</code>, <code>ocasion_detectada=Regalo</code>, <code>registro=estandar</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
+"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>estado_emocional=neutro</code>, <code>ocasion_detectada=Regalo</code>, <code>registro=estandar</code></li>
+</ul></div></td></tr></table>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Test mal calibrado</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Impacto en usuarios reales</td><td>Ninguno</td><td>El agente se comporta correctamente</td></tr><tr><td>Riesgo de regresión</td><td>Bajo</td><td>El fix es solo en el YAML del TC</td></tr><tr><td>Complejidad del fix</td><td>Mínima</td><td>Cambiar 1 línea de check en <code>tc_1_1.yaml</code></td></tr><tr><td>Urgencia</td><td>Media</td><td>FAIL espurio contamina el reporting de la suite</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Bajo → 3 soluciones</p>
+
+<h4>Solución recomendada: #1 — Recalibrar el check para que valide flor/color</h4>
+
+<p>🟢 9/10 · ~5 min</p>
+
+<p>El agente pregunta <code>¿Tienes alguna flor o color en mente?</code> porque el playbook, dado que ya tiene <code>ocasion_detectada</code>, salta la pregunta de ocasión y pregunta por producto. El check debe validar que el agente pregunta por flor, color o tipo de producto — no por la ocasión.</p>
+
+<h4>Soluciones evaluadas</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué</th></tr></thead><tbody><tr><td>1</td><td>Cambiar check a `flor\</td><td>color\</td><td>mente\</td><td>tipo\</td><td>producto\</td><td>tenias<code> en </code>tc_1_1.yaml`</td><td>9/10</td><td>Ninguna</td><td>Alinea el check con el comportamiento real del playbook cuando <code>ocasion_detectada</code> tiene valor</td></tr><tr><td>2</td><td>Añadir parámetro <code>ocasion_detectada: ""</code> en el TC para forzar el flujo de pregunta de ocasión</td><td>6/10</td><td>Requiere entender si el runner CX acepta params de entrada por TC</td><td>Cambia el escenario de prueba; el caso "alguien especial con ocasión ya detectada" se pierde</td></tr><tr><td>3</td><td>Dividir en dos TCs: uno sin <code>ocasion_detectada</code> (pide ocasión) y otro con valor (pide flor/color)</td><td>7/10</td><td>Añadir TC nuevo</td><td>Más cobertura, pero mayor mantenimiento; el escenario sin ocasión ya está cubierto por COMPRA-ZG general</td></tr></tbody></table>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p>1. Abrir <code>/qap/tc_1_1.yaml</code>, localizar <code>TC-C35</code>.</p>
+<p>2. Cambiar la línea de check:</p>
+<ul>
+<li><strong>Antes:</strong> <code>- ocasion|celebra|regalo|cumpleanos|boda|tipo</code></li>
+<li><strong>Después:</strong> <code>- flor|color|mente|tipo|producto|tenias</code></li>
+</ul>
+<p>3. Verificar que el nuevo check es suficientemente amplio para atrapar variantes naturales de "¿tienes alguna flor o color en mente?" sin ser demasiado permisivo.</p>
+<p>4. Hacer commit y rerun del TC para confirmar PASS.</p></div></div>
+</div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-INV" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DECO-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-02</span><span class="tname">Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">0/1</span></div>
@@ -3676,7 +3736,18 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-INV</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Decoracion</code>, <code>producto=rosas</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-DECO-02"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span></div><div class="rec-content"><p>1. <strong>Verificar deploy de <code>aa05036</code>:</strong> comprobar si el playbook desplegado en CX ya incluye la instrucción <code>FORMATO AL USUARIO</code>. Si no, el FAIL es esperado y se resuelve solo con el deploy.</p>
+<p>```bash</p>
+<p>gh run list --workflow=deploy.yml --limit=5</p>
+<p>```</p>
+
+<p>2. <strong>Si el deploy ya está activo y el agente sigue sin respetar el formato:</strong> aplicar S1 (refuerzo de instrucción con ejemplo explícito de rosas). Branch → PR → deploy → rerun QA.</p>
+
+<p>3. <strong>En paralelo o tras confirmar S1:</strong> aplicar S2 (ampliar regex) en la misma rama o en branch separado según criterio de Jero.</p>
+
+<p>4. <strong>Anti-regresión post-fix:</strong> verificar que TC-DECO-01 sigue en PASS y que los TCs del grupo G5 que muestran catálogo no regresionan.</p>
+
+<p>---</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
@@ -3717,7 +3788,14 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ✅ grupo_intent observado <code>G5</code> (esperado: <code>G5</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=ramo de novia</code>, <code>registro=celebracion</code>, <code>ocasion_detectada=Boda</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-BODA-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span></div><div class="rec-content"><p><strong>Fix recomendado: Solución 3 (combinación 1+2)</strong></p>
+
+<p>Orden de ejecución:</p>
+<p>1. Fix Orquestador (Solución 1) — 15 min</p>
+<p>2. Fix check en runner/YAML (Solución 2) — 10 min</p>
+<p>3. Verificar con rerun del TC</p>
+
+<p>---</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -3860,7 +3938,13 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span></div><div class="rec-content"><p><strong>Aplicar Solución A primero</strong> (solo test, sin deploy): ajustar el TC para que tenga 6 turnos con 4 rechazos claros sobre opciones, y corregir los checks de T2 y T3. Esto permite validar si el agente escala correctamente con el playbook actual.</p>
+
+<p>Si el agente sigue sin escalar tras el TC ampliado, aplicar también Solución B para clarificar el contador en el playbook.</p>
+
+<p><strong>No bloquear por T2:</strong> la calibración de T2 es el problema menor. El agente pide clarificación ante input genuinamente ambiguo — eso es conducta correcta que el check penaliza incorrectamente.</p>
+
+<p>---</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -4006,7 +4090,13 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-LEX-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span></div><div class="rec-content"><p><strong>Orden de ejecución:</strong> S1 (regex, 5 min) → S2 (playbook, 20 min) → S3 (validación opcional).</p>
+
+<p>S1 es suficiente para que el TC pase en el runner QA, pero S2 es necesario para que el comportamiento del agente sea correcto — sin S2, el TC pasaría con una respuesta que no cumple el espíritu de la instrucción §610.</p>
+
+<p>---</p>
+
+<p><em>Análisis generado automáticamente por qa-tc-analyzer. Verificar S3 antes de cerrar.</em></p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="TONO" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -4086,7 +4176,12 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>TONO</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Regalo</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-TONO-CAMBIO-SOLEMNE-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span></div><div class="rec-content"><p>1. <strong>Solución 1</strong> (Fix Test, 5 min) — aplica primero para que el runner refleje la realidad.</p>
+<p>2. <strong>Solución 2</strong> (Fix Playbook Compra, 10 min) — aplica segundo, cierra el bug crítico P0.</p>
+<p>3. Rerun del TC para verificar ambos fixes.</p>
+<p>4. <strong>Solución 3</strong> (Fix Orquestador, 15-20 min) — aborda la doble respuesta, tratar como tarea separada con gate de validación de suite completa.</p>
+
+<p>---</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="TONO" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -4201,7 +4296,13 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>TONO</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Corporativo</code>, <code>producto=arreglo floral</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-TONO-APLICACION-CORP-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span></div><div class="rec-content"><p>1. <strong>Aplicar Solución A1</strong> (5 min): inyectar <code>session_params: {registro: solemne}</code> en turno 1 del TC para que el test valide lo que su nombre promete.</p>
+<p>2. <strong>Aplicar Solución B</strong> (15 min): añadir instrucción de desambiguación nombrada en PASO 2 de compra.yaml.</p>
+<p>3. <strong>Abrir nota de diseño</strong> (5 min): documentar la pregunta "¿Corporativo siempre implica solemne?" como pendiente de decisión de diseño conversacional.</p>
+
+<p><strong>Tiempo total:</strong> ~25 min + deploy CI/CD.</p>
+
+<p>---</p></div></div>
 </div></div>
 
 <div id="metodologia-modal" class="modal hidden">
@@ -4209,10 +4310,10 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
   <div class="modal-content modal-metodologia">
     <button class="modal-close" onclick="closeMetodologia()">&times;</button>
     <h2>📊 Metodología de evaluación QA</h2>
-    <p class="modal-sub">54 test cases · 47 PASS · 0 INESTABLE · 7 FAIL · 2026-07-01 17:08</p>
+    <p class="modal-sub">55 test cases · 47 PASS · 0 INESTABLE · 8 FAIL · 2026-07-01 17:08</p>
     
     <div class="kpi-section kpi-flak">
-      <h3 data-legend="Un TC es INESTABLE cuando pasa en algunos runs pero falla en otros. Indica que el sistema no es determinístico — la misma entrada produce resultados distintos. Umbral aceptable: <10%. Si es alto, los tests no son fiables.">Flakiness: 0.0% <span class="kpi-sub">(0 TCs INESTABLE de 54)</span></h3>
+      <h3 data-legend="Un TC es INESTABLE cuando pasa en algunos runs pero falla en otros. Indica que el sistema no es determinístico — la misma entrada produce resultados distintos. Umbral aceptable: <10%. Si es alto, los tests no son fiables.">Flakiness: 0.0% <span class="kpi-sub">(0 TCs INESTABLE de 55)</span></h3>
       <p>TCs flaky: <code>—</code></p>
       <p class="kpi-action">Acción si alto: re-correr con <code>--runs 5</code> para confirmar.</p>
     </div>
@@ -4223,39 +4324,39 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
         <h4>Orquestador</h4>
         <div class="kpi-bar-row" data-legend="Cada TC declara su grupo_intent esperado (ej. G5, COMPRA-INV). El Orquestador clasifica el input del usuario en el primer turno. Este % indica cuántos TCs aciertan la clasificación esperada. Si baja: el Orquestador está fallando al clasificar inputs.">
           <span class="kpi-label">Clasificación correcta</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:11.1%"></div></div>
-          <span class="kpi-value">11.1%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:10.9%"></div></div>
+          <span class="kpi-value">10.9%</span>
         </div>
-        <p class="kpi-sub">6/54 TCs clasifican el grupo_intent esperado</p>
+        <p class="kpi-sub">6/55 TCs clasifican el grupo_intent esperado</p>
         <p class="kpi-sub">Errores:</p><ul><li><code>TC-R01</code> — esperaba <code>G1</code>, observó <code>(vacío)</code></li><li><code>TC-R02</code> — esperaba <code>G2</code>, observó <code>(vacío)</code></li><li><code>TC-R03</code> — esperaba <code>G4</code>, observó <code>(vacío)</code></li><li><code>TC-R06</code> — esperaba <code>ESP</code>, observó <code>(vacío)</code></li><li><code>TC-N03</code> — esperaba <code>G6</code>, observó <code>(vacío)</code></li></ul>
       </div>
       <div class="kpi-component">
         <h4>Compra (slot-filling)</h4>
         <div class="kpi-bar-row" data-legend="% de turnos donde Compra extrajo el slot 'producto' del utterance del usuario (ej. 'rosas rojas', 'tulipanes'). Si baja: el Compra no está identificando qué producto pide el usuario.">
           <span class="kpi-label">Producto extraído</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:52.9%"></div></div>
-          <span class="kpi-value">52.9%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:52.5%"></div></div>
+          <span class="kpi-value">52.5%</span>
         </div>
         <div class="kpi-bar-row" data-legend="% de turnos donde Compra detectó la ocasión (Regalo, Decoracion, Funebre, etc.) del input del usuario. Si baja: el playbook no infiere la intención de uso.">
           <span class="kpi-label">Ocasión detectada</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:51.3%"></div></div>
-          <span class="kpi-value">51.3%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:51.7%"></div></div>
+          <span class="kpi-value">51.7%</span>
         </div>
         <div class="kpi-bar-row" data-legend="% de turnos donde se asignó modo_tono (estandar/solemne/corporativo). El Orquestador detecta esto en el primer utterance del usuario. Si baja: la detección de tono está fallando.">
           <span class="kpi-label">Modo_tono asignado</span>
           <div class="kpi-bar"><div class="kpi-bar-fill" style="width:0.0%"></div></div>
           <span class="kpi-value">0.0%</span>
         </div>
-        <p class="kpi-sub">Sobre 119 turnos totales</p>
+        <p class="kpi-sub">Sobre 120 turnos totales</p>
       </div>
     </div>
     
         <div class="kpi-section">
           <h3>📈 Regresión vs run anterior</h3>
           <table class="kpi-regr">
-            <tr><td>Run actual</td><td>2026-07-01 17:08</td><td><strong>PASS 87%</strong> (47/54)</td></tr>
+            <tr><td>Run actual</td><td>2026-07-01 17:08</td><td><strong>PASS 85%</strong> (47/55)</td></tr>
             <tr><td>Run anterior</td><td>2026-06-23 11:51</td><td>PASS 100% (1/1)</td></tr>
-            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-down"><strong>-13%</strong></td></tr>
+            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-down"><strong>-15%</strong></td></tr>
           </table>
         </div>
     
@@ -4263,7 +4364,7 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
       <h3>🎯 Cobertura del test suite</h3>
       <div class="kpi-component">
         <h4>Grupos del Orquestador (clasificación del input) — 2/7 cubiertos (29.0%)</h4>
-        <table class="kpi-cobertura"><tr><td><code>G1</code> Saludo</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G2</code> Info negocio</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G3</code> Consulta</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G4</code> Gestión pedido</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G5</code> Compra</td><td>✅ cubierto</td><td>36 TCs</td></tr><tr><td><code>G6</code> Queja</td><td>⚠️ baja cobertura</td><td>2 TCs</td></tr><tr><td><code>G7</code> Registro</td><td>✅ cubierto</td><td>4 TCs</td></tr></table>
+        <table class="kpi-cobertura"><tr><td><code>G1</code> Saludo</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G2</code> Info negocio</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G3</code> Consulta</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G4</code> Gestión pedido</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G5</code> Compra</td><td>✅ cubierto</td><td>37 TCs</td></tr><tr><td><code>G6</code> Queja</td><td>⚠️ baja cobertura</td><td>2 TCs</td></tr><tr><td><code>G7</code> Registro</td><td>✅ cubierto</td><td>4 TCs</td></tr></table>
       </div>
       <div class="kpi-component">
         <h4>Modos de tono (cómo modula el agente la respuesta) — 0/3 cubiertos (0.0%)</h4>
