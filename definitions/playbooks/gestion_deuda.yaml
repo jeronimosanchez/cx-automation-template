@@ -93,7 +93,8 @@ instruction:
       NUNCA completes compra. NUNCA ofrezcas alternativas de pago.
 
       PARÁMETROS ENTRADA: $producto, $cantidad, $precio_estimado, $id_cliente, $nombre_cliente, $direccion_entrega, $saldo, $tipo_cliente.
-      SALIDA: $razon_handoff, $nombre_cliente, $saldo → Handoff.
+      SALIDA: $razon_handoff, $nombre_cliente, $saldo, $registro, $usuario_frustrado → Handoff.
+      En toda transferencia a Handoff: incluir siempre $razon_handoff, $nombre_cliente, $saldo, $registro, $usuario_frustrado.
 
       ⛔ VALOR ABSOLUTO: Si $saldo=-150, muestra 150. Elimina siempre signo negativo.
 

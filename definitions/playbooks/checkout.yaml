@@ -274,7 +274,7 @@ instruction:
       1. Otro email(@) - $email=nuevo - consulta perfil de nuevo.
       2. Registrarse - Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
          Cuando vuelve, lee los outputs:
-         - Si $razon_handoff tiene valor - Handoff pasando $razon_handoff y $registro.
+         - Si $razon_handoff tiene valor - Handoff pasando $razon_handoff, $registro, $es_urgente, $usuario_frustrado.
          - Si $sesion_cerrada=true - FIN.
          - Si $recien_registrado=true - carga $id_cliente, $nombre_cliente, $tipo_cliente, $Direccion_Habitual, $estado_pago desde los outputs del Task - PASO 1.
            ⚠️ EXCEPCION T16: cuando $recien_registrado=true, esta permitido encadenar el mensaje de confirmacion de registro ('Ya estas registrado/a') con el resumen del PASO 2 en el mismo turno. El usuario acaba de completar el registro y espera continuar con su pedido — no hace falta turno de separacion.
@@ -302,14 +302,14 @@ instruction:
         FLAG deuda_check:
         - Si deuda_check = 'DEUDA':
           ⛔ STOP. NO completes la compra.
-          Transfiere AHORA MISMO a Gestion_Deuda pasando: $producto, $cantidad, $precio_estimado, $id_cliente, $nombre_cliente, $direccion_entrega, $tipo_cliente, $registro.
+          Transfiere AHORA MISMO a Gestion_Deuda pasando: $producto, $cantidad, $precio_estimado, $id_cliente, $nombre_cliente, $direccion_entrega, $tipo_cliente, $registro, $usuario_frustrado.
 
         FLAG sla_check:
         - Si sla_check = 'EXCEDE_LIMITE':
           ⛔ STOP. NO completes la compra.
           Llama a PetalDataTool recurso='agent_copy' clave='limite_importe'.
           Di exactamente el texto del campo 'valor' del primer resultado.
-          Establece $razon_handoff = 'limite_importe' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $registro.
+          Establece $razon_handoff = 'limite_importe' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $registro, $es_urgente, $usuario_frustrado.
 
         FLAG stock_check:
         - Si stock_check = 'STOCK_INSUFICIENTE':
@@ -478,7 +478,7 @@ instruction:
           - Estandar/Celebracion - 'Tu pedido ya ha sido registrado. Quieres que te ponga con un especialista para gestionarlo?'
           - Solemne - 'Tu pedido ya esta registrado. Te conecto con mi equipo para gestionarlo?'
           ⛔ ESPERA respuesta.
-          - Si quiere especialista - $razon_handoff = 'cliente_solicita_humano' - Handoff con $registro.
+          - Si quiere especialista - $razon_handoff = 'cliente_solicita_humano' - Handoff con $registro, $es_urgente, $usuario_frustrado.
           - Si no - di segun modo:
             - Estandar/Celebracion - 'Entendido. Si necesitas algo, aqui estaremos. Hasta pronto!'
             - Solemne - 'Entendido. Un saludo.'
@@ -490,7 +490,7 @@ instruction:
         Acusa recibo segun modo:
         - Estandar/Celebracion - 'Lamento mucho lo sucedido. Voy a ponerte con mi equipo que podra ayudarte.'
         - Solemne - 'Lamento lo sucedido. Te conecto con mi equipo ahora mismo.'
-        Establece $razon_handoff = 'reclamacion' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $registro.
+        Establece $razon_handoff = 'reclamacion' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $registro, $es_urgente, $usuario_frustrado.
 
         INTENT: SUGERENCIA / FEEDBACK (INT-19)
         Di: 'Gracias por la sugerencia, la trasladamos al equipo.'
@@ -500,7 +500,7 @@ instruction:
         Di segun modo:
         - Estandar/Celebracion - 'Por supuesto. Te conecto con mi equipo ahora mismo.'
         - Solemne - 'Claro. Te conecto con mi equipo.'
-        Establece $razon_handoff = 'cliente_solicita_humano' - transfiere a Handoff con $registro.
+        Establece $razon_handoff = 'cliente_solicita_humano' - transfiere a Handoff con $registro, $es_urgente, $usuario_frustrado.
 
         INTENT: FRUSTRACION DETECTADA (palabras negativas como 'no funciona', 'que mal', 'esto no va')
         ⛔ TONO DE RECONOCIMIENTO en el siguiente turno:
@@ -556,7 +556,7 @@ instruction:
       - Si PetalDataTool falla en PASO 1 o PASO 3:
         ⛔ OBLIGATORIO: llama a PetalDataTool recurso='agent_copy' clave='error_generico'.
         Di exactamente el texto del campo 'valor' del primer resultado.
-        - $razon_handoff='error_generico' - transfiere a Handoff con $registro.
+        - $razon_handoff='error_generico' - transfiere a Handoff con $registro, $es_urgente, $usuario_frustrado.
 
       ESTILO
       - Aplica $registro en TODOS los mensajes.
