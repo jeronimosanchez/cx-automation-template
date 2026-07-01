@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-07-01 15:10",
+  "ts_file": "20260701_1510",
+  "agent": "1.0",
+  "report_format": "v1",
+  "total": 55,
+  "pass": 42,
+  "inst": 0,
+  "fail": 13,
+  "pct": 76,
+  "runs_per_tc": 1,
+  "versions": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

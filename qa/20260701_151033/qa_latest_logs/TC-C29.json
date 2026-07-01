@@ -1,0 +1,52 @@
+{
+  "tc_id": "TC-C29",
+  "tc_name": "Ambigüedad total sin datos",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 15:10",
+  "ts_file": "20260701_1510",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Algo bonito para mi madre",
+          "agent": "¡Qué bonito detalle! ¿Tienes alguna flor o color en mente para tu madre?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "ocasion_detectada": "Regalo",
+            "intencion_inicial": "algo bonito para mi madre"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [flor]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "tc_id": "TC-BODA-01",
+  "tc_name": "Modo Boda — ramo nupcial",
+  "group": "G5",
+  "type": "NEW",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-01 15:10",
+  "ts_file": "20260701_1510",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de novia para mi boda",
+          "agent": "¡Enhorabuena por tu boda! 💐 Tenemos ramos de novia preciosos. ¿Tienes alguna flor o estilo en mente? ¡Qué bonito, una boda! 🌸 Tenemos el Ramo de Novia Rosas Blancas — S (6 flores, 35€). ¿Te gustaría pedirlo?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "ramo de novia",
+            "ocasion_detectada": "Boda",
+            "grupo_intent": "G5",
+            "registro": "celebracion",
+            "intencion_inicial": "ramo de novia para mi boda"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "OK: Agente dijo [ramo]",
+              "FAIL: Agente NO debía decir [🌸]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

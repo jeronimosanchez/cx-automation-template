@@ -1,0 +1,54 @@
+{
+  "tc_id": "TC-ROBUSTEZ-01",
+  "tc_name": "Robustez parser — input en MAYUSCULAS sin acentos",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 15:10",
+  "ts_file": "20260701_1510",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "QUIERO ROSAS ROJAS PARA CUMPLEANOS",
+          "agent": "¡Claro! Las rosas rojas son un clásico para celebrar. ¿Cuántas te gustaría enviar? ¡Qué bonito, un cumpleaños! 🎉 Tenemos rosas rojas, claro. ¿Qué tipo de arreglo te gustaría? ¿Un ramo, una planta, un centro?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "registro": "celebracion",
+            "intencion_inicial": "QUIERO ROSAS ROJAS PARA CUMPLEANOS",
+            "producto": "rosas rojas",
+            "ocasion_detectada": "Regalo"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

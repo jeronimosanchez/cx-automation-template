@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-TONO-PRECEDENCIA-01",
+  "tc_name": "Precedencia solemne sobre corporativo — funeral del jefe",
+  "group": "TONO",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 15:10",
+  "ts_file": "20260701_1510",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "necesito flores para el funeral de mi jefe",
+          "agent": "De acuerdo. Para este momento puedes elegir coronas y ramos de varios tamaños. ¿Prefieres una corona o un ramo? Entendido. Para funerales, tenemos estas opciones:\n\n*   Ramo de Gladiolos Rosa — M (3 tallos, 19€)\n*   Ramo de Claveles Multicolor — M (6 flores, 15€)\n*   Ramo de Crisantemos Amarillo — M (12 flores, 24€)\n\n¿Alguno de estos te encaja?",
+          "playbook": "unknown",
+          "params": {
+            "estado_emocional": "duelo",
+            "intencion_inicial": "flores para el funeral de mi jefe",
+            "registro": "solemne",
+            "ocasion_detectada": "Funeral"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [corona]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

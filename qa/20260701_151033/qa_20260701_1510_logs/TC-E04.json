@@ -1,0 +1,62 @@
+{
+  "tc_id": "TC-E04",
+  "tc_name": "Consulta saldo con email valido",
+  "group": "G6>SALDO",
+  "type": "REG",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-01 15:10",
+  "ts_file": "20260701_1510",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero ver mi saldo",
+          "agent": "Para consultar tu saldo necesito identificarte. ¿Me dices tu email?",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [email]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "ana@email.com",
+          "agent": "ERROR: HTTPSConnectionPool(host='europe-west1-dialogflow.googleapis.com', port=443): Read timed out. (read timeout=30)",
+          "playbook": "error",
+          "params": {},
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [Ana|saldo|300|pago|pendiente|Hola]"
+            ]
+          },
+          "trace": {}
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "tc_id": "TC-TONO-CAMBIO-SOLEMNE-01",
+  "tc_name": "Cambio a solemne mid-conversacion — revela funeral en turno 2",
+  "group": "TONO",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-01 15:10",
+  "ts_file": "20260701_1510",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo bonito para regalar",
+          "agent": "¡Claro! 🌸 ¿Para qué ocasión lo buscas?\n Claro, para un regalo tengo cosas que suelen gustar. ¿Tienes alguna flor o color en mente?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "intencion_inicial": "quiero un ramo bonito para regalar"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "OK: Agente dijo [color]",
+              "FAIL: Agente NO debía decir [mira,|genial|fenomenal|perfecto!|que te parece|🌸]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "es para el tanatorio de mi padre, ha fallecido esta manana",
+          "agent": "De acuerdo, lamento mucho tu pérdida. Para esta ocasión, tenemos:\n\n*   Ramo de Gladiolos Blancos — S (2 tallos, 11€)\n*   Ramo de Liliums Blancos — M (3 tallos, 19€)\n*   Centro de Rosas Blancas — M (10 flores, 45€)\n\n¿Alguno de estos te encaja?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero un ramo bonito para regalar",
+            "grupo_intent": "G3"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [siento|pesame|acompan|corona|funebr|ceremonia|opciones|sobri]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

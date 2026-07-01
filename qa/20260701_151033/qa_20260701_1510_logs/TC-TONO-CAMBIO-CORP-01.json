@@ -1,0 +1,75 @@
+{
+  "tc_id": "TC-TONO-CAMBIO-CORP-01",
+  "tc_name": "Cambio a corporativo mid-conversacion — factura a empresa en turno 2",
+  "group": "TONO",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 15:10",
+  "ts_file": "20260701_1510",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "busco un centro de flores",
+          "agent": "Perfecto, ¿para qué ocasión es el centro de flores?\n",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [centro]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "es para la recepcion de la oficina, y la factura a nombre de la empresa",
+          "agent": "Claro, para la recepción de la oficina tenemos estas opciones de centros de mesa:\n\n*   Centro de Mesa Orquídeas — S (8 tallos, 28€)\n*   Centro de Mesa Tulipanes — S (8 flores, 28€)\n*   Centro de Mesa Rosas y Eucalipto — S (6 flores, 26€)\n\n¿Cuál te gustaría?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Corporativo",
+            "intencion_inicial": "centro de flores para la recepcion de la oficina y la factura a nombre de la empresa",
+            "grupo_intent": "G5",
+            "producto": "centro de flores"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [oficina]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
