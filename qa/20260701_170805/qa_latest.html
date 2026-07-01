@@ -444,17 +444,130 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 
 <div class="hdr">
 <div><b>Orquestador:</b> v65</div><div><b>Compra:</b> v39</div><div><b>Checkout:</b> v33</div>
-<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 55 × 3 runs</div>
+<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 54 × 3 runs</div>
 </div>
 <div class="cards">
-<div class="card c-total" onclick="filterBy('all')"><div class="n">55</div><div class="l">Total</div></div>
+<div class="card c-total" onclick="filterBy('all')"><div class="n">54</div><div class="l">Total</div></div>
 <div class="card c-pass" data-filter="PASS" onclick="filterBy('PASS')"><div class="n">47</div><div class="l">Pass</div></div>
 <div class="card c-inst" data-filter="INESTABLE" onclick="filterBy('INESTABLE')"><div class="n">0</div><div class="l">Inestable</div></div>
-<div class="card c-fail" data-filter="FAIL" onclick="filterBy('FAIL')"><div class="n">8</div><div class="l">Fail</div></div>
-<div class="card c-pct"><div class="n">85%</div><div class="l">Tasa</div></div>
+<div class="card c-fail" data-filter="FAIL" onclick="filterBy('FAIL')"><div class="n">7</div><div class="l">Fail</div></div>
+<div class="card c-pct"><div class="n">87%</div><div class="l">Tasa</div></div>
 </div>
-<div class="bar"><div class="bar-g" style="width:85.5%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:14.5%"></div></div>
-
+<div class="bar"><div class="bar-g" style="width:87.0%"></div><div class="bar-y" style="width:0.0%"></div><div class="bar-r" style="width:13.0%"></div></div>
+<div class="patterns-block"><div class="patterns-th" onclick="togglePatterns()"><span class="patterns-icon">⚠️</span><span class="patterns-title">Patrones cruzados</span><span class="patterns-stats">4 patrónes detectados · ROI 8 TCs/h</span><span class="patterns-arrow">▶</span></div><div class="patterns-body"><div class="pat-resumen">
+<div class="pat-resumen-title">RESUMEN</div>
+<div class="pat-resumen-stat">• Tests analizados en este batch: <strong>8</strong></div>
+<div class="pat-resumen-stat">• TCs con patrón: <strong>7</strong></div>
+<div class="pat-resumen-stat">• Patrones: <strong>4</strong></div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">Patrón DOBLE-RESPUESTA — Orquestador emite turno antes de transferir a Compra</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs afectados</div>
+<div class="pat-tc-item">TC-BODA-01</div>
+<div class="pat-tc-item">TC-TONO-CAMBIO-SOLEMNE-01</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-roi-btn" data-roi-val="8" data-roi-tcs="2 TCs (parcialmente — elimina doble respuesta)" data-roi-esf="~15 min">ROI: 8 TCs/h<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span></div>
+<div class="pat-col-lbl">CAUSA</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> Respuesta concatenada con <code>\n</code> — Orquestador emite mensaje Y Compra emite el suyo en el mismo turno de usuario</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Bug Arquitectura / Playbook en <code>petal_cx_orchestrator.yaml</code> — instrucción de transición invisible no prohíbe explícitamente emitir respuesta emocional previa</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Añadir en G5 y G3 del Orquestador: <code>⛔ NO emitas ningún mensaje al usuario antes de transferir, aunque $registro=celebracion o solemne. La transferencia es SILENCIOSA.</code></div>
+<div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>
+<div class="pat-rec-text">Aplicar primero los fixes de test (Patrón CHECK-MAL-CALIBRADO) para que el runner refleje el estado real. Luego abordar el fix del Orquestador como tarea separada con rerun de suite completa por su impacto transversal.</div>
+</div>
+</div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">Patrón CHECK-MAL-CALIBRADO — Regex de test no captura la respuesta real del agente</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs afectados</div>
+<div class="pat-tc-item">TC-C35</div>
+<div class="pat-tc-item">TC-FRUSTRACION-LEX-01</div>
+<div class="pat-tc-item">TC-TONO-CAMBIO-SOLEMNE-01</div>
+<div class="pat-tc-item">TC-TONO-APLICACION-CORP-01</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-roi-btn" data-roi-val="12" data-roi-tcs="4 TCs" data-roi-esf="~20 min total">ROI: 12 TCs/h<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span></div>
+<div class="pat-col-lbl">CAUSA</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> El agente responde correctamente (o de forma semánticamente válida) pero el check regex no lo detecta — FAIL espurio en el runner</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Capa Test — patrones regex incompletos, truncados o con scope incorrecto en los archivos YAML de TC</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Ampliar/corregir los patrones en <code>qap/tc_1_0.yaml</code> y <code>qap/tc_1_1.yaml</code></div>
+<div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>
+<div class="pat-rec-text">Prioridad máxima — son fixes de test sin deploy CI/CD. Aplicar todos en una sola rama antes de abordar fixes de playbook.</div>
+</div>
+</div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">Patrón EMOJI-CONTEXTO — Emoji 🌸 aparece en contexto donde está prohibido</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs afectados</div>
+<div class="pat-tc-item">TC-BODA-01</div>
+<div class="pat-tc-item">TC-TONO-CAMBIO-SOLEMNE-01</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-roi-btn" data-roi-val="6" data-roi-tcs="2 TCs" data-roi-esf="~20 min">ROI: 6 TCs/h<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span></div>
+<div class="pat-col-lbl">CAUSA</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> El emoji 🌸 aparece en la respuesta y el <code>not_expected</code> lo detecta correctamente</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> La fuente del 🌸 es la doble respuesta del Orquestador (que no tiene tabla de emoji tan explícita como Compra) — no es bug de instrucción de emoji de Compra per se</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> El fix primario es el del Patrón DOBLE-RESPUESTA; el 🌸 desaparece cuando el Orquestador deja de emitir turno en G3/G5</div>
+<div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>
+<div class="pat-rec-text">Dependiente del Patrón DOBLE-RESPUESTA. Resolver en el mismo PR que el fix del Orquestador.</div>
+</div>
+</div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">Patrón INSTRUCCION-DEBILITADA — Refactor eliminó antipatrón explícito que bloqueaba comportamiento incorrecto</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs afectados</div>
+<div class="pat-tc-item">TC-URGENCIA-03</div>
+<div class="pat-tc-item">TC-TONO-CAMBIO-SOLEMNE-01</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-roi-btn" data-roi-val="8" data-roi-tcs="2 TCs" data-roi-esf="~15 min">ROI: 8 TCs/h<span class="pat-roi-q" onclick="openRoiModal(this.parentElement)">?</span></div>
+<div class="pat-col-lbl">CAUSA</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Síntoma compartido:</span> El bloque de instrucción relevante existe en el playbook pero el LLM lo interpreta de forma incompleta — omite acción obligatoria o la verbaliza cuando debía ser silenciosa</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Capa compartida:</span> Bug Playbook en <code>compra.yaml</code> — instrucciones sin antipatrón explícito (<code>NUNCA hagas X</code>) permiten al LLM tomar atajos</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">Fix compartido:</span> Restaurar/añadir frases antipatrón con <code>⛔</code> y ejemplos de lo que NO hacer en las secciones DETECCION RESTRICCION TEMPORAL y VIGILANCIA DE CAMBIO</div>
+<div class="pat-col-lbl pat-rec-lbl">RECOMENDACIÓN</div>
+<div class="pat-rec-text">Aplicar tras los fixes de test. Requiere deploy CI/CD. Verificar con rerun de TC-URGENCIA-01 + TC-URGENCIA-03 (comparten el mismo bloque) y TC-TONO-CAMBIO-SOLEMNE-01.</div>
+</div>
+</div>
+</div>
+<div class="pat-card">
+<div class="pat-card-hdr">
+<div class="pat-card-title">TCs sin patrón</div>
+</div>
+<div class="pat-card-body">
+<div class="pat-card-left">
+<div class="pat-col-lbl">TCs</div>
+<div class="pat-tc-item pat-tc-nopattern">TC-DECO-02</div>
+<div class="pat-tc-item pat-tc-nopattern">TC-FRUSTRACION-01</div>
+</div>
+<div class="pat-card-right">
+<div class="pat-col-lbl">CAUSA DE NO PATRÓN</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">TC-DECO-02:</span> Doble causa independiente (Bug Playbook: formato <code>--</code> no seguido + Bug Test: regex no cubre <code>€</code>). El Bug de formato es específico del bloque FORMATO AL USUARIO de <code>compra.yaml</code>; el commit <code>aa05036</code> añadió la instrucción pero el agente aún no la sigue con consistencia. No comparte raíz con otros TCs del batch.</div>
+<div class="pat-causa-row"><span class="pat-causa-lbl">TC-FRUSTRACION-01:</span> Bug Test primario (TC mal dimensionado: 4 turnos no alcanzan umbral de rechazo-4) + Bug Playbook secundario (inicio del contador de rechazos no definido). Causa específica de este TC — no comparte patrón estructural con otros TCs del batch.</div>
+</div>
+</div>
+</div>
+<div class="pat-section">
+<div class="pat-sh">ORDEN DE EJECUCIÓN</div>
+<div class="pat-wip">⚙️ <em>Work in progress</em> — la lógica de priorización (patrón vs. TC individual primero) se implementará en una próxima versión del skill.</div>
+</div>
+<div id="roi-modal-overlay" class="roi-modal-overlay" onclick="closeRoiModal()"><div class="roi-modal" onclick="event.stopPropagation()"><div class="roi-modal-hdr"><span class="roi-modal-ttl">ROI — Tasa de resolución</span><span class="roi-modal-x" onclick="closeRoiModal()">×</span></div><div class="roi-modal-body" id="roi-modal-body"></div></div></div></div></div>
 <div class="actions-bar">
 <a id="btn-delete" class="dl dl-disabled" onclick="openDeletePanel()" style="cursor:not-allowed">🗑 Borrar análisis</a>
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
@@ -3514,41 +3627,6 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C35.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C35</span><span class="tname">Ocasión ambigua emocional</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"Es para alguien especial"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
-"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: ocasion / celebra / regalo / cumpleanos / boda / tipo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ocasion|celebra|regalo|cumpleanos|boda|tipo]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"Es para alguien especial"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>estado_emocional=neutro</code>, <code>ocasion_detectada=Regalo</code>, <code>registro=estandar</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
-"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>estado_emocional=neutro</code>, <code>ocasion_detectada=Regalo</code>, <code>registro=estandar</code></li>
-</ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-C35"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-INV" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DECO-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-02</span><span class="tname">Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">0/1</span></div>
@@ -3786,7 +3864,7 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span><span class="tipo-tag">Bug Playbook</span></div>
 <div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
 </div><div class="tbody">
 <div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
@@ -3815,7 +3893,51 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 <li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
 <li style="color:#aaa"><strong>Slots extraídos:</strong> <code>es_urgente=True</code>, <code>estado_emocional=neutro</code>, <code>registro=estandar</code>, <code>ocasion_detectada=Corporativo</code></li>
 </ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-03"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+<div class="recomendacion"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendacion / Accion</span><span class="rec-tag">Bug Playbook</span></div><div class="rec-content"><h4>Dimensionamiento del bug</h4>
+
+<table class="md-table"><thead><tr><th>Dimensión</th><th>Nivel</th><th>Justificación</th></tr></thead><tbody><tr><td>Alcance</td><td>Trivial</td><td>1 archivo (<code>compra.yaml</code>), restaurar 1 frase en 1 línea</td></tr><tr><td>Profundidad</td><td>Trivial</td><td>Frase eliminada es exactamente el antipatrón que cierra el gap</td></tr><tr><td>Riesgo de regresión</td><td>Trivial</td><td>Restaura texto que existía en <code>76cbe39</code> (validado en producción)</td></tr></tbody></table>
+
+<p><strong>Nivel final:</strong> Trivial → 3 soluciones</p>
+
+<p>---</p>
+
+<h4>Soluciones evaluadas (3 soluciones, DESC por score)</h4>
+
+<table class="md-table"><thead><tr><th>#</th><th>Solución</th><th>Score</th><th>Dependencias</th><th>Por qué este scoring</th></tr></thead><tbody><tr><td>1</td><td><strong>Restaurar frase antipatrón en la línea OBLIGATORIO</strong> del bloque DETECCION RESTRICCION TEMPORAL</td><td>🟢 9/10</td><td>—</td><td>Quirúrgico: 1 frase, 1 archivo. Restaura exactamente el texto que <code>76cbe39</code> tenía y que pasó en producción. Sin riesgo de regresión en otros TCs</td></tr><tr><td>2</td><td><strong>Añadir example few-shot</strong> de <code>"lo necesito para este viernes"</code> → respuesta con plazo</td><td>🟡 6/10</td><td>—</td><td>Refuerzo complementario. No elimina el gap de instrucción, pero puede reducir flakiness si el refuerzo por sí solo no es 100% determinista. Útil como segunda capa</td></tr><tr><td>3</td><td><strong>Revert parcial de <code>aa05036</code></strong> (solo la línea del bloque URGENCIA, mantener resto del refactor)</td><td>🟡 5/10</td><td>Requiere cherry-pick selectivo</td><td>Equivalente a Solución #1 pero con más riesgo operativo. El refactor <code>aa05036</code> tiene cambios válidos en otras secciones — revertir todo sería regresión en esas áreas</td></tr></tbody></table>
+
+<p>---</p>
+
+<h4>Plan de acción (Solución #1)</h4>
+
+<p><strong>Archivo:</strong> <code>definitions/playbooks/compra.yaml</code></p>
+
+<p><strong>Línea a editar (~línea 273):</strong> la instrucción OBLIGATORIO del bloque.</p>
+
+<p>Estado actual (HEAD <code>aa05036</code>):</p>
+<p>```</p>
+<p>⛔ OBLIGATORIO: si $intencion_inicial o el input contiene CUALQUIER marcador temporal de entrega, EJECUTA ESTE BLOQUE ANTES de cualquier otra cosa — aunque NO haya producto mencionado todavia. Un input como 'lo necesito para este viernes' o 'necesito algo para hoy' activa este bloque aunque no se sepa aun que producto quiere el usuario.</p>
+<p>```</p>
+
+<p>Estado objetivo (restaurar frase de <code>76cbe39</code>):</p>
+<p>```</p>
+<p>⛔ OBLIGATORIO: si $intencion_inicial o el input contiene CUALQUIER marcador temporal de entrega, EJECUTA ESTE BLOQUE ANTES de cualquier otra cosa — aunque NO haya producto mencionado todavia. Un input como 'lo necesito para este viernes' o 'necesito algo para hoy' activa este bloque aunque no se sepa aun que producto quiere el usuario. NUNCA saltes al catalogo ni al slot-filling sin haber informado primero la politica de envio.</p>
+<p>```</p>
+
+<p><strong>Pasos:</strong></p>
+<p>1. Editar <code>definitions/playbooks/compra.yaml</code> — añadir la frase al final de la línea OBLIGATORIO (ver diff arriba)</p>
+<p>2. Commit + PR + merge</p>
+<p>3. Esperar deploy CI/CD</p>
+<p>4. Re-ejecutar: <code>python qap/surgical_run.py --test TC-URGENCIA-01,TC-URGENCIA-03 --runs 3</code></p>
+
+<p><strong>Coste total estimado:</strong> ~10 min (1 min edición + 3 min deploy + 6 min rerun × 3)</p>
+
+<p>---</p>
+
+<h4>Nota de patrón cruzado</h4>
+
+<p>Este TC comparte bloque de código con <strong>TC-URGENCIA-01</strong> (variante "hoy a las 6"). Ambos dependen del mismo bloque DETECCION RESTRICCION TEMPORAL. Aplicar Solución #1 resuelve ambos TCs simultáneamente — re-ejecutar los dos en el mismo rerun post-fix.</p>
+
+<p>&gt; <strong>Diferencia respecto a análisis 20260527:</strong> en runs anteriores el FAIL era por ausencia total del bloque (revert <code>2126c52</code>). En este run (20260701) el bloque existe pero fue debilitado colateralmente por el refactor <code>aa05036</code>. El fix es diferente: antes era cherry-pick de 14 líneas; ahora es restaurar 1 frase.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -4087,10 +4209,10 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
   <div class="modal-content modal-metodologia">
     <button class="modal-close" onclick="closeMetodologia()">&times;</button>
     <h2>📊 Metodología de evaluación QA</h2>
-    <p class="modal-sub">55 test cases · 47 PASS · 0 INESTABLE · 8 FAIL · 2026-07-01 17:08</p>
+    <p class="modal-sub">54 test cases · 47 PASS · 0 INESTABLE · 7 FAIL · 2026-07-01 17:08</p>
     
     <div class="kpi-section kpi-flak">
-      <h3 data-legend="Un TC es INESTABLE cuando pasa en algunos runs pero falla en otros. Indica que el sistema no es determinístico — la misma entrada produce resultados distintos. Umbral aceptable: <10%. Si es alto, los tests no son fiables.">Flakiness: 0.0% <span class="kpi-sub">(0 TCs INESTABLE de 55)</span></h3>
+      <h3 data-legend="Un TC es INESTABLE cuando pasa en algunos runs pero falla en otros. Indica que el sistema no es determinístico — la misma entrada produce resultados distintos. Umbral aceptable: <10%. Si es alto, los tests no son fiables.">Flakiness: 0.0% <span class="kpi-sub">(0 TCs INESTABLE de 54)</span></h3>
       <p>TCs flaky: <code>—</code></p>
       <p class="kpi-action">Acción si alto: re-correr con <code>--runs 5</code> para confirmar.</p>
     </div>
@@ -4101,39 +4223,39 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
         <h4>Orquestador</h4>
         <div class="kpi-bar-row" data-legend="Cada TC declara su grupo_intent esperado (ej. G5, COMPRA-INV). El Orquestador clasifica el input del usuario en el primer turno. Este % indica cuántos TCs aciertan la clasificación esperada. Si baja: el Orquestador está fallando al clasificar inputs.">
           <span class="kpi-label">Clasificación correcta</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:10.9%"></div></div>
-          <span class="kpi-value">10.9%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:11.1%"></div></div>
+          <span class="kpi-value">11.1%</span>
         </div>
-        <p class="kpi-sub">6/55 TCs clasifican el grupo_intent esperado</p>
+        <p class="kpi-sub">6/54 TCs clasifican el grupo_intent esperado</p>
         <p class="kpi-sub">Errores:</p><ul><li><code>TC-R01</code> — esperaba <code>G1</code>, observó <code>(vacío)</code></li><li><code>TC-R02</code> — esperaba <code>G2</code>, observó <code>(vacío)</code></li><li><code>TC-R03</code> — esperaba <code>G4</code>, observó <code>(vacío)</code></li><li><code>TC-R06</code> — esperaba <code>ESP</code>, observó <code>(vacío)</code></li><li><code>TC-N03</code> — esperaba <code>G6</code>, observó <code>(vacío)</code></li></ul>
       </div>
       <div class="kpi-component">
         <h4>Compra (slot-filling)</h4>
         <div class="kpi-bar-row" data-legend="% de turnos donde Compra extrajo el slot 'producto' del utterance del usuario (ej. 'rosas rojas', 'tulipanes'). Si baja: el Compra no está identificando qué producto pide el usuario.">
           <span class="kpi-label">Producto extraído</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:52.5%"></div></div>
-          <span class="kpi-value">52.5%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:52.9%"></div></div>
+          <span class="kpi-value">52.9%</span>
         </div>
         <div class="kpi-bar-row" data-legend="% de turnos donde Compra detectó la ocasión (Regalo, Decoracion, Funebre, etc.) del input del usuario. Si baja: el playbook no infiere la intención de uso.">
           <span class="kpi-label">Ocasión detectada</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:51.7%"></div></div>
-          <span class="kpi-value">51.7%</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:51.3%"></div></div>
+          <span class="kpi-value">51.3%</span>
         </div>
         <div class="kpi-bar-row" data-legend="% de turnos donde se asignó modo_tono (estandar/solemne/corporativo). El Orquestador detecta esto en el primer utterance del usuario. Si baja: la detección de tono está fallando.">
           <span class="kpi-label">Modo_tono asignado</span>
           <div class="kpi-bar"><div class="kpi-bar-fill" style="width:0.0%"></div></div>
           <span class="kpi-value">0.0%</span>
         </div>
-        <p class="kpi-sub">Sobre 120 turnos totales</p>
+        <p class="kpi-sub">Sobre 119 turnos totales</p>
       </div>
     </div>
     
         <div class="kpi-section">
           <h3>📈 Regresión vs run anterior</h3>
           <table class="kpi-regr">
-            <tr><td>Run actual</td><td>2026-07-01 17:08</td><td><strong>PASS 85%</strong> (47/55)</td></tr>
+            <tr><td>Run actual</td><td>2026-07-01 17:08</td><td><strong>PASS 87%</strong> (47/54)</td></tr>
             <tr><td>Run anterior</td><td>2026-06-23 11:51</td><td>PASS 100% (1/1)</td></tr>
-            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-down"><strong>-15%</strong></td></tr>
+            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-down"><strong>-13%</strong></td></tr>
           </table>
         </div>
     
@@ -4141,7 +4263,7 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
       <h3>🎯 Cobertura del test suite</h3>
       <div class="kpi-component">
         <h4>Grupos del Orquestador (clasificación del input) — 2/7 cubiertos (29.0%)</h4>
-        <table class="kpi-cobertura"><tr><td><code>G1</code> Saludo</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G2</code> Info negocio</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G3</code> Consulta</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G4</code> Gestión pedido</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G5</code> Compra</td><td>✅ cubierto</td><td>37 TCs</td></tr><tr><td><code>G6</code> Queja</td><td>⚠️ baja cobertura</td><td>2 TCs</td></tr><tr><td><code>G7</code> Registro</td><td>✅ cubierto</td><td>4 TCs</td></tr></table>
+        <table class="kpi-cobertura"><tr><td><code>G1</code> Saludo</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G2</code> Info negocio</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G3</code> Consulta</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G4</code> Gestión pedido</td><td>⚠️ baja cobertura</td><td>1 TC</td></tr><tr><td><code>G5</code> Compra</td><td>✅ cubierto</td><td>36 TCs</td></tr><tr><td><code>G6</code> Queja</td><td>⚠️ baja cobertura</td><td>2 TCs</td></tr><tr><td><code>G7</code> Registro</td><td>✅ cubierto</td><td>4 TCs</td></tr></table>
       </div>
       <div class="kpi-component">
         <h4>Modos de tono (cómo modula el agente la respuesta) — 0/3 cubiertos (0.0%)</h4>
