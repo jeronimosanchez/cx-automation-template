@@ -37,7 +37,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 
 ## 2. Estado actual
 
-**Commit HEAD:** `f3d8384` (pre-Sprint 6)
+**Commit HEAD:** `042ba0f` (post-Sprint 6, tone refactor 1.1, petal-1.1 environment operativo)
 
 ### Sprints
 
@@ -48,7 +48,7 @@ Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un
 | Sprint 3 | ✅ | Flows, Pages, Intents, Entity Types, Webhooks, Generators |
 | Sprint 4 | ✅ | CI/CD GitHub Actions + WIF, Environments, Versions, autopilot |
 | Sprint 5 | ✅ | Migración real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX) |
-| Sprint 6 | ✅ | Integración runner QA real (`test_qa_playbooks.py`, 29 TCs) en pipeline ACT contra Default Environment + publicación de reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/` |
+| Sprint 6 | ✅ | Runner QA real (`test_qa_playbooks.py`) + 54 TCs en `tc_1_1.yaml` (fuente de verdad independiente) + environment `petal-1.1` como target por defecto + reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/` |
 
 ### Bugs resueltos en S58-S59 (no reintroducir)
 

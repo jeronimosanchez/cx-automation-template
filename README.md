@@ -9,7 +9,7 @@ Provee:
   - **Deploy / lifecycle (Sprint 4)**: Environments, Versions.
 - Scripts agnosticos al agente con flujo idempotente `LIST -> diff -> PATCH/POST` (`GET -> diff -> PATCH` para el agente; `POST-only` para Versions inmutables).
 - Suite de tests unitarios (`pytest`) sin red — 432 tests al cierre de Sprint 6.
-- **QA con runner real (Sprint 6)**: `qap/test_qa_playbooks.py` ejecuta 29 TCs end-to-end contra el Default Environment de CX vía `detectIntent`, con publicación de reportes HTML + TXT en GitHub Pages.
+- **QA con runner real (Sprint 6+)**: `qap/test_qa_playbooks.py` ejecuta 54 TCs end-to-end (fuente de verdad: `qap/tc_1_1.yaml`) contra el environment `petal-1.1` vía `detectIntent`, con publicación de reportes HTML + TXT en GitHub Pages.
 - Validacion de capacidades de la API (`act/validate_api.py`) — usado para descubrir limites / comportamientos antes de codificarlos.
 - **CI/CD GitHub Actions (Sprint 4)** con WIF: deploy automatico tras push a `main`, QA en `workflow_dispatch` + PRs (Sprint 6).
 
@@ -58,9 +58,11 @@ Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codig
 │       └── test_push_*.py          #   un test por recurso (push, x12)
 ├── .github/workflows/              # CI/CD (Sprint 4 + 6)
 │   ├── deploy.yml                  #   push a main → deploy + Version snapshot
-│   └── qa.yml                      #   workflow_dispatch + push feature/** + PR → 29 TCs + GitHub Pages (Sprint 6)
+│   └── qa.yml                      #   workflow_dispatch + push feature/** + PR → 54 TCs + GitHub Pages (Sprint 6)
 ├── qap/                            # Linea QAP — runner QA + reporting (Sprint 6)
-│   ├── test_qa_playbooks.py        #   29 TCs end-to-end contra Default Environment de CX
+│   ├── test_qa_playbooks.py        #   runner: 54 TCs end-to-end contra environment petal-1.1
+│   ├── tc_1_1.yaml                 #   fuente de verdad de TCs (54 TCs, Petal 1.1)
+│   ├── tc_1_0.yaml                 #   fuente de verdad de TCs (baseline Petal 1.0)
 │   ├── regenerate_html.py          #   regenera HTML del reporte sin llamar a CX
 │   ├── rebuild_history.py          #   reconstruye history.json del dashboard
 │   ├── list_fails.py               #   lista FAILs de un run y su estado de analisis
@@ -100,7 +102,7 @@ El `<PROJECT_ID>` debe coincidir con `project:` en `definitions/agent.yaml`.
 ### 3. QA local (opcional)
 
 ```bash
-# Listar los 29 TCs sin ejecutar
+# Listar los 54 TCs sin ejecutar
 python qap/test_qa_playbooks.py --list
 
 # Ejecutar todos (3 runs por TC por default, output en ~/petal-qa/)
@@ -245,10 +247,10 @@ pytest act/tests/ -q          # quiet (objetivo: <10s)
 
 Sin red. Sin auth. Mock de `requests` con `unittest.mock`.
 
-### QA — runner real (Sprint 6)
+### QA — runner real (Sprint 6+)
 
 ```bash
-# Listar los 29 TCs
+# Listar los 54 TCs
 python qap/test_qa_playbooks.py --list
 
 # Ejecutar todos (por default 3 runs/TC, output a ~/petal-qa/)
@@ -364,7 +366,7 @@ Sprint 4 introduce dos workflows GitHub Actions con autenticacion via **Workload
 
 | Workflow | Trigger | Que hace |
 |---|---|---|
-| `.github/workflows/qa.yml` | `workflow_dispatch` + push `feature/**` + PR a `main` (Sprint 6) | Ejecuta los 29 TCs de `qap/test_qa_playbooks.py` contra Default Environment, sube artifact con reportes y publica HTML + TXT a GitHub Pages (rama `gh-pages`, ruta `/qa/`). `continue-on-error: true` en fase 1 (no bloquea merge). `cancel-in-progress: true`. |
+| `.github/workflows/qa.yml` | `workflow_dispatch` + push `feature/**` + PR a `main` (Sprint 6) | Ejecuta 54 TCs (fuente: `qap/tc_1_1.yaml`) contra el environment `petal-1.1`, sube artifact con reportes y publica HTML + TXT a GitHub Pages (rama `gh-pages`, ruta `/qa/`). `continue-on-error: true` en fase 1 (no bloquea merge). `cancel-in-progress: true`. |
 | `.github/workflows/deploy.yml` | push a `main` (post-merge) | Deploy de Examples / Playbooks / Tools / Agent Config + creacion de Version snapshot. `concurrency: 1` con `cancel-in-progress: false` (no cortar deploys). |
 
 Los workflows referencian dos GitHub Variables (NO secrets): `GCP_WIF_PROVIDER` y `GCP_SERVICE_ACCOUNT`. Hasta que esten configuradas, los workflows fallan limpio en `google-github-actions/auth@v2` — no tocan Petal.
@@ -380,9 +382,9 @@ Los workflows referencian dos GitHub Variables (NO secrets): `GCP_WIF_PROVIDER` 
 - **Sprint 3** ✅ — Cobertura NLU clasico Flow-based: `push_flows`, `push_pages`, `push_intents`, `push_entity_types`, `push_webhooks`, `push_generators`. Validacion completa diferida a un proyecto Flow-based real (Petal es Playbook-only).
 - **Sprint 4** ✅ — CI/CD GitHub Actions con WIF, modulos `push_environments` y `push_versions` (immutable), workflows `deploy.yml` + `qa.yml`, guia humana `docs/setup-cicd.md`.
 - **Sprint 5** ✅ — Migracion real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX).
-- **Sprint 6** ✅ — Integracion del runner QA real (`test_qa_playbooks.py`, 29 TCs) en el pipeline ACT contra Default Environment + publicacion de reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/` (reactivacion: EP-QA-04).
+- **Sprint 6** ✅ — Integración del runner QA real (`test_qa_playbooks.py`) en el pipeline ACT + publicación de reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/`. TCs extraídos a `tc_1_1.yaml` (54 TCs, fuente de verdad independiente del runner). Environment `petal-1.1` como target por defecto.
 
 ---
 
-*Estado al 14-may-2026: Sprint 6 SHIPPED — template cubre 12/12 recursos top-level CX + CI/CD + QA real con reportes públicos. Pendiente: Fáse B humana del Sprint 6 (`docs/setup-qa.md`). Ver `📋 Claude Code Reports` en Notion para logs de ejecucion autonoma.*
+*Estado al 01-jul-2026: Sprint 6 SHIPPED — template cubre 12/12 recursos top-level CX + CI/CD + QA real con reportes públicos. 54 TCs en `qap/tc_1_1.yaml`. Environment `petal-1.1` operativo (tone refactor snapshot).*
 
