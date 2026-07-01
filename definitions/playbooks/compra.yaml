@@ -258,6 +258,8 @@ instruction:
         -> $registro=solemne
       - FRUSTRACION ('no funciona','un desastre','esto no va','no me entiendes','inaceptable')
         -> $registro=solemne · $usuario_frustrado=true
+      - PRISA ('para hoy','lo necesito ya','urgente','cuanto antes','antes de las')
+        -> $es_urgente=true (el registro NO cambia; solo acorta la respuesta)
 
       Actualiza silenciosamente. Propaga $registro, $es_urgente, $usuario_frustrado a Checkout y Handoff.
       No anuncies el cambio al usuario.
