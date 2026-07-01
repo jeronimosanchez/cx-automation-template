@@ -1,0 +1,52 @@
+{
+  "tc_id": "TC-C36",
+  "tc_name": "Urgencia sin ocasión",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 17:08",
+  "ts_file": "20260701_1708",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Necesito flores para mañana",
+          "agent": "Entendido. ¿Qué tipo de flores buscas y para qué ocasión son?\n",
+          "playbook": "unknown",
+          "params": {
+            "registro": "estandar",
+            "intencion_inicial": "Necesito flores para mañana",
+            "es_urgente": true
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ocasion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

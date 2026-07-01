@@ -1,0 +1,130 @@
+{
+  "tc_id": "TC-FRUSTRACION-01",
+  "tc_name": "Multiples rechazos consecutivos — debe escalar o reformular",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-01 17:08",
+  "ts_file": "20260701_1708",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero rosas",
+          "agent": "¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...\n\n",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ocasion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "no me gustan",
+          "agent": "¿No te gustan las rosas o no te gusta la idea de que sea para una ocasión especial?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero rosas",
+            "producto": "rosas",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [otra|alternativ|otras|propongo|encaja|tipo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "tampoco me convencen, dame otras",
+          "agent": "Vale, entiendo. Mira, te puedo ofrecer: \n\n* Ramo de Peonías Coral — M (15 flores, 35€) \n* Ramo de Girasoles Amarillo — M (10 flores, 20€) \n* Ramo de Gerberas Amarillo — M (10 flores, 18€). \n\n¿Alguna de estas te convence más?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero rosas",
+            "grupo_intent": "G5",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "user": "ninguna me gusta",
+          "agent": "Entiendo que no encuentras lo que buscas. ¿Quizás tienes alguna flor o color en mente que te guste más?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

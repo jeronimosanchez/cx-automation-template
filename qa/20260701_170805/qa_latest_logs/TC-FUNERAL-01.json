@@ -1,0 +1,54 @@
+{
+  "tc_id": "TC-FUNERAL-01",
+  "tc_name": "Modo solemne — corona para funeral",
+  "group": "G5",
+  "type": "NEW",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 17:08",
+  "ts_file": "20260701_1708",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "necesito una corona para un funeral",
+          "agent": "De acuerdo. Para funerales tenemos:\n\n*   Corona Fúnebre Claveles — M (40 flores, 97€)\n*   Corona Fúnebre Gerberas — M (30 flores, 85€)\n*   Corona Fúnebre Gladiolos — M (40 tallos, 90€)\n\n¿Cuál te gustaría?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "registro": "solemne",
+            "ocasion_detectada": "Funeral",
+            "intencion_inicial": "necesito una corona para un funeral",
+            "producto": "corona"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [corona]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

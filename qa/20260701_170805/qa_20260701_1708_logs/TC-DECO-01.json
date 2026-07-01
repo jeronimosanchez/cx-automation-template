@@ -1,0 +1,53 @@
+{
+  "tc_id": "TC-DECO-01",
+  "tc_name": "Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –)",
+  "group": "COMPRA-INV",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 17:08",
+  "ts_file": "20260701_1708",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de margaritas para decorar mi recibidor",
+          "agent": "Claro, para decorar tu recibidor tenemos Ramo de Margaritas Blancas — M (10 flores, 20€) y Ramo de Margaritas Blancas — L (17 flores, 25€). ¿Cuál te gusta más?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero un ramo de margaritas para decorar mi recibidor",
+            "ocasion_detectada": "Decoracion",
+            "producto": "margaritas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Margarita.{0,40}—.{0,5}[SMLX]]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

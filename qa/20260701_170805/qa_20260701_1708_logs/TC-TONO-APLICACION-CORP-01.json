@@ -1,0 +1,108 @@
+{
+  "tc_id": "TC-TONO-APLICACION-CORP-01",
+  "tc_name": "Modo corporativo sostenido — arreglo para evento de empresa",
+  "group": "TONO",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-01 17:08",
+  "ts_file": "20260701_1708",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "necesito un arreglo floral para la recepcion de mi empresa",
+          "agent": "Mira, para la recepción de tu empresa no tengo arreglos florales específicos ahora mismo. Pero te puedo ofrecer estas opciones que suelen encajar muy bien:\n\n* Centro de Mesa Orquídeas Blancas — M (1 planta, 42€)\n* Centro de Mesa Rosas y Eucalipto — S (6 flores, 26€)\n* Planta de Orquídea Phalaenopsis — M (1 planta, 24€)\n\n¿Alguna de estas te encaja?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "necesito un arreglo floral para la recepcion de mi empresa",
+            "ocasion_detectada": "Corporativo",
+            "producto": "arreglo floral"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "OK: Agente dijo [arreglo]",
+              "FAIL: Agente NO debía decir [mira,|genial|fenomenal|🌸]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "algo elegante, presupuesto de 200 euros",
+          "agent": "Entendido, algo elegante y con un presupuesto de hasta 200 euros. Te propongo estas opciones que suelen ser muy elegantes:\n\n* Centro de Mesa Orquídeas Blancas — M (1 planta, 42€)\n* Centro de Mesa Rosas y Eucalipto — S (6 flores, 26€)\n* Planta de Orquídea Phalaenopsis — M (1 planta, 24€)\n\n¿Alguna de estas te convence?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "ocasion_detectada": "Corporativo",
+            "producto": "arreglo floral",
+            "intencion_inicial": "necesito un arreglo floral para la recepcion de mi empresa"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [elegante]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "perfecto, ese mismo",
+          "agent": "¿A cuál te refieres, por favor?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "necesito un arreglo floral para la recepcion de mi empresa",
+            "ocasion_detectada": "Corporativo",
+            "grupo_intent": "G5",
+            "producto": "arreglo floral"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [confirm|pedido|datos|checkout|registr|direcc]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

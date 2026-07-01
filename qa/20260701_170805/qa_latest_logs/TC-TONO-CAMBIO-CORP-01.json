@@ -1,0 +1,75 @@
+{
+  "tc_id": "TC-TONO-CAMBIO-CORP-01",
+  "tc_name": "Cambio a corporativo mid-conversacion — factura a empresa en turno 2",
+  "group": "TONO",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 17:08",
+  "ts_file": "20260701_1708",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "busco un centro de flores",
+          "agent": "¡Claro! ¿Para qué ocasión lo buscas?\n",
+          "playbook": "unknown",
+          "params": {},
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ocasion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "es para la recepcion de la oficina, y la factura a nombre de la empresa",
+          "agent": "Perfecto. Para la recepción de la oficina, ¿tienes alguna flor o color en mente? No te preocupes, para la recepción de la oficina tengo estas opciones que suelen gustar mucho:\n\n* Ramo de Liliums Blancos — M (10 flores, 30€)\n* Ramo de Rosas Blancas — M (15 flores, 37€)\n* Ramo de Tulipanes Mixtos — M (10 flores, 20€)\n\n¿Alguna te encaja?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "busco un centro de flores para la recepcion de la oficina",
+            "ocasion_detectada": "Corporativo",
+            "grupo_intent": "G5",
+            "producto": "centro de flores"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [oficina]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "tc_id": "TC-REFINAR-01",
+  "tc_name": "Refinamiento de precio mid-flow — mas baratas",
+  "group": "G5",
+  "type": "NEW",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-01 17:08",
+  "ts_file": "20260701_1708",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas para cumpleaños",
+          "agent": "¡Claro! Tenemos ramos de rosas de varios colores y tamaños. ¿Tienes algún color en mente o prefieres que te sugiera algunos?\n ¡Qué bonito! Un ramo de rosas para un cumpleaños. ¿Tienes algún color en mente, o te da igual? 🌸",
+          "playbook": "unknown",
+          "params": {
+            "producto": "ramo de rosas",
+            "grupo_intent": "G5",
+            "registro": "celebracion",
+            "ocasion_detectada": "Regalo",
+            "intencion_inicial": "quiero un ramo de rosas para cumpleaños"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ramo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "mas baratas",
+          "agent": "¡Claro! El Ramo de Rosas Rojas — S (8 flores, 22€) es la opción más económica que tenemos en este momento.\n\n¿Te gustaría llevarlo?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Regalo",
+            "producto": "ramo de rosas",
+            "intencion_inicial": "quiero un ramo de rosas para cumpleaños",
+            "grupo_intent": "G5",
+            "registro": "celebracion"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
