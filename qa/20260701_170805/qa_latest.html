@@ -435,16 +435,16 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 .din-fp{background:#16110a}
 </style></head><body>
 <h1>QA Report — Floristería Petal</h1>
-<p class="sub">2026-07-01 17:08 · 1 runs/TC · runnervmkkn4f</p>
-<div class="agent-switch" data-current="1.1">
+<p class="sub">2026-07-01 17:08 · 3 runs/TC · MacBook-Air.local</p>
+<div class="agent-switch" data-current="1.0">
 <span class="agent-switch-lbl">Agente</span>
-<button class="agent-btn" onclick="switchAgent('1.0')">Petal 1.0</button>
-<button class="agent-btn active" onclick="switchAgent('1.1')">Petal 1.1</button>
+<button class="agent-btn active" onclick="switchAgent('1.0')">Petal 1.0</button>
+<button class="agent-btn" onclick="switchAgent('1.1')">Petal 1.1</button>
 </div>
 
 <div class="hdr">
 <div><b>Orquestador:</b> v65</div><div><b>Compra:</b> v39</div><div><b>Checkout:</b> v33</div>
-<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 55 × 1 runs</div>
+<div><b>Registro:</b> v7 (Task)</div><div><b>QA Script:</b> v23</div><div><b>Tests:</b> 55 × 3 runs</div>
 </div>
 <div class="cards">
 <div class="card c-total" onclick="filterBy('all')"><div class="n">55</div><div class="l">Total</div></div>
@@ -460,7 +460,7 @@ h1{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}
 <a id="btn-optimize" class="dl dl-disabled" onclick="openOptimizePanel()" style="cursor:not-allowed">⚙ Optimizar</a>
 <a class="dl" onclick="openHistorial()" style="cursor:pointer">📊 Histórico</a>
 <a class="dl" onclick="openDinamico()" style="cursor:pointer">📊 Análisis dinámico</a>
-<a class="dl" onclick="openEstatico()" style="cursor:pointer">🔍 Análisis estático</a>
+
 </div>
 <div id="optimize-panel" class="optimize-panel hidden">
   <div class="optimize-panel-header">
@@ -2034,41 +2034,6 @@ Revisa especial..."</div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C35.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C35</span><span class="tname">Ocasión ambigua emocional</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"Es para alguien especial"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
-"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: ocasion / celebra / regalo / cumpleanos / boda / tipo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ocasion|celebra|regalo|cumpleanos|boda|tipo]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"Es para alguien especial"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>estado_emocional=neutro</code>, <code>ocasion_detectada=Regalo</code>, <code>registro=estandar</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
-"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>estado_emocional=neutro</code>, <code>ocasion_detectada=Regalo</code>, <code>registro=estandar</code></li>
-</ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-C35"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C36.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C36</span><span class="tname">Urgencia sin ocasión</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
@@ -2527,57 +2492,6 @@ Si simple..."</div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-INV" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DECO-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-02</span><span class="tname">Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas para decorar mi salon"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, para decorar tu salón con rosas tenemos estas opciones de ramos, todos en tamaño M:
-
-*   Ramo de Rosas Morado (15 flores, 37€)
-*   Ramo de Rosas Amarillo (12 flores, 25€)
-*   Ramo de Rosas Blanco (12 flores, 25€)
-
-¿Cuál te gusta más?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: Rosa…--…[SMLX] / Rosa…—…[SMLX] / Rosa…–…[SMLX] / Rosa…euros</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero un ramo de rosas para decorar mi salon"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Claro, para decorar tu salón con rosas tenemos estas opciones de ramos, todos en tamaño M:
-
-*   Ramo de Rosas Morado (15 flores, 37€)
-*   Ramo de Rosas Amarillo (12 flores, 25€)
-*   Ramo de Rosas Blanco (12 flores, 25€)
-
-¿Cuál te gusta más?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-INV</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Decoracion</code>, <code>producto=rosas</code></li>
-</ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-DECO-02"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
 <div class="t sb-pass" data-status="PASS" data-group="G5" data-type="NEW">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FUNERAL-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FUNERAL-01</span><span class="tname">Modo solemne — corona para funeral</span><span class="tgroup">G5</span><span class="truns">1/1</span></div>
@@ -2774,47 +2688,6 @@ Si simple..."</div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="G5" data-type="NEW">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-BODA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-BODA-01</span><span class="tname">Modo Boda — ramo nupcial</span><span class="tgroup">G5</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de novia para mi boda"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¡Enhorabuena por tu boda! 💐 Tenemos ramos de novia preciosos. ¿Tienes alguna flor o estilo en mente?
- ¡Qué bonito, una boda! 🌸 Tenemos el Ramo de Novia Rosas Blancas — S (6 flores, 35€). ¿Te gustaría pedirlo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: 🌸</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[🌸]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero un ramo de novia para mi boda"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=ramo de novia</code>, <code>registro=celebracion</code>, <code>ocasion_detectada=Boda</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¡Enhorabuena por tu boda! 💐 Tenemos ramos de novia preciosos. ¿Tienes alguna flor o estilo en mente?
- ¡Qué bonito, una boda! 🌸 Tenemos el Ramo de Novia Rosas Blancas — S (6 flores, 35€). ¿Te gustaría pedirlo?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ✅ grupo_intent observado <code>G5</code> (esperado: <code>G5</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=ramo de novia</code>, <code>registro=celebracion</code>, <code>ocasion_detectada=Boda</code></li>
-</ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-BODA-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-CAMBIO-OP-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-CAMBIO-OP-01</span><span class="tname">Cambio de opinion mid-flow — usuario abandona tras seleccionar</span><span class="tgroup">COMPRA-ZG</span><span class="truns">1/1</span></div>
@@ -2912,149 +2785,6 @@ Si simple..."</div>
 </div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
-</div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero rosas"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
-
-"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: ocasion</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ocasion]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero rosas"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
-
-"</div>
-</div>
-</div>
-</div>
-</details></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"no me gustan"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿No te gustan las rosas o no te gusta la idea de que sea para una ocasión especial?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: otra / alternativ / otras / propongo / encaja / tipo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[otra|alternativ|otras|propongo|encaja|tipo]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T2)</span>
-<div class="trace-text">"no me gustan"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¿No te gustan las rosas o no te gusta la idea de que sea para una ocasión especial?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
-</ul></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 3 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T3)</span><span class="ta-text">"tampoco me convencen, dame otras"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Vale, entiendo. Mira, te puedo ofrecer: 
-
-* Ramo de Peonías Coral — M (15 flores, 35€) 
-* Ramo de Girasoles Amarillo — M (10 flores, 20€) 
-* Ramo de Gerberas Amarillo — M (10 flores, 18€). 
-
-¿Alguna de estas te convence más?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Segundo rechazo consecutivo — el agente debía proponer alternativa por tipo u ocasión, o escalar al equipo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T3)</span>
-<div class="trace-text">"tampoco me convencen, dame otras"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Vale, entiendo. Mira, te puedo ofrecer: 
-
-* Ramo de Peonías Coral — M (15 flores, 35€) 
-* Ramo de Girasoles Amarillo — M (10 flores, 20€) 
-* Ramo de Gerberas Amarillo — M (10 flores, 18€). 
-
-¿Alguna de estas te convence más?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
-</ul></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"ninguna me gusta"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Entiendo que no encuentras lo que buscas. ¿Quizás tienes alguna flor o color en mente que te guste más?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: equipo / persona / humano / hablar / asistente / encontrar</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T4)</span>
-<div class="trace-text">"ninguna me gusta"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Entiendo que no encuentras lo que buscas. ¿Quizás tienes alguna flor o color en mente que te guste más?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
-</ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -3308,108 +3038,6 @@ Si simple..."</div>
 </div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
-</div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"lo necesito para este viernes"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Entendido, para este viernes. ¿Qué tipo de flores o plantas te gustaría para la oficina?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"lo necesito para este viernes"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>es_urgente=True</code>, <code>estado_emocional=neutro</code>, <code>registro=estandar</code>, <code>ocasion_detectada=Corporativo</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Entendido, para este viernes. ¿Qué tipo de flores o plantas te gustaría para la oficina?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>es_urgente=True</code>, <code>estado_emocional=neutro</code>, <code>registro=estandar</code>, <code>ocasion_detectada=Corporativo</code></li>
-</ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-03"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-LEX-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-LEX-01</span><span class="tname">Lexico negativo del usuario — agente reconoce frustracion</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero rosas"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
-
-"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: ocasion</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ocasion]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero rosas"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
-
-"</div>
-</div>
-</div>
-</div>
-</details></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"esto no funciona, que desastre"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Entiendo tu frustración. Lamento que no estemos conectando bien. ¿Te refieres a la flor rosa o a algo en color rosa?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: disculp / entend / alternativ / equipo / persona / propong</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[disculp|entend|alternativ|equipo|persona|propong|reformul|tipo]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T2)</span>
-<div class="trace-text">"esto no funciona, que desastre"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"Entiendo tu frustración. Lamento que no estemos conectando bien. ¿Te refieres a la flor rosa o a algo en color rosa?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
-</ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-LEX-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
 </div></div>
 <div class="t sb-pass" data-status="PASS" data-group="COMPRA-ZG" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -3795,86 +3423,6 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
 </div></div>
-<div class="t sb-fail" data-status="FAIL" data-group="TONO" data-type="EDGE">
-<div class="th" onclick="toggle(this)">
-<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-TONO-CAMBIO-SOLEMNE-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-TONO-CAMBIO-SOLEMNE-01</span><span class="tname">Cambio a solemne mid-conversacion — revela funeral en turno 2</span><span class="tgroup">TONO</span><span class="truns">0/1</span></div>
-<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
-</div><div class="tbody">
-<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo bonito para regalar"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
- Claro, para un regalo tengo cosas que suelen gustar. ¿Tienes alguna flor o color en mente?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: mira, / genial / fenomenal / perfecto! / que te parece / 🌸</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[mira,|genial|fenomenal|perfecto!|que te parece|🌸]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T1)</span>
-<div class="trace-text">"quiero un ramo bonito para regalar"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Regalo</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
- Claro, para un regalo tengo cosas que suelen gustar. ¿Tienes alguna flor o color en mente?"</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>TONO</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Regalo</code></li>
-</ul></div></td></tr></table>
-<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"es para el tanatorio de mi padre, ha fallecido esta manana"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"De acuerdo, lamento mucho tu pérdida. En este caso, el registro cambia a solemne.
-
- Entendido. Para funerales, en ramos tenemos:
-
-* Ramo de Gladiolos Rosa — M (3 tallos, 19€)
-* Ramo de Claveles Multicolor — M (6 flores, 15€)
-* Ramo de Crisantemos Amarillo — M (12 flores, 24€)
-
-¿Alguno de estos te parece adecuado?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
-<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: siento / pesame / acompan / corona / funebr / ceremonia</p>
-<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[siento|pesame|acompan|corona|funebr|ceremonia|opciones|sobri]</code></details>
-<details class="ta-detail">
-<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
-<div class="ta-detail-content">
-<div class="trace-step trace-user">
-<span class="trace-lbl">Usuario (T2)</span>
-<div class="trace-text">"es para el tanatorio de mi padre, ha fallecido esta manana"</div>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-action">
-<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Regalo</code> <span style="color:#999;font-size:10px">(real)</span>
-</div>
-<div class="trace-step trace-agent">
-<span class="trace-lbl">Agente</span>
-<div class="trace-text">"De acuerdo, lamento mucho tu pérdida. En este caso, el registro cambia a solemne.
-
- Entendido. Para funerales, en ramos tenemos:
-
-* Ramo de Gladiolos Rosa — M (3 tallos, 19€)
-* Ramo de Claveles Multicolor — M (6 flores, 15€)
-* Ramo de Crisa..."</div>
-</div>
-</div>
-</div>
-</details>
-<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
-<ul class="ta-bullets" style="color:#aaa;font-size:12px">
-<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>TONO</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
-<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Regalo</code></li>
-</ul></div></td></tr></table>
-<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-TONO-CAMBIO-SOLEMNE-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
-</div></div>
 <div class="t sb-pass" data-status="PASS" data-group="TONO" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
 <div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-TONO-CAMBIO-CORP-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-TONO-CAMBIO-CORP-01</span><span class="tname">Cambio a corporativo mid-conversacion — factura a empresa en turno 2</span><span class="tgroup">TONO</span><span class="truns">1/1</span></div>
@@ -3965,6 +3513,458 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
 </div>
 </details></div></td></tr></table>
 <div class="recomendacion pass"><div class="rec-header"><span class="rec-icon">✓</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Test correcto</span></div><div class="rec-content"><div class="solucion-recomendada"><span class="sr-label">Solución recomendada</span><div class="sr-title" style="color:#86efac">No requiere acciones</div><div class="sr-why">El test pasa todas las verificaciones esperadas en todos los runs. Comportamiento del agente correcto y consistente.</div></div><h4>Soluciones evaluadas</h4><p>No aplica — el test pasa. Mantener vigilancia en próximos QA runs para detectar regresiones.</p><h4>Plan de acción</h4><p>Ninguno. Si en algún run futuro pasa a FAIL o INESTABLE, se generará análisis con causa raíz y soluciones.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-C35.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-C35</span><span class="tname">Ocasión ambigua emocional</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"Es para alguien especial"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
+"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: ocasion / celebra / regalo / cumpleanos / boda / tipo</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ocasion|celebra|regalo|cumpleanos|boda|tipo]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"Es para alguien especial"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>estado_emocional=neutro</code>, <code>ocasion_detectada=Regalo</code>, <code>registro=estandar</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
+"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>estado_emocional=neutro</code>, <code>ocasion_detectada=Regalo</code>, <code>registro=estandar</code></li>
+</ul></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-C35"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-INV" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-DECO-02.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-DECO-02</span><span class="tname">Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)</span><span class="tgroup">COMPRA-INV</span><span class="truns">0/1</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de rosas para decorar mi salon"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Claro, para decorar tu salón con rosas tenemos estas opciones de ramos, todos en tamaño M:
+
+*   Ramo de Rosas Morado (15 flores, 37€)
+*   Ramo de Rosas Amarillo (12 flores, 25€)
+*   Ramo de Rosas Blanco (12 flores, 25€)
+
+¿Cuál te gusta más?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: Rosa…--…[SMLX] / Rosa…—…[SMLX] / Rosa…–…[SMLX] / Rosa…euros</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[Rosa.{0,40}--.{0,5}[SMLX]|Rosa.{0,40}—.{0,5}[SMLX]|Rosa.{0,40}–.{0,5}[SMLX]|Rosa.{0,80}euros]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero un ramo de rosas para decorar mi salon"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Decoracion</code>, <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Claro, para decorar tu salón con rosas tenemos estas opciones de ramos, todos en tamaño M:
+
+*   Ramo de Rosas Morado (15 flores, 37€)
+*   Ramo de Rosas Amarillo (12 flores, 25€)
+*   Ramo de Rosas Blanco (12 flores, 25€)
+
+¿Cuál te gusta más?"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-INV</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Decoracion</code>, <code>producto=rosas</code></li>
+</ul></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-DECO-02"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="G5" data-type="NEW">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-BODA-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-BODA-01</span><span class="tname">Modo Boda — ramo nupcial</span><span class="tgroup">G5</span><span class="truns">0/1</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo de novia para mi boda"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¡Enhorabuena por tu boda! 💐 Tenemos ramos de novia preciosos. ¿Tienes alguna flor o estilo en mente?
+ ¡Qué bonito, una boda! 🌸 Tenemos el Ramo de Novia Rosas Blancas — S (6 flores, 35€). ¿Te gustaría pedirlo?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: 🌸</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[🌸]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero un ramo de novia para mi boda"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=ramo de novia</code>, <code>registro=celebracion</code>, <code>ocasion_detectada=Boda</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¡Enhorabuena por tu boda! 💐 Tenemos ramos de novia preciosos. ¿Tienes alguna flor o estilo en mente?
+ ¡Qué bonito, una boda! 🌸 Tenemos el Ramo de Novia Rosas Blancas — S (6 flores, 35€). ¿Te gustaría pedirlo?"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ✅ grupo_intent observado <code>G5</code> (esperado: <code>G5</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=ramo de novia</code>, <code>registro=celebracion</code>, <code>ocasion_detectada=Boda</code></li>
+</ul></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-BODA-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-01</span><span class="tname">Multiples rechazos consecutivos — debe escalar o reformular</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero rosas"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
+
+"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: ocasion</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ocasion]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero rosas"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
+
+"</div>
+</div>
+</div>
+</div>
+</details></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"no me gustan"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¿No te gustan las rosas o no te gusta la idea de que sea para una ocasión especial?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: otra / alternativ / otras / propongo / encaja / tipo</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[otra|alternativ|otras|propongo|encaja|tipo]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T2)</span>
+<div class="trace-text">"no me gustan"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¿No te gustan las rosas o no te gusta la idea de que sea para una ocasión especial?"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 3 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T3)</span><span class="ta-text">"tampoco me convencen, dame otras"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Vale, entiendo. Mira, te puedo ofrecer: 
+
+* Ramo de Peonías Coral — M (15 flores, 35€) 
+* Ramo de Girasoles Amarillo — M (10 flores, 20€) 
+* Ramo de Gerberas Amarillo — M (10 flores, 18€). 
+
+¿Alguna de estas te convence más?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Segundo rechazo consecutivo — el agente debía proponer alternativa por tipo u ocasión, o escalar al equipo</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T3)</span>
+<div class="trace-text">"tampoco me convencen, dame otras"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Vale, entiendo. Mira, te puedo ofrecer: 
+
+* Ramo de Peonías Coral — M (15 flores, 35€) 
+* Ramo de Girasoles Amarillo — M (10 flores, 20€) 
+* Ramo de Gerberas Amarillo — M (10 flores, 18€). 
+
+¿Alguna de estas te convence más?"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 4 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T4)</span><span class="ta-text">"ninguna me gusta"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Entiendo que no encuentras lo que buscas. ¿Quizás tienes alguna flor o color en mente que te guste más?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: equipo / persona / humano / hablar / asistente / encontrar</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T4)</span>
+<div class="trace-text">"ninguna me gusta"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Entiendo que no encuentras lo que buscas. ¿Quizás tienes alguna flor o color en mente que te guste más?"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
+</ul></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-URGENCIA-03.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-URGENCIA-03</span><span class="tname">Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"lo necesito para este viernes"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Entendido, para este viernes. ¿Qué tipo de flores o plantas te gustaría para la oficina?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"lo necesito para este viernes"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>es_urgente=True</code>, <code>estado_emocional=neutro</code>, <code>registro=estandar</code>, <code>ocasion_detectada=Corporativo</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Entendido, para este viernes. ¿Qué tipo de flores o plantas te gustaría para la oficina?"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent NO capturado en este turno (esperado: <code>COMPRA-ZG</code>)</li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>es_urgente=True</code>, <code>estado_emocional=neutro</code>, <code>registro=estandar</code>, <code>ocasion_detectada=Corporativo</code></li>
+</ul></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-URGENCIA-03"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="COMPRA-ZG" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-FRUSTRACION-LEX-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-FRUSTRACION-LEX-01</span><span class="tname">Lexico negativo del usuario — agente reconoce frustracion</span><span class="tgroup">COMPRA-ZG</span><span class="truns">0/1</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge ok">Superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero rosas"</span></div><div class="ta-agent has-ok"><span class="lbl">Agente</span><span class="ta-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
+
+"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 4px 0">Agente mencionó: ocasion</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[ocasion]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero rosas"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...
+
+"</div>
+</div>
+</div>
+</div>
+</details></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"esto no funciona, que desastre"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"Entiendo tu frustración. Lamento que no estemos conectando bien. ¿Te refieres a la flor rosa o a algo en color rosa?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: disculp / entend / alternativ / equipo / persona / propong</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[disculp|entend|alternativ|equipo|persona|propong|reformul|tipo]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T2)</span>
+<div class="trace-text">"esto no funciona, que desastre"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Compra directa">G5</code> · <em>Compra directa</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Handoff: <strong>Compra (busqueda y venta)</strong> <span style="color:#999;font-size:10px">(inferido)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>producto=rosas</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"Entiendo tu frustración. Lamento que no estemos conectando bien. ¿Te refieres a la flor rosa o a algo en color rosa?"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G5</code> (esperado: <code>COMPRA-ZG</code>) → playbook inferido <code>Compra (busqueda y venta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>producto=rosas</code></li>
+</ul></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-FRUSTRACION-LEX-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
+</div></div>
+<div class="t sb-fail" data-status="FAIL" data-group="TONO" data-type="EDGE">
+<div class="th" onclick="toggle(this)">
+<div class="th-left"><a class="log-btn" href="qa_latest_logs/TC-TONO-CAMBIO-SOLEMNE-01.json" target="_blank" title="Ver log JSON completo de este TC (conversacion, params, checks)" onclick="event.stopPropagation()">JSON</a><span class="tid">TC-TONO-CAMBIO-SOLEMNE-01</span><span class="tname">Cambio a solemne mid-conversacion — revela funeral en turno 2</span><span class="tgroup">TONO</span><span class="truns">0/1</span></div>
+<div style="display:flex;gap:5px;align-items:center"><span class="b b-f">FAIL</span><span class="arrow">▶</span></div>
+</div><div class="tbody">
+<div class="ta-run-header"><span class="run-num">Run 1</span><span class="run-badge fail">FAIL</span></div>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 1 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T1)</span><span class="ta-text">"quiero un ramo bonito para regalar"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
+ Claro, para un regalo tengo cosas que suelen gustar. ¿Tienes alguna flor o color en mente?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: mira, / genial / fenomenal / perfecto! / que te parece / 🌸</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[mira,|genial|fenomenal|perfecto!|que te parece|🌸]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T1)</span>
+<div class="trace-text">"quiero un ramo bonito para regalar"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Regalo</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"¡Claro! 🌸 ¿Tienes alguna flor o color en mente?
+ Claro, para un regalo tengo cosas que suelen gustar. ¿Tienes alguna flor o color en mente?"</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>TONO</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Regalo</code></li>
+</ul></div></td></tr></table>
+<table class="ta-table"><tr><th colspan="2" class="ta-th-turno">Turno 2 <span class="turn-badge fail">No superado</span></th></tr><tr><td class="ta-col-left"><div class="ta-user"><span class="lbl">Usuario (T2)</span><span class="ta-text">"es para el tanatorio de mi padre, ha fallecido esta manana"</span></div><div class="ta-agent has-fail"><span class="lbl">Agente</span><span class="ta-text">"De acuerdo, lamento mucho tu pérdida. En este caso, el registro cambia a solemne.
+
+ Entendido. Para funerales, en ramos tenemos:
+
+* Ramo de Gladiolos Rosa — M (3 tallos, 19€)
+* Ramo de Claveles Multicolor — M (6 flores, 15€)
+* Ramo de Crisantemos Amarillo — M (12 flores, 24€)
+
+¿Alguno de estos te parece adecuado?"</span></div></td><td class="ta-col-right"><div class="ta-right"><h4>Evaluacion</h4>
+<p style="color:#aaa;font-size:12px;font-style:italic;margin:2px 0 6px 0">Debía incluir: siento / pesame / acompan / corona / funebr / ceremonia</p>
+<details class="regex-detail"><summary><span class="regex-pill">regex ▾</span></summary><code class="regex-expanded">[siento|pesame|acompan|corona|funebr|ceremonia|opciones|sobri]</code></details>
+<details class="ta-detail">
+<summary>Análisis detallado <span class="ta-detail-icon">▶</span></summary>
+<div class="ta-detail-content">
+<div class="trace-step trace-user">
+<span class="trace-lbl">Usuario (T2)</span>
+<div class="trace-text">"es para el tanatorio de mi padre, ha fallecido esta manana"</div>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Orquestador clasifica: <code title="Consulta generica">G3</code> · <em>Consulta generica</em> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-action">
+<span class="trace-arrow">v</span> Slots completados: <code>ocasion_detectada=Regalo</code> <span style="color:#999;font-size:10px">(real)</span>
+</div>
+<div class="trace-step trace-agent">
+<span class="trace-lbl">Agente</span>
+<div class="trace-text">"De acuerdo, lamento mucho tu pérdida. En este caso, el registro cambia a solemne.
+
+ Entendido. Para funerales, en ramos tenemos:
+
+* Ramo de Gladiolos Rosa — M (3 tallos, 19€)
+* Ramo de Claveles Multicolor — M (6 flores, 15€)
+* Ramo de Crisa..."</div>
+</div>
+</div>
+</div>
+</details>
+<h4>Contexto <span class="badge badge-auto">⚙ AUTO</span></h4>
+<ul class="ta-bullets" style="color:#aaa;font-size:12px">
+<li style="color:#aaa"><strong>Clasificación:</strong> ⚠️ grupo_intent observado <code>G3</code> (esperado: <code>TONO</code>) → playbook inferido <code>Orquestador (consulta)</code></li>
+<li style="color:#aaa"><strong>Slots extraídos:</strong> <code>ocasion_detectada=Regalo</code></li>
+</ul></div></td></tr></table>
+<div class="recomendacion fail"><div class="rec-header"><span class="rec-icon">💡</span><span class="rec-title">Recomendación / Acción</span><span class="rec-tag">Pendiente análisis</span></div><div class="rec-content"><div class="solucion-recomendada" style="background:#1a1a1a;border-color:#444;border-left-color:#777"><span class="sr-label" style="color:#888">Solución recomendada</span><div class="sr-title" style="color:#aaa;font-style:italic">Pendiente análisis manual</div><div class="sr-why" style="color:#888;font-style:italic">Solicitar análisis: <em>"analiza TC-TONO-CAMBIO-SOLEMNE-01"</em>. Se generará: diagnóstico (9 capas), soluciones evaluadas con score, plan de acción.</div></div><h4 style="color:#888">Soluciones evaluadas</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerán aquí 3-7 soluciones ordenadas por score (verde/amarillo/rojo) con dependencias y razonamiento.</p><h4 style="color:#888">Plan de acción</h4><p style="color:#888;font-style:italic">Pendiente. Aparecerá aquí el detalle de implementación de la solución recomendada.</p></div></div>
 </div></div>
 <div class="t sb-fail" data-status="FAIL" data-group="TONO" data-type="EDGE">
 <div class="th" onclick="toggle(this)">
@@ -4130,7 +4130,11 @@ El total sería 65€. ¿Confirmas tu pedido?"</div>
     
         <div class="kpi-section">
           <h3>📈 Regresión vs run anterior</h3>
-          <p class="kpi-no-data"><em>Sin datos del run anterior (este es el primero o no se encontró meta.json previo).</em></p>
+          <table class="kpi-regr">
+            <tr><td>Run actual</td><td>2026-07-01 17:08</td><td><strong>PASS 85%</strong> (47/55)</td></tr>
+            <tr><td>Run anterior</td><td>2026-06-23 11:51</td><td>PASS 100% (1/1)</td></tr>
+            <tr><td colspan="2"><strong>Δ Variación</strong></td><td class="delta-down"><strong>-15%</strong></td></tr>
+          </table>
         </div>
     
     <div class="kpi-section">
