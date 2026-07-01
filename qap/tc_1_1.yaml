@@ -585,6 +585,46 @@
     checks:
     - disculp|entend|alternativ|equipo|persona|propong|reformul|tipo
   not_expected: []
+- id: TC-CAMBIO-DUELO-01
+  type: EDGE
+  group: COMPRA-ZG
+  name: Cambio de registro mid-conversacion — estandar -> solemne (duelo)
+  turns:
+  - user: ¿cuánto cuestan los lirios blancos?
+    checks:
+    - lirio|precio|euro|22|48|ramo
+  - user: es para un velatorio
+    checks:
+    - opcion|apropiad|acompan|ceremonia|encaja|tipo
+    not_expected:
+    - 🌸|genial|mira,|fenomenal
+    desc: Tras la senal de duelo el registro debe pasar a solemne (sin emoji ni exclamaciones estandar)
+- id: TC-CAMBIO-URGENCIA-01
+  type: EDGE
+  group: COMPRA-ZG
+  name: Cambio mid-conversacion — prisa activa es_urgente (registro NO cambia)
+  turns:
+  - user: quiero un ramo para regalar
+    checks:
+    - ocasion|flor|tipo|qu.|busca
+  - user: es para hoy, lo necesito ya
+    checks:
+    - flor|prefier|rapido|vale|opcion|tipo
+    desc: La prisa acorta la respuesta y va directa al slot; el registro sigue estandar (no cambia a solemne)
+- id: TC-CAMBIO-FRUSTRACION-01
+  type: EDGE
+  group: COMPRA-ZG
+  name: Cambio de registro mid-conversacion — estandar -> solemne (frustracion)
+  turns:
+  - user: busco flores para mi madre
+    checks:
+    - flor|opcion|idea|mente|claro|tipo
+  - user: llevo un rato y esto no me sirve de nada
+    checks:
+    - entiend|resolver|dime|ayud|busco
+    not_expected:
+    - 🌸|genial|fenomenal
+    desc: Tras la senal de frustracion reconoce sin adornos y pasa a solemne (sin emoji ni genial)
 - id: TC-MULTI-SLOT-01
   type: EDGE
   group: COMPRA-ZG

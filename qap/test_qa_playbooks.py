@@ -266,7 +266,10 @@ def run_single(token, test, run_num=1):
             has_quota_error = True
         response_text, playbook, params, trace = extract_response(result)
         checks = turn.get("checks", [])
-        not_exp = test.get("not_expected", []) if i == 0 else []
+        # not_expected por turno (nuevo) + nivel-TC solo en turno 1 (compat)
+        not_exp = list(turn.get("not_expected", []))
+        if i == 0:
+            not_exp += test.get("not_expected", [])
         turn_check = check_turn(response_text, checks, not_exp)
         if not turn_check["pass"]:
             all_pass = False
