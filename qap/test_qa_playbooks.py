@@ -33,13 +33,20 @@ import yaml
 
 PROJECT = "floristeria-petal-digital"
 LOCATION = "europe-west1"
-# Agentes CX seleccionables vía --agent. 1.0 congelado · 1.1 activo (refactor/staging).
+# Agentes CX seleccionables vía --agent. Ambos labels usan el mismo agente (745375ba);
+# el Environment diferencia 1.0 (Default) de 1.1 (snapshot tone refactor "petal-1.1").
 AGENTS = {
     "1.0": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
-    "1.1": "cea66b60-192d-4b5a-af10-28f8661032e0",
+    "1.1": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
+}
+# Environments CX por label. "-" = Default Environment (wildcard CX).
+ENVIRONMENTS = {
+    "1.0": "-",
+    "1.1": "cb3b3d8a-21cc-4a4d-90f7-e3601fbdf643",  # petal-1.1 (tone refactor, Version 80)
 }
 AGENT_LABEL = "1.0"                       # default; se sobreescribe en main() con --agent
 AGENT_ID = AGENTS[AGENT_LABEL]
+ENV_ID = ENVIRONMENTS[AGENT_LABEL]
 BASE = f"https://{LOCATION}-dialogflow.googleapis.com/v3beta1"
 AGENT = f"projects/{PROJECT}/locations/{LOCATION}/agents/{AGENT_ID}"
 
@@ -108,7 +115,7 @@ def get_token():
 
 
 def detect_intent(token, session_id, text, session_params=None):
-    url = f"{BASE}/{AGENT}/environments/-/sessions/{session_id}:detectIntent"
+    url = f"{BASE}/{AGENT}/environments/{ENV_ID}/sessions/{session_id}:detectIntent"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "x-goog-user-project": PROJECT}
     body = {"queryInput": {"text": {"text": text}, "languageCode": "es"}}
     if session_params:
@@ -2736,7 +2743,7 @@ def generate_reports(results):
 
 
 def main():
-    global RUNS, AGENT_LABEL, AGENT_ID, AGENT, TESTS
+    global RUNS, AGENT_LABEL, AGENT_ID, ENV_ID, AGENT, TESTS
     parser = argparse.ArgumentParser(description="QA Petal v23 \u2014 29 tests")
     parser.add_argument("--test", help="Ejecutar TC(s). Uno: TC-C29. Varios: TC-C29,TC-C30,TC-DECO-02")
     parser.add_argument("--type", help="Filtrar: REG, NEW, EDGE")
@@ -2753,6 +2760,7 @@ def main():
     RUNS = max(1, min(args.runs, 5))
     AGENT_LABEL = args.agent
     AGENT_ID = AGENTS[AGENT_LABEL]
+    ENV_ID = ENVIRONMENTS[AGENT_LABEL]
     AGENT = f"projects/{PROJECT}/locations/{LOCATION}/agents/{AGENT_ID}"
     if args.list:
         for t in TESTS:
@@ -2769,7 +2777,8 @@ def main():
         tests = [t for t in TESTS if t["type"] == args.type]
         if not tests: print(f"Tipo {args.type} no encontrado."); return
     env = "Cloud Shell" if IS_CLOUD_SHELL else f"Local ({platform.system()})"
-    print(f"QA Petal v23 \u2014 {env} \u2014 Agente Petal {AGENT_LABEL} ({AGENT_ID[:8]}\u2026)")
+    env_display = "Default" if ENV_ID == "-" else f"env/{ENV_ID[:8]}\u2026"
+    print(f"QA Petal v23 \u2014 {env} \u2014 Agente Petal {AGENT_LABEL} ({AGENT_ID[:8]}\u2026 / {env_display})")
     print(f"Orq {ORQ_VERSION} | Compra {COMPRA_VERSION} | Checkout {CHECKOUT_VERSION} | Registro {REGISTRO_VERSION}")
     print(f"Ejecutando {len(tests)} tests \u00d7 {RUNS} runs...\n")
     token = get_token()

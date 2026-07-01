@@ -1,0 +1,159 @@
+# scoring_config — pesos de scoring por escenario de consulta (Petal 1.1).
+# FUENTE DE VERDAD: este archivo. Editar aquí, no en el Sheet.
+# Exportado inicialmente desde el Sheet con act/snapshot_sheet_config.py (2026-06-22).
+- Escenario: full_context
+  Slots_Presentes: tipo, color, ocasion
+  Descripcion: Tipo + Color + Ocasion
+  Condicion: tipo AND color AND ocasion
+  Suficiente: SI
+  Accion_Agente: Muestra variantes directamente
+  Peso_Ocasion: 0,22
+  Peso_Tipo: 0,22
+  Peso_Color: 0,20
+  Peso_Popularidad: 0,20
+  Peso_Stock: 0,16
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00
+- Escenario: tipo_color
+  Slots_Presentes: tipo, color
+  Descripcion: Tipo + Color sin ocasion
+  Condicion: tipo AND color AND NOT ocasion
+  Suficiente: SI
+  Accion_Agente: Muestra variantes del producto
+  Peso_Ocasion: 0,00
+  Peso_Tipo: 0,35
+  Peso_Color: 0,30
+  Peso_Popularidad: 0,25
+  Peso_Stock: 0,10
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00
+- Escenario: tipo_ocasion
+  Slots_Presentes: tipo, ocasion
+  Descripcion: Tipo + Ocasion sin color
+  Condicion: tipo AND ocasion AND NOT color
+  Suficiente: SI
+  Accion_Agente: Muestra opciones de ese tipo para esa ocasion
+  Peso_Ocasion: 0,30
+  Peso_Tipo: 0,30
+  Peso_Color: 0,00
+  Peso_Popularidad: 0,25
+  Peso_Stock: 0,15
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00
+- Escenario: color_ocasion
+  Slots_Presentes: color, ocasion
+  Descripcion: Color + Ocasion sin tipo
+  Condicion: color AND ocasion AND NOT tipo
+  Suficiente: SI
+  Accion_Agente: Muestra top por ocasion y color
+  Peso_Ocasion: 0,35
+  Peso_Tipo: 0,00
+  Peso_Color: 0,25
+  Peso_Popularidad: 0,25
+  Peso_Stock: 0,15
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00
+- Escenario: solo_ocasion
+  Slots_Presentes: ocasion
+  Descripcion: Solo ocasion
+  Condicion: ocasion AND NOT tipo AND NOT color
+  Suficiente: SI
+  Accion_Agente: Muestra top 3 por ocasion
+  Peso_Ocasion: 0,45
+  Peso_Tipo: 0,00
+  Peso_Color: 0,00
+  Peso_Popularidad: 0,40
+  Peso_Stock: 0,15
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00
+- Escenario: solo_tipo
+  Slots_Presentes: tipo
+  Descripcion: Solo tipo de flor
+  Condicion: tipo AND NOT ocasion AND NOT color
+  Suficiente: SI
+  Accion_Agente: Muestra variantes del tipo
+  Peso_Ocasion: 0,00
+  Peso_Tipo: 0,45
+  Peso_Color: 0,00
+  Peso_Popularidad: 0,40
+  Peso_Stock: 0,15
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00
+- Escenario: solo_color
+  Slots_Presentes: color
+  Descripcion: Solo color
+  Condicion: color AND NOT tipo AND NOT ocasion
+  Suficiente: SI
+  Accion_Agente: Muestra top 3 de ese color
+  Peso_Ocasion: 0,00
+  Peso_Tipo: 0,00
+  Peso_Color: 0,40
+  Peso_Popularidad: 0,40
+  Peso_Stock: 0,20
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00
+- Escenario: receptor_inferido
+  Slots_Presentes: receptor
+  Descripcion: Receptor mapeado a ocasion
+  Condicion: receptor (ocasion inferida por Orquestador)
+  Suficiente: SI
+  Accion_Agente: Infiere ocasion y muestra
+  Peso_Ocasion: 0,45
+  Peso_Tipo: 0,00
+  Peso_Color: 0,00
+  Peso_Popularidad: 0,40
+  Peso_Stock: 0,15
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00
+- Escenario: solo_precio
+  Slots_Presentes: precio_max
+  Descripcion: Solo presupuesto
+  Condicion: precio_max AND NOT tipo AND NOT ocasion
+  Suficiente: SI
+  Accion_Agente: Muestra top 3 dentro del rango
+  Peso_Ocasion: 0,00
+  Peso_Tipo: 0,00
+  Peso_Color: 0,00
+  Peso_Popularidad: 0,55
+  Peso_Stock: 0,15
+  Peso_Precio: 0,30
+  Suma_Pesos: 1,00
+- Escenario: tipo_precio
+  Slots_Presentes: tipo, precio_max
+  Descripcion: Tipo + Presupuesto
+  Condicion: tipo AND precio_max
+  Suficiente: SI
+  Accion_Agente: Muestra tipo dentro del rango
+  Peso_Ocasion: 0,00
+  Peso_Tipo: 0,40
+  Peso_Color: 0,00
+  Peso_Popularidad: 0,25
+  Peso_Stock: 0,10
+  Peso_Precio: 0,25
+  Suma_Pesos: 1,00
+- Escenario: ocasion_precio
+  Slots_Presentes: ocasion, precio_max
+  Descripcion: Ocasion + Presupuesto
+  Condicion: ocasion AND precio_max
+  Suficiente: SI
+  Accion_Agente: Muestra top por ocasion dentro del rango
+  Peso_Ocasion: 0,35
+  Peso_Tipo: 0,00
+  Peso_Color: 0,00
+  Peso_Popularidad: 0,25
+  Peso_Stock: 0,10
+  Peso_Precio: 0,30
+  Suma_Pesos: 1,00
+- Escenario: sin_contexto
+  Slots_Presentes: (ninguno)
+  Descripcion: Sin ningun slot
+  Condicion: NOT tipo AND NOT color AND NOT ocasion AND NOT precio_max
+  Suficiente: 'NO'
+  Accion_Agente: 'Pregunta: Me das una pista? Es para alguna ocasion especial?'
+  Peso_Ocasion: 0,00
+  Peso_Tipo: 0,00
+  Peso_Color: 0,00
+  Peso_Popularidad: 0,80
+  Peso_Stock: 0,20
+  Peso_Precio: 0,00
+  Suma_Pesos: 1,00

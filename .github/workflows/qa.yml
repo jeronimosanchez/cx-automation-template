@@ -29,6 +29,11 @@ on:
         required: false
         default: '1'
         type: string
+      agent:
+        description: 'Agente objetivo: 1.0 (Default Env) o 1.1 (petal-1.1 env, tone refactor)'
+        required: false
+        default: '1.1'
+        type: string
   workflow_run:
     workflows: ["Deploy to Petal CX"]
     types: [completed]
@@ -85,7 +90,7 @@ jobs:
   qa:
     needs: check
     if: needs.check.outputs.run_qa == 'true'
-    name: Run 31 TCs against Default Environment + publish to GitHub Pages
+    name: Run TCs against petal-1.1 Environment + publish to GitHub Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -114,7 +119,7 @@ jobs:
       - name: Run QA (29 TCs)
         id: qa_run
         continue-on-error: true
-        run: python qap/test_qa_playbooks.py --runs ${{ inputs.runs || '1' }}
+        run: python qap/test_qa_playbooks.py --runs ${{ inputs.runs || '1' }} --agent ${{ inputs.agent || '1.1' }}
 
       - name: Upload reports as artifact
         if: always()
