@@ -22,6 +22,21 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: registro
+  description: 'Registro de tono activo heredado del playbook anterior. Valores: solemne, celebracion, estandar. No lo modifica.'
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: es_urgente
+  description: 'Flag de urgencia heredado del playbook anterior. No lo modifica.'
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
+- name: usuario_frustrado
+  description: 'Flag de frustración heredado del playbook anterior. No lo modifica.'
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
 instruction:
   steps:
   - text: |-

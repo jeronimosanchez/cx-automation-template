@@ -48,6 +48,11 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: registro
+  description: 'Registro de tono activo heredado de Checkout. Valores: solemne, celebracion, estandar. No lo modifica.'
+  typeSchema:
+    inlineSchema:
+      type: STRING
 outputParameterDefinitions:
 - name: razon_handoff
   description: |
