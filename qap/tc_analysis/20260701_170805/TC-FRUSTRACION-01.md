@@ -189,7 +189,7 @@ Aplicar ambas soluciones: alargar el TC (A) y aclarar el contador en el playbook
 
 ---
 
-## 5. Recomendación
+## Recomendación
 
 **Aplicar Solución A primero** (solo test, sin deploy): ajustar el TC para que tenga 6 turnos con 4 rechazos claros sobre opciones, y corregir los checks de T2 y T3. Esto permite validar si el agente escala correctamente con el playbook actual.
 

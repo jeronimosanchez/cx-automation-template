@@ -242,7 +242,7 @@ G3 RECOMENDACION (...)
 
 ---
 
-## Orden de ejecución recomendado
+## Recomendación
 
 1. **Solución 1** (Fix Test, 5 min) — aplica primero para que el runner refleje la realidad.
 2. **Solución 2** (Fix Playbook Compra, 10 min) — aplica segundo, cierra el bug crítico P0.

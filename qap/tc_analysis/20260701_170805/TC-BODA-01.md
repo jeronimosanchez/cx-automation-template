@@ -255,7 +255,7 @@ CORRECTO (G5 + celebración): transferir directamente a Compra sin turno interme
 
 ---
 
-## 6. Recomendación
+## Recomendación
 
 **Fix recomendado: Solución 3 (combinación 1+2)**
 

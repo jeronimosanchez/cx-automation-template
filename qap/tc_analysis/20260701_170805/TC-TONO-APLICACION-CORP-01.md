@@ -162,7 +162,7 @@ DESAMBIGUAR con lista nombrada: '¿Te refieres al [opcion_1], al [opcion_2] o al
 
 ---
 
-## Plan de acción recomendado
+## Recomendación
 
 1. **Aplicar Solución A1** (5 min): inyectar `session_params: {registro: solemne}` en turno 1 del TC para que el test valide lo que su nombre promete.
 2. **Aplicar Solución B** (15 min): añadir instrucción de desambiguación nombrada en PASO 2 de compra.yaml.

@@ -157,7 +157,7 @@ Ejecutar el TC manualmente en Default Environment con el fix S2 aplicado para ve
 
 ---
 
-## Fix recomendado
+## Recomendación
 
 **Orden de ejecución:** S1 (regex, 5 min) → S2 (playbook, 20 min) → S3 (validación opcional).
 

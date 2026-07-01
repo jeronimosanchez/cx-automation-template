@@ -179,7 +179,7 @@ Ejemplo incorrecto: 'Ramo de Rosas Morado (15 flores, 37€)' ← falta '--', fa
 
 ---
 
-## Plan de acción
+## Recomendación
 
 1. **Verificar deploy de `aa05036`:** comprobar si el playbook desplegado en CX ya incluye la instrucción `FORMATO AL USUARIO`. Si no, el FAIL es esperado y se resuelve solo con el deploy.
    ```bash
