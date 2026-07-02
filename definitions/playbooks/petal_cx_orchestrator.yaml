@@ -335,9 +335,7 @@ instruction:
          Cuando vuelve, lee los outputs:
          - Si $razon_handoff tiene valor - ${PLAYBOOK:Handoff} pasando $razon_handoff.
          - Si $sesion_cerrada=true - FIN.
-         - Si $recien_registrado=true - carga $id_cliente, $nombre_cliente, $tipo_cliente, $Direccion_Habitual, $estado_pago desde los outputs.
-           - 'En que puedo ayudarte, $nombre_cliente?' ESPERA.
-           ⛔ Cuando el usuario responda, clasifica como intent nuevo siguiendo reglas de PASO 0. NUNCA repitas 'En que puedo ayudarte?' si el usuario ya indico que quiere.
+         - Si $recien_registrado=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
 
       ESPECIALES
       - Email espontaneo sin intent - $email=valor - PASO 2.
@@ -366,7 +364,7 @@ instruction:
          Cuando vuelve, lee los outputs:
          - Si $razon_handoff tiene valor - ${PLAYBOOK:Handoff} pasando $razon_handoff.
          - Si $sesion_cerrada=true - FIN.
-         - Si $recien_registrado=true - carga $id_cliente, $nombre_cliente, $tipo_cliente, $Direccion_Habitual, $estado_pago desde los outputs - PASO 3.
+         - Si $recien_registrado=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
       3. Negativa - agent_copy['despedida_paso2a'] - FIN.
       ⛔ 'no' = quiere irse. NUNCA despedida_email_invalido aqui.
 

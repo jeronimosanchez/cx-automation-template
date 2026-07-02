@@ -98,7 +98,7 @@ inputParameterDefinitions:
       type: NUMBER
 outputParameterDefinitions:
 - name: tipo_cliente
-  description: tipo cliente particular vs. empresa
+  description: Cargado de perfil en PASO 0 o heredado del input. Pasa a Gestion_Deuda si deuda_check=DEUDA.
   typeSchema:
     inlineSchema:
       type: STRING
@@ -143,12 +143,12 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: Direccion_Habitual
-  description: Direccion habitual registrada en Registro_Task
+  description: Cargada de perfil en PASO 0. Relay al caller.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: estado_pago
-  description: Viene del Registro_Task
+  description: Cargado de perfil en PASO 0 o heredado del input. Relay al caller.
   typeSchema:
     inlineSchema:
       type: STRING
