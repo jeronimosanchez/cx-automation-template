@@ -54,6 +54,14 @@
 **Prerequisito:** verificar divergencia `modo_tono` vs `registro` en parameter_audit.md antes de ejecutar.
 **Orden recomendado:** después del paso 6 del plan de compra (params ya limpios) y antes de los Tasks (#9-11).
 
+## Refactor transversal — verbosidad en descriptions (input/output)
+
+**Alcance:** todos los playbooks — orchestrator, checkout, gestion_deuda, handoff, compra, registro_task.
+**Ahorro estimado:** ~300-400 tk transversal (en proceso: checkout ✅, gestion_deuda outputs ✅, handoff pendiente).
+**Patrón a eliminar:** "obtenido de su perfil en la BD", "heredado del playbook anterior", "No lo modifica", "leído del perfil", "Se almacena en PASO 2 desde campo X", "Se pasa a Y y Z".
+**Validado (CX-47):** descripciones cortas producen el mismo comportamiento cuando la lógica está en la instrucción.
+**Orden:** hacer en paralelo al plan principal, playbook a playbook, sin gate de arquitectura.
+
 ## Notas de arquitectura
 
 - Los Tasks (#9-11) cargan sus tokens **solo cuando se invocan** — confirmado en código ADK (`petal_agent_multi.py`) y docs CX.

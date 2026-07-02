@@ -60,23 +60,22 @@ inputParameterDefinitions:
       type: BOOLEAN
 outputParameterDefinitions:
 - name: razon_handoff
-  description: |
-    Motivo del traspaso a Handoff. Determina el mensaje que muestra Alicia.
+  description: Causa del traspaso a Handoff.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: nombre_cliente
-  description: Nombre del cliente obtenido de su perfil en la BD.
+  description: Relay a Handoff.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: saldo
-  description: Saldo del cliente en euros. Negativo indica deuda pendiente.
+  description: Relay a Handoff.
   typeSchema:
     inlineSchema:
       type: NUMBER
 - name: registro
-  description: 'Registro de tono relay a Handoff. Valores: solemne, celebracion, estandar.'
+  description: Relay a Handoff.
   typeSchema:
     inlineSchema:
       type: STRING

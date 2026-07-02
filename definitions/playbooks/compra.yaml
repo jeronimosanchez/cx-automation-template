@@ -78,25 +78,10 @@ inputParameterDefinitions:
     inlineSchema:
       type: BOOLEAN
 - name: contador_rechazos
-  description: Opciones rechazadas consecutivas. Incrementa en cada rechazo. Resetea al cambiar ocasión.
+  description: Rechazos consecutivos. Incrementa en cada rechazo. Resetea al cambiar ocasión.
   typeSchema:
     inlineSchema:
       type: NUMBER
-- name: contador_repeticion_slot
-  description: Veces que el usuario repite info del mismo slot.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: contador_sugerencias
-  description: Peticiones "dame sugerencia" sin acertar.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: frustracion_detectada
-  description: 'Flag: palabras negativas explícitas.'
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
 outputParameterDefinitions:
 - name: producto
   description: tipo de producto seleccionado
@@ -104,7 +89,7 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: cantidad
-  description: cantidad de productos solictados
+  description: Cantidad del pedido.
   typeSchema:
     inlineSchema:
       type: NUMBER
@@ -114,7 +99,7 @@ outputParameterDefinitions:
     inlineSchema:
       type: NUMBER
 - name: razon_handoff
-  description: Razon por la que solicita agente
+  description: Causa del traspaso a Handoff.
   typeSchema:
     inlineSchema:
       type: STRING
@@ -135,26 +120,6 @@ outputParameterDefinitions:
       type: BOOLEAN
 - name: usuario_frustrado
   description: true si frustración activa.
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
-- name: contador_rechazos
-  description: Opciones rechazadas consecutivas. Incrementa en cada rechazo. Resetea al cambiar ocasión.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: contador_repeticion_slot
-  description: Veces que el usuario repite info del mismo slot.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: contador_sugerencias
-  description: Peticiones "dame sugerencia" sin acertar.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: frustracion_detectada
-  description: 'Flag: palabras negativas explícitas.'
   typeSchema:
     inlineSchema:
       type: BOOLEAN
@@ -577,14 +542,13 @@ instruction:
       CAMBIO OPINION: Resetea producto, tamano, cantidad. NO limpies $productos_mostrados.
 
       ⛔ GESTION DE FRUSTRACION ⛔
-      CONTADORES: $contador_rechazos, $contador_repeticion_slot, $contador_sugerencias, $frustracion_detectada.
+      CONTADOR: $contador_rechazos.
 
       DISPARADORES:
       1. RECHAZO ACUMULADO: rechazo 1 reformula. Rechazo 2 pregunta motivo. Rechazo 3 reformula y muestra una mas. Rechazo 4 ESCALAR.
-      2. REPETICION SLOT: misma info 3 veces -> ESCALAR.
-      3. SUGERENCIAS SIN ACERTAR: sug 1 pide pista. Sug 2 cambia angulo. Sug 3 ESCALAR.
-      4. PALABRAS NEGATIVAS ('no funciona', 'que mal', 'no me entiendes', 'un desastre', 'esto no va') -> $frustracion_detectada=true. Siguiente turno: TONO RECONOCIMIENTO + alternativa o escalar.
-      5. FUNERAL: si $registro='solemne', CUALQUIER frustracion -> ESCALAR.
+      2. REPETICION SLOT: misma info 3 veces -> incrementa $contador_rechazos -> ESCALAR si llega a 4.
+      3. PALABRAS NEGATIVAS ('no funciona', 'que mal', 'no me entiendes', 'un desastre', 'esto no va') -> $usuario_frustrado=true. Siguiente turno: TONO RECONOCIMIENTO + alternativa o escalar.
+      4. FUNERAL: si $registro='solemne', CUALQUIER frustracion -> ESCALAR.
 
       RECONOCIMIENTO: antes de ofrecer alternativa, reconoce la situacion. Aplica $registro.
       ESCALACION: transfiere a Handoff. Aplica $registro.

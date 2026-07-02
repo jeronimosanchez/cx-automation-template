@@ -98,27 +98,27 @@ inputParameterDefinitions:
       type: NUMBER
 outputParameterDefinitions:
 - name: tipo_cliente
-  description: Cargado de perfil en PASO 0 o heredado del input. Pasa a Gestion_Deuda si deuda_check=DEUDA.
+  description: Relay. Pasa a Gestion_Deuda si hay deuda.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: nombre_cliente
-  description: Nombre del cliente obtenido de su perfil en la BD.
+  description: Relay al caller.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: id_cliente
-  description: ID numérico del cliente en el Google Sheet. Se usa como identificador desde el Paso 2 del Orquestador.
+  description: Relay al caller.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: razon_handoff
-  description: Motivo por el que se transfiere al agente humano
+  description: Causa del handoff.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: cantidad
-  description: Número de unidades del producto que el cliente quiere comprar.
+  description: Relay. Ajustable si stock parcial aceptado.
   typeSchema:
     inlineSchema:
       type: NUMBER
@@ -133,32 +133,32 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: recien_registrado
-  description: Write, para que Checkout pueda almacenarlo
+  description: True si el usuario se registró aquí.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
 - name: email
-  description: 'email del cliente si lo a haproporcionado espontaneamente o viene de Registro_Task '
+  description: Capturado en PASO 0. Relay.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: Direccion_Habitual
-  description: Cargada de perfil en PASO 0. Relay al caller.
+  description: Relay al caller.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: estado_pago
-  description: Cargado de perfil en PASO 0 o heredado del input. Relay al caller.
+  description: Relay al caller.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: producto
-  description: producto selecionado
+  description: Relay al caller.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: precio_estimado
-  description: precio estimado contando producto y cantidad
+  description: Relay al caller.
   typeSchema:
     inlineSchema:
       type: NUMBER

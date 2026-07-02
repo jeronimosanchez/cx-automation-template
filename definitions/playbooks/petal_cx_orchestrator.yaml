@@ -61,7 +61,7 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: cantidad
-  description: Cantidad del pedido. Se extrae del mensaje de intención
+  description: Cantidad del pedido.
   typeSchema:
     inlineSchema:
       type: NUMBER
@@ -76,37 +76,37 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: estado_pago
-  description: Estado de pago del cliente leído del perfil
+  description: Estado de pago del cliente.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: intencion_inicial
-  description: Intención de compra expresada antes de identificarse
+  description: Intención inicial del usuario.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: nombre_cliente
-  description: Nombre del cliente. Se almacena en PASO 2 desde campo Nombre del perfil. Se pasa a Checkout y Handoff.
+  description: Nombre del cliente.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: razon_handoff
-  description: Motivo del traspaso a Handoff. Determina el mensaje que muestra Alicia.
+  description: Causa del traspaso a Handoff.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: Direccion_Habitual
-  description: La direccion declarada en el registro del usuario
+  description: Dirección habitual del cliente.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: recien_registrado
-  description: Confirmacion de que el usuario se acaba de registrar
+  description: True si acaba de registrarse.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: sesion_cerrada
-  description: Si la sesion se ha cerrado o no
+  description: True si la sesión terminó.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
@@ -126,7 +126,7 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: precio_max
-  description: percio maximo indicado por el usuario para comprar
+  description: Precio máximo indicado por el usuario.
   typeSchema:
     inlineSchema:
       type: NUMBER
@@ -136,12 +136,12 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: es_urgente
-  description: true cuando el usuario señala restricción temporal explícita
+  description: True si hay restricción temporal.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
 - name: usuario_frustrado
-  description: true cuando se detecta frustración en el usuario
+  description: True si se detecta frustración.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
