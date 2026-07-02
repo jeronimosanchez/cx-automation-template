@@ -31,6 +31,29 @@
 | Ejemplos | 8 | ~3,880 tk | ~9,820 tk |
 | Extracciones | 9-11 | ~6,630-7,630 tk | **~6,070-7,070 tk** |
 
+## Refactor transversal — renombrado de params (todos los playbooks)
+
+**Alcance:** 6 playbooks + definitions/examples/ (no afecta a CX runtime directamente, solo a los YAMLs)
+**Ahorro:** ~650 tk en YAMLs estáticos. Se multiplica en runtime (cada turno serializa el estado) y en QA (Qwen procesa menos tokens por run).
+**Complejidad:** Media — es solo nomenclatura, pero cross-cutting. Un param renombrado debe actualizarse en todos los playbooks que lo usan simultáneamente.
+
+| Param actual | Propuesta | Ahorro total | Playbooks afectados |
+|---|---|---|---|
+| `es_urgente` | `urgente` | −52 tk | compra, checkout, orchestrator, handoff |
+| `usuario_frustrado` | `frustrado` | −64 tk | compra, checkout, orchestrator, gestion_deuda, handoff |
+| `ocasion_detectada` | `ocasion` | −54 tk | compra, checkout, orchestrator |
+| `intencion_inicial` | `intencion` | −34 tk | compra, orchestrator |
+| `recien_registrado` | `recien_reg` | −30 tk | checkout, orchestrator, registro_task |
+| `sesion_cerrada` | `cerrada` | −22 tk | checkout, orchestrator, registro_task |
+| `precio_estimado` | `precio_est` | −40 tk | compra, checkout, orchestrator, gestion_deuda |
+| `frustracion_detectada` | `frust_det` | −8 tk | compra |
+| `presupuesto_duro` | `pres_duro` | −8 tk | compra |
+
+**Descartados por riesgo de ambigüedad:** `precio_estimado→precio` (colisiona con `precio_max`/`precio_2`), `id_cliente→id`, `nombre_cliente→nombre`, `razon_handoff→razon`.
+
+**Prerequisito:** verificar divergencia `modo_tono` vs `registro` en parameter_audit.md antes de ejecutar.
+**Orden recomendado:** después del paso 6 del plan de compra (params ya limpios) y antes de los Tasks (#9-11).
+
 ## Notas de arquitectura
 
 - Los Tasks (#9-11) cargan sus tokens **solo cuando se invocan** — confirmado en código ADK (`petal_agent_multi.py`) y docs CX.

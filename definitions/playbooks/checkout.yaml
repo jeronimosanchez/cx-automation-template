@@ -137,11 +137,6 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: apellidos
-  description: Nuevo campo del Task
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: email
   description: 'email del cliente si lo a haproporcionado espontaneamente o viene de Registro_Task '
   typeSchema:
@@ -157,11 +152,6 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: telefono
-  description: Puede venir del Task
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
 - name: producto
   description: producto selecionado
   typeSchema:
@@ -276,7 +266,7 @@ instruction:
          Cuando vuelve, lee los outputs:
          - Si $razon_handoff tiene valor - Handoff pasando $razon_handoff, $registro, $es_urgente, $usuario_frustrado.
          - Si $sesion_cerrada=true - FIN.
-         - Si $recien_registrado=true - carga $id_cliente, $nombre_cliente, $tipo_cliente, $Direccion_Habitual, $estado_pago desde los outputs del Task - PASO 1.
+         - Si $recien_registrado=true - llama a PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo - PASO 1.
            ⚠️ EXCEPCION T16: cuando $recien_registrado=true, esta permitido encadenar el mensaje de confirmacion de registro ('Ya estas registrado/a') con el resumen del PASO 2 en el mismo turno. El usuario acaba de completar el registro y espera continuar con su pedido — no hace falta turno de separacion.
       3. Negativa ('no', 'dejalo', 'no quiero', 'paso', 'nada') - agent_copy['despedida_paso2a']. Si agent_copy no devuelve texto, di segun modo:
          - Estandar - 'Entendido. Hasta pronto!'

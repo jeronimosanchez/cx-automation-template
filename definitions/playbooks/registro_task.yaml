@@ -26,7 +26,7 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: email
-  description: Email del cliente. Puede venir del caller o haberlo recogido Registro.
+  description: Email usado para buscar o crear el perfil en BD.
   typeSchema:
     inlineSchema:
       type: STRING
@@ -41,7 +41,7 @@ outputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: telefono
-  description: Siempre Al dia para clientes nuevos.
+  description: Recogido durante el registro. Puede quedar vacío si el usuario lo omite.
   typeSchema:
     inlineSchema:
       type: STRING
