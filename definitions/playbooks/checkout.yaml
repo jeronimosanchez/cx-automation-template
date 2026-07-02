@@ -166,10 +166,7 @@ outputParameterDefinitions:
   description: 'Ocasion de compra '
   typeSchema:
     inlineSchema:
-      type: ARRAY
-      items:
-        inlineSchema:
-          type: STRING
+      type: STRING
 - name: referencia
   description: 'referencia del pedido '
   typeSchema:

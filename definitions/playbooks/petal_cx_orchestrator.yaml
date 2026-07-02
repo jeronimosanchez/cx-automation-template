@@ -104,7 +104,7 @@ outputParameterDefinitions:
   description: True si acaba de registrarse.
   typeSchema:
     inlineSchema:
-      type: STRING
+      type: BOOLEAN
 - name: fin_sesion
   description: True si la sesión terminó.
   typeSchema:
