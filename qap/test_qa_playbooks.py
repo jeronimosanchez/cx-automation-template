@@ -832,7 +832,7 @@ def _compute_metodologia_kpis(results):
                     n_producto += 1
                 if params.get("ocasion_detectada"):
                     n_ocasion += 1
-                if params.get("modo_tono"):
+                if params.get("registro"):
                     n_modo += 1
     pct_producto = round(100 * n_producto / turnos_total, 1) if turnos_total else 0
     pct_ocasion = round(100 * n_ocasion / turnos_total, 1) if turnos_total else 0
@@ -866,7 +866,7 @@ def _compute_metodologia_kpis(results):
         for run in r["runs"]:
             for turn in run["turns"]:
                 params = turn.get("params") or {}
-                modo = params.get("modo_tono", "")
+                modo = params.get("registro", "")
                 if modo:
                     modos_observados[modo] = modos_observados.get(modo, 0) + 1
     # Modos esperados según petal_cx_orchestrator.yaml líneas 157, 167-170, 192-195
@@ -886,7 +886,7 @@ def _compute_metodologia_kpis(results):
     return {
         "flakiness": {"pct": flak_pct, "count": len(inestables), "total": total, "tcs": flak_tcs},
         "orquestador": {"pct": orq_pct, "ok": orq_ok, "total": orq_total, "errors": orq_errors[:5]},
-        "compra": {"producto": pct_producto, "ocasion": pct_ocasion, "modo_tono": pct_modo, "turnos": turnos_total},
+        "compra": {"producto": pct_producto, "ocasion": pct_ocasion, "registro": pct_modo, "turnos": turnos_total},
         "cobertura_grupos": {"items": cobertura_grupos, "pct": pct_grupos, "ok": grupos_ok, "total": len(grupos_esperados)},
         "cobertura_modos": {"items": cobertura_modos, "pct": pct_modos, "ok": modos_ok, "total": len(modos_esperados)},
     }
@@ -2063,10 +2063,10 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
           <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{kpis["compra"]["ocasion"]}%"></div></div>
           <span class="kpi-value">{kpis["compra"]["ocasion"]}%</span>
         </div>
-        <div class="kpi-bar-row" data-legend="% de turnos donde se asignó modo_tono (estandar/solemne/corporativo). El Orquestador detecta esto en el primer utterance del usuario. Si baja: la detección de tono está fallando.">
-          <span class="kpi-label">Modo_tono asignado</span>
-          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{kpis["compra"]["modo_tono"]}%"></div></div>
-          <span class="kpi-value">{kpis["compra"]["modo_tono"]}%</span>
+        <div class="kpi-bar-row" data-legend="% de turnos donde se asignó registro (estandar/solemne/corporativo). El Orquestador detecta esto en el primer utterance del usuario. Si baja: la detección de tono está fallando.">
+          <span class="kpi-label">Registro asignado</span>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{kpis["compra"]["registro"]}%"></div></div>
+          <span class="kpi-value">{kpis["compra"]["registro"]}%</span>
         </div>
         <p class="kpi-sub">Sobre {kpis["compra"]["turnos"]} turnos totales</p>
       </div>
