@@ -51,7 +51,7 @@
 
 **Descartados por riesgo de ambigüedad:** `precio_estimado→precio` (colisiona con `precio_max`/`precio_2`), `id_cliente→id`, `nombre_cliente→nombre`, `razon_handoff→razon`.
 
-**Prerequisito:** verificar divergencia `modo_tono` vs `registro` en parameter_audit.md antes de ejecutar.
+**Prerequisito:** ~~verificar divergencia `modo_tono` vs `registro`~~ — resuelto (2026-07-02): `registro` es el nombre oficial en todos los YAMLs. Ver `docs/param_rename_map.md`.
 **Orden recomendado:** después del paso 6 del plan de compra (params ya limpios) y antes de los Tasks (#9-11).
 
 ## Refactor transversal — verbosidad en descriptions (input/output)
