@@ -58,15 +58,10 @@ inputParameterDefinitions:
     inlineSchema:
       type: STRING
 - name: presupuesto_duro
-  description: Flag que indica si el usuario ha fijado un precio_max como tope firme (true) o aproximado (false). Se detecta por lenguaje (maximo, no mas de, tope) o por repeticion (contador_presupuesto >= 2).
+  description: Flag que indica si el usuario ha fijado un precio_max como tope firme (true) o aproximado (false). Se detecta por lenguaje (maximo, no mas de, tope).
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: contador_presupuesto
-  description: Numero de veces que el usuario ha mencionado precio en la conversacion. Se incrementa cada vez. Cuando llega a 2, el presupuesto se considera duro aunque el lenguaje sea blando.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
 - name: registro
   description: 'Registro de tono activo. Valores: solemne, celebracion, estandar. Default=estandar. Puede reasignarse si hay señal de cambio mid-conversación.'
   typeSchema:
@@ -83,7 +78,7 @@ inputParameterDefinitions:
     inlineSchema:
       type: BOOLEAN
 - name: contador_rechazos
-  description: Opciones rechazadas consecutivas. Incrementa en cada rechazo. Resetea al cambiar ocasión.Compracontador_repeticion_slotnumberInput+Output0
+  description: Opciones rechazadas consecutivas. Incrementa en cada rechazo. Resetea al cambiar ocasión.
   typeSchema:
     inlineSchema:
       type: NUMBER
@@ -118,43 +113,28 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: NUMBER
-- name: direccion_entrega
-  description: dirección confirmada por el usuario
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: razon_handoff
   description: Razon por la que solicita agente
   typeSchema:
     inlineSchema:
       type: STRING
-- name: sesion_cerrada
-  description: sesion cerrada o no
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
 - name: presupuesto_duro
-  description: Flag que indica si el usuario ha fijado un precio_max como tope firme (true) o aproximado (false). Se detecta por lenguaje (maximo, no mas de, tope) o por repeticion (contador_presupuesto >= 2).
+  description: Detectado por lenguaje duro (maximo, no mas de, tope).
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: contador_presupuesto
-  description: Numero de veces que el usuario ha mencionado precio en la conversacion. Se incrementa cada vez. Cuando llega a 2, el presupuesto se considera duro aunque el lenguaje sea blando.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
 - name: registro
-  description: 'Registro de tono activo. Valores: solemne, celebracion, estandar. Default=estandar. Puede reasignarse si hay señal de cambio mid-conversación.'
+  description: Puede actualizarse por señal de cambio mid-conversación.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: es_urgente
-  description: 'Flag de urgencia. true si el usuario tiene restricción temporal explícita. Modifica estructura (más corto, slot-filling directo) pero no el registro.'
+  description: true si restricción temporal explícita.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
 - name: usuario_frustrado
-  description: 'Flag de frustración detectada. true si el usuario muestra frustración. Modifica el comportamiento dentro del registro vigente.'
+  description: true si frustración activa.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
@@ -260,7 +240,7 @@ instruction:
       - FRUSTRACION ('no funciona','un desastre','esto no va','no me entiendes','inaceptable')
         -> $registro=solemne · $usuario_frustrado=true
       - PRISA ('para hoy','lo necesito ya','urgente','cuanto antes','antes de las')
-        -> $es_urgente=true (el registro NO cambia; solo acorta la respuesta)
+        -> $es_urgente=true
 
       Actualiza silenciosamente. Propaga $registro, $es_urgente, $usuario_frustrado a Checkout y Handoff.
       No anuncies el cambio al usuario.
@@ -388,10 +368,6 @@ instruction:
 
       PASO 2 - REFINAMIENTO PROGRESIVO
       ⚠️ REGLA CRITICA: SIEMPRE llama a PetalDataTool antes de responder sobre disponibilidad de producto. Ver # TOOLS.
-      ⛔ NUNCA consultes sin al menos UNO de: ocasion, color, tipo, precio_max, precio_min.
-      ⛔ SIEMPRE pasa $precio_max y $precio_min (si hay).
-      ⛔ SIEMPRE pasa productos_excluidos=$productos_mostrados.
-      ⛔ SIEMPRE separa producto y color.
 
       ⛔ LECTURA RESPONSE API:
       - sin_mas_opciones=true - FALLBACK DE AGOTAMIENTO (ver # FALLBACK).
@@ -621,16 +597,6 @@ instruction:
       Pide humano - $razon_handoff='cliente_solicita_humano' - ${PLAYBOOK:Handoff} con $registro, $es_urgente, $usuario_frustrado.
       Despedida - agent_copy['despedida'] - FIN.
       Irrelevante - redirige.
-
-      # VARIABLES
-
-      NOTAS VARIABLES (el resto se lee de inputParameterDefinitions/outputParameterDefinitions):
-      $grupo_intent: 'G5' (compra directa), 'G3' (exploracion) o vacio.
-      $registro: solemne/celebracion/estandar. Default=estandar. Puede reasignarse si hay señal de cambio.
-      $es_urgente: true si hay restriccion temporal explicita del usuario.
-      $usuario_frustrado: true si el usuario muestra frustración durante la conversacion.
-      $productos_mostrados: lista 'Producto|Color|Tamano' separada por ';;'.
-      $filtros_activos: estado mental de filtros vigentes.
 
       ⛔ REGLAS DE MEMORIA Y FILTROS ⛔
 
