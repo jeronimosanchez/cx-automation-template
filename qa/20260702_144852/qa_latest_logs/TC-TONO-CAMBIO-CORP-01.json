@@ -1,0 +1,78 @@
+{
+  "tc_id": "TC-TONO-CAMBIO-CORP-01",
+  "tc_name": "Cambio a corporativo mid-conversacion — factura a empresa en turno 2",
+  "group": "TONO",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "busco un centro de flores",
+          "agent": "¡Claro! ¿Para qué ocasión lo buscas? ¿Para qué ocasión lo buscas?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "busco un centro de flores",
+            "producto": "centro de flores"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ocasion]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "es para la recepcion de la oficina, y la factura a nombre de la empresa",
+          "agent": "Perdona, no he entendido bien lo de la categoría. ¿Podrías decirme si es para decoración o para algún evento corporativo?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "busco un centro de flores",
+            "producto": "centro de flores",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [corporativ]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

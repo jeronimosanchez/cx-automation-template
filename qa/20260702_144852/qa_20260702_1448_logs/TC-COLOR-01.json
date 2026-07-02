@@ -1,0 +1,52 @@
+{
+  "tc_id": "TC-COLOR-01",
+  "tc_name": "Compra con color especifico no-rojo (tulipanes blancos)",
+  "group": "G5",
+  "type": "NEW",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero tulipanes blancos",
+          "agent": "Claro, tulipanes blancos. Tenemos tres tamaños de ramo:\n\n*   S — 5 flores, 12€\n*   M — 10 flores, 20€\n*   L — 17 flores, 32€\n\n¿Cuál te gustaría?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "tulipanes blancos",
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero tulipanes blancos"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [Tulipan]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

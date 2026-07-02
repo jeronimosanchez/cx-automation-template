@@ -1,0 +1,52 @@
+{
+  "tc_id": "TC-R04",
+  "tc_name": "Compra directa sin email",
+  "group": "G5",
+  "type": "REG",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Quiero comprar rosas rojas",
+          "agent": "¿Para qué ocasión son? ¿Cumpleaños, aniversario, o simplemente para regalar?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "producto": "rosas rojas",
+            "intencion_inicial": "comprar rosas rojas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [ocasi]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

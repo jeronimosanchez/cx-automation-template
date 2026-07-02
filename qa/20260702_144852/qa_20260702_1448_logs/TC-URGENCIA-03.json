@@ -1,0 +1,54 @@
+{
+  "tc_id": "TC-URGENCIA-03",
+  "tc_name": "Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito para este viernes",
+          "agent": "Entendido. ¿Qué tipo de flores o arreglos te gustaría para la oficina?\n",
+          "playbook": "unknown",
+          "params": {
+            "registro": "estandar",
+            "es_urgente": true,
+            "ocasion_detectada": "Corporativo",
+            "estado_emocional": "neutro",
+            "intencion_inicial": "comprar flores para la oficina"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

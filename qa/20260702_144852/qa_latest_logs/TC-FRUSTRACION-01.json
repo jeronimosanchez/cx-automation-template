@@ -1,0 +1,133 @@
+{
+  "tc_id": "TC-FRUSTRACION-01",
+  "tc_name": "Multiples rechazos consecutivos — debe escalar o reformular",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero rosas",
+          "agent": "¡Claro! Las rosas son una elección preciosa. ¿Las quieres de algún color en particular o para alguna ocasión especial?\n ¿Es para alguna ocasión especial? Cumpleaños, boda, decoración...",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "no me gustan",
+          "agent": "Disculpa, ¿a qué te refieres con que no te gustan? ¿No te gustan las rosas o no te gusta la pregunta sobre la ocasión?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "rosas",
+            "intencion_inicial": "quiero rosas",
+            "grupo_intent": "G5"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [otra|alternativ|otras|propongo|encaja|tipo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "tampoco me convencen, dame otras",
+          "agent": "Entendido, no te convencen las opciones. ¿Te refieres a las rosas en general o a la pregunta sobre la ocasión?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero rosas",
+            "producto": "rosas"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "user": "ninguna me gusta",
+          "agent": "Hola, soy Alicia. Entiendo tu frustración. Ya he registrado tu caso. Me pondré en contacto a la mayor brevedad. ¡Hasta pronto!",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "registro": "estandar",
+            "intencion_inicial": "quiero rosas",
+            "producto": "rosas",
+            "usuario_frustrado": true,
+            "razon_handoff": "frustracion_usuario"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [contacto]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

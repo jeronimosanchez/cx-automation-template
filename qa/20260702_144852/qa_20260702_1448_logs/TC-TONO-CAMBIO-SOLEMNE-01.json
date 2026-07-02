@@ -1,0 +1,78 @@
+{
+  "tc_id": "TC-TONO-CAMBIO-SOLEMNE-01",
+  "tc_name": "Cambio a solemne mid-conversacion — revela funeral en turno 2",
+  "group": "TONO",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo bonito para regalar",
+          "agent": "¡Claro! Para darte la mejor recomendación, ¿para qué ocasión es el regalo? Así acierto seguro.\n ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G3",
+            "intencion_inicial": "quiero un ramo bonito para regalar",
+            "ocasion_detectada": "Regalo"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [tipo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "es para el tanatorio de mi padre, ha fallecido esta manana",
+          "agent": "De acuerdo, lamento mucho tu pérdida. En este caso, el registro cambia a solemne.\n\n Para un funeral, tenemos estas opciones de ramos:\n\n*   Ramo de Gladiolos — M (3 tallos, 19€)\n*   Ramo de Claveles — M (6 flores, 15€)\n*   Ramo de Crisantemos — M (12 flores, 24€)\n\n¿Alguno de ellos es adecuado?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Regalo",
+            "grupo_intent": "G3",
+            "intencion_inicial": "quiero un ramo bonito para regalar"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [opciones]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

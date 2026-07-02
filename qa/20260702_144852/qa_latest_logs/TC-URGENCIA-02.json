@@ -1,0 +1,80 @@
+{
+  "tc_id": "TC-URGENCIA-02",
+  "tc_name": "Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana",
+  "group": "COMPRA-ZG",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "lo necesito urgente, ¿en cuánto tiempo entregáis?",
+          "agent": "Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?",
+          "playbook": "unknown",
+          "params": {
+            "es_urgente": true,
+            "intencion_inicial": "comprar flores con restriccion temporal",
+            "registro": "estandar",
+            "estado_emocional": "neutro"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [plazo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "mañana por la mañana",
+          "agent": "Entendido. ¿Qué flores te gustaría que incluyera el ramo?\n",
+          "playbook": "unknown",
+          "params": {
+            "estado_emocional": "neutro",
+            "es_urgente": true,
+            "intencion_inicial": "comprar flores con restriccion temporal",
+            "registro": "estandar"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [mañana|perfecto|posible|24h|llega|pedido]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

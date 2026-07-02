@@ -1,0 +1,108 @@
+{
+  "tc_id": "TC-TONO-APLICACION-CORP-01",
+  "tc_name": "Modo corporativo sostenido — arreglo para evento de empresa",
+  "group": "TONO",
+  "type": "EDGE",
+  "status": "FAIL",
+  "pass_count": 0,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": false,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "necesito un arreglo floral para la recepcion de mi empresa",
+          "agent": "¡Claro! Tenemos centros de mesa y bouquets que quedan genial en recepciones. ¿Tienes alguna flor o color en mente?\n Mira, para la recepción de tu empresa tenemos estas opciones:\n\n*   Arreglo Floral Eventos — S (Multicolor, 9 flores, 49€)\n*   Arreglo Floral — M (Blanco y Verde, 15 flores, 90€)\n*   Arreglo Floral Eventos — M (Multicolor, 15 flores, 82€)\n\n¿Cuál te encaja más?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "arreglo floral para la recepcion de mi empresa",
+            "ocasion_detectada": "Corporativo",
+            "producto": "arreglo floral"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "OK: Agente dijo [arreglo]",
+              "FAIL: Agente NO debía decir [mira,|genial|fenomenal|🌸]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "algo elegante, presupuesto de 200 euros",
+          "agent": "Vale, con un presupuesto de hasta 200 euros, te sigo mostrando arreglos florales para la recepción:\n\n*   Arreglo Floral Eventos — S (Multicolor, 9 flores, 49€)\n*   Arreglo Floral — M (Blanco y Verde, 15 flores, 90€)\n*   Arreglo Floral Eventos — M (Multicolor, 15 flores, 82€)\n\n¿Alguno de estos te parece elegante o quieres que busquemos algo más específico?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "arreglo floral para la recepcion de mi empresa",
+            "ocasion_detectada": "Corporativo",
+            "producto": "arreglo floral"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [elegante]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "perfecto, ese mismo",
+          "agent": "¿A cuál te refieres exactamente? Tengo tres opciones:\n\n*   Arreglo Floral Eventos — S (Multicolor, 9 flores, 49€)\n*   Arreglo Floral — M (Blanco y Verde, 15 flores, 90€)\n*   Arreglo Floral Eventos — M (Multicolor, 15 flores, 82€)\n\n",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Corporativo",
+            "producto": "arreglo floral",
+            "grupo_intent": "G5",
+            "intencion_inicial": "arreglo floral para la recepcion de mi empresa"
+          },
+          "checks": {
+            "pass": false,
+            "details": [
+              "FAIL: Agente debía decir [confirm|pedido|datos|checkout|registr|direcc]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

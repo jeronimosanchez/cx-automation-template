@@ -1,0 +1,107 @@
+{
+  "tc_id": "TC-MULTI-PRODUCTO-01",
+  "tc_name": "Pedido multi-item — ECO RESUMEN muestra total antes de confirmar",
+  "group": "COMPRA-INV",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "quiero un ramo de rosas y un centro de mesa para mi casa",
+          "agent": "¡Claro! Te ayudo con eso. ¿Qué tipo de rosas te gustaría y de qué tamaño el centro de mesa? Claro, un ramo de rosas y un centro de mesa para tu casa.\n\n Mira, para el ramo de rosas tenemos:\n\n*   Ramo de Rosas Morado — M (15 flores, 37€)\n*   Ramo de Rosas Amarillo — M (12 flores, 25€)\n*   Ramo de Rosas Blanco — M (12 flores, 25€)\n\n¿Cuál te encaja?",
+          "playbook": "unknown",
+          "params": {
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero un ramo de rosas y un centro de mesa para mi casa",
+            "ocasion_detectada": "Decoracion",
+            "producto": "ramo de rosas y centro de mesa"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [centro.{0,80}ramo]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Response Id",
+              "Session Id"
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "user": "el ramo de rosas morado de 37 euros",
+          "agent": "Anotado, 1 x Ramo de Rosas Morado (37€). Ahora el centro de mesa:\n\n Para centros de mesa tenemos:\n\n*   Centro de Mesa Orquídeas Blanco — S (8 tallos, 28€)\n*   Centro de Mesa Tulipanes Multicolor — S (8 flores, 28€)\n*   Centro de Mesa Rosas y Eucalipto Rosa y Verde — S (6 flores, 26€)\n\n¿Cuál te gusta más?",
+          "playbook": "unknown",
+          "params": {
+            "ocasion_detectada": "Decoracion",
+            "producto": "ramo de rosas y centro de mesa",
+            "grupo_intent": "G5",
+            "intencion_inicial": "quiero un ramo de rosas y un centro de mesa para mi casa"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [morado]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "user": "el centro de tulipanes de 28 euros",
+          "agent": "Perfecto. Entonces sería:\n\n*   1 x Ramo de Rosas Morado (37€)\n*   1 x Centro de Mesa Tulipanes Multicolor (28€)\n\nTotal: 65€. ¿Confirmas?",
+          "playbook": "unknown",
+          "params": {
+            "intencion_inicial": "quiero un ramo de rosas y un centro de mesa para mi casa",
+            "ocasion_detectada": "Decoracion",
+            "grupo_intent": "G5",
+            "producto": "ramo de rosas y centro de mesa"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [65]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}

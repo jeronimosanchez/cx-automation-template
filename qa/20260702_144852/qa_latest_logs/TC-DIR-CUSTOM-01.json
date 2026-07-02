@@ -1,0 +1,61 @@
+{
+  "tc_id": "TC-DIR-CUSTOM-01",
+  "tc_name": "Override direccion habitual — cliente identificado pide otra direccion",
+  "group": "G5>CK",
+  "type": "EDGE",
+  "status": "PASS",
+  "pass_count": 1,
+  "total_runs": 1,
+  "ts": "2026-07-02 14:48",
+  "ts_file": "20260702_1448",
+  "runs": [
+    {
+      "run_id": 1,
+      "pass": true,
+      "turns": [
+        {
+          "turn": 1,
+          "user": "mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa",
+          "agent": "¡Hola, Ana! Ya te tengo localizada. Te preparo tu ramo de rosas rojas talla M para regalo y lo enviamos a la oficina. ¿Me confirmas la dirección de la oficina? Perfecto Ana, te resumo tu pedido:\n\n🌸 1 x Ramo de Rosas Rojas — M\n💳 37€\n📍 la oficina\n\n¿Confirmamos?",
+          "playbook": "unknown",
+          "params": {
+            "producto": "Ramo de Rosas Rojas — M",
+            "cantidad": "1",
+            "precio_estimado": "37",
+            "intencion_inicial": "ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa",
+            "nombre_cliente": "Ana",
+            "email": "ana@email.com",
+            "tipo_cliente": "particular",
+            "Direccion_Habitual": "Calle Mayor 10, 28013 Madrid",
+            "ocasion_detectada": "Regalo",
+            "estado_pago": "Al dia",
+            "grupo_intent": "G5",
+            "id_cliente": "101"
+          },
+          "checks": {
+            "pass": true,
+            "details": [
+              "OK: Agente dijo [rosa]"
+            ]
+          },
+          "trace": {
+            "currentPlaybook": "unknown",
+            "matchType": "PLAYBOOK",
+            "confidence": 1,
+            "diagnosticInfo_keys": [
+              "Session Id",
+              "Response Id"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "orquestador": "v65",
+    "compra": "v39",
+    "checkout": "v33",
+    "registro": "v7 (Task)",
+    "script": "v23"
+  }
+}
