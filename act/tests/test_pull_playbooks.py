@@ -207,7 +207,7 @@ def test_round_trip_handoff_zero_tools():
         "goal": "escalado a humano",
         "playbookType": "ROUTINE",
         "tokenCount": 467,
-        "inputParameterDefinitions": [{"name": "razon_handoff", "type": "STRING"}],
+        "inputParameterDefinitions": [{"name": "razon", "type": "STRING"}],
         "instruction": {"steps": [{"text": "Eres Alicia, gestora."}]},
     }
     local = cx_to_local(remote)

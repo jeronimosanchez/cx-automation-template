@@ -67,13 +67,13 @@ playbookOutput:
   actionParameters:
     id_cliente: '156'
     apellidos: Ruiz
-    sesion_cerrada: false
-    recien_registrado: true
-    Direccion_Habitual: Calle Mayor 5, 2A, 28013 Madrid
+    fin_sesion: false
+    recien_reg: true
+    dir_habitual: Calle Mayor 5, 2A, 28013 Madrid
     estado_pago: Al dia
     nombre_cliente: Marcos
     tipo_cliente: particular
     telefono: ''
-    razon_handoff: ''
+    razon: ''
     email: marcos.ruiz@empresa.es
 languageCode: es

@@ -602,7 +602,7 @@
 - id: TC-CAMBIO-URGENCIA-01
   type: EDGE
   group: COMPRA-ZG
-  name: Cambio mid-conversacion — prisa activa es_urgente (registro NO cambia)
+  name: Cambio mid-conversacion — prisa activa urgente (registro NO cambia)
   turns:
   - user: quiero un ramo para regalar
     checks:

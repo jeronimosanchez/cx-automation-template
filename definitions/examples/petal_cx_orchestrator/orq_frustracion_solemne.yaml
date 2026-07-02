@@ -1,10 +1,10 @@
 playbook: Petal CX Orchestrator
 id: orq_frustracion_solemne
-displayName: "Ex — frustración desde inicio → registro solemne + usuario_frustrado"
+displayName: "Ex — frustración desde inicio → registro solemne + frustrado"
 description: >
   El usuario llega con frustración explícita por un problema de entrega.
   Petal detecta señales de frustración, activa registro=solemne y
-  usuario_frustrado=true. Sin frases de empatía vacía — acción directa.
+  frustrado=true. Sin frases de empatía vacía — acción directa.
 actions:
 - userUtterance:
     text: >
@@ -18,12 +18,12 @@ actions:
 playbookOutput:
   executionSummary: >
     Señales de frustración: "no han llegado" + "esto es inaceptable".
-    Fija registro=solemne, usuario_frustrado=true. Acción inmediata
+    Fija registro=solemne, frustrado=true. Acción inmediata
     sin empatía performativa.
   actionParameters:
-    estado_emocional: frustración
+    emocion: frustración
     registro: solemne
-    usuario_frustrado: true
+    frustrado: true
     intencion_detectada: reclamacion_entrega
 conversationState: OUTPUT_STATE_OK
 languageCode: es

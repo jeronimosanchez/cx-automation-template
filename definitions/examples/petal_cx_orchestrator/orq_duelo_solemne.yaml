@@ -19,9 +19,9 @@ playbookOutput:
     Señales de duelo: "entierro" + "falleció". Fija registro=solemne,
     ocasion_detectada=Funeral. Sin condolencias verbales ni exclamaciones.
   actionParameters:
-    estado_emocional: duelo
+    emocion: duelo
     registro: solemne
     ocasion_detectada: Funeral
-    intencion_inicial: comprar flores para funeral
+    intencion: comprar flores para funeral
 conversationState: OUTPUT_STATE_OK
 languageCode: es

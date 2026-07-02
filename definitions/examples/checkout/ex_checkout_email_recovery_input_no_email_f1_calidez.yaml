@@ -73,13 +73,13 @@ playbookInput:
     cantidad: '1'
     precio_estimado: '37'
     registro: estandar
-    es_urgente: false
-    usuario_frustrado: false
+    urgente: false
+    frustrado: false
 playbookOutput:
   executionSummary: 'Usuario envio entrada no-email en T1 ("Si, confirmo"). Agente aplico F1 (calidez), reformulo la peticion sin abandonar el bucle. Usuario envio email valido. Perfil encontrado (count=1, cliente Ana). Checkout completo el pedido con PED-0099.'
   actionParameters:
     nombre_cliente: Ana
     id_cliente: '101'
-    recien_registrado: 'false'
+    recien_reg: 'false'
 conversationState: OUTPUT_STATE_OK
 languageCode: es

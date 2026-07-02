@@ -34,13 +34,13 @@ actions:
         estado_pago: Al dia
         nombre_cliente: Elena
         apellidos: García
-        razon_handoff: ''
-        Direccion_Habitual: Calle Mayor 10, 28001 Madrid
-        sesion_cerrada: ''
+        razon: ''
+        dir_habitual: Calle Mayor 10, 28001 Madrid
+        fin_sesion: ''
         tipo_cliente: particular
         email: elena.nueva@email.com
         telefono: '612345678'
-        recien_registrado: 'true'
+        recien_reg: 'true'
     playbookState: OUTPUT_STATE_OK
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
@@ -101,13 +101,13 @@ playbookInput:
     cantidad: '1'
     precio_estimado: '45'
     registro: estandar
-    es_urgente: false
-    usuario_frustrado: false
+    urgente: false
+    frustrado: false
 playbookOutput:
   executionSummary: 'Email no encontrado. Cliente eligió registrarse. Invocó Registro_Task con email. Registro completado. Checkout continúa con PASO '
   actionParameters:
     nombre_cliente: María
     id_cliente: '114'
-    recien_registrado: 'true'
+    recien_reg: 'true'
 conversationState: OUTPUT_STATE_OK
 languageCode: es

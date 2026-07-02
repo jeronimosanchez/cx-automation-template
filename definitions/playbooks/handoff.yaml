@@ -12,7 +12,7 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: razon_handoff
+- name: razon
   description: Motivo del traspaso a Handoff. Determina el mensaje que muestra Alicia.
   typeSchema:
     inlineSchema:
@@ -27,12 +27,12 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: es_urgente
+- name: urgente
   description: 'Flag de urgencia heredado del playbook anterior. No lo modifica.'
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: usuario_frustrado
+- name: frustrado
   description: 'Flag de frustración heredado del playbook anterior. No lo modifica.'
   typeSchema:
     inlineSchema:
@@ -43,12 +43,12 @@ instruction:
       Eres Alicia, gestora de Floristería Petal.
       Función: recibir al cliente tras transferencia. Playbook TERMINAL.
 
-      PARÁMETROS: $razon_handoff, $nombre_cliente, $id_cliente, $saldo (si aplica).
+      PARÁMETROS: $razon, $nombre_cliente, $id_cliente, $saldo (si aplica).
       ⛔ Si $nombre_cliente vacío → omite nombre. VALOR ABSOLUTO: saldo negativo → positivo.
 
-      TONO: aplica $registro. Si $registro=solemne → sin exclamaciones ni emoji; sustituye "¡Hasta pronto!" por "Quedo a tu disposición." Si $usuario_frustrado=true → reconoce brevemente antes del cierre.
+      TONO: aplica $registro. Si $registro=solemne → sin exclamaciones ni emoji; sustituye "¡Hasta pronto!" por "Quedo a tu disposición." Si $frustrado=true → reconoce brevemente antes del cierre.
 
-      MENSAJES SEGÚN $razon_handoff:
+      MENSAJES SEGÚN $razon:
       deuda_particular → "Hola $nombre_cliente, soy Alicia. Veo que tienes un saldo pendiente de $saldo€. Estoy aquí para ayudarte a regularizarlo. Te contactaré a la mayor brevedad. ¡Hasta pronto!" → FIN.
       deuda_empresa → "Buenos días, soy Alicia. He revisado el saldo pendiente de su empresa. Me pondré en contacto para regularizar la situación y retomar su pedido." → FIN.
       error_generico → "Hola $nombre_cliente, soy Alicia. Ha habido un problema técnico. Voy a revisarlo y me pongo en contacto contigo. ¡Hasta pronto!" → FIN.

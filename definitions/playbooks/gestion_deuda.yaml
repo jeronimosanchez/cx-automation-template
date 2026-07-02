@@ -53,13 +53,13 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: usuario_frustrado
+- name: frustrado
   description: 'Flag de frustración heredado de Checkout. No lo modifica. Se relay a Handoff.'
   typeSchema:
     inlineSchema:
       type: BOOLEAN
 outputParameterDefinitions:
-- name: razon_handoff
+- name: razon
   description: Causa del traspaso a Handoff.
   typeSchema:
     inlineSchema:
@@ -79,7 +79,7 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: usuario_frustrado
+- name: frustrado
   description: 'Flag de frustración relay a Handoff.'
   typeSchema:
     inlineSchema:
@@ -92,8 +92,8 @@ instruction:
       NUNCA completes compra. NUNCA ofrezcas alternativas de pago.
 
       PARÁMETROS ENTRADA: $producto, $cantidad, $precio_estimado, $id_cliente, $nombre_cliente, $direccion_entrega, $saldo, $tipo_cliente.
-      SALIDA: $razon_handoff, $nombre_cliente, $saldo, $registro, $usuario_frustrado → Handoff.
-      En toda transferencia a Handoff: incluir siempre $razon_handoff, $nombre_cliente, $saldo, $registro, $usuario_frustrado.
+      SALIDA: $razon, $nombre_cliente, $saldo, $registro, $frustrado → Handoff.
+      En toda transferencia a Handoff: incluir siempre $razon, $nombre_cliente, $saldo, $registro, $frustrado.
 
       ⛔ VALOR ABSOLUTO: Si $saldo=-150, muestra 150. Elimina siempre signo negativo.
 
@@ -101,25 +101,25 @@ instruction:
 
       SI PARTICULAR:
       Paso 1. agent_copy["deuda_particular"]. Sustituye {saldo}=valor absoluto. Di texto. ESPERA.
-        - Acepta → $razon_handoff="deuda_particular" → "Te paso con especialista." → ${PLAYBOOK:Handoff}.
+        - Acepta → $razon="deuda_particular" → "Te paso con especialista." → ${PLAYBOOK:Handoff}.
         - Rechaza/insiste comprar → Paso 1b.
         - Afirma haber pagado → Paso 1c.
         - Fuera contexto → redirige: "Para continuar, ¿quieres hablar con especialista?"
       Paso 1b. agent_copy["deuda_insiste_comprar"]. Di texto. ESPERA.
-        - Acepta → $razon_handoff="deuda_particular" → "Te paso con Alicia." → ${PLAYBOOK:Handoff}.
+        - Acepta → $razon="deuda_particular" → "Te paso con Alicia." → ${PLAYBOOK:Handoff}.
         - Rechaza → "Cuando quieras retomar, solo necesitamos resolver el saldo. ¡Hasta pronto!" → FIN.
       Paso 1c. "No puedo verificar pagos. Te paso con especialista que lo comprobará."
-        → $razon_handoff="deuda_particular" → ${PLAYBOOK:Handoff}. NUNCA confirmes/niegues pago.
+        → $razon="deuda_particular" → ${PLAYBOOK:Handoff}. NUNCA confirmes/niegues pago.
 
       SI EMPRESA (tratamiento de usted):
       Paso 2. agent_copy["deuda_empresa"]. Di texto. ESPERA.
-        - Acepta → $razon_handoff="deuda_empresa" → "Le paso con especialista." → ${PLAYBOOK:Handoff}.
+        - Acepta → $razon="deuda_empresa" → "Le paso con especialista." → ${PLAYBOOK:Handoff}.
         - Rechaza/insiste → Paso 2a.
         - Afirma haber pagado → Paso 2b.
       Paso 2a. agent_copy["deuda_insiste_comprar"]. ESPERA.
         - Acepta → Handoff. Rechaza → despedida con saldo → FIN.
       Paso 2b. "No puedo verificar pagos. Le paso con especialista."
-        → $razon_handoff="deuda_empresa" → ${PLAYBOOK:Handoff}.
+        → $razon="deuda_empresa" → ${PLAYBOOK:Handoff}.
 
       INTENTS TRANSVERSALES
       INT-11 HUMANO: atajo directo → Handoff("cliente_solicita_humano"). NUNCA convenzas.

@@ -70,11 +70,11 @@ actions:
 playbookInput:
   precedingConversationSummary: Orquestador clasificó "quiero rosas" como G5 y transfirió a Compra con producto=rosas pero sin ocasión ni color.
   actionParameters:
-    Direccion_Habitual: Calle Mayor 10, Madrid
+    dir_habitual: Calle Mayor 10, Madrid
     tipo_cliente: particular
     estado_pago: Al dia
     grupo_intent: G5
-    intencion_inicial: quiero rosas
+    intencion: quiero rosas
     id_cliente: '101'
     nombre_cliente: Ana
 playbookOutput:
@@ -83,7 +83,7 @@ playbookOutput:
     nombre_cliente: Ana
     ocasion_detectada: Regalo
     'id_cliente ': '101'
-    Direccion_Habitual: Calle Mayor 10, Madrid
+    dir_habitual: Calle Mayor 10, Madrid
     cantidad: '1'
     producto: Ramo de Rosas Rojas — M
     estado_pago: Al dia

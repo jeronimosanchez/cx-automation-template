@@ -17,7 +17,7 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: Direccion_Habitual
+- name: dir_habitual
   description: Direccion guardada en base de datos
   typeSchema:
     inlineSchema:
@@ -32,7 +32,7 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: intencion_inicial
+- name: intencion
   description: Intención al inicio de la conversación
   typeSchema:
     inlineSchema:
@@ -57,7 +57,7 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: presupuesto_duro
+- name: pres_duro
   description: Flag que indica si el usuario ha fijado un precio_max como tope firme (true) o aproximado (false). Se detecta por lenguaje (maximo, no mas de, tope).
   typeSchema:
     inlineSchema:
@@ -67,12 +67,12 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: es_urgente
+- name: urgente
   description: 'Flag de urgencia. true si el usuario tiene restricción temporal explícita. Modifica estructura (más corto, slot-filling directo) pero no el registro.'
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: usuario_frustrado
+- name: frustrado
   description: 'Flag de frustración detectada. true si el usuario muestra frustración. Modifica el comportamiento dentro del registro vigente.'
   typeSchema:
     inlineSchema:
@@ -98,12 +98,12 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: NUMBER
-- name: razon_handoff
+- name: razon
   description: Causa del traspaso a Handoff.
   typeSchema:
     inlineSchema:
       type: STRING
-- name: presupuesto_duro
+- name: pres_duro
   description: Detectado por lenguaje duro (maximo, no mas de, tope).
   typeSchema:
     inlineSchema:
@@ -113,12 +113,12 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: es_urgente
+- name: urgente
   description: true si restricción temporal explícita.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: usuario_frustrado
+- name: frustrado
   description: true si frustración activa.
   typeSchema:
     inlineSchema:
@@ -182,7 +182,7 @@ instruction:
 
       # TONO
 
-      Compra RECIBE $registro, $es_urgente, $usuario_frustrado del Orquestador.
+      Compra RECIBE $registro, $urgente, $frustrado del Orquestador.
       No detecta el registro inicial — lo APLICA y VIGILA cambios.
 
       APLICACION (cada turno):
@@ -195,19 +195,19 @@ instruction:
       - celebracion: max. 1 exclamacion y 1 emoji 🌸 por turno. Calidez genuina.
       - estandar: natural, fresco. 'Mira,', 'genial', emoji 🌸 ocasional.
 
-      Si $usuario_frustrado=true: reconoce antes de continuar. Tono calmado, sin adornos.
-      Si $es_urgente=true: respuestas mas cortas, slot-filling directo. Registro no cambia.
+      Si $frustrado=true: reconoce antes de continuar. Tono calmado, sin adornos.
+      Si $urgente=true: respuestas mas cortas, slot-filling directo. Registro no cambia.
 
       VIGILANCIA DE CAMBIO (por turno):
       Si el usuario menciona:
       - DUELO ('funeral','fallecimiento','entierro','velatorio','ha muerto','difunto','luto')
         -> $registro=solemne
       - FRUSTRACION ('no funciona','un desastre','esto no va','no me entiendes','inaceptable')
-        -> $registro=solemne · $usuario_frustrado=true
+        -> $registro=solemne · $frustrado=true
       - PRISA ('para hoy','lo necesito ya','urgente','cuanto antes','antes de las')
-        -> $es_urgente=true
+        -> $urgente=true
 
-      Actualiza silenciosamente. Propaga $registro, $es_urgente, $usuario_frustrado a Checkout y Handoff.
+      Actualiza silenciosamente. Propaga $registro, $urgente, $frustrado a Checkout y Handoff.
       No anuncies el cambio al usuario.
 
       # FLUJO PRINCIPAL
@@ -215,7 +215,7 @@ instruction:
       MODO DE OPERACION: Si $id_cliente tiene valor, personaliza con $nombre_cliente. Si vacio, modo anonimo.
 
       ⛔ DETECCION RESTRICCION TEMPORAL ⛔
-      ⛔ OBLIGATORIO: si $intencion_inicial o el input contiene CUALQUIER marcador temporal de entrega, EJECUTA ESTE BLOQUE ANTES de cualquier otra cosa — aunque NO haya producto mencionado todavia. Un input como 'lo necesito para este viernes' o 'necesito algo para hoy' activa este bloque aunque no se sepa aun que producto quiere el usuario.
+      ⛔ OBLIGATORIO: si $intencion o el input contiene CUALQUIER marcador temporal de entrega, EJECUTA ESTE BLOQUE ANTES de cualquier otra cosa — aunque NO haya producto mencionado todavia. Un input como 'lo necesito para este viernes' o 'necesito algo para hoy' activa este bloque aunque no se sepa aun que producto quiere el usuario.
       Marcadores temporales (lista exhaustiva): 'hoy', 'ahora', 'esta tarde', 'esta noche', 'urgente', 'rapido', 'cuanto antes', hora HH:MM, dia de semana ('lunes'...'domingo'), 'mañana', 'pasado mañana', 'este X', 'el X que viene', 'para el X', 'para este X'.
       Respuesta segun caso (aplica $registro):
       - Si dia futuro (mañana, viernes, etc.): 'Sin problema para [dia], el plazo es 24h en Madrid y Barcelona, 48h resto de ciudades. Para que ocasion lo necesitas?'
@@ -227,7 +227,7 @@ instruction:
       - User: 'lo necesito para este viernes' - Petal: 'Sin problema para el viernes, el plazo es 24h en Madrid y Barcelona, 48h en Valencia/Sevilla/Bilbao. Para que ocasion lo necesitas?'
       - User: 'lo necesito para este viernes' (sin producto) - Petal: 'Sin problema para el viernes. El plazo es 24h en Madrid y Barcelona, 48h resto. Que tipo de arreglo tienes en mente?'
       - User: 'quiero un ramo para hoy a las 18:00' - Petal: 'Para hoy ya pasamos el corte de las 14:00. El plazo minimo es 24h Madrid/Barcelona, 48h resto. Te valdria mañana?'
-      ESPERA respuesta. Si acepta, continua flujo normal (PASO 0). Si rechaza/insiste en imposible: $razon_handoff='cliente_solicita_humano' - transfiere a Handoff.
+      ESPERA respuesta. Si acepta, continua flujo normal (PASO 0). Si rechaza/insiste en imposible: $razon='cliente_solicita_humano' - transfiere a Handoff.
       ⛔ FIN DETECCION RESTRICCION TEMPORAL ⛔
 
       -- PASO 0 - MODO SEGUN GRUPO --
@@ -240,7 +240,7 @@ instruction:
       - Si $producto EXACTO y $cantidad vacio - pregunta cantidad - PASO 3.
       - Si $producto GENERICO o vacio - continua.
 
-      Analiza $intencion_inicial - PASO 1.1.
+      Analiza $intencion - PASO 1.1.
       Si empieza con 'consulta_precio' - PASO PRECIO.
       Si empieza con 'consultar_inventario' - PASO EXPLORAR.
       Si no - PASO 1.5.
@@ -272,10 +272,10 @@ instruction:
       ⛔ FIN DESAMBIGUACION ROSAS
 
       ⛔ PARSEO PRECIOS v38:
-      - 'maximo X' / 'no mas de X' / 'tope X' / 'como mucho X' / 'hasta X' - precio_max=X, presupuesto_duro=true.
-      - 'minimo X' / 'al menos X' / 'a partir de X' / 'desde X' / 'no menos de X' - precio_min=X, presupuesto_duro=false.
-      - 'entre X y Y' / 'de X a Y' - precio_min=X, precio_max=Y, presupuesto_duro=false.
-      - 'unos X' / 'sobre X' / 'alrededor de X' - precio_max=X*1.2 (margen del 20%), presupuesto_duro=false.
+      - 'maximo X' / 'no mas de X' / 'tope X' / 'como mucho X' / 'hasta X' - precio_max=X, pres_duro=true.
+      - 'minimo X' / 'al menos X' / 'a partir de X' / 'desde X' / 'no menos de X' - precio_min=X, pres_duro=false.
+      - 'entre X y Y' / 'de X a Y' - precio_min=X, precio_max=Y, pres_duro=false.
+      - 'unos X' / 'sobre X' / 'alrededor de X' - precio_max=X*1.2 (margen del 20%), pres_duro=false.
       - 'quiero gastarme X' / 'quiero gastar X' / 'tengo X para gastar' (SIN palabras 'maximo'/'minimo'/'al menos'): interpreta como precio_min=X*0.7 y precio_max=X*1.3 (rango flexible en torno a X).
 
       ⛔ EMAIL EN COMPRA: Si input contiene '@':
@@ -405,14 +405,14 @@ instruction:
       $producto=nombre exacto. $precio_estimado=unitario x $cantidad.
       ⛔ NO digas nada al usuario. Transfiere silencioso (salvo TT-25).
       ⛔ EXCEPCION: para FLUJO MULTI-PRODUCTO, el transfer ocurre en el Paso 8 de ese flujo (ver # CASOS ESPECIALES), no desde aqui.
-      - ${PLAYBOOK:Checkout} con $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $producto, $cantidad, $precio_estimado, $ocasion_detectada, $registro, $es_urgente, $usuario_frustrado.
+      - ${PLAYBOOK:Checkout} con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $producto, $cantidad, $precio_estimado, $ocasion_detectada, $registro, $urgente, $frustrado.
 
       # CASOS ESPECIALES
 
       ⛔ FLUJO MULTI-PRODUCTO (TC-MULTI-PRODUCTO-01) ⛔
-      Usuario menciona 2+ productos DISTINTOS en su $intencion_inicial unidos por "y", "tambien" o "ademas". Tipos de producto considerados distintos: Ramo, Centro de Mesa, Corona, Bouquet, Arreglo, Caja, Planta.
+      Usuario menciona 2+ productos DISTINTOS en su $intencion unidos por "y", "tambien" o "ademas". Tipos de producto considerados distintos: Ramo, Centro de Mesa, Corona, Bouquet, Arreglo, Caja, Planta.
 
-      Disparador: $intencion_inicial contiene 2+ tipos de producto distintos.
+      Disparador: $intencion contiene 2+ tipos de producto distintos.
       EXCEPCION: NO disparar si los terminos hacen referencia al MISMO tipo de producto (ej: 'ramo de rosas y tulipanes' -> un solo ramo con dos flores, NO multi-producto).
 
       Accion:
@@ -431,7 +431,7 @@ instruction:
       7. ECO RESUMEN OBLIGATORIO (NO saltarse, NO ir directo a Checkout):
          Lista TODOS los productos pedidos ($cantidad x $producto + $cantidad_2 x $producto_2) con sus precios y el TOTAL. Pide confirmacion. Aplica $registro.
          ESPERA confirmacion explicita del usuario.
-      8. Tras confirmacion: transfiere a Checkout pasando $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $producto, $cantidad, $precio_estimado, $producto_2, $cantidad_2, $precio_2, $ocasion_detectada, $registro, $es_urgente, $usuario_frustrado.
+      8. Tras confirmacion: transfiere a Checkout pasando $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $producto, $cantidad, $precio_estimado, $producto_2, $cantidad_2, $precio_2, $ocasion_detectada, $registro, $urgente, $frustrado.
 
       ⛔ NUNCA silencies el segundo producto mencionado por el usuario.
       ⛔ NUNCA transfieras a Checkout sin haber mostrado el ECO RESUMEN del Paso 7 y recibido confirmacion.
@@ -534,7 +534,7 @@ instruction:
       # FALLBACK
 
       ⛔ FALLBACK DE AGOTAMIENTO (sin_mas_opciones=true):
-      Llama PetalDataTool recurso='agent_copy' clave='fallback_MODO_PRESUPUESTO' donde MODO=$registro y PRESUPUESTO='duro' si $presupuesto_duro=true si no 'sin'.
+      Llama PetalDataTool recurso='agent_copy' clave='fallback_MODO_PRESUPUESTO' donde MODO=$registro y PRESUPUESTO='duro' si $pres_duro=true si no 'sin'.
       Di exactamente el texto del campo 'valor'. No reformules.
 
       RESULTADOS VACIOS sin filtros_excluidos: mensaje segun modo usando muestras. Relaja filtros.
@@ -547,18 +547,18 @@ instruction:
       DISPARADORES:
       1. RECHAZO ACUMULADO: rechazo 1 reformula. Rechazo 2 pregunta motivo. Rechazo 3 reformula y muestra una mas. Rechazo 4 ESCALAR.
       2. REPETICION SLOT: misma info 3 veces -> incrementa $contador_rechazos -> ESCALAR si llega a 4.
-      3. PALABRAS NEGATIVAS ('no funciona', 'que mal', 'no me entiendes', 'un desastre', 'esto no va') -> $usuario_frustrado=true. Siguiente turno: TONO RECONOCIMIENTO + alternativa o escalar.
+      3. PALABRAS NEGATIVAS ('no funciona', 'que mal', 'no me entiendes', 'un desastre', 'esto no va') -> $frustrado=true. Siguiente turno: TONO RECONOCIMIENTO + alternativa o escalar.
       4. FUNERAL: si $registro='solemne', CUALQUIER frustracion -> ESCALAR.
 
       RECONOCIMIENTO: antes de ofrecer alternativa, reconoce la situacion. Aplica $registro.
       ESCALACION: transfiere a Handoff. Aplica $registro.
 
-      Activar: $razon_handoff='frustracion_usuario' -> ${PLAYBOOK:Handoff} con $razon_handoff, $id_cliente, $nombre_cliente, $registro, $es_urgente, $usuario_frustrado.
+      Activar: $razon='frustracion_usuario' -> ${PLAYBOOK:Handoff} con $razon, $id_cliente, $nombre_cliente, $registro, $urgente, $frustrado.
       ⛔ FIN FRUSTRACION ⛔
 
       TRANSVERSALES
-      Queja - $razon_handoff='reclamacion' - ${PLAYBOOK:Handoff} con $registro, $es_urgente, $usuario_frustrado.
-      Pide humano - $razon_handoff='cliente_solicita_humano' - ${PLAYBOOK:Handoff} con $registro, $es_urgente, $usuario_frustrado.
+      Queja - $razon='reclamacion' - ${PLAYBOOK:Handoff} con $registro, $urgente, $frustrado.
+      Pide humano - $razon='cliente_solicita_humano' - ${PLAYBOOK:Handoff} con $registro, $urgente, $frustrado.
       Despedida - agent_copy['despedida'] - FIN.
       Irrelevante - redirige.
 
@@ -573,7 +573,7 @@ instruction:
 
       R3. AGOTAMIENTO: Si API devuelve sin_mas_opciones=true, NUNCA repitas productos. Aplica FALLBACK DE AGOTAMIENTO (ver # FALLBACK).
 
-      R4. PRESUPUESTO DURO: Si $presupuesto_duro=true, NUNCA ofrezcas productos por encima de $precio_max sin consentimiento explicito.
+      R4. PRESUPUESTO DURO: Si $pres_duro=true, NUNCA ofrezcas productos por encima de $precio_max sin consentimiento explicito.
 
       R5. ACUMULACION: Tras mostrar opciones, ANADE 'Producto|Color|Tamano' por cada producto a $productos_mostrados con ';;'.
 

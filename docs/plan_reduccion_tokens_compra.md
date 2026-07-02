@@ -39,17 +39,17 @@
 
 | Param actual | Propuesta | Ahorro total | Playbooks afectados |
 |---|---|---|---|
-| `es_urgente` | `urgente` | −52 tk | compra, checkout, orchestrator, handoff |
-| `usuario_frustrado` | `frustrado` | −64 tk | compra, checkout, orchestrator, gestion_deuda, handoff |
+| `urgente` | `urgente` | −52 tk | compra, checkout, orchestrator, handoff |
+| `frustrado` | `frustrado` | −64 tk | compra, checkout, orchestrator, gestion_deuda, handoff |
 | `ocasion_detectada` | `ocasion` | −54 tk | compra, checkout, orchestrator |
-| `intencion_inicial` | `intencion` | −34 tk | compra, orchestrator |
-| `recien_registrado` | `recien_reg` | −30 tk | checkout, orchestrator, registro_task |
-| `sesion_cerrada` | `cerrada` | −22 tk | checkout, orchestrator, registro_task |
+| `intencion` | `intencion` | −34 tk | compra, orchestrator |
+| `recien_reg` | `recien_reg` | −30 tk | checkout, orchestrator, registro_task |
+| `fin_sesion` | `cerrada` | −22 tk | checkout, orchestrator, registro_task |
 | `precio_estimado` | `precio_est` | −40 tk | compra, checkout, orchestrator, gestion_deuda |
 | `frustracion_detectada` | `frust_det` | −8 tk | compra |
-| `presupuesto_duro` | `pres_duro` | −8 tk | compra |
+| `pres_duro` | `pres_duro` | −8 tk | compra |
 
-**Descartados por riesgo de ambigüedad:** `precio_estimado→precio` (colisiona con `precio_max`/`precio_2`), `id_cliente→id`, `nombre_cliente→nombre`, `razon_handoff→razon`.
+**Descartados por riesgo de ambigüedad:** `precio_estimado→precio` (colisiona con `precio_max`/`precio_2`), `id_cliente→id`, `nombre_cliente→nombre`, `razon→razon`.
 
 **Prerequisito:** ~~verificar divergencia `modo_tono` vs `registro`~~ — resuelto (2026-07-02): `registro` es el nombre oficial en todos los YAMLs. Ver `docs/param_rename_map.md`.
 **Orden recomendado:** después del paso 6 del plan de compra (params ya limpios) y antes de los Tasks (#9-11).

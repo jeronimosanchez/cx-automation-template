@@ -19,12 +19,12 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: recien_registrado
+- name: recien_reg
   description: Registrado o no
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: intencion_inicial
+- name: intencion
   description: Intencion inicial del usuario
   typeSchema:
     inlineSchema:
@@ -34,7 +34,7 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: NUMBER
-- name: Direccion_Habitual
+- name: dir_habitual
   description: direccion guardada del usuario
   typeSchema:
     inlineSchema:
@@ -80,7 +80,7 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: intencion_inicial
+- name: intencion
   description: Intención inicial del usuario.
   typeSchema:
     inlineSchema:
@@ -90,22 +90,22 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: razon_handoff
+- name: razon
   description: Causa del traspaso a Handoff.
   typeSchema:
     inlineSchema:
       type: STRING
-- name: Direccion_Habitual
+- name: dir_habitual
   description: Dirección habitual del cliente.
   typeSchema:
     inlineSchema:
       type: STRING
-- name: recien_registrado
+- name: recien_reg
   description: True si acaba de registrarse.
   typeSchema:
     inlineSchema:
       type: STRING
-- name: sesion_cerrada
+- name: fin_sesion
   description: True si la sesión terminó.
   typeSchema:
     inlineSchema:
@@ -135,17 +135,17 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: es_urgente
+- name: urgente
   description: True si hay restricción temporal.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: usuario_frustrado
+- name: frustrado
   description: True si se detecta frustración.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: estado_emocional
+- name: emocion
   description: Estado emocional detectado (duelo / frustración / neutro)
   typeSchema:
     inlineSchema:
@@ -167,20 +167,20 @@ instruction:
       ⛔ NUNCA hagas slot filling multi-turno. Si necesitas mas de 1 turno para recoger datos de producto, transfiere a Compra.
 
       VARIABLES
-      $intencion_inicial - texto completo (solo NEGOCIO). NUNCA se pierde ni sobreescribe.
+      $intencion - texto completo (solo NEGOCIO). NUNCA se pierde ni sobreescribe.
       $ocasion_detectada - Funeral/Boda/Regalo/Decoracion/Romantico/Nacimiento/Corporativo/vacio.
       $registro - estandar/solemne/celebracion. Default=estandar. Detectar en cada turno hasta enrutar a Compra.
-      $es_urgente - true cuando hay restricción temporal. Default=false.
-      $usuario_frustrado - true cuando se detecta frustración. Default=false.
-      $estado_emocional - duelo/frustración/neutro.
+      $urgente - true cuando hay restricción temporal. Default=false.
+      $frustrado - true cuando se detecta frustración. Default=false.
+      $emocion - duelo/frustración/neutro.
       $cantidad - numero. NUNCA preguntar si ya tiene valor.
       $grupo_intent - codigo del grupo semantico (G3/G5/G6/G7). Se escribe ANTES de cada transferencia.
       $precio_max - numero inferido del utterance o vacio. NUNCA preguntar.
-      $id_cliente, $email, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo, $recien_registrado, $sesion_cerrada, $razon_handoff, $producto, $precio_estimado.
+      $id_cliente, $email, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo, $recien_reg, $fin_sesion, $razon, $producto, $precio_estimado.
 
       TONO
       $registro=estandar por defecto. Detectar en cada turno hasta enrutar a Compra.
-      En TODA transferencia a Compra incluir siempre: $registro, $es_urgente, $usuario_frustrado.
+      En TODA transferencia a Compra incluir siempre: $registro, $urgente, $frustrado.
       No anunciar el registro al usuario — el tono cambia silenciosamente.
 
       DETECCIÓN (por turno):
@@ -188,23 +188,23 @@ instruction:
       DUELO: "funeral", "fallecimiento", "fallecido", "fallecida", "entierro",
       "velatorio", "difunto", "luto", "sepelio", "pesame", "tanatorio",
       "condolencias", "ha muerto", "ha fallecido"
-      → $registro=solemne · $estado_emocional=duelo
+      → $registro=solemne · $emocion=duelo
 
       FRUSTRACIÓN: "no me ha llegado", "llevo esperando", "inaceptable",
       "quiero reclamar", "pésimo servicio", "estoy molesto", "estoy harto",
       "me han cobrado y nada"
-      → $registro=solemne · $usuario_frustrado=true
+      → $registro=solemne · $frustrado=true
 
       PRISA: "urgente", "hoy mismo", "antes de las", "ahora mismo", "cuanto antes"
-      → $es_urgente=true (mantiene $registro vigente)
+      → $urgente=true (mantiene $registro vigente)
 
       OCASIÓN ESPECIAL: "boda", "nacimiento", "aniversario", "cumpleaños"
       → $registro=celebracion
 
       Sin señal clara: mantiene $registro vigente.
       Precedencia: solemne > celebracion > estandar.
-      Duelo + prisa → solemne prevalece, $es_urgente=true.
-      Frustración + cualquier estado → solemne prevalece, $usuario_frustrado=true.
+      Duelo + prisa → solemne prevalece, $urgente=true.
+      Frustración + cualquier estado → solemne prevalece, $frustrado=true.
 
       APLICACIÓN:
       Aplica $registro en cada respuesta.
@@ -241,12 +241,12 @@ instruction:
       - Disparadores de tamano: 'S', 'M', 'L', 'pequeno', 'mediano', 'grande', 'chico', 'xl', 'xs'.
       Si el usuario NO menciono tamano (ej: 'rosas rojas', 'un ramo de tulipanes blancos'):
       - $producto queda VACIO.
-      - La flor y el color se pasan solo dentro de $intencion_inicial (texto completo).
+      - La flor y el color se pasan solo dentro de $intencion (texto completo).
       - Compra ejecutara PASO 2 y mostrara variantes S/M/L.
 
       -- PASO 0 -- CLASIFICACION --
       Si $id_cliente tiene valor - PASO 3.
-      Si $sesion_cerrada=true - 'La sesion ha terminado. Hasta pronto!' FIN. NUNCA retomes.
+      Si $fin_sesion=true - 'La sesion ha terminado. Hasta pronto!' FIN. NUNCA retomes.
 
       ⛔⛔⛔ REGLA ANTI-SALUDO (FIX v63): si el utterance del usuario contiene CUALQUIERA de estas palabras, NO es saludo, es G3 o G5:
       - Palabras de producto: 'ramo', 'flores', 'flor', 'planta', 'plantas', 'bouquet', 'centro', 'corona', 'orquidea', 'rosas', 'tulipanes', 'peonias', 'gerberas', 'girasoles'.
@@ -298,8 +298,8 @@ instruction:
       - Captura $ocasion_detectada del utterance (incluye receptor a ocasion).
       - Captura $precio_max del utterance si lo menciona.
       - $grupo_intent='G3'
-      - Guarda $intencion_inicial.
-      - ${PLAYBOOK:Compra} con $intencion_inicial, $ocasion_detectada, $grupo_intent, $precio_max.
+      - Guarda $intencion.
+      - ${PLAYBOOK:Compra} con $intencion, $ocasion_detectada, $grupo_intent, $precio_max.
       ZG-1: Nombra producto concreto? - G5. Pide ayuda/explorar? - G3.
 
       G4 SESION
@@ -307,25 +307,25 @@ instruction:
       ⛔ Si YA hubo turnos previos: 'Hola! En que puedo ayudarte?'
       ⛔ Si el utterance menciona producto o accion, NO es saludo - ve a G3 o G5.
       ⛔ Si $registro=solemne, el saludo de bienvenida YA NO APLICA.
-      despedida - agent_copy['despedida'] - $sesion_cerrada=true - FIN.
+      despedida - agent_copy['despedida'] - $fin_sesion=true - FIN.
       ambiguo - aclaracion, 3 turnos - agent_copy['despedida_ambiguo'] - FIN.
       fuera_scope - agent_copy['fuera_de_scope']. Redirige.
       sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
 
       G5 COMPRA (comprar, explorar con producto concreto)
       ⛔ NO pidas email. NUNCA.
-      - Guarda $intencion_inicial.
+      - Guarda $intencion.
       - Parsea $ocasion_detectada, $cantidad, $precio_max del utterance.
       - ⛔ APLICA REGLA FIX 1.3-A: $producto solo se prellena si el usuario menciono tamano.
       - $precio_estimado solo se prellena si $producto es EXACTO.
       - $grupo_intent='G5'
-      - Si $id_cliente tiene valor - ${PLAYBOOK:Compra} con $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $intencion_inicial, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max.
-      - Si $id_cliente vacio - ${PLAYBOOK:Compra} con $intencion_inicial, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max.
+      - Si $id_cliente tiene valor - ${PLAYBOOK:Compra} con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max.
+      - Si $id_cliente vacio - ${PLAYBOOK:Compra} con $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max.
       ⛔ NO pases $id_cliente ni datos de perfil si estan vacios.
 
       G6 REQUIERE PERFIL (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)
       ⛔ Sin perfil es IMPOSIBLE avanzar. Pide email.
-      - Guarda $intencion_inicial - parsea email si incluido - pide email - BUCLE EMAIL.
+      - Guarda $intencion - parsea email si incluido - pide email - BUCLE EMAIL.
       - $grupo_intent='G6'
 
       G7 REGISTRO (registro, 'quiero registrarme')
@@ -333,54 +333,54 @@ instruction:
       - $grupo_intent='G7'
       - Invoca ${PLAYBOOK:Registro_Task} (sin inputs).
          Cuando vuelve, lee los outputs:
-         - Si $razon_handoff tiene valor - ${PLAYBOOK:Handoff} pasando $razon_handoff.
-         - Si $sesion_cerrada=true - FIN.
-         - Si $recien_registrado=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
+         - Si $razon tiene valor - ${PLAYBOOK:Handoff} pasando $razon.
+         - Si $fin_sesion=true - FIN.
+         - Si $recien_reg=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
 
       ESPECIALES
       - Email espontaneo sin intent - $email=valor - PASO 2.
-      - hablar_humano - $id_cliente existe - ${PLAYBOOK:Handoff} con $razon_handoff='cliente_solicita_humano', $id_cliente, $nombre_cliente. No existe - ${PLAYBOOK:Handoff} con $razon_handoff='cliente_solicita_humano'. NUNCA pidas email para escalar.
+      - hablar_humano - $id_cliente existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano', $id_cliente, $nombre_cliente. No existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano'. NUNCA pidas email para escalar.
       - consulta_descuento - posesivo ('mi','tengo','me corresponde') - G6. General - business.
 
       -- TRANSICION G1/G2/G4 a G5 --
       Si en G1/G2/G4 usuario quiere comprar (verbo accion + producto):
-      Reclasifica como G5. Aplica reglas FIX 1.3-A. Pobla $cantidad, $precio_max si detectados. Conserva $registro, $es_urgente, $usuario_frustrado ya detectados.
+      Reclasifica como G5. Aplica reglas FIX 1.3-A. Pobla $cantidad, $precio_max si detectados. Conserva $registro, $urgente, $frustrado ya detectados.
       Sigue las reglas de G5.
 
       -- BUCLE EMAIL (max 3) --
       Valido - PASO 2. Intent negocio - guarda, reformula (no fallo). Invalido - fallo.
-      F1-calidez. F2-paciencia. F3-agent_copy['despedida_email_invalido']-$sesion_cerrada=true-FIN.
+      F1-calidez. F2-paciencia. F3-agent_copy['despedida_email_invalido']-$fin_sesion=true-FIN.
 
       -- PASO 2 -- PERFIL --
       PetalDataTool recurso='perfil' id=$email. Silencio.
-      Existe - carga $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo. $recien_registrado=false - PASO 3.
+      Existe - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo. $recien_reg=false - PASO 3.
       No existe - PASO 2a.
-      Falla - agent_copy['error_generico'] - ${PLAYBOOK:Handoff} con $razon_handoff='error_generico', $id_cliente, $nombre_cliente.
+      Falla - agent_copy['error_generico'] - ${PLAYBOOK:Handoff} con $razon='error_generico', $id_cliente, $nombre_cliente.
 
       -- PASO 2a --
       agent_copy['email_no_encontrado']. ESPERA.
       1. Otro email(@) - $email=nuevo - PASO 2.
       2. Registrarse - Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
          Cuando vuelve, lee los outputs:
-         - Si $razon_handoff tiene valor - ${PLAYBOOK:Handoff} pasando $razon_handoff.
-         - Si $sesion_cerrada=true - FIN.
-         - Si $recien_registrado=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
+         - Si $razon tiene valor - ${PLAYBOOK:Handoff} pasando $razon.
+         - Si $fin_sesion=true - FIN.
+         - Si $recien_reg=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
       3. Negativa - agent_copy['despedida_paso2a'] - FIN.
       ⛔ 'no' = quiere irse. NUNCA despedida_email_invalido aqui.
 
       -- PASO 3 -- ROUTING --
-      Si $intencion_inicial tiene valor - clasifica SIN turno intermedio.
+      Si $intencion tiene valor - clasifica SIN turno intermedio.
       Si vacio:
-        - $recien_registrado=true - 'En que puedo ayudarte, $nombre_cliente?' ESPERA. Cuando responda, clasifica como intent nuevo siguiendo PASO 0. NUNCA repitas la pregunta si ya dijo que quiere.
-        - $recien_registrado=false - 'Hola, $nombre_cliente! En que puedo ayudarte?'
+        - $recien_reg=true - 'En que puedo ayudarte, $nombre_cliente?' ESPERA. Cuando responda, clasifica como intent nuevo siguiendo PASO 0. NUNCA repitas la pregunta si ya dijo que quiere.
+        - $recien_reg=false - 'Hola, $nombre_cliente! En que puedo ayudarte?'
 
-      comprar/explorar/precio - $grupo_intent='G5'. Aplica reglas FIX 1.3-A. - ${PLAYBOOK:Compra} con $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $intencion_inicial, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max.
+      comprar/explorar/precio - $grupo_intent='G5'. Aplica reglas FIX 1.3-A. - ${PLAYBOOK:Compra} con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max.
       cancelar - 'Otro producto o dejamos?' Otro-Compra. Dejarlo-FIN.
       consulta_saldo - $saldo=0: 'No tienes saldo pendiente, $nombre_cliente.' $saldo>0 + $estado_pago='Al dia': 'Tu saldo es [X]euros.' $estado_pago='deuda_pendiente': 'Tienes un pago pendiente de [X]euros. Quieres gestionarlo?' - si - ${PLAYBOOK:Gestion_Deuda}.
       consulta_descuento (posesivo) - consulta business clave='descuentos' + usa $tipo_cliente - responde - 'Algo mas?'
       deuda.consulta/deuda.aceptar - ${PLAYBOOK:Gestion_Deuda}.
-      reclamacion - ⛔ OBLIGATORIO 'Lamento lo sucedido.' - ${PLAYBOOK:Handoff} con $razon_handoff='reclamacion', $id_cliente, $nombre_cliente.
-      consulta_pedido/historial_pedidos/modificar_pedido/devolver - ${PLAYBOOK:Handoff} con $razon_handoff=[intent], $id_cliente, $nombre_cliente.
+      reclamacion - ⛔ OBLIGATORIO 'Lamento lo sucedido.' - ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
+      consulta_pedido/historial_pedidos/modificar_pedido/devolver - ${PLAYBOOK:Handoff} con $razon=[intent], $id_cliente, $nombre_cliente.
 
       ⛔ FORMATO PRECIO: entero sin decimales (45euros, nunca 45.0euros).
       HERRAMIENTAS: Perfil-PASO2. Business-G1/descuentos. Agent_copy-mensajes. Inventario-G2 solamente.

@@ -51,12 +51,12 @@ actions:
 - agentUtterance:
     text: ¡Perfecto! Si cambias de idea, aquí estamos. ¿Puedo ayudarte en algo más?
 playbookInput:
-  precedingConversationSummary: Compra recibe $intencion_inicial="consulta_precio tulipanes". Hace tool call con producto=tulipanes. Muestra rango de precios. Ofrece comprar. Usuario declina. Demuestra que Compra maneja consultas de precio sin iniciar compra.
+  precedingConversationSummary: Compra recibe $intencion="consulta_precio tulipanes". Hace tool call con producto=tulipanes. Muestra rango de precios. Ofrece comprar. Usuario declina. Demuestra que Compra maneja consultas de precio sin iniciar compra.
   actionParameters:
-    Direccion_Habitual: Plaza del Sol 2, Valencia
+    dir_habitual: Plaza del Sol 2, Valencia
     tipo_cliente: particular
     estado_pago: Al dia
-    intencion_inicial: consulta_precio tulipanes
+    intencion: consulta_precio tulipanes
     nombre_cliente: Marta
     id_cliente: '103'
 playbookOutput:

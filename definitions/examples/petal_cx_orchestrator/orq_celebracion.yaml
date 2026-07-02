@@ -19,9 +19,9 @@ playbookOutput:
     ocasion_detectada=Boda. Reconocimiento genuino con 1 exclamación
     y 1 emoji — dentro de los límites del registro.
   actionParameters:
-    estado_emocional: neutro
+    emocion: neutro
     registro: celebracion
     ocasion_detectada: Boda
-    intencion_inicial: comprar flores para boda
+    intencion: comprar flores para boda
 conversationState: OUTPUT_STATE_OK
 languageCode: es

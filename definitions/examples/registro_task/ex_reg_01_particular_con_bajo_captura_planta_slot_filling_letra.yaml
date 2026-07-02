@@ -91,12 +91,12 @@ actions:
 playbookOutput:
   actionParameters:
     estado_pago: Al dia
-    Direccion_Habitual: Paseo del Prado 22, bajo, 28014 Madrid
-    sesion_cerrada: false
-    recien_registrado: true
+    dir_habitual: Paseo del Prado 22, bajo, 28014 Madrid
+    fin_sesion: false
+    recien_reg: true
     apellidos: Vidal
     id_cliente: '155'
-    razon_handoff: ''
+    razon: ''
     email: zara.vidal@correo.com
     telefono: '611222333'
     nombre_cliente: Zara

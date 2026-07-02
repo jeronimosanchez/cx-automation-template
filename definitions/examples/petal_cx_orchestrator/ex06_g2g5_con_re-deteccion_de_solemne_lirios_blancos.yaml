@@ -59,7 +59,7 @@ playbookOutput:
     a mitad de conversacion. El turno estandar (fresco, 🌸) contrasta con el
     solemne (pausado, sin emoji). Transfiere a Compra con registro=solemne.
   actionParameters:
-    intencion_inicial: comprar Ramo de Lirios Blancos
+    intencion: comprar Ramo de Lirios Blancos
     grupo_intent: G5
     registro: solemne
     producto: Ramo de Lirios Blancos

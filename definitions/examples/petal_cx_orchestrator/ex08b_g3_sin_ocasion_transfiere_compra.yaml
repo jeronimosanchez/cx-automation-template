@@ -11,5 +11,5 @@ playbookOutput:
   executionSummary: G3 sin ocasion — transfiere a Compra sin preguntar.
   actionParameters:
     grupo_intent: G3
-    intencion_inicial: Quiero flores
+    intencion: Quiero flores
 languageCode: es

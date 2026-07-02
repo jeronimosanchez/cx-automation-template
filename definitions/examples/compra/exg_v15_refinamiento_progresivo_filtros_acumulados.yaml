@@ -42,11 +42,11 @@ playbookInput:
   actionParameters:
     id_cliente: '101'
     nombre_cliente: Ana
-    intencion_inicial: quiero flores para un cumpleaños
+    intencion: quiero flores para un cumpleaños
     ocasion_detectada: Regalo
     grupo_intent: G3
     estado_pago: Al dia
-    Direccion_Habitual: Calle Mayor 10, Madrid
+    dir_habitual: Calle Mayor 10, Madrid
     tipo_cliente: particular
 playbookOutput:
   executionSummary: refinamiento contexto

@@ -48,18 +48,18 @@ actions:
         id_cliente: '114'
         email: noexiste@test.com
         tipo_cliente: particular
-        Direccion_Habitual: Calle Mayor 10, 28001 Madrid
+        dir_habitual: Calle Mayor 10, 28001 Madrid
         nombre_cliente: Test
         apellidos: Usuario
         telefono: '612345678'
-        recien_registrado: 'true'
+        recien_reg: 'true'
     playbookState: OUTPUT_STATE_OK
 playbookOutput:
   executionSummary: Email no encontrado en PASO 2a. Cliente eligió registrarse. Invocó Registro_Task con email. Registro completado. Orquestador continúa a PASO 3.
   actionParameters:
     id_cliente: '114'
     nombre_cliente: Test
-    recien_registrado: 'true'
+    recien_reg: 'true'
     email: noexiste@test.com
 conversationState: OUTPUT_STATE_OK
 languageCode: es

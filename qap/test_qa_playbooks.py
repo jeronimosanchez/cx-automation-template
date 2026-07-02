@@ -1768,7 +1768,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
                 real_playbook = t.get("playbook", "") or trace.get("currentPlaybook", "")
                 has_fail = any(d.startswith("FAIL") for d in t["checks"]["details"])
                 # Slots reservados (no son grupo_intent ni internos) que muestran info útil
-                slot_keys_to_show = [k for k in params.keys() if k not in ("grupo_intent", "intencion_inicial") and params.get(k)]
+                slot_keys_to_show = [k for k in params.keys() if k not in ("grupo_intent", "intencion") and params.get(k)]
                 # --- IZQUIERDA: solo datos crudos ---
                 left_html = f'<div class="ta-user"><span class="lbl">Usuario (T{tn})</span><span class="ta-text">"{esc(t["user"])}"</span></div>'
                 left_html += f'<div class="ta-agent {"has-fail" if has_fail else "has-ok"}"><span class="lbl">Agente</span><span class="ta-text">"{esc(t["agent"])}"</span></div>'

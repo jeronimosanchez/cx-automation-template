@@ -1,9 +1,9 @@
 playbook: Petal CX Orchestrator
 id: orq_cambio_frustracion
-displayName: "Ex — cambio: frustracion mid-conversacion -> solemne + usuario_frustrado"
+displayName: "Ex — cambio: frustracion mid-conversacion -> solemne + frustrado"
 description: >
   Arranca neutro. A mitad de conversacion el usuario muestra frustracion.
-  DETECCION de cambio: registro pasa a solemne y activa usuario_frustrado=true.
+  DETECCION de cambio: registro pasa a solemne y activa frustrado=true.
   Sin frases de empatia vacia — reconoce y actua.
 actions:
 - userUtterance:
@@ -21,12 +21,12 @@ playbookOutput:
   executionSummary: >
     Arranca neutro (registro=estandar). Turno 2: senal de frustracion
     ("no me sirve de nada") -> DETECCION de cambio: registro pasa a solemne
-    y activa usuario_frustrado=true. Reconoce sin adornos y reorienta a la
+    y activa frustrado=true. Reconoce sin adornos y reorienta a la
     tarea, sin empatia vacia.
   actionParameters:
-    estado_emocional: frustración
+    emocion: frustración
     registro: solemne
-    usuario_frustrado: true
-    intencion_inicial: comprar flores para su madre
+    frustrado: true
+    intencion: comprar flores para su madre
 conversationState: OUTPUT_STATE_OK
 languageCode: es

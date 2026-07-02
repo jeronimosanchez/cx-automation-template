@@ -27,7 +27,7 @@ actions:
 playbookInput:
   actionParameters:
     ocasion_detectada: Boda
-    intencion_inicial: flores para una boda
+    intencion: flores para una boda
     grupo_intent: G3
 conversationState: OUTPUT_STATE_PENDING
 languageCode: es

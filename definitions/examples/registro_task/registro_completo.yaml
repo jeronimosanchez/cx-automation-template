@@ -110,15 +110,15 @@ playbookOutput:
   executionSummary: 'Registro completo G7. Email recogido del usuario (no viene del caller). Nombre: Zara Vidal, particular. Dirección unificada en un prompt — usuario da "Paseo del Prado 22, Madrid" sin CP, agente pide CP por slot filling. Pregunta portal/planta/letra, usuario dice no. Teléfono facilitado. PASO 2.9: verificación de datos con resumen completo, usuario confirma. PetalDataTool crea cliente id_cliente=155. Done con 11 outputs. El caller retoma el control.'
   actionParameters:
     email: zara.vidal@correo.com
-    'razon_handoff ': ''
+    'razon ': ''
     telefono: '611222333'
     'id_cliente ': '155'
-    'sesion_cerrada ': 'false'
+    'fin_sesion ': 'false'
     nombre_cliente: Zara
     tipo_cliente: particular
     'apellidos ': Vidal
-    recien_registrado: 'true'
+    recien_reg: 'true'
     estado_pago: Al dia
-    Direccion_Habitual: Paseo del Prado 22, 28014 Madrid
+    dir_habitual: Paseo del Prado 22, 28014 Madrid
 conversationState: OUTPUT_STATE_OK
 languageCode: es

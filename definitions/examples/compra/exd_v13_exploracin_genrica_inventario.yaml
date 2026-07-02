@@ -62,10 +62,10 @@ playbookInput:
   actionParameters:
     estado_pago: Al dia
     tipo_cliente: particular
-    Direccion_Habitual: Plaza del Sol 2, Valencia
+    dir_habitual: Plaza del Sol 2, Valencia
     id_cliente: '103'
     nombre_cliente: Marta
-    intencion_inicial: consultar_inventario qué flores tenéis
+    intencion: consultar_inventario qué flores tenéis
 playbookOutput:
   executionSummary: consulta inventario
   actionParameters: {}

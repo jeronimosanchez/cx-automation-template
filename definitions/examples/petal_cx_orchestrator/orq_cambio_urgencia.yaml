@@ -1,9 +1,9 @@
 playbook: Petal CX Orchestrator
 id: orq_cambio_urgencia
-displayName: "Ex — cambio: prisa mid-conversacion -> es_urgente (registro NO cambia)"
+displayName: "Ex — cambio: prisa mid-conversacion -> urgente (registro NO cambia)"
 description: >
   Arranca neutro. A mitad de conversacion el usuario anade una restriccion
-  temporal. DETECCION de cambio: activa es_urgente=true PERO mantiene
+  temporal. DETECCION de cambio: activa urgente=true PERO mantiene
   registro=estandar. Contraejemplo clave: no toda senal mid-conversacion
   cambia el registro; la prisa solo acorta la estructura.
 actions:
@@ -21,14 +21,14 @@ actions:
 playbookOutput:
   executionSummary: >
     Arranca neutro (registro=estandar). Turno 2: senal de prisa ("hoy",
-    "lo necesito ya") -> DETECCION de cambio: activa es_urgente=true. El
+    "lo necesito ya") -> DETECCION de cambio: activa urgente=true. El
     registro NO cambia (sigue estandar); solo se acorta la estructura
     (slot-filling directo). Contraejemplo: senal mid-conversacion que NO
     cambia el registro.
   actionParameters:
-    estado_emocional: neutro
+    emocion: neutro
     registro: estandar
-    es_urgente: true
-    intencion_inicial: comprar ramo para regalo
+    urgente: true
+    intencion: comprar ramo para regalo
 conversationState: OUTPUT_STATE_OK
 languageCode: es

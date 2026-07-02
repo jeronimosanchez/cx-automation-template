@@ -33,11 +33,11 @@ actions:
 playbookInput:
   precedingConversationSummary: Caso de recopilacion  completa
   actionParameters:
-    Direccion_Habitual: Plaza del Sol 2, Valencia
+    dir_habitual: Plaza del Sol 2, Valencia
     tipo_cliente: particular
     estado_pago: Al dia
     ocasion_detectada: Funeral
-    intencion_inicial: comprar flores para funeral
+    intencion: comprar flores para funeral
     id_cliente: '103'
     nombre_cliente: Marta
 playbookOutput:

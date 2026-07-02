@@ -35,7 +35,7 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: Direccion_Habitual
+- name: dir_habitual
   description: 'Dirección completa compuesta: calle, código postal ciudad.'
   typeSchema:
     inlineSchema:
@@ -45,17 +45,17 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: sesion_cerrada
+- name: fin_sesion
   description: True si el usuario canceló, rechazó registro o se despidió.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: razon_handoff
+- name: razon
   description: 'Motivo de escalación: cliente_solicita_humano o error_generico. Vacío si no aplica.'
   typeSchema:
     inlineSchema:
       type: STRING
-- name: recien_registrado
+- name: recien_reg
   description: True si el registro se completó con éxito
   typeSchema:
     inlineSchema:
@@ -77,7 +77,7 @@ instruction:
 
       INPUT OPCIONAL: $email (puede venir con valor o vacío).
 
-      OUTPUTS: $id_cliente, $nombre_cliente, $apellidos, $email, $tipo_cliente, $Direccion_Habitual, $telefono, $recien_registrado, $estado_pago, $sesion_cerrada, $razon_handoff.
+      OUTPUTS: $id_cliente, $nombre_cliente, $apellidos, $email, $tipo_cliente, $dir_habitual, $telefono, $recien_reg, $estado_pago, $fin_sesion, $razon.
 
       PASO 1 — EMAIL (solo si falta)
       Si $email tiene valor (contiene @) → saltar directamente a PASO 2.
@@ -89,9 +89,9 @@ instruction:
         - Inválido → fallo. SIEMPRE sigue esta secuencia EXACTA:
           F1 (intento 1): "Eso no parece un email válido. ¿Podrías darme uno con @?" ESPERA.
           F2 (intento 2): "Sigo necesitando un email válido con @. ¿Lo intentamos de nuevo?" ESPERA.
-          F3 (intento 3): agent_copy["despedida_email_invalido"]→$sesion_cerrada=true→done.
+          F3 (intento 3): agent_copy["despedida_email_invalido"]→$fin_sesion=true→done.
           ⛔ NUNCA saltes del intento 1 al intento 3. SIEMPRE da los 3 intentos en orden.
-        - Rechaza dar email → agent_copy["rechazo_registro"] → $sesion_cerrada=true → done.
+        - Rechaza dar email → agent_copy["rechazo_registro"] → $fin_sesion=true → done.
 
       PASO 2 — SLOT FILLING
       ⛔ NUNCA recurso="perfil". NUNCA interpretes texto como email. Email de registro = $email fijo.
@@ -134,7 +134,7 @@ instruction:
         - Si da teléfono → $telefono = valor.
         - Si dice no o rechaza → $telefono = "" → continuar sin problema.
 
-      3 intentos fallidos por dato obligatorio → agent_copy["despedida_registro_loop"] → $sesion_cerrada=true → done.
+      3 intentos fallidos por dato obligatorio → agent_copy["despedida_registro_loop"] → $fin_sesion=true → done.
 
       ⛔ CAPTURA IMPLÍCITA: Si el usuario menciona su fecha de nacimiento espontáneamente en cualquier momento, almacénala en $fecha_nacimiento. NUNCA la pidas activamente.
 
@@ -172,9 +172,9 @@ instruction:
 
       Construye:
         $nombre_cliente = $nombre
-        $Direccion_Habitual = "$calle, $codigo_postal $ciudad"
+        $dir_habitual = "$calle, $codigo_postal $ciudad"
         $tipo_cliente = $tipo
-        $recien_registrado = true
+        $recien_reg = true
         $estado_pago = "Al dia"
 
       PASO 4 — CONFIRMACIÓN Y DONE
@@ -182,12 +182,12 @@ instruction:
       → done.
 
       INTENTS TRANSVERSALES
-      INT-11 HUMANO: Di: "Entendido, se lo paso al equipo." → $razon_handoff="cliente_solicita_humano" → done. El caller escalará a Handoff.
-      INT-07 CANCELAR: "¿Seguro que no quieres registrarte?" ESPERA. Confirma no → agent_copy["rechazo_registro"] → $sesion_cerrada=true → done. Quiere seguir → retoma.
+      INT-11 HUMANO: Di: "Entendido, se lo paso al equipo." → $razon="cliente_solicita_humano" → done. El caller escalará a Handoff.
+      INT-07 CANCELAR: "¿Seguro que no quieres registrarte?" ESPERA. Confirma no → agent_copy["rechazo_registro"] → $fin_sesion=true → done. Quiere seguir → retoma.
       INT-19 SUGERENCIA: "Gracias, la trasladaremos." Retoma. NUNCA done por sugerencia.
-      INT-17 DESPEDIDA: agent_copy["despedida"] → $sesion_cerrada=true → done.
+      INT-17 DESPEDIDA: agent_copy["despedida"] → $fin_sesion=true → done.
 
-      ERRORES: Si PetalDataTool falla → agent_copy["error_generico"]. Di texto exacto. → $razon_handoff="error_generico" → done. El caller escalará a Handoff.
+      ERRORES: Si PetalDataTool falla → agent_copy["error_generico"]. Di texto exacto. → $razon="error_generico" → done. El caller escalará a Handoff.
 
       ESTILO
       - Cálido, directo, corto (2-3 líneas por turno).

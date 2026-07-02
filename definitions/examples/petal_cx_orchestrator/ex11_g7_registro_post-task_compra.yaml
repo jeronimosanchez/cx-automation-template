@@ -13,14 +13,14 @@ actions:
     playbookOutput:
       actionParameters:
         telefono: '612345678'
-        recien_registrado: 'true'
+        recien_reg: 'true'
         estado_pago: Al dia
         id_cliente: '155'
         tipo_cliente: particular
         email: zara.vidal@correo.com
-        Direccion_Habitual: Paseo del Prado 22, 28014 Madrid
-        sesion_cerrada: ''
-        razon_handoff: ''
+        dir_habitual: Paseo del Prado 22, 28014 Madrid
+        fin_sesion: ''
+        razon: ''
         nombre_cliente: Zara
         apellidos: Vidal
     playbookState: OUTPUT_STATE_OK
@@ -34,16 +34,16 @@ actions:
     playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
 playbookOutput:
   executionSummary: |
-    Usuario pide registrarse (G7). Orquestador invoca Registro_Task sin inputs. Task completa registro y devuelve done con outputs. Orquestador carga datos del perfil, pregunta en qué ayudar. Usuario pide comprar rosas (G5). Orquestador clasifica, detecta ocasión=Regalo, y transfiere a Compra con $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $intencion_inicial, $ocasion_detectada=Regalo, $grupo_intent=G5.
+    Usuario pide registrarse (G7). Orquestador invoca Registro_Task sin inputs. Task completa registro y devuelve done con outputs. Orquestador carga datos del perfil, pregunta en qué ayudar. Usuario pide comprar rosas (G5). Orquestador clasifica, detecta ocasión=Regalo, y transfiere a Compra con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $intencion, $ocasion_detectada=Regalo, $grupo_intent=G5.
   actionParameters:
     apellidos: Vidal
     nombre_cliente: Zara
-    Direccion_Habitual: Paseo del Prado 22, 28014 Madrid
+    dir_habitual: Paseo del Prado 22, 28014 Madrid
     email: zara.vidal@correo.com
     tipo_cliente: particular
     id_cliente: '155'
     estado_pago: Al dia
-    recien_registrado: 'true'
+    recien_reg: 'true'
     grupo_intent: G7
 conversationState: OUTPUT_STATE_OK
 languageCode: es

@@ -86,13 +86,13 @@ playbookOutput:
   actionParameters:
     telefono: '954112233'
     email: info@logisticasur.com
-    razon_handoff: ''
+    razon: ''
     nombre_cliente: Lorena
     tipo_cliente: empresa
-    recien_registrado: true
-    sesion_cerrada: false
+    recien_reg: true
+    fin_sesion: false
     id_cliente: '157'
     apellidos: Pereira Mota
     estado_pago: Al dia
-    Direccion_Habitual: Avenida de la Industria 45, planta 3, oficina B, 41020 Sevilla
+    dir_habitual: Avenida de la Industria 45, planta 3, oficina B, 41020 Sevilla
 languageCode: es

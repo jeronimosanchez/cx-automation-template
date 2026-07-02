@@ -20,9 +20,9 @@ actions:
     text: ¡Hola, Ana! Para revisar tu historial de pedidos te paso con quien puede ayudarte.
 playbookOutput:
   actionParameters:
-    razon_handoff: historial_pedidos
+    razon: historial_pedidos
     nombre_cliente: Ana
-    intencion_inicial: ver historial de pedidos
+    intencion: ver historial de pedidos
     grupo_intent: G6
     id_cliente: '101'
 languageCode: es

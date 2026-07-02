@@ -1,10 +1,10 @@
 playbook: Petal CX Orchestrator
 id: orq_urgente_estandar
-displayName: "Ex — prisa → registro estandar + es_urgente"
+displayName: "Ex — prisa → registro estandar + urgente"
 description: >
   El usuario señala restricción temporal explícita. Petal detecta prisa
   ("hoy", "antes de las", "urgente"), mantiene registro estandar y activa
-  es_urgente=true. La urgencia modifica la ESTRUCTURA (respuesta corta,
+  urgente=true. La urgencia modifica la ESTRUCTURA (respuesta corta,
   slot directo) pero no el registro.
 actions:
 - userUtterance:
@@ -16,12 +16,12 @@ actions:
 playbookOutput:
   executionSummary: >
     Señales de prisa: "hoy" + "antes de las 6" + "urgente".
-    Mantiene registro=estandar, activa es_urgente=true.
+    Mantiene registro=estandar, activa urgente=true.
     Slot-filling directo al bloque más crítico, sin exploración previa.
   actionParameters:
-    estado_emocional: neutro
+    emocion: neutro
     registro: estandar
-    es_urgente: true
-    intencion_inicial: comprar flores con restriccion temporal
+    urgente: true
+    intencion: comprar flores con restriccion temporal
 conversationState: OUTPUT_STATE_OK
 languageCode: es

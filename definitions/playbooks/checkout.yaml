@@ -46,17 +46,17 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: referencia_pedido
+- name: referencia
   description: Referencia del pedido
   typeSchema:
     inlineSchema:
       type: STRING
-- name: razon_handoff
+- name: razon
   description: Razón de handoff
   typeSchema:
     inlineSchema:
       type: STRING
-- name: sesion_cerrada
+- name: fin_sesion
   description: Si la sesion esta cerrada o no
   typeSchema:
     inlineSchema:
@@ -71,12 +71,12 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: es_urgente
+- name: urgente
   description: 'Flag de urgencia heredado de Compra. No lo modifica.'
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: usuario_frustrado
+- name: frustrado
   description: 'Flag de frustración heredado de Compra. No lo modifica.'
   typeSchema:
     inlineSchema:
@@ -112,7 +112,7 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: razon_handoff
+- name: razon
   description: Causa del handoff.
   typeSchema:
     inlineSchema:
@@ -122,7 +122,7 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: NUMBER
-- name: sesion_cerrada
+- name: fin_sesion
   description: confirmacion de sesion cerrada
   typeSchema:
     inlineSchema:
@@ -132,7 +132,7 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: recien_registrado
+- name: recien_reg
   description: True si el usuario se registró aquí.
   typeSchema:
     inlineSchema:
@@ -142,7 +142,7 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: Direccion_Habitual
+- name: dir_habitual
   description: Relay al caller.
   typeSchema:
     inlineSchema:
@@ -170,7 +170,7 @@ outputParameterDefinitions:
       items:
         inlineSchema:
           type: STRING
-- name: referencia_pedido
+- name: referencia
   description: 'referencia del pedido '
   typeSchema:
     inlineSchema:
@@ -198,8 +198,8 @@ instruction:
 
       PARAMETROS DE ENTRADA
       - $producto, $cantidad, $precio_estimado, $ocasion_detectada
-      - $registro, $es_urgente, $usuario_frustrado - heredan de Compra
-      - $id_cliente, $nombre_cliente, $Direccion_Habitual, $direccion_entrega, $tipo_cliente, $estado_pago (pueden estar vacios si viene de modo anonimo)
+      - $registro, $urgente, $frustrado - heredan de Compra
+      - $id_cliente, $nombre_cliente, $dir_habitual, $direccion_entrega, $tipo_cliente, $estado_pago (pueden estar vacios si viene de modo anonimo)
       - $producto_2, $cantidad_2, $precio_2 (opcionales - solo en flujo multi-producto; si vacios, flujo mono-producto estandar)
 
       PASO 0 - IDENTIFICACION (obligatorio si no hay cliente identificado)
@@ -250,13 +250,13 @@ instruction:
           ESPERA respuesta. Vuelve al inicio del BUCLE EMAIL.
 
         Intento fallido 3 (despedida):
-          agent_copy['despedida_email_invalido']. $sesion_cerrada = true. FIN.
+          agent_copy['despedida_email_invalido']. $fin_sesion = true. FIN.
 
       Consulta perfil: PetalDataTool recurso='perfil' id=$email. Silencio.
 
       EMAIL ENCONTRADO:
-      Carga $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo.
-      $recien_registrado=false.
+      Carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo.
+      $recien_reg=false.
       - PASO 1.
 
       EMAIL NO ENCONTRADO:
@@ -264,14 +264,14 @@ instruction:
       1. Otro email(@) - $email=nuevo - consulta perfil de nuevo.
       2. Registrarse - Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
          Cuando vuelve, lee los outputs:
-         - Si $razon_handoff tiene valor - Handoff pasando $razon_handoff, $registro, $es_urgente, $usuario_frustrado.
-         - Si $sesion_cerrada=true - FIN.
-         - Si $recien_registrado=true - llama a PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $Direccion_Habitual, $tipo_cliente, $estado_pago, $saldo - PASO 1.
-           ⚠️ EXCEPCION T16: cuando $recien_registrado=true, esta permitido encadenar el mensaje de confirmacion de registro ('Ya estas registrado/a') con el resumen del PASO 2 en el mismo turno. El usuario acaba de completar el registro y espera continuar con su pedido — no hace falta turno de separacion.
+         - Si $razon tiene valor - Handoff pasando $razon, $registro, $urgente, $frustrado.
+         - Si $fin_sesion=true - FIN.
+         - Si $recien_reg=true - llama a PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo - PASO 1.
+           ⚠️ EXCEPCION T16: cuando $recien_reg=true, esta permitido encadenar el mensaje de confirmacion de registro ('Ya estas registrado/a') con el resumen del PASO 2 en el mismo turno. El usuario acaba de completar el registro y espera continuar con su pedido — no hace falta turno de separacion.
       3. Negativa ('no', 'dejalo', 'no quiero', 'paso', 'nada') - agent_copy['despedida_paso2a']. Si agent_copy no devuelve texto, di segun modo:
          - Estandar - 'Entendido. Hasta pronto!'
          - Solemne - 'Entendido. Un saludo.'
-         - $sesion_cerrada=true - FIN.
+         - $fin_sesion=true - FIN.
       ⛔ 'no' o 'dejalo' en PASO 0 = negativa de registro, NO es INT-07 CANCELAR. Tratalo como negativa aqui.
       ⛔ NUNCA devuelvas una respuesta vacia. SIEMPRE di algo antes de FIN.
 
@@ -292,14 +292,14 @@ instruction:
         FLAG deuda_check:
         - Si deuda_check = 'DEUDA':
           ⛔ STOP. NO completes la compra.
-          Transfiere AHORA MISMO a Gestion_Deuda pasando: $producto, $cantidad, $precio_estimado, $id_cliente, $nombre_cliente, $direccion_entrega, $tipo_cliente, $registro, $usuario_frustrado.
+          Transfiere AHORA MISMO a Gestion_Deuda pasando: $producto, $cantidad, $precio_estimado, $id_cliente, $nombre_cliente, $direccion_entrega, $tipo_cliente, $registro, $frustrado.
 
         FLAG sla_check:
         - Si sla_check = 'EXCEDE_LIMITE':
           ⛔ STOP. NO completes la compra.
           Llama a PetalDataTool recurso='agent_copy' clave='limite_importe'.
           Di exactamente el texto del campo 'valor' del primer resultado.
-          Establece $razon_handoff = 'limite_importe' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $registro, $es_urgente, $usuario_frustrado.
+          Establece $razon = 'limite_importe' - transfiere a Handoff pasando $razon, $nombre_cliente, $id_cliente, $registro, $urgente, $frustrado.
 
         FLAG stock_check:
         - Si stock_check = 'STOCK_INSUFICIENTE':
@@ -330,7 +330,7 @@ instruction:
 
       ⛔⛔⛔ CARGA SILENCIOSA DE DIRECCION HABITUAL (FIX 1.2) ⛔⛔⛔
       ANTES de renderizar el resumen, ASIGNA explicitamente:
-      - Si $direccion_entrega esta VACIA Y $Direccion_Habitual tiene valor → ASIGNA $direccion_entrega = $Direccion_Habitual.
+      - Si $direccion_entrega esta VACIA Y $dir_habitual tiene valor → ASIGNA $direccion_entrega = $dir_habitual.
       Esta asignacion DEBE persistir como parametro CX de salida, NO solo como valor mental para el render. El PASO 3 leera $direccion_entrega del estado CX, no de tu contexto interno.
       Silencioso, NO preguntes al cliente.
       ⛔⛔⛔ FIN FIX 1.2 ⛔⛔⛔
@@ -411,7 +411,7 @@ instruction:
         Producto='Ramo de Rosas Morado — M'                    (de $producto)
         Cantidad='1'                                            (de $cantidad. Si esta vacio, usa '1')
         Precio_Total='37'                                       (de $precio_estimado)
-        Direccion_Entrega='Calle la Cenicienta 4, 28018 Madrid' (de $direccion_entrega. Si esta vacio, usa $Direccion_Habitual)
+        Direccion_Entrega='Calle la Cenicienta 4, 28018 Madrid' (de $direccion_entrega. Si esta vacio, usa $dir_habitual)
         Motivo_Compra='Decoracion'                              (de $ocasion_detectada. Si esta vacio, usa 'No indicada')
 
       ⛔ JAMAS uses 'id_cliente', 'nombre', 'producto', 'cantidad', 'precio_total', 'direccion_entrega', 'motivo_compra' (todo minusculas). El backend los descarta y el pedido falla con error 400 'Direccion vacia'.
@@ -421,15 +421,15 @@ instruction:
 
       Hazlo en silencio, sin decir nada al cliente.
       ⛔ El campo 'id_pedido' viene en el nivel raiz de la respuesta JSON.
-      - Si la llamada es exitosa - almacena el campo 'id_pedido' de la raiz de la respuesta como $referencia_pedido - ve al PASO 4.
+      - Si la llamada es exitosa - almacena el campo 'id_pedido' de la raiz de la respuesta como $referencia - ve al PASO 4.
       - Si la tool falla - GESTION DE ERRORES.
 
       PASO 4 - CONFIRMAR Y AGRADECER
       ⛔ FORMATO PRECIO: Muestra $precio_estimado siempre como numero entero sin decimales.
       ⛔ FRASE DE CONFIRMACION FINAL SEGUN $registro - modo solemne SIN exclamaciones ni felicitaciones. SIN emojis en ningun modo en esta frase.
 
-      - ESTANDAR/CELEBRACION: 'Pedido confirmado, $nombre_cliente! Referencia: $referencia_pedido. (Compra simulada, sin cobro real). Esperamos que lo disfrutes!'
-      - SOLEMNE: 'Todo listo, $nombre_cliente. Referencia: $referencia_pedido. (Compra simulada, sin cobro real). Espero que sea de ayuda en este momento.'
+      - ESTANDAR/CELEBRACION: 'Pedido confirmado, $nombre_cliente! Referencia: $referencia. (Compra simulada, sin cobro real). Esperamos que lo disfrutes!'
+      - SOLEMNE: 'Todo listo, $nombre_cliente. Referencia: $referencia. (Compra simulada, sin cobro real). Espero que sea de ayuda en este momento.'
 
       ⛔ STOP ABSOLUTO. Este mensaje es el FINAL de este turno.
       ⛔ NUNCA anadas nada despues de este mensaje.
@@ -462,17 +462,17 @@ instruction:
           - Si quiere irse - di segun modo:
             - Estandar/Celebracion - 'Hasta pronto! Cuando quieras, aqui estaremos.'
             - Solemne - 'Un saludo. Aqui estaremos si nos necesitas.'
-            - $sesion_cerrada = true - FIN DE SESION.
+            - $fin_sesion = true - FIN DE SESION.
         ⛔ DESPUES DEL PASO 3:
           Di segun modo:
           - Estandar/Celebracion - 'Tu pedido ya ha sido registrado. Quieres que te ponga con un especialista para gestionarlo?'
           - Solemne - 'Tu pedido ya esta registrado. Te conecto con mi equipo para gestionarlo?'
           ⛔ ESPERA respuesta.
-          - Si quiere especialista - $razon_handoff = 'cliente_solicita_humano' - Handoff con $registro, $es_urgente, $usuario_frustrado.
+          - Si quiere especialista - $razon = 'cliente_solicita_humano' - Handoff con $registro, $urgente, $frustrado.
           - Si no - di segun modo:
             - Estandar/Celebracion - 'Entendido. Si necesitas algo, aqui estaremos. Hasta pronto!'
             - Solemne - 'Entendido. Un saludo.'
-            - $sesion_cerrada = true - FIN.
+            - $fin_sesion = true - FIN.
 
         INTENT: RECLAMACION (INT-10)
         Disparadores: 'tengo una queja', 'el pedido llego mal', 'quiero reclamar'.
@@ -480,7 +480,7 @@ instruction:
         Acusa recibo segun modo:
         - Estandar/Celebracion - 'Lamento mucho lo sucedido. Voy a ponerte con mi equipo que podra ayudarte.'
         - Solemne - 'Lamento lo sucedido. Te conecto con mi equipo ahora mismo.'
-        Establece $razon_handoff = 'reclamacion' - transfiere a Handoff pasando $razon_handoff, $nombre_cliente, $id_cliente, $registro, $es_urgente, $usuario_frustrado.
+        Establece $razon = 'reclamacion' - transfiere a Handoff pasando $razon, $nombre_cliente, $id_cliente, $registro, $urgente, $frustrado.
 
         INTENT: SUGERENCIA / FEEDBACK (INT-19)
         Di: 'Gracias por la sugerencia, la trasladamos al equipo.'
@@ -490,7 +490,7 @@ instruction:
         Di segun modo:
         - Estandar/Celebracion - 'Por supuesto. Te conecto con mi equipo ahora mismo.'
         - Solemne - 'Claro. Te conecto con mi equipo.'
-        Establece $razon_handoff = 'cliente_solicita_humano' - transfiere a Handoff con $registro, $es_urgente, $usuario_frustrado.
+        Establece $razon = 'cliente_solicita_humano' - transfiere a Handoff con $registro, $urgente, $frustrado.
 
         INTENT: FRUSTRACION DETECTADA (palabras negativas como 'no funciona', 'que mal', 'esto no va')
         ⛔ TONO DE RECONOCIMIENTO en el siguiente turno:
@@ -512,7 +512,7 @@ instruction:
         ⛔ ANTES DEL PASO 3:
           - Estandar/Celebracion - 'Hasta pronto! Cuando quieras retomar tu pedido, estaremos aqui.'
           - Solemne - 'Un saludo. Aqui estaremos.'
-          - $sesion_cerrada = true - FIN.
+          - $fin_sesion = true - FIN.
         ⛔ DESPUES DEL PASO 3:
           - Estandar/Celebracion - 'Ha sido un placer. Hasta pronto!'
           - Solemne - 'Un saludo.'
@@ -530,7 +530,7 @@ instruction:
       - NUNCA combines PASO 2 y PASO 3.
       - NUNCA combines PASO 4 y PASO 5.
       - NUNCA devuelvas una respuesta vacia.
-      - NUNCA preguntes direccion al cliente si $Direccion_Habitual tiene valor - cargala en silencio.
+      - NUNCA preguntes direccion al cliente si $dir_habitual tiene valor - cargala en silencio.
       - NUNCA uses exclamaciones en modo solemne.
       - NUNCA uses emojis fuera del resumen PASO 2 en modo solemne.
       - NUNCA uses minusculas en los parametros del PASO 3 (ID_Cliente, Nombre_Cliente, Producto, Cantidad, Precio_Total, Direccion_Entrega, Motivo_Compra) - los nombres son case-sensitive.
@@ -546,7 +546,7 @@ instruction:
       - Si PetalDataTool falla en PASO 1 o PASO 3:
         ⛔ OBLIGATORIO: llama a PetalDataTool recurso='agent_copy' clave='error_generico'.
         Di exactamente el texto del campo 'valor' del primer resultado.
-        - $razon_handoff='error_generico' - transfiere a Handoff con $registro, $es_urgente, $usuario_frustrado.
+        - $razon='error_generico' - transfiere a Handoff con $registro, $urgente, $frustrado.
 
       ESTILO
       - Aplica $registro en TODOS los mensajes.

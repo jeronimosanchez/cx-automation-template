@@ -11,5 +11,5 @@ playbookOutput:
   actionParameters:
     ocasion_detectada: Regalo
     grupo_intent: G3
-    intencion_inicial: flores para el cumpleaños de mi madre
+    intencion: flores para el cumpleaños de mi madre
 languageCode: es
