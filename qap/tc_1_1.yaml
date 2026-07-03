@@ -1,10 +1,11 @@
 # Fuente de verdad de los Test Cases de Petal (extraídos de test_qa_playbooks.py).
-# Estructura: id · type · group · name · turns · not_expected. NO añadir campos.
-# 51 TCs. Inmutable salvo bug crítico en un TC.
+# Estructura: id · type · group · name · objetivo · turns · not_expected.
+# 51 TCs. El campo objetivo describe qué comportamiento del agente valida el TC — lo usa el juez LLM.
 - id: TC-R01
   type: REG
   group: G1
   name: Info negocio - horario
+  objetivo: El agente debe informar el horario correcto de apertura
   turns:
   - user: A que hora abris?
     checks:
@@ -16,6 +17,7 @@
   type: REG
   group: G2
   name: Info catalogo - precio tulipanes
+  objetivo: El agente debe informar el precio y detalles de los tulipanes
   turns:
   - user: Cuanto cuestan los tulipanes?
     checks:
@@ -27,6 +29,7 @@
   type: REG
   group: G4
   name: Saludo
+  objetivo: El agente debe saludar y ofrecer ayuda sin pedir email
   turns:
   - user: Hola
     checks:
@@ -38,6 +41,7 @@
   type: REG
   group: G5
   name: Compra directa sin email
+  objetivo: El agente debe ofrecer opciones de compra sin pedir email
   turns:
   - user: Quiero comprar rosas rojas
     checks:
@@ -49,6 +53,7 @@
   type: REG
   group: ESP
   name: Email espontaneo
+  objetivo: El agente debe reconocer el email y ofrecer ayuda, no iniciar registro
   turns:
   - user: Mi email es ana@email.com
     checks:
@@ -58,6 +63,7 @@
   type: REG
   group: G3
   name: Recomendacion - transfiere a Compra
+  objetivo: El agente debe explorar la necesidad y derivar al flujo de Compra
   turns:
   - user: Necesito flores para un cumpleanos
     checks:
@@ -69,6 +75,7 @@
   type: REG
   group: G6
   name: Requiere perfil - pide email
+  objetivo: El agente debe pedir email para consultar el saldo
   turns:
   - user: Quiero ver mi saldo
     checks:
@@ -78,6 +85,7 @@
   type: REG
   group: ESP
   name: Hablar con humano - sin pedir email
+  objetivo: El agente debe derivar a humano sin pedir email
   turns:
   - user: Quiero hablar con una persona
     checks: []
@@ -88,6 +96,7 @@
   type: NEW
   group: G7
   name: Registro completo happy path desde Orquestador
+  objetivo: El agente debe completar el flujo de registro recogiendo todos los datos
   turns:
   - user: Quiero registrarme
     checks:
@@ -121,6 +130,7 @@
   type: NEW
   group: G7>ERR
   name: Registro con email invalido desde Orquestador
+  objetivo: El agente debe detectar email inválido y pedir uno correcto
   turns:
   - user: Quiero registrarme
     checks:
@@ -136,6 +146,7 @@
   type: NEW
   group: G7>CANCEL
   name: Registro cancelado a mitad desde Orquestador
+  objetivo: El agente debe aceptar la cancelación del registro sin insistir
   turns:
   - user: Quiero registrarme
     checks:
@@ -151,6 +162,7 @@
   type: NEW
   group: G5>CK>REG
   name: 'Flujo COMPLETO: Compra → Checkout → Registro_Task → completa pedido'
+  objetivo: "El agente debe completar flujo Compra → Checkout → Registro → confirmar pedido"
   turns:
   - user: Quiero comprar un ramo de rosas rojas para un cumpleanos
     checks:
@@ -196,6 +208,7 @@
   type: NEW
   group: G7>POST
   name: 'Post-registro: Orquestador retoma y ofrece ayuda'
+  objetivo: El agente debe completar el registro y retomar la conversación ofreciendo ayuda
   turns:
   - user: Quiero registrarme
     checks:
@@ -232,6 +245,7 @@
   type: REG
   group: G6>SALDO
   name: Consulta saldo con email valido
+  objetivo: El agente debe consultar y mostrar el saldo del cliente identificado
   turns:
   - user: Quiero ver mi saldo
     checks:
@@ -244,6 +258,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Ambigüedad total sin datos
+  objetivo: El agente debe explorar la necesidad sin pedir email
   turns:
   - user: Algo bonito para mi madre
     checks:
@@ -253,6 +268,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Presupuesto sin producto
+  objetivo: El agente debe ofrecer opciones dentro de un rango económico
   turns:
   - user: Algo no muy caro
     checks:
@@ -262,6 +278,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cantidad ambigua — un par
+  objetivo: "El agente debe interpretar 'un par' como cantidad 2"
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -277,6 +294,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cantidad ambigua — varios
+  objetivo: "El agente debe interpretar 'varios' como cantidad mayor a 2 y pedir número exacto"
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -293,6 +311,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cantidad por función
+  objetivo: "El agente debe interpretar 'para llenar una mesa' como cantidad aproximada y pedir número"
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -309,6 +328,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Ocasión ambigua emocional
+  objetivo: El agente debe explorar la ocasión ante una señal emocional ambigua
   turns:
   - user: Es para alguien especial
     checks:
@@ -318,6 +338,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Urgencia sin ocasión
+  objetivo: El agente debe asumir urgencia y preguntar la ocasión
   turns:
   - user: Necesito flores para mañana
     checks:
@@ -327,6 +348,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Input numérico fuera de contexto
+  objetivo: "El agente debe interpretar 'El 3' como selección de la tercera opción listada"
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -340,6 +362,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Emoji solo
+  objetivo: "El agente debe interpretar el emoji \U0001F339 como posible intención de compra y explorarla"
   turns:
   - user: 🌹
     checks:
@@ -349,6 +372,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Pregunta out of scope en PASO 2
+  objetivo: El agente debe responder la pregunta fuera de contexto y retomar el flujo de compra
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -361,6 +385,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Handoff Compra → Checkout (pide email tras cantidad)
+  objetivo: El agente debe pedir email para completar el checkout tras confirmar cantidad
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -376,6 +401,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Input ambiguo en PASO 0 Checkout — no cancela, re-pide email
+  objetivo: El agente debe re-pedir el email con formato de ejemplo ante respuesta ambigua
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -395,6 +421,7 @@
   type: EDGE
   group: COMPRA-INV
   name: Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –)
+  objetivo: "El agente debe mostrar margaritas reales del catálogo con formato producto — talla"
   turns:
   - user: quiero un ramo de margaritas para decorar mi recibidor
     checks:
@@ -406,6 +433,7 @@
   type: EDGE
   group: COMPRA-INV
   name: Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)
+  objetivo: "El agente debe mostrar rosas reales del catálogo con formato producto — talla"
   turns:
   - user: quiero un ramo de rosas para decorar mi salon
     checks:
@@ -417,6 +445,7 @@
   type: NEW
   group: G5
   name: Modo solemne — corona para funeral
+  objetivo: El agente debe adoptar tono solemne y ofrecer opciones adecuadas para funeral
   turns:
   - user: necesito una corona para un funeral
     checks:
@@ -427,6 +456,7 @@
   type: NEW
   group: G5
   name: Presupuesto duro — precio_max explicito
+  objetivo: El agente debe mostrar solo opciones por debajo del precio máximo indicado
   turns:
   - user: quiero rosas maximo 30 euros
     checks:
@@ -437,6 +467,7 @@
   type: NEW
   group: G5
   name: Compra con color especifico no-rojo (tulipanes blancos)
+  objetivo: El agente debe ofrecer tulipanes blancos específicamente, no sustituir por otra flor
   turns:
   - user: quiero tulipanes blancos
     checks:
@@ -447,6 +478,7 @@
   type: NEW
   group: G5
   name: Refinamiento de precio mid-flow — mas baratas
+  objetivo: El agente debe mostrar opciones más baratas cuando el usuario lo pide mid-flow
   turns:
   - user: quiero un ramo de rosas para cumpleaños
     checks:
@@ -459,6 +491,7 @@
   type: NEW
   group: G5
   name: Modo Boda — ramo nupcial
+  objetivo: El agente debe ofrecer opciones de ramo nupcial en tono adecuado para boda
   turns:
   - user: quiero un ramo de novia para mi boda
     checks:
@@ -469,6 +502,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cambio de opinion mid-flow — usuario abandona tras seleccionar
+  objetivo: El agente debe aceptar el abandono mid-flow sin insistir en completar el pedido
   turns:
   - user: quiero rosas rojas para cumpleaños
     checks:
@@ -485,6 +519,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Multiples rechazos consecutivos — debe escalar o reformular
+  objetivo: El agente debe escalar a humano o reformular tras múltiples rechazos consecutivos
   turns:
   - user: quiero rosas
     checks:
@@ -505,6 +540,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial
+  objetivo: El agente debe mostrar solo variantes S/M/L del mismo producto, no productos distintos
   turns:
   - user: quiero un ramo de rosas rojas para cumpleaños
     checks:
@@ -518,6 +554,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Robustez parser — input en MAYUSCULAS sin acentos
+  objetivo: El agente debe entender el input en mayúsculas sin acentos y responder correctamente
   turns:
   - user: QUIERO ROSAS ROJAS PARA CUMPLEANOS
     checks:
@@ -528,6 +565,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: TT-25 — cantidad > stock disponible, agente debe avisar
+  objetivo: El agente debe avisar que la cantidad solicitada supera el stock disponible
   turns:
   - user: quiero un ramo de rosas rojas pequeño
     checks:
@@ -544,6 +582,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')
+  objetivo: "El agente debe confirmar si la entrega para hoy a las 18:00 es viable antes de mostrar catálogo"
   turns:
   - user: quiero un ramo de rosas para hoy a las 18:00
     checks:
@@ -554,6 +593,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana
+  objetivo: El agente debe confirmar que la entrega para mañana por la mañana es viable
   turns:
   - user: lo necesito urgente, ¿en cuánto tiempo entregáis?
     checks:
@@ -567,6 +607,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio
+  objetivo: "El agente debe confirmar viabilidad del plazo del viernes y explicar política de envío"
   turns:
   - user: lo necesito para este viernes
     checks:
@@ -577,6 +618,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Lexico negativo del usuario — agente reconoce frustracion
+  objetivo: El agente debe detectar léxico de frustración y escalar a humano sin ofrecer productos
   turns:
   - user: quiero rosas
     checks:
@@ -589,6 +631,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cambio de registro mid-conversacion — estandar -> solemne (duelo)
+  objetivo: El agente debe cambiar a tono solemne al detectar que es para un velatorio
   turns:
   - user: ¿cuánto cuestan los lirios blancos?
     checks:
@@ -603,6 +646,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cambio mid-conversacion — prisa activa urgente (registro NO cambia)
+  objetivo: "El agente debe activar modo urgente al detectar 'para hoy' mid-conversación"
   turns:
   - user: quiero un ramo para regalar
     checks:
@@ -615,6 +659,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cambio de registro mid-conversacion — estandar -> solemne (frustracion)
+  objetivo: El agente debe detectar frustración mid-conversación y escalar a humano
   turns:
   - user: busco flores para mi madre
     checks:
@@ -629,6 +674,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Parseo multi-info en un solo input — extraccion robusta
+  objetivo: El agente debe extraer todos los slots (tipo, color, precio máximo, ocasión) de un único mensaje
   turns:
   - user: hola, quiero un ramo de rosas rojas maximo 40 euros para mi boda
     checks:
@@ -639,6 +685,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Despedida abrupta — cierre amable sin pedido completo
+  objetivo: El agente debe cerrar la conversación con cortesía sin insistir en vender
   turns:
   - user: quiero rosas
     checks:
@@ -652,6 +699,7 @@
   type: EDGE
   group: G5>CK
   name: Override direccion habitual — cliente identificado pide otra direccion
+  objetivo: El agente debe usar la dirección de envío alternativa indicada, no la habitual
   turns:
   - user: mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa
     checks:
@@ -661,6 +709,7 @@
   type: EDGE
   group: COMPRA-INV
   name: Pedido multi-item — ECO RESUMEN muestra total antes de confirmar
+  objetivo: El agente debe mostrar resumen con total antes de confirmar pedido multi-producto
   turns:
   - user: quiero un ramo de rosas y un centro de mesa para mi casa
     checks:
@@ -678,6 +727,7 @@
   type: EDGE
   group: G6>DEUDA
   name: Cliente con deuda detectada — handoff a Gestion_Deuda
+  objetivo: El agente debe detectar cuenta con deuda y derivar a gestión sin procesar el pedido
   turns:
   - user: mi email es pedro.moroso@test.com quiero comprar rosas
     checks:
@@ -687,6 +737,7 @@
   type: EDGE
   group: G6
   name: Solicitud de devolucion — out-of-scope, deriva a Handoff
+  objetivo: El agente debe derivar a humano sin intentar gestionar la devolución él mismo
   turns:
   - user: quiero devolver mi pedido
     checks:
@@ -697,6 +748,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Input solo signos de puntuacion — robustez
+  objetivo: El agente debe pedir aclaración ante input de solo signos de puntuación
   turns:
   - user: ???
     checks:
@@ -706,6 +758,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Lexico abusivo — agente mantiene tono profesional, no repite
+  objetivo: El agente debe mantener tono profesional sin repetir el lenguaje abusivo
   turns:
   - user: esto es una mierda, que porqueria
     checks:
@@ -716,6 +769,7 @@
   type: EDGE
   group: COMPRA-ZG
   name: Peticion fuera de scope — descuento del 50%
+  objetivo: El agente debe rechazar la petición fuera de scope sin ofrecer descuento
   turns:
   - user: hacedme un descuento del 50%
     checks:
