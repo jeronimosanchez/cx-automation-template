@@ -1,0 +1,27 @@
+Copyright © 2026 Jerónimo Sánchez Morote. Todos los derechos reservados.
+All rights reserved.
+
+Autor / Author: Jerónimo Sánchez Morote
+Fecha de creación / Created: 2026
+
+Este repositorio y todo su contenido —código, diseño de agentes conversacionales,
+test cases, metodología de QA, pipeline de despliegue CD y documentación— son
+propiedad intelectual exclusiva de Jerónimo Sánchez Morote.
+
+This repository and all its contents —code, conversational-agent design, test cases,
+QA methodology, CD deployment pipeline and documentation— are the exclusive
+intellectual property of Jerónimo Sánchez Morote.
+
+Queda PROHIBIDA la reproducción, distribución, modificación, uso comercial o creación
+de obras derivadas, total o parcial, sin autorización expresa y por escrito del autor.
+
+Reproduction, distribution, modification, commercial use or creation of derivative
+works, in whole or in part, is PROHIBITED without the express written permission of
+the author.
+
+La autoría y la fecha de creación quedan acreditadas de forma verificable en el
+historial de commits de este repositorio (Git), que registra cada aportación con su
+firma temporal.
+
+Authorship and creation date are verifiably recorded in this repository's Git commit
+history, which timestamps every contribution.

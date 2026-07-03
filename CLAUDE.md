@@ -76,7 +76,7 @@ Estas decisiones están validadas en producción. No cambiar sin gate humano exp
 2. **Headers obligatorios en toda llamada a la API de Dialogflow CX:**
    - `Authorization: Bearer <token>`
    - `Content-Type: application/json`
-   - `x-goog-user-project: floristeria-petal-digital`
+   - `x-goog-user-project: <GCP_PROJECT>`
 3. **WIF (Workload Identity Federation):** nunca usar SA keys. La autenticación de GitHub Actions a GCP es exclusivamente vía WIF.
 4. **Idempotencia:** todo `push_*.py` sigue el patrón `LIST → diff → PATCH/POST solo lo que cambió`. Nunca recrear recursos existentes.
 5. **LRO polling:** `POST /versions` requiere polear `GET /operations/{id}` hasta `done=true`. No reportar éxito antes.
@@ -145,7 +145,7 @@ Reglas operativas sobre cómo cualquier cambio llega a producción.
 ## 7. Constraints (nunca tocar sin aprobación explícita)
 
 1. **IAM y roles en GCP** — ningún cambio sin aprobación explícita de Jero.
-2. **Agente Petal en producción** — `745375ba-ac7e-4eb8-b8a0-d742891f2aa4`. Ningún cambio sin aprobación.
+2. **Agente Petal en producción** — `<AGENT_ID_PETAL_1.0>`. Ningún cambio sin aprobación.
 3. **GitHub Secrets** — nunca crear, modificar ni leer sin aprobación.
 4. **`petal-sheet-api`** — proyecto separado (backend Cloud Run de inventario). Vive en tres instancias, ninguna se toca desde este repo:
    - `~/petal-sheet-api/` (local) — código fuente editable.
@@ -229,14 +229,14 @@ Ejemplo:
 
 ### Identificadores
 
-- **Repo GitHub:** `jeronimosanchez/cx-automation-template`
-- **Proyecto GCP:** `floristeria-petal-digital`
-- **PROJECT_NUMBER:** `920225907399`
-- **Agente CX Petal:** `745375ba-ac7e-4eb8-b8a0-d742891f2aa4` (region `europe-west1`)
-- **Service Account de despliegue:** `cx-template-deployer@floristeria-petal-digital.iam.gserviceaccount.com`
+- **Repo GitHub:** `<GITHUB_REPO>`
+- **Proyecto GCP:** `<GCP_PROJECT>`
+- **PROJECT_NUMBER:** `<PROJECT_NUMBER>`
+- **Agente CX Petal:** `<AGENT_ID_PETAL_1.0>` (region `europe-west1`)
+- **Service Account de despliegue:** `<SERVICE_ACCOUNT>`
 - **Roles del SA:** `roles/dialogflow.admin` + `roles/serviceusage.serviceUsageConsumer`
-- **Workload Identity Pool:** `github-pool` (global)
-- **Workload Identity Provider:** `github-provider` (attribute-condition: `jeronimosanchez/cx-automation-template`)
+- **Workload Identity Pool:** `<WIF_POOL>` (global)
+- **Workload Identity Provider:** `<WIF_PROVIDER>` (attribute-condition: `<GITHUB_REPO>`)
 - **GitHub Variables:** `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT`
 
 ### Protocolo de arranque de sesión

@@ -1,5 +1,9 @@
 # cx-automation-template
 
+> **Autor: Jerónimo Sánchez Morote** — 2026 · © Todos los derechos reservados ([LICENSE](LICENSE))
+> Proyecto de autoría propia. Reproducción, modificación o uso no autorizado prohibido.
+> La autoría y las fechas quedan registradas de forma verificable en el historial de Git.
+
 Template reutilizable para automatizar agentes conversacionales en Dialogflow CX (REST v3beta1).
 
 Provee:
