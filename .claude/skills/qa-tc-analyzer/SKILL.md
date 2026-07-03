@@ -411,8 +411,8 @@ El skill consulta el Sheet para obtener los valores reales de las variables de n
 
 **1. Cargar variables del Sheet (con timeout y verificación defensiva):**
 ```bash
-curl -s --max-time 30 "https://petal-sheet-api-920225907399.europe-west1.run.app/exec?recurso=business" -o /tmp/sheet_business.json
-curl -s --max-time 30 "https://petal-sheet-api-920225907399.europe-west1.run.app/exec?recurso=agent_copy" -o /tmp/sheet_agent_copy.json
+curl -s --max-time 30 "https://petal-sheet-api-v11-mccjwz6qsa-ew.a.run.app/exec?recurso=business" -o /tmp/sheet_business.json
+curl -s --max-time 30 "https://petal-sheet-api-v11-mccjwz6qsa-ew.a.run.app/exec?recurso=agent_copy" -o /tmp/sheet_agent_copy.json
 
 # Verificación defensiva — exigir que ambos archivos sean objetos JSON
 SHEET_OK=true

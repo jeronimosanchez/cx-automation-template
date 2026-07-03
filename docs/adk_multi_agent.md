@@ -14,12 +14,12 @@ Versión: v1.0 | Fecha: 2026-06-23
 - Genera benchmarks (% acuerdo, gaps, patrones)
 - Soporta **dos agentes en paralelo**: 1.0 y 1.1
 
-| Aspecto | 1.0 | 1.1 |
+| Aspecto | 1.0 (DEPRECADO) | 1.1 (activo) |
 |---|---|---|
-| Agent ID | `745375ba-ac7e-4eb8-b8a0-d742891f2aa4` | `cea66b60-192d-4b5a-af10-28f8661032e0` |
+| Agent ID | ~~`cea66b60-192d-4b5a-af10-28f8661032e0`~~ → Petal-RESERVA-jun26 | `745375ba-ac7e-4eb8-b8a0-d742891f2aa4` (Floristeria-Petal) |
 | TCs | `qap/tc_1_0.yaml` (51 TCs) | `qap/tc_1_1.yaml` (51 TCs, por ahora) |
 | Benchmark salida | `fidelity_1.0_<timestamp>.json` | `fidelity_1.1_<timestamp>.json` |
-| Backend | `petal-sheet-api` (Sheet 1.0) | `petal-sheet-api-v11` (Sheet 1.1) |
+| Backend | ~~`petal-sheet-api`~~ (congelado, 0% tráfico) | `petal-sheet-api-v11` (Sheet 1.1) |
 
 ---
 
@@ -140,7 +140,7 @@ args = parser.parse_args()
 # Línea ~50: resolver AGENT_ID
 AGENTS = {
     "1.0": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
-    "1.1": "cea66b60-192d-4b5a-af10-28f8661032e0",
+    "1.1": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",  # cea66b60 deprecado (Petal-RESERVA-jun26)
 }
 AGENT_ID = AGENTS[args.agent]
 
