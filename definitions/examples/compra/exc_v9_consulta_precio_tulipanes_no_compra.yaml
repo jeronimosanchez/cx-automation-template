@@ -60,7 +60,7 @@ playbookInput:
     nombre_cliente: Marta
     id_cliente: '103'
 playbookOutput:
-  executionSummary: Compra recibe $ocasion_detectada=Funeral. Hace tool call con categoria=Funeral. Presenta tipos disponibles (ramos, coronas). Usuario elige gladiolos, se pregunta cantidad, confirma y transfiere a Checkout. Tono solemne.
+  executionSummary: Compra recibe $intencion=consulta_precio tulipanes. Hace tool call con producto=tulipanes. Muestra rango de precios (7-20€) con detalle por variante. Ofrece comprar. Usuario declina. Cierre sin compra.
   actionParameters: {}
 conversationState: OUTPUT_STATE_OK
 languageCode: es
