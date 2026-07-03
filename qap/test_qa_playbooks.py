@@ -38,11 +38,13 @@ LOCATION = "europe-west1"
 AGENTS = {
     "1.0": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
     "1.1": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
+    "refactor": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
 }
 # Environments CX por label. "-" = Default Environment (wildcard CX).
 ENVIRONMENTS = {
     "1.0": "-",
     "1.1": "cb3b3d8a-21cc-4a4d-90f7-e3601fbdf643",  # petal-1.1 (tone refactor, Version 80)
+    "refactor": "33377871-879a-430d-8f96-81d67b9ae34b",  # refactor_Invent (Version 84)
 }
 AGENT_LABEL = "1.0"                       # default; se sobreescribe en main() con --agent
 AGENT_ID = AGENTS[AGENT_LABEL]
