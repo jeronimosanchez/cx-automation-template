@@ -116,7 +116,7 @@ def main():
     parser.add_argument("--ts", help="Timestamp del run en gh-pages (ej: 20260518_192907)")
     parser.add_argument("--logs-dir", help="Carpeta local de JSONs")
     parser.add_argument("--out", default=None, help="Ruta de salida (default: /tmp/qa_regen_{TS}.html)")
-    parser.add_argument("--agent", default=None, help="Etiqueta de agente para el render (1.0/1.1). Default: auto-detectar desde meta.json del run.")
+    parser.add_argument("--agent", default=None, help="Etiqueta de environment para el render (draft/1.1). Default: auto-detectar desde meta.json del run.")
     args = parser.parse_args()
 
     if args.logs_dir:
@@ -165,18 +165,18 @@ def main():
     # Formatear ts para display
     ts_display = f"{ts[:4]}-{ts[4:6]}-{ts[6:8]} {ts[9:11]}:{ts[11:13]}" if len(ts) >= 13 and "_" in ts else ts
 
-    # Resolver AGENT_LABEL: --agent explícito > meta.json del run > "1.0" como fallback
+    # Resolver AGENT_LABEL: --agent explícito > meta.json del run > "draft" como fallback
     agent_label = args.agent
     if agent_label is None and args.ts:
         meta_url = f"{GH_PAGES_BASE}/{ts}/qa_latest.meta.json"
         try:
             with urllib.request.urlopen(meta_url, timeout=5) as r:
                 meta = json.loads(r.read().decode("utf-8"))
-                agent_label = meta.get("agent", "1.0")
+                agent_label = meta.get("agent", "draft")
                 print(f"  Agente detectado desde meta.json: {agent_label}")
         except Exception:
-            agent_label = "1.0"
-    _tq.AGENT_LABEL = agent_label or "1.0"
+            agent_label = "draft"
+    _tq.AGENT_LABEL = agent_label or "draft"
 
     # Generar HTML
     # Pasamos ts compacto original como ts_compact_override para que generate_html

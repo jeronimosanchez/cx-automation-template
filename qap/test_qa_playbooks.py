@@ -33,20 +33,22 @@ import yaml
 
 PROJECT = "floristeria-petal-digital"
 LOCATION = "europe-west1"
-# Agentes CX seleccionables vía --agent. Ambos labels usan el mismo agente (745375ba);
-# el Environment diferencia 1.0 (Default) de 1.1 (snapshot tone refactor "petal-1.1").
+# Agentes CX seleccionables vía --agent. Todos los labels usan el mismo agente (745375ba);
+# el Environment diferencia el Draft (editable, últimos cambios) de los snapshots publicados.
+#   draft = Default Environment ("-") = el estado editable ACTUAL (aquí caen los deploys).
+#   1.1   = snapshot congelado (Version 80, tone refactor "petal-1.1").
 AGENTS = {
-    "1.0": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
+    "draft": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
     "1.1": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
     "refactor": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
 }
-# Environments CX por label. "-" = Default Environment (wildcard CX).
+# Environments CX por label. "-" = Default Environment = el Draft.
 ENVIRONMENTS = {
-    "1.0": "-",
+    "draft": "-",
     "1.1": "cb3b3d8a-21cc-4a4d-90f7-e3601fbdf643",  # petal-1.1 (tone refactor, Version 80)
     "refactor": "33377871-879a-430d-8f96-81d67b9ae34b",  # refactor_Invent (Version 84)
 }
-AGENT_LABEL = "1.0"                       # default; se sobreescribe en main() con --agent
+AGENT_LABEL = "draft"                     # default; se sobreescribe en main() con --agent
 AGENT_ID = AGENTS[AGENT_LABEL]
 ENV_ID = ENVIRONMENTS[AGENT_LABEL]
 BASE = f"https://{LOCATION}-dialogflow.googleapis.com/v3beta1"
@@ -1658,7 +1660,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
 <p class="sub">{ts} · {RUNS} runs/TC · {'Cloud Shell' if IS_CLOUD_SHELL else platform.node()}</p>
 <div class="agent-switch" data-current="{AGENT_LABEL}">
 <span class="agent-switch-lbl">Agente</span>
-<button class="agent-btn{' active' if AGENT_LABEL=='1.0' else ''}" onclick="switchAgent('1.0')">Petal 1.0</button>
+<button class="agent-btn{' active' if AGENT_LABEL=='draft' else ''}" onclick="switchAgent('draft')">Draft</button>
 <button class="agent-btn{' active' if AGENT_LABEL=='1.1' else ''}" onclick="switchAgent('1.1')">Petal 1.1</button>
 </div>
 {legacy_note}
@@ -2119,7 +2121,7 @@ h1{{color:#c8f060;font-size:22px;font-weight:600;margin-bottom:4px}}
     <div class="hist-filter" id="hist-filter" style="display:none">
       <span class="agent-switch-lbl">Filtrar agente</span>
       <button class="hist-fbtn active" data-af="all" onclick="filterHist('all')">Todos</button>
-      <button class="hist-fbtn" data-af="1.0" onclick="filterHist('1.0')">1.0</button>
+      <button class="hist-fbtn" data-af="draft" onclick="filterHist('draft')">draft</button>
       <button class="hist-fbtn" data-af="1.1" onclick="filterHist('1.1')">1.1</button>
     </div>
     <table id="hist-table" class="hist-table hidden">
@@ -2209,7 +2211,7 @@ async function openHistorial(){
     tbody.innerHTML='';
     rows.forEach(m=>{
       const tr=document.createElement('tr');
-      const ag=m.agent||'1.0';
+      const ag=m.agent||'draft';
       tr.dataset.agent=ag;
       if(currentTs && m.timestamp===currentTs[0]) tr.classList.add('current');
       const backfilled=m.backfilled?' <span class="backfilled-tag">retroactivo</span>':'';
@@ -2220,7 +2222,7 @@ async function openHistorial(){
     loading.classList.add('hidden');
     document.getElementById('hist-filter').style.display='flex';
     table.classList.remove('hidden');
-    const _curAg=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+    const _curAg=document.querySelector('.agent-switch')?.dataset.current||'draft';
     filterHist(_curAg);
   }catch(e){
     loading.textContent='Error cargando histórico: '+e.message;
@@ -2238,7 +2240,7 @@ async function switchAgent(label){
   if(location.protocol==='file:'){ alert('Este dashboard necesita abrirse vía servidor o gh-pages (http/https), no como archivo local: el navegador bloquea la carga de history.json desde file://.'); return; }
   try{
     const rows=await fetch('../history.json',{cache:'no-cache'}).then(r=>r.json());
-    const match=rows.filter(m=>(m.agent||'1.0')===label).sort((a,b)=>(b.ts_file||'').localeCompare(a.ts_file||''))[0];
+    const match=rows.filter(m=>(m.agent||'draft')===label).sort((a,b)=>(b.ts_file||'').localeCompare(a.ts_file||''))[0];
     if(!match){ alert('Sin runs de Petal '+label+' todavía. Genera uno: python3 qap/test_qa_playbooks.py --agent '+label); return; }
     window.location.href='../'+match.dir+'/qa_latest.html';
   }catch(e){ alert('No se pudo cargar history.json: '+e.message); }
@@ -2252,7 +2254,7 @@ async function openEstatico(){
   loading.classList.remove('hidden');
   loading.textContent='Cargando análisis estático...';
   body.innerHTML='';
-  const ag=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+  const ag=document.querySelector('.agent-switch')?.dataset.current||'draft';
   if(location.protocol==='file:'){ loading.textContent='Abre el dashboard vía servidor o gh-pages (http/https) — el navegador bloquea fetch desde file://.'; return; }
   try{
     const data=await fetch('../static_'+ag+'.json',{cache:'no-cache'}).then(r=>{
@@ -2327,7 +2329,7 @@ async function openDinamico(){
   loading.classList.remove('hidden');
   loading.textContent='Cargando análisis dinámico...';
   body.innerHTML='';
-  const ag=document.querySelector('.agent-switch')?.dataset.current||'1.0';
+  const ag=document.querySelector('.agent-switch')?.dataset.current||'draft';
   if(location.protocol==='file:'){ loading.textContent='Abre el dashboard vía servidor o gh-pages (http/https) — el navegador bloquea fetch desde file://.'; return; }
   try{
     const data=await fetch('../dynamic_'+ag+'.json',{cache:'no-cache'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
@@ -2750,8 +2752,8 @@ def main():
     parser.add_argument("--test", help="Ejecutar TC(s). Uno: TC-C29. Varios: TC-C29,TC-C30,TC-DECO-02")
     parser.add_argument("--type", help="Filtrar: REG, NEW, EDGE")
     parser.add_argument("--runs", type=int, default=3, help="Runs por TC (default 3)")
-    parser.add_argument("--agent", choices=list(AGENTS), default="1.0",
-                        help="Agente CX objetivo: 1.0 (congelado) o 1.1 (activo). Default 1.0.")
+    parser.add_argument("--agent", choices=list(AGENTS), default="draft",
+                        help="Environment CX objetivo: draft (editable, ultimos cambios sin publicar) o 1.1 (snapshot publicado). Default draft.")
     parser.add_argument("--tests", default=None,
                         help="Archivo YAML de TCs (default: tc_1_0.yaml o env QA_TESTS_FILE). Para correr otro set.")
     parser.add_argument("--list", action="store_true", help="Listar TCs")
