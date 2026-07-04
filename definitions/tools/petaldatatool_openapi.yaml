@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: PetalDataTool
-  version: 3.9.0
+  version: 3.10.0
   description: API para Floristeria Petal - perfil, registro, inventario, business, agent_copy, validar_pedido, pedidos.
 servers:
   - url: https://petal-sheet-api-v11-mccjwz6qsa-ew.a.run.app
@@ -121,6 +121,26 @@ paths:
           schema:
             type: string
           description: Tamano S, M o L (inventario).
+        - name: especie
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Especie botanica de flor o planta que el usuario pide (inventario).
+            Por defecto devuelve SOLO productos de esa especie unica (el producto ES esa flor).
+            Ejemplos - Rosas, Girasoles, Tulipanes, Lirios, Orquidea, Ficus, Palma.
+            Usar el nombre en singular/plural tal cual lo diga el usuario; el backend tolera acentos y mayusculas.
+        - name: variedad
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: >-
+            Poner true SOLO cuando el usuario pide algo variado, mezclado, multicolor, multiflor
+            o un arreglo/surtido. Devuelve productos multi-especie (arreglos de varias flores).
+            Si se combina con 'especie', devuelve arreglos que contengan esa especie.
+            No usar en busquedas normales de una flor concreta.
         - name: precio_max
           in: query
           required: false

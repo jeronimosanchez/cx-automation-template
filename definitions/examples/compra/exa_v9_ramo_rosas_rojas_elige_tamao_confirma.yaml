@@ -8,7 +8,7 @@ actions:
     action: consultarDatos
     inputActionParameters:
       recurso: inventario
-      producto: rosas
+      especie: rosas
       color: Rojo
       tipo: Ramo
     outputActionParameters:
