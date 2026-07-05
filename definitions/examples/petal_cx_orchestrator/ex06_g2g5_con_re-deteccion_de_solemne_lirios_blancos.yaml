@@ -1,6 +1,6 @@
 playbook: Petal CX Orchestrator
 id: 73e1b0b4-bedb-4cd3-8ce3-b58b0d0a03ab
-displayName: Ex06 — G2→G5 con re-deteccion de solemne (lirios blancos)
+displayName: Ex06 — G2→G5 con re-deteccion de solemne (lirios blancos) v2
 description: Usuario consulta precio (G2), agente ofrece compra, usuario revela que es para un velatorio. Re-detecta registro=solemne a mitad de conversacion y transfiere a Compra con Ocasion=Funeral.
 actions:
 - userUtterance:
@@ -10,7 +10,7 @@ actions:
     action: consultarDatos
     inputActionParameters:
       recurso: inventario
-      producto: lirios
+      especie: lirios
       color: blanco
     outputActionParameters:
       '200':
@@ -19,33 +19,33 @@ actions:
         count: 3
         sin_mas_opciones: false
         resultados:
-        - Tipo_Producto: Ramo
-          Ocasion: Funeral, Decoracion
-          Precio: '22'
-          Color: Blanco
-          Stock: '40'
-          Producto: Ramo de Lirios Blancos
-          Descripcion_Cantidad: 6 tallos
-          Tamano: S
-        - Tipo_Producto: Ramo
-          Ocasion: Funeral, Decoracion
-          Stock: '28'
-          Color: Blanco
-          Precio: '35'
-          Producto: Ramo de Lirios Blancos
-          Tamano: M
-          Descripcion_Cantidad: 10 tallos
-        - Producto: Ramo de Lirios Blancos
-          Precio: '48'
-          Color: Blanco
-          Stock: '15'
-          Descripcion_Cantidad: 15 tallos
-          Tamano: L
-          Ocasion: Funeral, Decoracion
+        - Producto: Ramo de Lirios
           Tipo_Producto: Ramo
+          Especie: Lirios
+          Color: Blanco
+          Tamano: M
+          Precio: '22'
+          Descripcion_Cantidad: 3 tallos
+          Ocasion: Funeral, Regalo
+        - Producto: Ramo Día de la Madre Lirios
+          Tipo_Producto: Ramo
+          Especie: Lirios
+          Color: Blanco
+          Tamano: L
+          Precio: '63'
+          Descripcion_Cantidad: 10 tallos
+          Ocasion: Funeral, Regalo
+        - Producto: Ramo Pascua Lirios
+          Tipo_Producto: Ramo
+          Especie: Lirios
+          Color: Blanco
+          Tamano: L
+          Precio: '52'
+          Descripcion_Cantidad: 7 tallos
+          Ocasion: Funeral, Regalo
 - agentUtterance:
     text: |
-      Mira, los Lirios Blancos van de 22€ (S) a 48€ (L) 🌸 ¿Te preparo un ramo?
+      Mira, los ramos de lirios blancos van de 22€ (M) a 63€ (L) 🌸 ¿Te preparo uno?
 - userUtterance:
     text: Sí, es para un velatorio
 - agentUtterance:
@@ -59,10 +59,10 @@ playbookOutput:
     a mitad de conversacion. El turno estandar (fresco, 🌸) contrasta con el
     solemne (pausado, sin emoji). Transfiere a Compra con registro=solemne.
   actionParameters:
-    intencion: comprar Ramo de Lirios Blancos
+    intencion: comprar Ramo de Lirios Blanco
     grupo_intent: G5
     registro: solemne
-    producto: Ramo de Lirios Blancos
+    producto: Ramo de Lirios Blanco
     ocasion_detectada: Funeral
 conversationState: OUTPUT_STATE_OK
 languageCode: es

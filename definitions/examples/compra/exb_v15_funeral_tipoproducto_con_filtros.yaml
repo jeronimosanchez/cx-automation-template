@@ -1,13 +1,13 @@
 playbook: Compra
 id: 838860ed-db3b-4d67-8449-5f3af4165830
-displayName: 'ExB v15: Funeral → tipo+producto con filtros'
+displayName: 'ExB v16: Funeral → tipo+producto con filtros'
 description: Producto con filtros
 actions:
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
     inputActionParameters:
-      categoria: funeral
+      ocasion: Funeral
       recurso: inventario
     outputActionParameters:
       resultado: opciones funeral encontradas

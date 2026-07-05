@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: PetalDataTool
-  version: 3.10.0
+  version: 3.11.0
   description: API para Floristeria Petal - perfil, registro, inventario, business, agent_copy, validar_pedido, pedidos.
 servers:
   - url: https://petal-sheet-api-v11-mccjwz6qsa-ew.a.run.app
@@ -114,7 +114,11 @@ paths:
           required: false
           schema:
             type: string
-          description: Ocasion del producto - Funeral, Boda, Regalo, Decoracion, Romantico, Nacimiento, Corporativo (inventario).
+            enum: [Funeral, Boda, Regalo, Decoracion, Romantico, Nacimiento, Corporativo]
+          description: >-
+            Ocasion del producto (inventario). Valores validos los del enum.
+            El usuario la expresa en lenguaje natural; mapea al valor del enum
+            (ej "velatorio"->Funeral, "decorar el salon"->Decoracion, "cumpleanos"/sin ocasion clara->Regalo).
         - name: tamano
           in: query
           required: false

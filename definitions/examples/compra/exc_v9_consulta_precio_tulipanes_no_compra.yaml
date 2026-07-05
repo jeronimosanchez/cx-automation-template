@@ -1,6 +1,6 @@
 playbook: Compra
 id: 4b262b47-086a-495b-9673-677c1e059775
-displayName: 'ExC v9: Consulta precio tulipanes → no compra'
+displayName: 'ExC v10: Consulta precio tulipanes → no compra (schema normalizado)'
 actions:
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
@@ -13,36 +13,30 @@ actions:
         recurso: inventario
         ok: true
         resultados:
-        - Ocasion: Regalo
-          Producto: Ramo de Tulipanes Mixtos — S
-          Tipo_Producto: Ramo
-          Tamano: S
-          Precio: '12'
+        - Producto: Ramo de Tulipanes
+          Especie: Tulipanes
           Color: Multicolor
-          Stock: '101'
-          Flores_Tallos: '5'
-          Categoria_Uso: Regalo
-        - Ocasion: Regalo
-          Tipo_Producto: Ramo
-          Producto: Ramo de Tulipanes Mixtos — M
           Tamano: M
-          Stock: '84'
-          Categoria_Uso: Regalo
-          Flores_Tallos: '10'
           Precio: '20'
+          Descripcion_Cantidad: 10 flores
+          Ocasion: Regalo, Decoracion
+        - Producto: Ramo Primavera Tulipanes Mix
+          Especie: Tulipanes
           Color: Multicolor
-        - Stock: '84'
-          Flores_Tallos: '3'
-          Categoria_Uso: Regalo
-          Precio: '7'
-          Color: Morado
-          Tamano: S
-          Tipo_Producto: Ramo
-          Producto: Ramo de Tulipanes Morados — S
+          Tamano: M
+          Precio: '28'
+          Descripcion_Cantidad: 12 flores
+          Ocasion: Decoracion, Regalo
+        - Producto: Ramo Gracias Tulipanes Mix
+          Especie: Tulipanes
+          Color: Multicolor
+          Tamano: M
+          Precio: '30'
+          Descripcion_Cantidad: 15 flores
           Ocasion: Regalo
         count: 3
 - agentUtterance:
-    text: "Los ramos de tulipanes van de 7€ a 20€, Marta: \n\nTulipanes Morados S — 3 flores, 7€ \nTulipanes Mixtos S — 5 flores, 12€ \nTulipanes Mixtos M — 10 flores, 20€. \n\n¿Te gustaría pedir alguno?\n"
+    text: "Los ramos de tulipanes van de 20€ a 30€, Marta: \n\nRamo de Tulipanes — 10 flores, 20€ \nRamo Primavera Tulipanes Mix — 12 flores, 28€ \nRamo Gracias Tulipanes Mix — 15 flores, 30€. \n\n¿Te gustaría pedir alguno?\n"
 - userUtterance:
     text: |+
       No, solo quería saber. Gracias.
@@ -51,7 +45,7 @@ actions:
 - agentUtterance:
     text: ¡Perfecto! Si cambias de idea, aquí estamos. ¿Puedo ayudarte en algo más?
 playbookInput:
-  precedingConversationSummary: Compra recibe $intencion="consulta_precio tulipanes". Hace tool call con producto=tulipanes. Muestra rango de precios. Ofrece comprar. Usuario declina. Demuestra que Compra maneja consultas de precio sin iniciar compra.
+  precedingConversationSummary: Compra recibe $intencion="consulta_precio tulipanes". Hace tool call con especie=tulipanes. Muestra rango de precios. Ofrece comprar. Usuario declina. Demuestra que Compra maneja consultas de precio sin iniciar compra.
   actionParameters:
     dir_habitual: Plaza del Sol 2, Valencia
     tipo_cliente: particular
@@ -60,7 +54,7 @@ playbookInput:
     nombre_cliente: Marta
     id_cliente: '103'
 playbookOutput:
-  executionSummary: Compra recibe $intencion=consulta_precio tulipanes. Hace tool call con producto=tulipanes. Muestra rango de precios (7-20€) con detalle por variante. Ofrece comprar. Usuario declina. Cierre sin compra.
+  executionSummary: Compra recibe $intencion=consulta_precio tulipanes. Hace tool call con especie=tulipanes. Muestra rango de precios (20-30€) con detalle por variante. Ofrece comprar. Usuario declina. Cierre sin compra.
   actionParameters: {}
 conversationState: OUTPUT_STATE_OK
 languageCode: es

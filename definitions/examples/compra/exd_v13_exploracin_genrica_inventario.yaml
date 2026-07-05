@@ -1,7 +1,7 @@
 playbook: Compra
 id: 1bf27027-1f37-4427-8715-dc39c69ce749
-displayName: 'ExD v13: Exploración genérica inventario'
-description: Explora Inventario
+displayName: 'ExD v14: Exploración genérica inventario (schema normalizado)'
+description: Explora Inventario por ocasión (regalo). Usuario mira sin comprar.
 actions:
 - agentUtterance:
     text: Tenemos una gran variedad, Marta. Para orientarte mejor, ¿para qué ocasión buscas? ¿Regalo, boda, funeral, decoración...?
@@ -11,48 +11,37 @@ actions:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
     inputActionParameters:
-      categoria: regalo
+      ocasion: Regalo
       recurso: inventario
     outputActionParameters:
-      '200': |-
-        {
-          "ok": true,
-          "recurso": "inventario",
-          "count": 3,
-          "resultados": [
-            {
-              "Nombre_Producto": "Ramo de Rosas Rojas",
-              "Tipo": "Ramo",
-              "Color": "Rojo",
-              "Tamaño": "S",
-              "Flores_Tallos": 8,
-              "Precio": 22,
-              "Stock": 40,
-              "Categoria": "Regalo"
-            },
-            {
-              "Nombre_Producto": "Ramo de Tulipanes Mixtos",
-              "Tipo": "Ramo",
-              "Color": "Mixto",
-              "Tamaño": "M",
-              "Flores_Tallos": 10,
-              "Precio": 20,
-              "Stock": 35,
-              "Categoria": "Regalo"
-            },
-            {
-              "Nombre_Producto": "Ramo de Peonías Rosas",
-              "Tipo": "Ramo",
-              "Color": "Rosa",
-              "Tamaño": "S",
-              "Flores_Tallos": 4,
-              "Precio": 21,
-              "Stock": 18,
-              "Categoria": "Regalo"
-            }
-          ]
+      '200':
+        resultados:
+        - Producto: Ramo de Peonías
+          Especie: Peonías
+          Color: Coral
+          Tamano: M
+          Precio: '35'
+          Descripcion_Cantidad: 15 flores
+          Ocasion: Regalo
+        - Producto: Ramo de Girasoles
+          Especie: Girasoles
+          Color: Amarillo
+          Tamano: M
+          Precio: '20'
+          Descripcion_Cantidad: 10 flores
+          Ocasion: Regalo
+        - Producto: Ramo de Gerberas
+          Especie: Gerberas
+          Color: Amarillo
+          Tamano: M
+          Precio: '18'
+          Descripcion_Cantidad: 10 flores
+          Ocasion: Regalo
+        ok: true
+        count: 3
+        recurso: inventario
 - agentUtterance:
-    text: 'Para regalo te puedo ofrecer: Ramo de Rosas Rojas — S (8 flores, 22€), Ramo de Tulipanes Mixtos — M (10 flores, 20€), Ramo de Peonías Rosas — S (4 flores, 21€). ¿Algo te interesa?'
+    text: 'Para regalo te puedo ofrecer: Ramo de Peonías Coral — M (15 flores, 35€), Ramo de Girasoles Amarillo — M (10 flores, 20€), Ramo de Gerberas Amarillo — M (10 flores, 18€). ¿Algo te interesa?'
 - userUtterance:
     text: No, solo quería ver qué teníais. Gracias.
 - agentUtterance:
@@ -67,7 +56,7 @@ playbookInput:
     nombre_cliente: Marta
     intencion: consultar_inventario qué flores tenéis
 playbookOutput:
-  executionSummary: consulta inventario
+  executionSummary: Exploración genérica de inventario. Usuario pide ver flores; agente pregunta la ocasión; usuario responde "regalo". Consulta inventario con ocasion=Regalo y muestra 3 opciones. Usuario declina comprar. Cierre sin compra.
   actionParameters: {}
 conversationState: OUTPUT_STATE_OK
 languageCode: es

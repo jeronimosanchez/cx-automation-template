@@ -1,7 +1,7 @@
 playbook: Compra
 id: fa4e35a0-c22d-40bf-af4e-15a79337f4fc
-displayName: 'ExI v1: Fallback rosas azules → tono cálido → ofrece alternativas'
-description: Usuario pide algo que no existe exacto (rosas azules). Backend relaja el color y devuelve fallback. Petal reconoce con naturalidad, menciona alternativas e invita a mostrarlas. Enseña el TONO cálido e invitacional ante cualquier fallback (v41).
+displayName: 'ExI v2: Fallback rosas azules → tono cálido → ofrece alternativas (schema normalizado)'
+description: Usuario pide algo que no existe exacto (rosas azules). Backend relaja el color y devuelve fallback. Petal reconoce con naturalidad, menciona alternativas e invita a mostrarlas. Enseña el TONO cálido e invitacional ante cualquier fallback.
 actions:
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
@@ -17,36 +17,39 @@ actions:
         fallback: color_relajado
         count: 3
         resultados:
-        - Producto: Ramo de Rosas Rojas — M
+        - Producto: Ramo de Rosas
           Tipo_Producto: Ramo
-          Ocasion: Regalo
+          Especie: Rosas
+          Color: Morado
           Tamano: M
-          Color: Rojo
           Precio: '37'
-          Flores_Tallos: '15'
-          Stock: '4'
-        - Producto: Ramo de Rosas Blancas — S
+          Descripcion_Cantidad: 15 flores
+          Ocasion: Regalo, Romantico, Decoracion
+          Stock: '19'
+        - Producto: Ramo de Rosas
           Tipo_Producto: Ramo
-          Ocasion: Regalo
-          Tamano: S
-          Color: Blanco
+          Especie: Rosas
+          Color: Amarillo
+          Tamano: M
           Precio: '25'
-          Flores_Tallos: '8'
-          Stock: '9'
-        - Producto: Ramo de Rosas Rosas — S
+          Descripcion_Cantidad: 12 flores
+          Ocasion: Regalo, Romantico, Decoracion
+          Stock: '51'
+        - Producto: Ramo de Rosas
           Tipo_Producto: Ramo
-          Ocasion: Regalo
-          Tamano: S
-          Color: Rosa
-          Precio: '22'
-          Flores_Tallos: '8'
-          Stock: '7'
+          Especie: Rosas
+          Color: Blanco
+          Tamano: M
+          Precio: '25'
+          Descripcion_Cantidad: 12 flores
+          Ocasion: Regalo, Romantico, Decoracion
+          Stock: '64'
 - agentUtterance:
     text: "Rosas azules justo no tenemos, Ana… pero sí las tengo en otros colores preciosos. ¿Te enseño las más pedidas?"
 - userUtterance:
     text: Vale, enséñamelas
 - agentUtterance:
-    text: "Mira estas: Rosas Rojas — M (15 flores, 37€), Rosas Blancas — S (8 flores, 25€), Rosas Rosas — S (8 flores, 22€). ¿Alguna te encaja?"
+    text: "Mira estas: Ramo de Rosas Morado -- M (15 flores, 37€), Ramo de Rosas Amarillo -- M (12 flores, 25€), Ramo de Rosas Blanco -- M (12 flores, 25€). ¿Alguna te encaja?"
 playbookInput:
   precedingConversationSummary: Compra recibe $intencion="quiero rosas azules" con $ocasion_detectada=Regalo. Extrae especie=rosas, color=Azul. Llama inventario; el backend no tiene ese color exacto y relaja el filtro (fallback=color_relajado), devolviendo rosas en otros colores ordenadas por ventas. Petal reconoce con naturalidad que no hay el color exacto, menciona que sí hay alternativas e invita a mostrarlas antes de volcarlas.
   actionParameters:

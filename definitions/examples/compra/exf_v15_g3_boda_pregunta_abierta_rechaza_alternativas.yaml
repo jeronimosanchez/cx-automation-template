@@ -1,6 +1,6 @@
 playbook: Compra
 id: 7ef37b01-6698-42d3-95e1-6ed6b377a7ac
-displayName: 'ExF v15: G3 Boda → pregunta abierta → rechaza → alternativas'
+displayName: 'ExF v16: G3 Boda → pregunta abierta → rechaza → alternativas'
 actions:
 - agentUtterance:
     text: ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?
@@ -10,7 +10,7 @@ actions:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
     inputActionParameters:
-      categoria: boda
+      ocasion: Boda
       recurso: inventario
     outputActionParameters:
       resultado: opciones de boda encontradas

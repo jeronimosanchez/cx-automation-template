@@ -1,6 +1,6 @@
 playbook: Compra
 id: e4b848ff-bd82-4e39-912a-c03a34225861
-displayName: 'ExG v15: Refinamiento progresivo — filtros acumulados'
+displayName: 'ExG v16: Refinamiento progresivo — filtros acumulados'
 actions:
 - agentUtterance:
     text: ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?
@@ -11,7 +11,7 @@ actions:
     action: consultarDatos
     inputActionParameters:
       recurso: inventario
-      categoria: regalo
+      ocasion: Regalo
       tipo: Ramo
     outputActionParameters:
       resultado: ramos para regalo encontrados
@@ -25,7 +25,7 @@ actions:
     inputActionParameters:
       recurso: inventario
       especie: rosas
-      categoria: regalo
+      ocasion: Regalo
       tipo: Ramo
     outputActionParameters:
       resultado: ramos de rosas encontrados
