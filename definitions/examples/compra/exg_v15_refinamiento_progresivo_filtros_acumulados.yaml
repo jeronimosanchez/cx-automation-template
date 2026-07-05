@@ -2,8 +2,16 @@ playbook: Compra
 id: e4b848ff-bd82-4e39-912a-c03a34225861
 displayName: 'ExG v16: Refinamiento progresivo — filtros acumulados'
 actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      recurso: inventario
+      ocasion: Regalo
+    outputActionParameters:
+      resultado: opciones de regalo encontradas
 - agentUtterance:
-    text: ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?
+    text: 'Para un regalo tenemos ramos desde 20€, centros desde 26€ y plantas desde 15€. ¿Tienes algún tipo de producto o flor en mente?'
 - userUtterance:
     text: Quiero un ramo
 - toolUse:
