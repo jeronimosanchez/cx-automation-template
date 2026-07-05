@@ -1,0 +1,47 @@
+# TCs temporales — validan RESTRICCION TEMPORAL comprimida (compra.yaml).
+# 4 casos: hoy antes de 14:00, hoy despues de 14:00, mañana, viernes.
+# Checks amplios a proposito: el valor esta en el transcript + analisis del JSON.
+- id: TC-TEMP-HOY-ANTES
+  type: EDGE
+  group: COMPRA-TEMPORAL
+  name: Hoy antes del corte — 'para hoy a las 12:00'
+  objetivo: El agente reconoce restriccion temporal para hoy antes de las 14:00 y confirma viabilidad (o informa plazo) antes de mostrar catalogo
+  turns:
+  - user: quiero un ramo de rosas para hoy a las 12:00
+    checks:
+    - a tiempo|llega|mismo d[ií]a|viable|14:00|corte|plazo|24h|ma[ñn]ana|ocasi[oó]n
+    desc: Debe engancharse el bloque temporal y responder sobre viabilidad/plazo para hoy antes de mostrar productos
+  not_expected: []
+- id: TC-TEMP-HOY-DESPUES
+  type: EDGE
+  group: COMPRA-TEMPORAL
+  name: Hoy despues del corte — 'para hoy a las 16:00'
+  objetivo: El agente reconoce que hoy a las 16:00 supera el corte de las 14:00 e informa el plazo / ofrece mañana antes de mostrar catalogo
+  turns:
+  - user: quiero un ramo de rosas para hoy a las 16:00
+    checks:
+    - corte|pasamos|no llega|ma[ñn]ana|24h|48h|plazo
+    desc: Debe detectar que supera el corte de 14:00 y ofrecer mañana / informar plazo
+  not_expected: []
+- id: TC-TEMP-MANANA
+  type: EDGE
+  group: COMPRA-TEMPORAL
+  name: Para mañana — 'lo necesito para mañana'
+  objetivo: El agente confirma viabilidad para mañana (plazo 24h/48h) y pregunta la ocasion antes de mostrar catalogo
+  turns:
+  - user: quiero un ramo de rosas para mañana
+    checks:
+    - sin problema|ma[ñn]ana|24h|48h|plazo|ocasi[oó]n
+    desc: Debe confirmar plazo para mañana y pedir ocasion
+  not_expected: []
+- id: TC-TEMP-VIERNES
+  type: EDGE
+  group: COMPRA-TEMPORAL
+  name: Para el viernes — 'para el viernes'
+  objetivo: El agente confirma viabilidad para el viernes (plazo 24h/48h) y pregunta la ocasion antes de mostrar catalogo
+  turns:
+  - user: quiero un ramo de rosas para el viernes
+    checks:
+    - sin problema|viernes|24h|48h|plazo|ocasi[oó]n
+    desc: Debe confirmar plazo para el viernes y pedir ocasion
+  not_expected: []
