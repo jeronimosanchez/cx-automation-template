@@ -45,3 +45,14 @@
     - sin problema|viernes|24h|48h|plazo|ocasi[oó]n
     desc: Debe confirmar plazo para el viernes y pedir ocasion
   not_expected: []
+- id: TC-TEMP-RELATIVO
+  type: EDGE
+  group: COMPRA-TEMPORAL
+  name: Tiempo relativo — 'dentro de 4 horas'
+  objetivo: Ver si el agente razona un plazo relativo (4 horas desde ahora) y si lo relaciona con el corte de 14:00
+  turns:
+  - user: quiero un ramo de rosas dentro de 4 horas
+    checks:
+    - corte|14:00|hora|plazo|24h|48h|ma[ñn]ana|hoy|tiempo|entrega
+    desc: Ver como maneja un plazo relativo (4h)
+  not_expected: []

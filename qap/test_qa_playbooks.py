@@ -270,8 +270,10 @@ def run_single(token, test, run_num=1):
     turn_results = []
     for i, turn in enumerate(test["turns"]):
         user_text = turn["user"].replace("{RUN}", f"{RUN_ID}_{run_num}")
-        # Inject session_params only on first turn (session start)
-        sp = turn.get("session_params") if i == 0 else None
+        # Inject session_params only on first turn (session start).
+        # Si el TC no declara session_params, inyecta _CTX (hora real de Madrid del
+        # ordenador que corre el runner) para que $hora_actual llegue al agente.
+        sp = turn.get("session_params") or (_CTX if i == 0 else None)
         result = detect_intent(token, session_id, user_text, session_params=sp)
         if result.get("is_quota_error"):
             has_quota_error = True

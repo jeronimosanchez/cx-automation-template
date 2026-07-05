@@ -474,6 +474,16 @@
     - Tulipan|tulipan|blanc|euro|opcion
   not_expected:
   - no tengo.{0,40}tulipan
+- id: TC-ROSA-COLOR
+  type: NEW
+  group: G5
+  name: Rosa como color — "un ramo en rosa" (desambiguacion flor vs color)
+  objetivo: '"en rosa" debe interpretarse como color=Rosa (modificador), mostrando productos de varias especies en color rosa, NO como especie=Rosas (la flor)'
+  turns:
+  - user: quiero un ramo en rosa
+    checks:
+    - rosa|ramo|opcion|tamano|euro
+  not_expected: []
 - id: TC-REFINAR-01
   type: NEW
   group: G5
