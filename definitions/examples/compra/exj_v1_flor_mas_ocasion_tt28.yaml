@@ -1,0 +1,88 @@
+playbook: Compra
+id: b943982b-082b-4c0e-9f05-806271ab1b37
+displayName: 'ExH v17: flor+ocasión en un turno → captura AMBOS filtros (TT-28)'
+description: 'TT-28: el usuario menciona especie Y ocasión en la MISMA frase ("quiero rosas para un funeral"). Compra debe capturar los DOS slots y enviarlos JUNTOS en una única consulta (especie=rosas + ocasion=Funeral), sin perder la flor filtrando solo por ocasión.'
+actions:
+- userUtterance:
+    text: |+
+      quiero rosas para un funeral
+
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      especie: rosas
+      ocasion: Funeral
+      recurso: inventario
+    outputActionParameters:
+      '200':
+        resultados:
+        - Producto: Cojín Funerario Rosas Blancas
+          Tipo_Producto: Cojín Funerario
+          Especie: Rosas
+          Color: Blanco
+          Tamano: L
+          Precio: '60'
+          Descripcion_Cantidad: 25 flores
+          Ocasion: Funeral
+        - Producto: Corona Fúnebre Clásica Rosas
+          Tipo_Producto: Corona Fúnebre
+          Especie: Rosas
+          Color: Rosa
+          Tamano: M
+          Precio: '112'
+          Descripcion_Cantidad: 50 flores
+          Ocasion: Funeral
+        - Producto: Corona Fúnebre Clásica Rosas
+          Tipo_Producto: Corona Fúnebre
+          Especie: Rosas
+          Color: Rosa
+          Tamano: L
+          Precio: '157'
+          Descripcion_Cantidad: 75 flores
+          Ocasion: Funeral
+        ok: true
+        count: 3
+        recurso: inventario
+- agentUtterance:
+    text: "Lamento la pérdida, Ana. En rosas para un funeral tenemos: \n\n* Cojín Funerario Rosas Blancas -- L (25 flores, 60€) · \n* Corona Fúnebre Clásica Rosas -- M (50 flores, 112€) · \n* Corona Fúnebre Clásica Rosas -- L (75 flores, 157€). \n\n¿Cuál prefieres? 🌸"
+- userUtterance:
+    text: |+
+      El cojín
+
+- agentUtterance:
+    text: |+
+      Perfecto, Cojín Funerario Rosas Blancas -- L (25 flores, 60€). ¿Cuántos quieres?
+
+- userUtterance:
+    text: '1'
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
+playbookInput:
+  precedingConversationSummary: Orquestador clasificó "quiero rosas para un funeral" y transfirió a Compra con intención que menciona especie (rosas) y ocasión (funeral) juntas.
+  actionParameters:
+    dir_habitual: Calle Mayor 10, Madrid
+    tipo_cliente: particular
+    estado_pago: Al dia
+    ocasion_detectada: Funeral
+    grupo_intent: G3
+    intencion: quiero rosas para un funeral
+    id_cliente: '101'
+    nombre_cliente: Ana
+playbookOutput:
+  executionSummary: 'TT-28: el usuario menciona especie (rosas) Y ocasión (funeral) en la MISMA frase. Compra extrae AMBOS slots y hace una única consulta de inventario con especie=rosas + ocasion=Funeral, sin perder la flor filtrando solo por ocasión. Devuelve 3 productos de rosas para funeral. El usuario elige el cojín, cantidad 1. Confirma → Checkout.'
+  actionParameters:
+    nombre_cliente: Ana
+    ocasion_detectada: Funeral
+    id_cliente: '101'
+    dir_habitual: Calle Mayor 10, Madrid
+    cantidad: '1'
+    producto: Cojín Funerario Rosas Blancas
+    especie: Rosas
+    color: Blanco
+    tamano: L
+    estado_pago: Al dia
+    precio_estimado: '60'
+    tipo_cliente: particular
+conversationState: OUTPUT_STATE_OK
+languageCode: es

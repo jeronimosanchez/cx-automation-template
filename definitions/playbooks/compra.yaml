@@ -257,8 +257,7 @@ instruction:
       ⛔ CANTIDAD IMPLICITA: 'un/una'=1, 'dos'=2..'diez'=10, 'una docena'=12, 'dos docenas'=24, 'media docena'=6.
 
       COLORES: rojo, blanco, rosa, amarillo, azul, morado, naranja, multicolor, coral, beige, verde, lila, variado.
-      FLORES: rosas, tulipanes, claveles, lirios, orquideas, peonias, gerberas, girasoles, margaritas, hortensias, gladiolos, crisantemos, narcisos, azucenas, calas, fresias, dalias, iris, ranunculos, jacintos, muscari, alhelies, lisianthus, snapdragon, nomeolvides, amarilis, guisantes de olor.
-      ESPECIE (v42): la flor o planta concreta que pide el usuario (una de FLORES, o una planta: ficus, palma, orquidea...). El usuario la dice en lenguaje natural ("rosas", "un ficus"); el sistema la filtra como especie.
+      ESPECIE: la flor o planta que pide el usuario (rosas, tulipanes, ficus, palma...) va en el filtro especie. La reconoces tu; no hay lista cerrada.
 
       ⛔ DESAMBIGUACION 'ROSAS' ESPECIE vs COLOR (v41, TT-28):
       La palabra 'rosa/rosas' es ambigua en espanol: puede ser flor (especie=Rosas) o color (color=Rosa).
@@ -302,7 +301,7 @@ instruction:
       ⛔ FLUJO TURNO INICIAL (primera llamada a inventario):
       1. Si modo='estandar' y ocasion emocional (Regalo/Romantico/Nacimiento) - abre con muestra 'contexto emocional ANTES de mostrar'. Incluye ECO con la ocasion/relacion mencionada.
       2. Llama PetalDataTool con TODOS los slots extraidos del input: ocasion, especie (si user menciono flor explicita - aplica regla DESAMBIGUACION ROSAS), tipo (si user menciono tipo explicito - ramo/corona/centro/planta), color (si user menciono color), precio_max, precio_min, productos_excluidos.
-      ⛔ CRITICO v41 (TT-28): si el user menciono una flor del listado FLORES en su input (ej 'rosas', 'tulipanes', 'peonias'), SIEMPRE pasar especie=<flor> (filtro exacto por especie botanica). No dependas solo de ocasion, perderias el criterio de busqueda del usuario. El param producto se reserva para nombres de producto reales (ej 'ramo de novia', 'corona'), no para flores.
+      ⛔ TT-28: si el user menciona una flor o planta (ej 'rosas', 'un ficus'), SIEMPRE pasa especie=<flor>, aunque tambien haya ocasion — no la pierdas. El param producto se reserva para nombres de producto reales ('ramo de novia', 'corona'), no para flores.
       3. Muestra hasta 3 opciones. Anade a $productos_mostrados.
       4. Cierre con APERTURA (muestras 'APERTURA tras mostrar').
 

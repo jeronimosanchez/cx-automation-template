@@ -1,0 +1,29 @@
+playbook: Petal CX Orchestrator
+id: 6538bf18-4df7-44f1-8324-f617bb96213a
+displayName: Ex12 — Saludo + intención de compra → NO es saludo (G5)
+description: >
+  Caso frágil de clasificación semántica. El usuario ABRE con una palabra de
+  saludo ("buenas") pero en la misma frase expresa intención de compra y
+  menciona un producto ("una corona"). Con la regla anti-saludo semántica (sin
+  lista de keywords), un mensaje es SALUDO solo si es saludo social puro sin
+  intención de compra; si menciona producto/flor/ocasión → NO es saludo. Aquí
+  la señal de compra domina: clasifica G5 y transfiere a Compra, no saluda.
+actions:
+- userUtterance:
+    text: Buenas, necesito una corona
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: >
+    El mensaje abre con "buenas" (palabra de saludo) pero expresa deseo
+    ("necesito") y menciona producto ("corona"). NO es saludo social puro:
+    la intención de compra domina. Clasifica G5, ocasion_detectada=Funeral
+    (una corona es producto funerario) y transfiere a Compra. No responde
+    con un saludo.
+  actionParameters:
+    grupo_intent: G5
+    intencion: comprar una corona
+    ocasion_detectada: Funeral
+    producto: corona
+conversationState: OUTPUT_STATE_OK
+languageCode: es
