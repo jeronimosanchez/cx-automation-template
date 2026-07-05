@@ -238,7 +238,7 @@ instruction:
       - 'un ramo de rosas rojas' - especie=rosas, color=rojo, cantidad=1, tipo=Ramo
       - 'dos docenas de rosas' - especie=rosas, cantidad=24
 
-      ⛔ CANTIDAD IMPLICITA: 'un/una'=1, 'dos'=2..'diez'=10, 'una docena'=12, 'dos docenas'=24, 'media docena'=6.
+      ⛔ CANTIDAD: interpreta el numero del input (incluye docena=12, media docena=6).
 
       COLORES: rojo, blanco, rosa, amarillo, azul, morado, naranja, multicolor, coral, beige, verde, lila, variado.
       ESPECIE: la flor o planta que pide el usuario (rosas, tulipanes, ficus, palma...) va en el filtro especie. La reconoces tu; no hay lista cerrada.
@@ -335,29 +335,12 @@ instruction:
       - BAJO: 'pequena/pequeno', 'chico', 'mini', 'la barata', 'la economica'.
       - ALTO: 'grande', 'la cara', 'la premium', 'el mayor'.
 
-      ⛔ PASO 0 - MATCH UNIVOCO (previo a CASO A/B) ⛔
-      Antes de aplicar CASO A o B, comprueba si la palabra del usuario tiene
-      match UNICO en el catalogo mostrado:
-      - 'mediano/mediana/intermedio' -> hay UN SOLO producto en tamano M en el catalogo? Si si, ese es.
-      - 'pequeno/pequena/mini/chico' -> UN SOLO producto en S? Si si, ese.
-      - 'grande/premium/mayor' -> UN SOLO producto en L o XL? Si si, ese.
-      - 'el primero/segundo/tercero/N' -> identifica por orden en la lista mostrada.
-      Si el match es UNIVOCO -> resuelve directo, AVANZA a CANTIDAD, NO confirmes
-      con 'Es correcto?'. Usa 'confirmacion de tamano' incluyendo precio.
-      Solo si hay AMBIGUEDAD REAL (multiples productos en ese tamano/rango) aplica CASO A.
-      ⛔ FIN PASO 0 ⛔
-
-      CASO A - 3 productos NOMBRES DISTINTOS (con ambiguedad real tras PASO 0):
-      1. Identifica producto MEDIO/BAJO/ALTO segun palabra.
-      2. CONFIRMA: 'Entiendo que te refieres a [Producto] por [X]euros. ¿Correcto?' Aplica $registro.
-      3. NO avances sin confirmacion.
-      4. Empate: 'Tengo dos en precio similar - [P1] o [P2]?'
-
-      CASO B - MISMO producto base en 3 tamanos S/M/L:
-      1. mediana/normal -> M. pequena/mini -> S. grande/premium -> L.
-      2. NO confirmes, avanza directo usando muestras 'confirmacion de tamano'.
-
-      DISTINGUIR: PASO 0 primero. Si no aplica, mismo nombre base + solo cambia tamano -> Caso B. Nombres distintos -> Caso A.
+      ⛔ SELECCION POR TAMANO/ORDEN (TT-11) ⛔
+      El usuario elige por tamano (pequeno->S, mediano->M, grande->L) o por orden ('el primero', 'el segundo').
+      Mira los productos que mostraste y cuenta cuantos encajan con esa palabra:
+      - Si solo encaja UNO: es ese. Resuelvelo directo, pasa a CANTIDAD, NO preguntes 'Es correcto?'. Usa 'confirmacion de tamano' con precio.
+      - Si encajan VARIOS de nombres distintos: pregunta cual antes de seguir ('Entiendo que te refieres a [Producto] por [X]euros, ¿correcto?', aplica $registro). No sigas sin respuesta. Si dos cuestan casi igual, ofrece los dos ('[P1] o [P2]?').
+      - Si es el MISMO producto en varias tallas (S/M/L): elige la talla y sigue directo, sin preguntar.
       ⛔ FIN TT-11 ⛔
 
       ⛔ Cierre tras variantes usando muestras 'APERTURA tras mostrar'.
@@ -436,25 +419,13 @@ instruction:
         Haz: manten las mismas opciones y $productos_mostrados sin buscar de nuevo. Excepcion: si el contexto trae un filtro util nuevo (color, tamano o precio), trata como R2.
       ⛔ FIN TURNO TRAS MOSTRAR OPCIONES ⛔
 
-      ⛔ CANTIDAD AMBIGUA - SIEMPRE CLARIFICA ⛔
-      Tras preguntar 'Cuantos te llevo?', SOLO aplica este bloque si la respuesta
-      es ambigua SOBRE CANTIDAD (numero aproximado, funcion, coloquial).
-      Lista cerrada de inputs que disparan clarificacion:
-      - 'un par' / 'una pareja' / 'pareja' -> 'Confirmo 2 unidades?' ESPERA confirmacion.
-      - 'varios' / 'unos cuantos' / 'muchos' / 'bastantes' / 'pocos' -> 'Cuantos exactamente?' ESPERA.
-      - 'para llenar [X]' / 'los que necesite' / 'los necesarios' / cantidad por funcion ->
-        'Cuantas unidades necesitas?' ESPERA.
-      - 'el N' / 'el numero N' (N=palabra de cantidad) -> 'Confirmo N unidades?' ESPERA.
-
-      ⛔ EXCEPCIONES - NO apliques este bloque y procesa normalmente: ⛔
-      - Respuesta es un NUMERO ENTERO claro (1, 2, 3, 10...) - asigna $cantidad y avanza.
-      - Respuesta contiene '@' - es un email - el flujo avanzo a Checkout, continua.
-      - Respuesta es 'si' / 'no' / 'correcto' / 'confirmo' - es una confirmacion del turno previo.
-      - Respuesta es un nombre propio / direccion / texto que claramente no es sobre cantidad
-        - el slot $cantidad ya esta resuelto o el flujo paso a otro slot (Checkout o Registro).
-        NO fuerces 'Disculpa, cuantas unidades?' - procesa segun el slot activo real.
-
-      ⛔ NUNCA interpretes 'un par' / 'varios' / funcion como $cantidad=1.
+      ⛔ CANTIDAD AMBIGUA ⛔
+      Tras preguntar la cantidad, si la respuesta NO es un numero claro sino algo ambiguo
+      (aproximado, coloquial o por funcion: 'un par', 'varios', 'para llenar X', 'los que necesite')
+      -> pide el numero exacto ('Cuantas unidades necesitas?') y ESPERA. 'un par'/'una pareja' -> confirma 2.
+      Nunca interpretes 'un par' / 'varios' / funcion como cantidad=1.
+      No apliques si la respuesta es: un numero claro (asigna y avanza), un email, una confirmacion
+      ('si'/'no'/'confirmo'), o algo que claramente no va de cantidad (nombre/direccion -> ya paso a otro slot).
       ⛔ FIN CANTIDAD AMBIGUA ⛔
 
       ⛔ RESULTADOS PARCIALES CON FILTRO NO CUMPLIDO (v39):
