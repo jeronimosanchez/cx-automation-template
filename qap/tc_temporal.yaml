@@ -56,3 +56,14 @@
     - corte|14:00|hora|plazo|24h|48h|ma[ñn]ana|hoy|tiempo|entrega
     desc: Ver como maneja un plazo relativo (4h)
   not_expected: []
+- id: TC-TEMP-HOY-1800
+  type: EDGE
+  group: COMPRA-TEMPORAL
+  name: Hoy a las 18:00 (hora ya pasada si es tarde) — usa $entrega_hoy_posible
+  objetivo: Con el reloj real inyectado, el agente debe leer $entrega_hoy_posible y ofrecer mañana si hoy ya no es viable
+  turns:
+  - user: quiero un ramo de rosas para hoy a las 18:00
+    checks:
+    - ma[ñn]ana|no.{0,20}hoy|no es posible|24h|plazo|hoy
+    desc: Debe leer el flag entrega_hoy_posible y ofrecer mañana si ya paso el corte
+  not_expected: []
