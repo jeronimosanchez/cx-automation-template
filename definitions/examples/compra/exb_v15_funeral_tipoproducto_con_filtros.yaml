@@ -12,7 +12,7 @@ actions:
     outputActionParameters:
       resultado: opciones funeral encontradas
 - agentUtterance:
-    text: 'Lamento la pérdida, Marta. Para funerales tenemos: Ramos — desde 5€, Coronas fúnebres — desde 396€. ¿Qué tipo te interesa?'
+    text: 'Lamento la pérdida, Marta. Para esta ocasión tenemos ramos desde 5€ y coronas fúnebres desde 396€. ¿Tienes algún tipo de producto en mente?'
 - userUtterance:
     text: Un ramo de gladiolos
 - toolUse:

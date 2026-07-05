@@ -2,10 +2,6 @@ playbook: Compra
 id: 7ef37b01-6698-42d3-95e1-6ed6b377a7ac
 displayName: 'ExF v16: G3 Boda → pregunta abierta → rechaza → alternativas'
 actions:
-- agentUtterance:
-    text: ¿Tienes algún tipo de flor en mente o un presupuesto orientativo?
-- userUtterance:
-    text: No sé, algo bonito
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
     action: consultarDatos
@@ -15,7 +11,11 @@ actions:
     outputActionParameters:
       resultado: opciones de boda encontradas
 - agentUtterance:
-    text: 'Para bodas tenemos: Ramo de Novia Rosas Blancas — S (6 flores, 35€), Boutonniere Rosas — Unitario (3 flores, 8€), Centro de Mesa Rosas y Eucalipto — S (6 flores, 26€). ¿Alguno te interesa?'
+    text: '¡Enhorabuena! Para esta ocasión tenemos boutonnieres desde 8€, ramos de novia desde 35€ y centros de mesa desde 26€. ¿Tienes algún tipo de producto en mente?'
+- userUtterance:
+    text: No sé, algo bonito
+- agentUtterance:
+    text: 'Te muestro lo más elegido entonces: Ramo de Novia Rosas Blancas — S (6 flores, 35€), Boutonniere Rosas — Unitario (3 flores, 8€), Centro de Mesa Rosas y Eucalipto — S (6 flores, 26€). ¿Alguno te encaja?'
 - userUtterance:
     text: No me gusta ninguno
 - agentUtterance:
