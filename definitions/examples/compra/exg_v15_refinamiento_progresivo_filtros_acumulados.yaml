@@ -32,7 +32,7 @@ actions:
 - agentUtterance:
     text: Tenemos Ramo de Rosas Rojas (S 22€, M 37€) y Ramo de Rosas Blancas (S 15€). ¿Qué color y tamaño prefieres?
 - userUtterance:
-    text: Rojas, el mediano
+    text: Rojas, la de 37 euros
 - agentUtterance:
     text: Ramo de Rosas Rojas — M (15 flores, 37€). ¿Cuántos quieres?
 - userUtterance:

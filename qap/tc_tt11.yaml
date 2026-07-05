@@ -1,0 +1,59 @@
+# TCs para validar TT-11 comprimido (SELECCION POR TAMANO/ORDEN).
+# Valida las 3 ramas: mismo-producto-en-tallas -> directo; univoco por orden/precio -> directo;
+# varios nombres distintos -> confirma. Checks amplios: el valor esta en el transcript.
+- id: TC-TT11-TALLAS
+  type: EDGE
+  group: COMPRA-TT11
+  name: Mismo producto en tallas — 'la mediana' debe resolver M directo SIN sobre-confirmar
+  objetivo: Con un producto en S/M/L, 'la mediana' resuelve M y avanza a cantidad sin preguntar 'Es correcto?'
+  turns:
+  - user: quiero un ramo de rosas rojas
+    checks:
+    - rosa|ramo|opcion|tamano|euro
+  - user: la mediana
+    checks:
+    - cantidad|cuantos|cuantas|unidades|llevo|M|mediano
+    desc: Debe fijar la M y pasar a cantidad sin pedir confirmacion innecesaria
+  not_expected: []
+- id: TC-TT11-ORDEN
+  type: EDGE
+  group: COMPRA-TT11
+  name: Seleccion por orden — 'el primero' resuelve por posicion
+  objetivo: "'el primero' identifica el primer producto de la lista mostrada y avanza"
+  turns:
+  - user: quiero un centro de mesa para mi salon
+    checks:
+    - centro|opcion|tamano|euro|mesa
+  - user: el primero
+    checks:
+    - cantidad|cuantos|cuantas|anotado|perfecto|primero|confirmo
+    desc: Debe coger el primero de la lista y avanzar
+  not_expected: []
+- id: TC-TT11-PRECIO
+  type: EDGE
+  group: COMPRA-TT11
+  name: Seleccion por precio univoco — 'la de 37 euros' resuelve directo
+  objetivo: Un precio exacto que coincide con UN solo producto se captura sin confirmacion
+  turns:
+  - user: quiero comprar rosas rojas
+    checks:
+    - rosa|ramo|opcion|euro|37
+  - user: la de 37 euros
+    checks:
+    - cantidad|cuantos|cuantas|anotado|37|unidades
+    desc: Debe fijar el producto de 37 euros y avanzar sin confirmar
+  not_expected: []
+- id: TC-TT11-AMBIGUO
+  type: EDGE
+  group: COMPRA-TT11
+  name: Varios productos de nombres distintos — 'el mas grande' debe CONFIRMAR
+  objetivo: Cuando hay productos de nombres distintos, una palabra de rango debe disparar confirmacion antes de avanzar
+  turns:
+  - user: quiero algo para un funeral
+    checks:
+    - corona|centro|ramo|opcion|euro|funeral
+  - user: el mas grande
+    checks:
+    - correcto|te refieres|entiendo que|confirmo|cual
+    desc: Con nombres distintos, debe confirmar cual antes de avanzar (no adivinar)
+  not_expected: []

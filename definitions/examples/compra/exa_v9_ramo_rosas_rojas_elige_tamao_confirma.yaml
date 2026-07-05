@@ -1,7 +1,7 @@
 playbook: Compra
 id: 608439a5-daa9-4d14-a14b-c1fc96b02d1d
 displayName: 'ExA v10: Ramo rosas rojas → elige tamaño → confirma (schema normalizado)'
-description: Compra happy path — filtros combinados, 3 resultados, usuario elige tamaño.
+description: Compra happy path — filtros combinados, 3 resultados, usuario elige tamaño, agente pregunta cantidad antes de transferir.
 actions:
 - toolUse:
     tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
@@ -41,10 +41,14 @@ actions:
     text: "Tenemos ramos de rosas rojas, Ana! Hay tres opciones: \n\n* S — 8 flores, 22€ |\n* M — 15 flores, 37€ \n* XL San Valentín — 36 flores, 132€. \n\n¿Qué tamaño prefieres?"
 - userUtterance:
     text: El mediano
+- agentUtterance:
+    text: "Perfecto, Ramo de Rosas — M (15 flores, 37€). ¿Cuántos quieres?"
+- userUtterance:
+    text: Dos
 - playbookTransition:
     playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
 playbookInput:
-  precedingConversationSummary: Compra recibe $intencion="comprar ramo de rosas rojas para cumpleaños" con $ocasion_detectada=Regalo del Orquestador. Extrae especie=rosas, color=Rojo. Hace tool call con filtros combinados. Presenta 3 tamaños (S/M/XL). Usuario elige M. Confirma y transfiere a Checkout.
+  precedingConversationSummary: Compra recibe $intencion="comprar ramo de rosas rojas para cumpleaños" con $ocasion_detectada=Regalo del Orquestador. Extrae especie=rosas, color=Rojo. Hace tool call con filtros combinados. Presenta 3 tamaños (S/M/XL). Usuario elige M. El agente pregunta la cantidad y el usuario responde 2. Confirma y transfiere a Checkout.
   actionParameters:
     estado_pago: Al dia
     tipo_cliente: particular
@@ -54,14 +58,14 @@ playbookInput:
     nombre_cliente: Ana
     ocasion_detectada: Regalo
 playbookOutput:
-  executionSummary: Compra recibe $intencion="comprar ramo de rosas rojas para cumpleaños" con $ocasion_detectada=Regalo del Orquestador. Extrae especie=rosas, color=Rojo. Hace tool call con filtros combinados. Presenta 3 tamaños (S/M/XL). Usuario elige M. Confirma y transfiere a Checkout.
+  executionSummary: Compra recibe $intencion="comprar ramo de rosas rojas para cumpleaños" con $ocasion_detectada=Regalo del Orquestador. Extrae especie=rosas, color=Rojo. Hace tool call con filtros combinados. Presenta 3 tamaños (S/M/XL). Usuario elige M. El agente pregunta la cantidad y el usuario responde 2. Confirma y transfiere a Checkout.
   actionParameters:
     producto: Ramo de Rosas
     especie: Rosas
     color: Rojo
     tamano: M
     precio_estimado: '37'
-    cantidad: '1'
+    cantidad: '2'
     ocasion_detectada: Regalo
 conversationState: OUTPUT_STATE_OK
 languageCode: es

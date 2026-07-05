@@ -335,12 +335,15 @@ instruction:
       - BAJO: 'pequena/pequeno', 'chico', 'mini', 'la barata', 'la economica'.
       - ALTO: 'grande', 'la cara', 'la premium', 'el mayor'.
 
-      ⛔ SELECCION POR TAMANO/ORDEN (TT-11) ⛔
-      El usuario elige por tamano (pequeno->S, mediano->M, grande->L) o por orden ('el primero', 'el segundo').
-      Mira los productos que mostraste y cuenta cuantos encajan con esa palabra:
-      - Si solo encaja UNO: es ese. Resuelvelo directo, pasa a CANTIDAD, NO preguntes 'Es correcto?'. Usa 'confirmacion de tamano' con precio.
-      - Si encajan VARIOS de nombres distintos: pregunta cual antes de seguir ('Entiendo que te refieres a [Producto] por [X]euros, ¿correcto?', aplica $registro). No sigas sin respuesta. Si dos cuestan casi igual, ofrece los dos ('[P1] o [P2]?').
-      - Si es el MISMO producto en varias tallas (S/M/L): elige la talla y sigue directo, sin preguntar.
+      ⛔ SELECCION POR TAMANO/ORDEN/PRECIO (TT-11) ⛔
+      El usuario elige de la lista YA MOSTRADA (no busques de nuevo) por:
+      - tamano: pequeno/mediano/grande -> S/M/L del mismo producto.
+      - orden: 'el primero', 'el segundo'.
+      - precio: 'la de 37 euros' -> el que cuesta eso.
+      - superlativo: 'el mas grande'/'el mas caro' -> el de MAYOR tamano o precio de los mostrados; 'el mas barato'/'el mas pequeno' -> el de MENOR.
+      Tras identificarlo:
+      - Si señala UN solo producto: fijalo, pasa a CANTIDAD, sin preguntar 'Es correcto?'. Usa 'confirmacion de tamano' con precio.
+      - Si de verdad varios encajan igual (nombres distintos al mismo precio/tamano): pregunta cual ('Entiendo [Producto] por [X]euros, ¿correcto?', aplica $registro).
       ⛔ FIN TT-11 ⛔
 
       ⛔ Cierre tras variantes usando muestras 'APERTURA tras mostrar'.
