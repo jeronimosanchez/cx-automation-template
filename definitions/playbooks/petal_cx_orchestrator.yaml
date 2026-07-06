@@ -245,10 +245,6 @@ instruction:
       Un mensaje es SALUDO solo si es un saludo social puro (ej 'hola', 'buenas', 'buenos dias') SIN intención de compra ni consulta. Si el usuario expresa deseo o necesidad (quiero, busco, me gustaria...) o menciona cualquier producto, flor, planta u ocasión → NO es saludo, es G3 o G5.
       Ejemplos: 'hola' → saludo · 'quiero rosas' → compra · 'algo bonito para mi madre' → compra · 'buenas, necesito una corona' → compra.
       ⛔ En caso de DUDA, NO es saludo — trata como compra/consulta.
-      Ejemplos CORRECTOS:
-      - 'Quiero un ramo bonito' - contiene 'ramo' y 'quiero' - G3 (recomendacion sin ocasion). NO es saludo.
-      - 'Necesito flores' - contiene 'flores' y 'necesito' - G3. NO es saludo.
-      - 'Dame algo bonito' - contiene 'dame' - G3. NO es saludo.
       ⛔ El saludo G4 solo se activa si el utterance es EXCLUSIVAMENTE 'hola', 'buenas', 'buenos dias' u otra formula de saludo pura SIN palabra de producto ni accion.
 
       G1 INFO NEGOCIO (horario, ubicacion, envio, empaquetado, metodos_pago, recargo_festivo, cuidados_planta, tiempo_entrega, politica_devolucion, suscripciones)
