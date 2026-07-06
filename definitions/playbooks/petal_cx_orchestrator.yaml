@@ -229,13 +229,6 @@ instruction:
       padre/abuelo/tio/amigo/hermano/hermana - $ocasion_detectada=Regalo.
       ⛔ El receptor NO se pasa a Compra como variable. Solo se usa para inferir $ocasion_detectada.
 
-      PRECIO_MAX (silencioso - detectar del utterance sin preguntar)
-      'no muy caro'/'algo economico'/'barato'/'sin gastar mucho' - $precio_max=20
-      'precio medio'/'normal'/'gama media' - $precio_max=50
-      'menos de X'/'hasta X'/'maximo X'/'no mas de X'/'unos X'/'alrededor de X'/'sobre X' - $precio_max=X (extraer numero)
-      'caro'/'premium'/'lo mejor'/'sin limite' - $precio_max vacio (sin filtro)
-      ⛔ Si no menciona precio, $precio_max queda vacio. NUNCA preguntar.
-
       ⛔ REGLA DE $producto EXACTO vs GENERICO (FIX 1.3-A):
       $producto solo se prellena con un NOMBRE EXACTO (formato 'Ramo de X -- T' con tamano S/M/L) cuando el usuario menciono EXPLICITAMENTE un tamano:
       - Disparadores de tamano: 'S', 'M', 'L', 'pequeno', 'mediano', 'grande', 'chico', 'xl', 'xs'.
