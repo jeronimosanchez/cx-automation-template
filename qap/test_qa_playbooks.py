@@ -177,9 +177,15 @@ def extract_response(result):
         trace["executionSequence"] = qr["executionSequence"]
     if "actions" in qr:
         trace["actions"] = qr["actions"]
-    # responseUtterances (algunos endpoints lo devuelven)
+    # generativeInfo.actionTracingInfo.actions — AQUÍ viven las tool calls de Playbooks
+    # (NO en executionSequence, que va vacío). Ver memoria cx_api_generativeinfo_field.
+    if "generativeInfo" in qr:
+        trace["generativeInfo"] = qr["generativeInfo"]
+    # diagnosticInfo COMPLETO (antes solo guardaba las claves → jsons podados)
     if "diagnosticInfo" in qr:
-        trace["diagnosticInfo_keys"] = list(qr["diagnosticInfo"].keys()) if isinstance(qr["diagnosticInfo"], dict) else None
+        di = qr["diagnosticInfo"]
+        trace["diagnosticInfo"] = di
+        trace["diagnosticInfo_keys"] = list(di.keys()) if isinstance(di, dict) else None
     return " ".join(texts), playbook, params, trace
 
 
@@ -288,9 +294,10 @@ def run_single(token, test, run_num=1):
             all_pass = False
         turn_results.append({
             "turn": i + 1, "user": user_text,
-            "agent": response_text[:500], "playbook": playbook,
+            "agent": response_text, "playbook": playbook,  # sin truncar (jsons completos)
             "params": params, "checks": turn_check,
-            "trace": trace,  # US-QA-09: capturar trace del API para análisis profundo
+            "trace": trace,  # US-QA-09: trace del API (incl. generativeInfo + diagnosticInfo completos)
+            "raw": result,   # respuesta cruda COMPLETA de la API (jsons completos completos)
             "desc": turn.get("desc", ""),  # descripción en lenguaje natural del check
         })
     return {"pass": all_pass, "turns": turn_results, "quota_error": has_quota_error}
@@ -2664,7 +2671,8 @@ def generate_reports(results):
                     "turn": turn["turn"], "user": turn["user"], "agent": turn["agent"],
                     "playbook": turn.get("playbook", ""),  # US-QA-09: playbook activo
                     "params": turn["params"], "checks": turn["checks"],
-                    "trace": turn.get("trace", {}),  # US-QA-09: trace del API
+                    "trace": turn.get("trace", {}),  # US-QA-09: trace del API (incl. generativeInfo)
+                    "raw": turn.get("raw"),  # respuesta cruda COMPLETA de la API (jsons completos completos)
                 } for turn in run["turns"]],
             } for ri, run in enumerate(r["runs"])],
             "metadata": meta["versions"],
