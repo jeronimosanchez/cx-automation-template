@@ -1,0 +1,25 @@
+# 2 TCs para validar la clasificacion saludo tras quitar los ejemplos duplicados.
+- id: TC-SALUDO-PRODUCTO
+  type: EDGE
+  group: ORQ-SALUDO
+  name: Saludo + producto ('buenas, necesito una corona') NO es saludo, es compra
+  objetivo: Un mensaje que abre con saludo pero menciona producto debe clasificarse como compra, no dar bienvenida generica
+  turns:
+  - user: buenas, necesito una corona
+    checks:
+    - corona|opcion|funeral|euro|tamano|ramo|cual
+    desc: Debe ir a compra (mostrar coronas / preguntar), NO dar bienvenida generica
+  not_expected:
+  - Bienvenido a Floristeria
+  - encontrar el arreglo perfecto
+- id: TC-SALUDO-PURO
+  type: EDGE
+  group: ORQ-SALUDO
+  name: Saludo puro ('hola') SI es saludo, da bienvenida
+  objetivo: Un saludo social puro sin producto debe dar la bienvenida
+  turns:
+  - user: hola
+    checks:
+    - hola|bienvenid|ayudar|ocasion|regalo|concreto
+    desc: Debe dar la bienvenida (G4)
+  not_expected: []

@@ -150,6 +150,11 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: saludo_inicial
+  description: True si el mensaje del usuario abrió con una fórmula de saludo (hola, buenas, buenos dias...) además de pedir producto/consulta. Se pasa a Compra para que reconozca el saludo antes del ECO.
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
 instruction:
   steps:
   - text: |-
@@ -168,13 +173,14 @@ instruction:
 
       VARIABLES
       $intencion - texto completo (solo NEGOCIO). NUNCA se pierde ni sobreescribe.
-      $ocasion_detectada - Funeral/Boda/Regalo/Decoracion/Romantico/Nacimiento/Corporativo/vacio.
+      $ocasion_detectada - Funeral/Boda/Regalo/Decoracion/vacio.
       $registro - estandar/solemne/celebracion. Default=estandar. Detectar en cada turno hasta enrutar a Compra.
       $urgente - true cuando hay restricción temporal. Default=false.
       $frustrado - true cuando se detecta frustración. Default=false.
       $emocion - duelo/frustración/neutro.
       $cantidad - numero. NUNCA preguntar si ya tiene valor.
       $grupo_intent - codigo del grupo semantico (G3/G5/G6/G7). Se escribe ANTES de cada transferencia.
+      $saludo_inicial - boolean. true si el mensaje ABRE con una formula de saludo (hola/buenas/buenos dias...) ademas de pedir producto/consulta. Default=false. Se pasa a Compra en G5/G3.
       $precio_max - numero inferido del utterance o vacio. NUNCA preguntar.
       $id_cliente, $email, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo, $recien_reg, $fin_sesion, $razon, $producto, $precio_estimado.
 
@@ -210,24 +216,13 @@ instruction:
       Aplica $registro en cada respuesta.
       Si $registro=solemne: sin exclamaciones, sin "¡Genial!", foco en la tarea.
 
-      OCASION (silenciosa - detectar del utterance sin preguntar)
-      funeral/condolencias/difunto/pesame/tanatorio - Funeral.
-      boda/novia/ceremonia - Boda.
-      cumpleanos/aniversario/regalo/graduacion - Regalo.
-      oficina/evento/empresa/corporativo - Corporativo.
-      san valentin/romantico/enamorados - Romantico.
-      bebe/nacimiento/recien nacido/maternidad - Nacimiento.
-      decorar/hogar/casa/jardin - Decoracion.
-      corona - Funeral, ramo de novia - Boda.
-
-      RECEPTOR (silencioso - detectar 'para mi X' y mapear a ocasion)
-      madre/abuela/tia/amiga - $ocasion_detectada=Regalo (si no tiene ya ocasion).
-      pareja/novio/novia/marido/mujer/esposo/esposa - $ocasion_detectada=Romantico.
-      bebe/recien nacido/hijo recien nacido - $ocasion_detectada=Nacimiento.
-      jefe/empresa/oficina/cliente/companero de trabajo - $ocasion_detectada=Corporativo.
-      difunto/fallecido - $ocasion_detectada=Funeral.
-      padre/abuelo/tio/amigo/hermano/hermana - $ocasion_detectada=Regalo.
-      ⛔ El receptor NO se pasa a Compra como variable. Solo se usa para inferir $ocasion_detectada.
+      OCASION (silenciosa - detecta del utterance sin preguntar; del contexto O del destinatario):
+      Pon $ocasion_detectada (solo estas 4):
+      - Funeral: funeral/velatorio/difunto/pesame, o 'corona'.
+      - Boda: boda/novia/ceremonia, o 'ramo de novia'.
+      - Decoracion: decorar/hogar/jardin.
+      - Regalo (default): todo lo demas — cumpleanos, aniversario, san valentin, bebe, oficina/empresa, o un destinatario de regalo (madre/padre/pareja/amigo/tia/jefe...).
+      ⛔ El destinatario NO se pasa a Compra como variable. Solo sirve para inferir $ocasion_detectada.
 
       ⛔ REGLA DE $producto EXACTO vs GENERICO (FIX 1.3-A):
       $producto solo se prellena con un NOMBRE EXACTO (formato 'Ramo de X -- T' con tamano S/M/L) cuando el usuario menciono EXPLICITAMENTE un tamano:
@@ -247,6 +242,8 @@ instruction:
       ⛔ En caso de DUDA, NO es saludo — trata como compra/consulta.
       ⛔ El saludo G4 solo se activa si el utterance es EXCLUSIVAMENTE 'hola', 'buenas', 'buenos dias' u otra formula de saludo pura SIN palabra de producto ni accion.
 
+      ⛔ MARCA DE SALUDO INICIAL (UX): si el mensaje ABRE con una formula de saludo ('hola','buenas','buenos dias','buenas tardes','buenas noches','hey','holaa') PERO tambien pide producto/consulta → sigue siendo compra (G5) o recomendacion (G3), PERO marca $saludo_inicial=true. Si NO hay formula de saludo al inicio, $saludo_inicial=false. Ej: 'buenas, necesito una corona' → G5 con $saludo_inicial=true · 'necesito una corona' → G5 con $saludo_inicial=false.
+
       G1 INFO NEGOCIO (horario, ubicacion, envio, empaquetado, metodos_pago, recargo_festivo, cuidados_planta, tiempo_entrega, politica_devolucion, suscripciones)
       - PetalDataTool business/agent_copy - responde - 'Algo mas en lo que pueda ayudarte?'
       suscripciones - 'Ahora mismo no ofrecemos planes de suscripcion. Puedo ayudarte con otra cosa?'
@@ -264,7 +261,7 @@ instruction:
       - Captura $ocasion_detectada del utterance (incluye receptor a ocasion; ver mapa OCASION arriba).
       - Captura $precio_max si lo menciona.
       - $grupo_intent='G3'. Guarda $intencion.
-      - ${PLAYBOOK:Compra} con $intencion, $ocasion_detectada, $grupo_intent, $precio_max.
+      - ${PLAYBOOK:Compra} con $intencion, $ocasion_detectada, $grupo_intent, $precio_max, $saludo_inicial.
 
       G4 SESION
       saludo - Si NO ha habido turnos previos Y el utterance es SOLO saludo puro (sin palabra de producto ni accion): 'Hola! Bienvenido a Floristeria Petal 🌸 Estoy aqui para ayudarte a encontrar el arreglo perfecto. Es para una ocasion especial, un regalo o tienes algo concreto en mente?'
@@ -283,8 +280,8 @@ instruction:
       - ⛔ APLICA REGLA FIX 1.3-A: $producto solo se prellena si el usuario menciono tamano.
       - $precio_estimado solo se prellena si $producto es EXACTO.
       - $grupo_intent='G5'
-      - Si $id_cliente tiene valor - ${PLAYBOOK:Compra} con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max.
-      - Si $id_cliente vacio - ${PLAYBOOK:Compra} con $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max.
+      - Si $id_cliente tiene valor - ${PLAYBOOK:Compra} con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max, $saludo_inicial.
+      - Si $id_cliente vacio - ${PLAYBOOK:Compra} con $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max, $saludo_inicial.
       ⛔ NO pases $id_cliente ni datos de perfil si estan vacios.
 
       G6 REQUIERE PERFIL (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)

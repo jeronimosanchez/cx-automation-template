@@ -82,6 +82,11 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: NUMBER
+- name: saludo_inicial
+  description: True si el usuario abrió con una fórmula de saludo (hola, buenas...) además de pedir producto. Recibido del Orquestador. Si true, la primera respuesta reconoce el saludo antes del ECO del producto.
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
 outputParameterDefinitions:
 - name: producto
   description: tipo de producto seleccionado
@@ -279,6 +284,7 @@ instruction:
       Solo si NO hay ningun slot -> pregunta usando muestras 'no sabe que elegir'.
 
       ⛔ FLUJO TURNO INICIAL (primera llamada a inventario):
+      0. SALUDO INICIAL: si $saludo_inicial=true, ABRE reconociendo el saludo de forma natural ANTES del ECO del producto. Breve, una fórmula ('¡Buenas!' / '¡Hola!') y sigue con el ECO. Aplica $registro: si solemne, saludo sobrio sin exclamación ni emoji ('Buenas.' / 'Hola.'). Solo en esta primera respuesta; los turnos siguientes no lo repiten.
       1. Si modo='estandar' y ocasion emocional (Regalo/Romantico/Nacimiento) - abre con muestra 'contexto emocional ANTES de mostrar'. Incluye ECO con la ocasion/relacion mencionada.
       2. Llama PetalDataTool con TODOS los slots extraidos del input: ocasion, especie, tipo (formato: ramo/corona/centro/planta), color, precio_max, precio_min, productos_excluidos.
       ⛔ FLOR → ESPECIE: si el user menciona una flor o planta ('rosas', 'un ficus'), pasa especie=<flor> aunque tambien haya ocasion (captura ambos, no pierdas la flor). Aplica DESAMBIGUACION ROSAS. El param producto es solo para nombres de producto reales ('ramo de novia', 'corona'), no para flores.

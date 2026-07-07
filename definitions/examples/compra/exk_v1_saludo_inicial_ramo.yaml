@@ -1,0 +1,66 @@
+playbook: Compra
+id: c17eb8cb-e74e-483a-9491-2545610d3a12
+displayName: 'ExK v1: Saludo inicial + producto (buenas → ramo) reconoce el saludo'
+description: El Orquestador pasa saludo_inicial=true. Compra abre reconociendo el saludo ('¡Buenas!') ANTES del ECO del producto, y sigue el flujo de compra (G5). Registro estandar → exclamación permitida.
+actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      recurso: inventario
+      especie: girasoles
+    outputActionParameters:
+      '200':
+        resultados:
+        - Producto: Ramo de Girasoles
+          Especie: Girasoles
+          Color: Amarillo
+          Tamano: S
+          Precio: '19'
+          Descripcion_Cantidad: 5 flores
+          Ocasion: Regalo, Decoracion
+        - Producto: Ramo de Girasoles
+          Especie: Girasoles
+          Color: Amarillo
+          Tamano: M
+          Precio: '29'
+          Descripcion_Cantidad: 9 flores
+          Ocasion: Regalo, Decoracion
+        - Producto: Ramo de Girasoles
+          Especie: Girasoles
+          Color: Amarillo
+          Tamano: L
+          Precio: '41'
+          Descripcion_Cantidad: 15 flores
+          Ocasion: Regalo, Decoracion
+        count: 3
+        ok: true
+        recurso: inventario
+- agentUtterance:
+    text: "¡Buenas! Claro, tenemos ramos de girasoles en tres tamaños: \n\n* S — 5 flores, 19€\n* M — 9 flores, 29€\n* L — 15 flores, 41€\n\n¿Qué tamaño prefieres?"
+- userUtterance:
+    text: El mediano
+- agentUtterance:
+    text: 'Perfecto, Ramo de Girasoles — M (9 flores, 29€). ¿Cuántos quieres?'
+- userUtterance:
+    text: Uno
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
+playbookInput:
+  precedingConversationSummary: El usuario abrió con 'buenas, necesito un ramo de girasoles'. El Orquestador lo clasifica como G5 (compra) pero marca saludo_inicial=true porque el mensaje abrió con una fórmula de saludo. Compra recibe saludo_inicial=true y registro=estandar, abre reconociendo el saludo ('¡Buenas!') ANTES del ECO del producto, muestra los tamaños, el usuario elige M y cantidad 1, y transfiere a Checkout.
+  actionParameters:
+    intencion: necesito un ramo de girasoles
+    grupo_intent: G5
+    registro: estandar
+    saludo_inicial: true
+playbookOutput:
+  executionSummary: Compra reconoce el saludo inicial en su primera respuesta ('¡Buenas!') y prosigue el flujo de compra normal hasta transferir a Checkout.
+  actionParameters:
+    producto: Ramo de Girasoles
+    especie: Girasoles
+    color: Amarillo
+    tamano: M
+    precio_estimado: '29'
+    cantidad: '1'
+conversationState: OUTPUT_STATE_OK
+languageCode: es
