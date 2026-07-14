@@ -5,6 +5,7 @@ referencedTools:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
 referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/8b7e9bac-6d38-4922-90c0-906621921037
 inputParameterDefinitions:
 - name: producto
   description: Nombre del producto confirmado por el cliente
@@ -206,48 +207,12 @@ instruction:
       Si $id_cliente es valido (numero entero) Y $nombre_cliente tiene valor - salta directo a PASO 1.
       En CUALQUIER otro caso - ejecuta PASO 0 completo. NUNCA lo saltes.
 
-      ⛔⛔⛔ ORDEN OBLIGATORIO DEL PASO 0 (FIX TT-19) ⛔⛔⛔
-      1. PRIMERO di la frase de peticion de email segun $registro. ESPERA respuesta del cliente.
-      2. Cuando el cliente escriba un email valido, llama a PetalDataTool recurso='perfil' id=$email.
-      3. SOLO si la respuesta devuelve count=0, entonces dispara agent_copy['email_no_encontrado'].
-
-      ⛔ NUNCA dispares agent_copy['email_no_encontrado'] ANTES de haber recibido un email del usuario Y haber consultado el perfil.
-      ⛔ El primer mensaje de Checkout cuando $id_cliente esta vacio DEBE ser la peticion inicial de email, NUNCA un mensaje de error o fallback.
-
-      CORRECTO:
-        Turno 1 - Agente: 'Perfecto, para completar tu pedido necesito tu correo electronico.'
-        Turno 2 - Usuario: 'mi@email.com'
-        Turno 3 - Agente: [consulta perfil] 'No encontramos ninguna cuenta...' (SOLO si count=0)
-
-      INCORRECTO:
-        Turno 1 - Agente: 'No encontramos ninguna cuenta con ese correo...' [bug TT-19, NO hacer esto]
-      ⛔⛔⛔ FIN FIX TT-19 ⛔⛔⛔
-
-      Peticion de email segun $registro:
+      Di la frase de peticion de email segun $registro:
       - Estandar - 'Perfecto, para completar tu pedido necesito tu correo electronico.'
       - Solemne - 'Para completar el pedido necesito tu correo electronico.'
-      ⛔ ESPERA respuesta.
-
-      BUCLE EMAIL (maximo 3 intentos):
-      Si la entrada del usuario contiene '@' (es un email valido):
-        - $email = entrada del usuario.
-        - Pasa a "Consulta perfil".
-      Si la entrada NO contiene '@' (no es email - p.ej. "si", "ok", "vale", "confirmo", una palabra suelta, numeros, o cualquier otra cosa):
-        ⛔ NUNCA interpretes esto como cancelacion, negativa, o cambio de producto.
-        ⛔ NUNCA ofrezcas 'elegir otro producto o dejarlo por hoy'.
-        ⛔ NUNCA salgas del bucle a otro flujo o playbook.
-        Aplica el contador de intentos fallidos:
-
-        Intento fallido 1 (calidez):
-          'Disculpa, no he captado tu correo. ¿Me lo das otra vez? Por ejemplo: nombre@dominio.com'
-          ESPERA respuesta. Vuelve al inicio del BUCLE EMAIL.
-
-        Intento fallido 2 (paciencia):
-          'Sigo necesitando tu correo para continuar con el pedido. Asegurate de incluir la arroba.'
-          ESPERA respuesta. Vuelve al inicio del BUCLE EMAIL.
-
-        Intento fallido 3 (despedida):
-          agent_copy['despedida_email_invalido']. $fin_sesion = true. FIN.
+      Invoca ${PLAYBOOK:Email_Validation_Task} pasando email_hint=$email.
+      Si $fin_sesion=true - FIN.
+      $email = output de la task.
 
       Consulta perfil: PetalDataTool recurso='perfil' id=$email. Silencio.
 

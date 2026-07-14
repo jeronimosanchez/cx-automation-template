@@ -8,6 +8,7 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/871d4bbb-5c90-443b-bbb1-1d83d254c2c3
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/8b7e9bac-6d38-4922-90c0-906621921037
 inputParameterDefinitions:
 - name: id_cliente
   description: ID numérico del cliente en el Google Sheet. Se usa como identificador desde el Paso 2 del Orquestador.
@@ -286,7 +287,10 @@ instruction:
 
       G6 REQUIERE PERFIL (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)
       ⛔ Sin perfil es IMPOSIBLE avanzar. Pide email.
-      - Guarda $intencion - parsea email si incluido - pide email - BUCLE EMAIL.
+      - Guarda $intencion - parsea email si incluido.
+      - 'Necesito tu correo electronico para continuar.' Invoca ${PLAYBOOK:Email_Validation_Task} pasando email_hint=$email.
+      - Si $fin_sesion=true - FIN.
+      - $email = output de la task.
       - $grupo_intent='G6'
 
       G7 REGISTRO (registro, 'quiero registrarme')
@@ -307,10 +311,6 @@ instruction:
       Si en G1/G2/G4 usuario quiere comprar (verbo accion + producto):
       Reclasifica como G5. Aplica reglas FIX 1.3-A. Pobla $cantidad, $precio_max si detectados. Conserva $registro, $urgente, $frustrado ya detectados.
       Sigue las reglas de G5.
-
-      -- BUCLE EMAIL (max 3) --
-      Valido - PASO 2. Intent negocio - guarda, reformula (no fallo). Invalido - fallo.
-      F1-calidez. F2-paciencia. F3-agent_copy['despedida_email_invalido']-$fin_sesion=true-FIN.
 
       -- PASO 2 -- PERFIL --
       PetalDataTool recurso='perfil' id=$email. Silencio.

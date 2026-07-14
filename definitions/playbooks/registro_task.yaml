@@ -3,6 +3,8 @@ goal: Registro de nuevos usuarios
 playbookType: TASK
 referencedTools:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+referencedPlaybooks:
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/8b7e9bac-6d38-4922-90c0-906621921037
 inputParameterDefinitions:
 - name: email
   description: Email del cliente. Si viene con valor, Registro no lo pide. Si viene vacío, Registro lo recoge del usuario.
@@ -80,17 +82,13 @@ instruction:
       OUTPUTS: $id_cliente, $nombre_cliente, $apellidos, $email, $tipo_cliente, $dir_habitual, $telefono, $recien_reg, $estado_pago, $fin_sesion, $razon.
 
       PASO 1 — EMAIL (solo si falta)
-      Si $email tiene valor (contiene @) → saltar directamente a PASO 2.
-      ⛔ NUNCA repitas el prompt de email si $email ya tiene valor. Si $email contiene @, ve a PASO 2 sin decir NADA sobre email.
+      Si $email tiene valor → salta directamente a PASO 2.
       Si $email está vacío:
         agent_copy["bienvenida_nuevo_cliente"]. Di texto exacto.
-        "Para registrarte, necesito tu correo electrónico." ESPERA.
-        - Válido (contiene @) → $email=valor → PASO 2.
-        - Inválido → fallo. SIEMPRE sigue esta secuencia EXACTA:
-          F1 (intento 1): "Eso no parece un email válido. ¿Podrías darme uno con @?" ESPERA.
-          F2 (intento 2): "Sigo necesitando un email válido con @. ¿Lo intentamos de nuevo?" ESPERA.
-          F3 (intento 3): agent_copy["despedida_email_invalido"]→$fin_sesion=true→done.
-          ⛔ NUNCA saltes del intento 1 al intento 3. SIEMPRE da los 3 intentos en orden.
+        "Para registrarte, necesito tu correo electrónico."
+        Invoca ${PLAYBOOK:Email_Validation_Task} pasando email_hint=$email.
+        Si $fin_sesion=true → done.
+        $email = output de la task.
         - Rechaza dar email → agent_copy["rechazo_registro"] → $fin_sesion=true → done.
 
       PASO 2 — SLOT FILLING
