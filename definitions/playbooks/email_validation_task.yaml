@@ -1,0 +1,39 @@
+displayName: Email_Validation_Task
+goal: Validar el email del cliente (formato) y devolverlo al caller
+playbookType: TASK
+referencedTools: []
+inputParameterDefinitions:
+- name: email_hint
+  description: Email ya capturado espontáneamente por el caller. Si tiene valor y es válido, la task lo acepta sin preguntar. Si está vacío, la task espera input del usuario.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+outputParameterDefinitions:
+- name: email
+  description: Email validado (contiene @). Devuelto al caller para que consulte el perfil.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: fin_sesion
+  description: True si se agotaron los 3 intentos sin email válido.
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
+instruction:
+  steps:
+  - text: |-
+      INPUT: $email_hint (opcional)
+      OUTPUT: $email | $fin_sesion=true
+
+      Si $email_hint es email válido → $email=$email_hint → done.
+
+      Si no:
+        ESPERA input del usuario.
+        BUCLE máx 3 intentos:
+          Email → $email=valor → done.
+          No es email:
+            ⛔ No es cancelación. No salgas del bucle.
+            F1: 'Disculpa, no he captado tu correo. ¿Me lo das otra vez? Por ejemplo: nombre@dominio.com' ESPERA.
+            F2: 'Sigo sin entender tu correo. Asegúrate de que está escrito correctamente.' ESPERA.
+            F3: 'Lo siento, no hemos podido continuar sin un correo válido. Cuando lo tengas, estaremos encantados de atenderte.' → $fin_sesion=true → done.
+codeBlock: {}
