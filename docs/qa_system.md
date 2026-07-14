@@ -38,10 +38,39 @@ Ejecuta conversaciones reales contra el agente Petal vía `detectIntent` (Dialog
    - **`not_expected`** — patrones que el agente NO debe decir (regex negativo)
 4. Acumula resultado por TC: PASS / FAIL / INESTABLE / QUOTA_ERROR
 
-**Cómo funciona el regex:**
-- Matching parcial (`re.search`) + insensible a mayúsculas (`re.IGNORECASE`)
-- Insensible a tildes: respuesta y patrones se normalizan (NFD) antes de comparar — `"ocasion"` matchea `"ocasión"`
-- El separador `|` dentro de un check es OR: `"disponible|en stock"` pasa si el agente dice cualquiera de las dos
+**Cómo funciona la rúbrica de evaluación:**
+
+Cada TC define explícitamente qué debe y no debe decir el agente:
+- **`checks`** — condiciones que la respuesta DEBE cumplir. Todas deben cumplirse (AND). Dentro de cada condición, `|` es OR: `"disponible|en stock"` pasa si el agente dice cualquiera de las dos
+- **`not_expected`** — patrones que la respuesta NO puede contener. Si aparece cualquiera → FAIL
+
+**Limitación — evaluación por palabras clave, no por objetivo:**
+
+El sistema actual es determinístico: evalúa si ciertas palabras clave aparecen o no en la respuesta, no si el agente cumplió el objetivo de la conversación. Dos implicaciones directas:
+
+- El agente puede dar una respuesta válida con palabras distintas a las del check → FAIL incorrecto
+- El agente puede mencionar la palabra clave en un contexto incorrecto → PASS incorrecto
+
+Esta es la razón por la que el runner es automático y gratuito (no requiere LLM) pero determinístico. La evaluación semántica real — si la respuesta cumple el objetivo independientemente de las palabras usadas — la resolverá `qap_ag_juez` cuando esté implementado.
+
+**Ejemplo — TC-R04 (Compra directa):**
+
+```yaml
+- id: TC-R04
+  turns:
+  - user: Quiero comprar rosas rojas
+    checks:
+    - rosas|rosa|Ramo|Boutonniere|ocasi   # OR: basta con que aparezca cualquiera
+  not_expected:
+  - email
+  - correo
+```
+
+→ PASS si la respuesta menciona alguna de las palabras del check Y no menciona "email" ni "correo".
+
+**La limitación en acción:** si el agente responde *"Por supuesto, te ayudo a encontrar las flores perfectas"* — no menciona ninguna palabra del check → FAIL, aunque la respuesta sea válida. Si responde *"Tenemos rosas disponibles, ¿me das tu correo?"* — pasa el check pero falla el not_expected → FAIL correcto. El sistema detecta el segundo caso bien, pero no distingue el primero.
+
+**Implementación técnica:** matching parcial (`re.search`) + insensible a mayúsculas + normalización NFD de tildes (`"ocasion"` matchea `"ocasión"`).
 
 **`not_expected` puede vivir en dos niveles:**
 - Nivel TC (aplica en el turno 1)
@@ -105,9 +134,9 @@ Ejecuta conversaciones reales contra el agente Petal vía `detectIntent` (Dialog
 
 ---
 
-## 4. Analizador — `qa-tc-analyzer` (🟡 SKILL.md v1.2)
+## 4. Analizador — `qa-tc-analyzer` (🟡 SKILL.md v1.3)
 
-Se activa **manualmente** cuando hay FAILs que entender, y corre **solo sobre los TCs fallidos**. Decisión de economía: cada análisis consume tokens de Claude API.
+Se activa **manualmente** cuando hay FAILs que entender, y corre **solo sobre los TCs fallidos**. Decisión de economía: cada análisis consume tokens de Claude API. No está integrado en el pipeline automático precisamente por esto — el runner corre gratis con regex, el analizador se activa bajo demanda cuando el coste está justificado.
 
 Lee los JSONs del runner y añade diagnóstico de causa raíz al mismo HTML del dashboard. Lanza **1 sub-agente por TC fallido** (no por dimensión).
 

@@ -1,6 +1,13 @@
 # Fuente de verdad de los Test Cases de Petal (extraídos de test_qa_playbooks.py).
-# Estructura: id · type · group · name · objetivo · turns · not_expected.
-# 51 TCs. El campo objetivo describe qué comportamiento del agente valida el TC — lo usa el juez LLM.
+# Estructura: id · type · group · name · objetivo · turns · not_expected · session_params (opcional).
+# 57 TCs. El campo objetivo describe qué comportamiento del agente valida el TC — lo usa el juez LLM.
+# session_params: parámetros de sesión preinyectados antes del primer turno (sin coste LLM).
+#   Permite testear artefactos intermedios (Compra, Profile_Task...) sin recorrer la cadena completa.
+#   Ejemplo:
+#     session_params:
+#       id_cliente: "12345"
+#       registro: "estandar"
+#       ocasion_detectada: "Regalo"
 - id: TC-R01
   type: REG
   group: G1
@@ -385,9 +392,12 @@
   type: EDGE
   group: COMPRA-ZG
   name: Handoff Compra → Checkout (pide email tras cantidad)
-  objetivo: El agente debe pedir email para completar el checkout tras confirmar cantidad
+  objetivo: 'El agente debe pedir email para completar el checkout tras confirmar cantidad. NOTA ARQUITECTURA: primer turno generico para que Orquestador transfiera sin resolver producto, y que los turnos siguientes (talla, cantidad, handoff) sean gestionados por Compra en solitario — es lo que se quiere medir (US-COMP-01-C2, US-COMP-01-C3).'
   turns:
-  - user: Quiero rosas rojas para cumpleaños
+  - user: Quiero comprar flores
+    checks:
+    - ocasion|tipo|qué buscas|ayudar
+  - user: Rosas rojas para cumpleaños
     checks:
     - talla|tamano|S|M|L|opcion
   - user: El mediano
@@ -786,3 +796,33 @@
     - no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar|no tenemos|ayudar
   not_expected:
   - 50%.{0,30}aplicado|claro, descuento
+- id: TC-PROD-CANT-01
+  type: NEW
+  group: COMPRA-ZG
+  name: Producto y cantidad en el mismo turno — sin repreguntar
+  objetivo: 'El agente debe recoger producto y cantidad cuando se dan juntos en el mismo mensaje, sin volver a preguntar la cantidad. NOTA ARQUITECTURA: al ser el primer turno, es Orquestador quien parsea ambos slots y transfiere completo a Compra (linea 279 petal_cx_orchestrator.yaml); Compra tiene la misma capacidad de forma independiente en turnos posteriores (PASO 1.1 compra.yaml).'
+  turns:
+  - user: Quiero 3 ramos de tulipanes amarillos
+    checks:
+    - tulipan|ramo
+    - '3'
+  not_expected:
+  - cuantos
+  - cuántas
+  - qué cantidad
+- id: TC-PROD-CANT-02
+  type: NEW
+  group: COMPRA-ZG
+  name: Producto y cantidad juntos ya dentro de Compra (turno posterior)
+  objetivo: El agente (Compra) debe recoger producto y cantidad cuando llegan juntos en un turno posterior, ya dentro del flujo de Compra, sin volver a preguntar la cantidad
+  turns:
+  - user: Quiero comprar flores
+    checks:
+    - ocasion|tipo|qué buscas|ayudar
+  - user: 3 ramos de tulipanes amarillos
+    checks:
+    - tulipan
+    - '3'
+  not_expected:
+  - cuantos
+  - cuántas
