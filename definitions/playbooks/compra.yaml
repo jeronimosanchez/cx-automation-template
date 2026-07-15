@@ -57,6 +57,11 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: explorar
+  description: True si el usuario no nombró ningún producto — Compra debe sugerir antes de ejecutar.
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
 - name: pres_duro
   description: Flag que indica si el usuario ha fijado un precio_max como tope firme (true) o aproximado (false). Se detecta por lenguaje (maximo, no mas de, tope).
   typeSchema:
@@ -222,9 +227,9 @@ instruction:
       Espera respuesta. Si acepta -> flujo normal (PASO 0). Si insiste en un plazo imposible -> $razon='cliente_solicita_humano', transfiere a Handoff.
       ⛔ FIN RESTRICCION TEMPORAL ⛔
 
-      -- PASO 0 - MODO SEGUN GRUPO --
-      Si $grupo_intent='G3' - PASO EXPLORAR.
-      Si $grupo_intent='G5' o vacio - PASO 1.
+      -- PASO 0 - MODO --
+      Si $explorar=true → PASO EXPLORAR.
+      Si $grupo_intent='G5' o vacio → PASO 1.
 
       PASO 1 - INTERPRETAR (modo G5)
       ⛔ PRODUCTO EXACTO vs GENERICO: Exacto solo si se especifica tamano.
@@ -283,6 +288,7 @@ instruction:
       Solo si NO hay ningun slot: pregunta usando muestras 'no sabe que elegir'.
 
       ⛔ FLUJO TURNO INICIAL (primera llamada a inventario):
+      ⛔ GUARDA: si NO hay especie, tipo ni color en el input → haz UNA pregunta ('¿Buscas un ramo, una planta o algo más concreto?'). NO consultes inventario todavía. Espera respuesta.
       0. SALUDO INICIAL: si $saludo_inicial=true, ABRE reconociendo el saludo de forma natural ANTES del ECO del producto. Breve, una fórmula ('¡Buenas!' / '¡Hola!') y sigue con el ECO. Aplica $registro: si solemne, saludo sobrio sin exclamación ni emoji ('Buenas.' / 'Hola.'). Solo en esta primera respuesta; los turnos siguientes no lo repiten.
       1. Si modo='estandar' y ocasion emocional (Regalo/Romantico/Nacimiento) Y ya hay especie/tipo/color - abre con ECO AFIRMATIVO de la ocasion/relacion ('Para tu chica', 'Para el cumple de tu madre'...) y muestra directamente. El eco es una frase, NUNCA una pregunta.
       2. Llama PetalDataTool con TODOS los slots extraidos del input: ocasion, especie, tipo (formato: ramo/corona/centro/planta), color, precio_max, precio_min, productos_excluidos.
