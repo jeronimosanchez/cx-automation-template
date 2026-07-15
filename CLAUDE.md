@@ -2,15 +2,8 @@
 
 Versión: V0 | Fecha: 2026-05-11 | Proyecto: cx-automation-template (Petal)
 
-> **Este documento es una V0 en evolución.**
->
-> `cx-automation-template` automatiza el despliegue de **Petal**, un agente conversacional de comercio de flores diseñado como simulación de un proyecto profesional real — con la estructura, procesos y calidad que tendría en producción.
->
-> Cubre lo que Claude Code necesita para operar en cada sesión: estado actual, reglas no negociables, constraints y protocolo de trabajo. El README cubre el resto.
->
-> Claude Code propone mejoras al final de cada sesión cuando detecta patrones repetidos o bloqueos graves. Jero aprueba cada cambio antes de modificar este archivo. Cuando se modifica, Claude Code pregunta: "¿Hago commit y push ahora?"
->
-> **Control de versiones:** todos los artefactos de Petal están versionados en GitHub vía este repo. Si un cambio rompe producción, `git revert` + pipeline lo restaura automáticamente. Claude Code nunca aplica cambios destructivos sin verificar que existe versión anterior recuperable.
+> Cubre lo que Claude Code necesita para operar en cada sesión: reglas no negociables, constraints y protocolo de trabajo. El README cubre el resto.
+> Claude Code propone mejoras al final de cada sesión cuando detecta patrones repetidos. Jero aprueba antes de modificar este archivo.
 
 ---
 
@@ -22,49 +15,9 @@ Versión: V0 | Fecha: 2026-05-11 | Proyecto: cx-automation-template (Petal)
 
 **Contexto de negocio:** Petal es una floristería online en español. No es un proyecto de juguete: es una simulación profesional construida con la estructura y calidad de un proyecto de producción real, que sirve como portfolio y sandbox de validación.
 
-**Alcance V0:** Petal-específico. La generalización a otros agentes se aborda en V1, después del Sprint 5.
-
-**Sistema completo de Automatización CD (4 líneas):**
-
-- **ACT** → despliegue de artefactos a Dialogflow CX (este repo, operativo).
-- **GEN** → generación de playbooks, examples y artefactos (por definir).
-- **QAP** → quality assurance y validación (por definir).
-- **RES** → investigación y recursos, corre en segundo plano (por definir).
-
-Cada línea tendrá su propio repo y su propio `CLAUDE.md`. Existirá además un `CLAUDE.md` global del orquestador (EP-02) que coordina las 4 líneas. Este `CLAUDE.md` es **solo de ACT**.
+**Sistema de Automatización CD (4 líneas):** ACT (este repo) · GEN · QAP · RES. Cada línea tendrá su propio repo. Este `CLAUDE.md` es **solo de ACT**.
 
 ---
-
-## 2. Estado actual
-
-**Commit HEAD:** `042ba0f` (post-Sprint 6, tone refactor 1.1, petal-1.1 environment operativo)
-
-### Sprints
-
-| Sprint | Estado | Contenido |
-|---|---|---|
-| Sprint 1 | ✅ | Estructura base, Promptfoo skeleton, `validate_api` |
-| Sprint 2 | ✅ | Playbooks, Tools, Agent Config, idempotencia |
-| Sprint 3 | ✅ | Flows, Pages, Intents, Entity Types, Webhooks, Generators |
-| Sprint 4 | ✅ | CI/CD GitHub Actions + WIF, Environments, Versions, autopilot |
-| Sprint 5 | ✅ | Migración real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX) |
-| Sprint 6 | ✅ | Runner QA real (`test_qa_playbooks.py`) + 54 TCs en `tc_1_1.yaml` (fuente de verdad independiente) + environment `petal-1.1` como target por defecto + reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/` |
-
-### Bugs resueltos en S58-S59 (no reintroducir)
-
-1. **LRO polling en `POST /versions`** — la llamada es asíncrona. La API devuelve 200 inmediato con un `Operation`, no la `Version`. Hay que polear `GET /operations/{id}` hasta `done=true`. Sin esto el script reporta éxito cuando en realidad ha fallado en segundo plano.
-2. **`displayName` obligatorio en `POST /versions`** — sin él la API devuelve 200 pero la operation falla silenciosamente con `code=3`. Incluir siempre.
-3. **`push_examples.py --all`** — el workflow `deploy.yml` llamaba al script con `--all` pero el script no aceptaba el flag. Añadido y testeado.
-4. **`PROMPTFOO_PYTHON` en `qa.yml`** — el workflow usaba ruta relativa `../.venv/bin/python` que no existe en el runner de GitHub Actions. Eliminado: el runner usa el Python del `PATH`.
-5. **`roles/serviceusage.serviceUsageConsumer`** — el SA `cx-template-deployer` requería este rol adicional a `dialogflow.admin` para llamar a la API.
-
-### Pendientes inmediatos
-
-- **Fáse B Sprint 6** — pasos manuales en `docs/setup-qa.md` (activar GitHub Pages, permisos workflow Read+Write, verificar email, primer run E2E).
-- TT-01-03 — siguiente tarea de la cadena de setup.
-- EP-02 — orquestador central de las 4 líneas y su `CLAUDE.md` global.
-- EP-QA-02 — cerrar tras validación Fáse B del Sprint 6.
-- Deuda técnica anotada en S60: reconciliar `push_playbooks.py` (usa `PATCH+updateMask`) con §3.8 (Full Update obligatorio en `europe-west1`).
 
 ---
 
@@ -80,7 +33,7 @@ Estas decisiones están validadas en producción. No cambiar sin gate humano exp
 3. **WIF (Workload Identity Federation):** nunca usar SA keys. La autenticación de GitHub Actions a GCP es exclusivamente vía WIF.
 4. **Idempotencia:** todo `push_*.py` sigue el patrón `LIST → diff → PATCH/POST solo lo que cambió`. Nunca recrear recursos existentes.
 5. **LRO polling:** `POST /versions` requiere polear `GET /operations/{id}` hasta `done=true`. No reportar éxito antes.
-6. **`displayName` obligatorio en `POST /versions`** (ver bug 2 en sección 2).
+6. **`displayName` obligatorio en `POST /versions`** — sin él la API devuelve 200 pero la operation falla silenciosamente con `code=3`.
 7. **`concurrency: 1`** en los workflows CI/CD. Evita races entre despliegues paralelos sobre el mismo agente.
 8. **Región `europe-west1` — bug conocido en Playbooks:** `PATCH` con `updateMask` falla. Usar **Full Update**: `GET` del objeto completo → modificar `instruction.steps` → `PATCH` del objeto completo **sin** `updateMask`. Es un bug conocido del backend de Dialogflow CX en regiones no-global. No hay workaround oficial — Full Update es la única solución validada.
 
@@ -102,7 +55,6 @@ Cuando se modifica un área, hay otras que deben actualizarse en el mismo cambio
 | `reports/` | `qa.yml` · `.gitignore` (no committear) |
 | `requirements.txt` | cualquier script que use la librería nueva |
 
-**Regla pendiente (Sprint 5):** añadir test automático que verifique que todas las librerías importadas en `act/` están declaradas en `requirements.txt`.
 
 ---
 
@@ -151,7 +103,6 @@ Reglas operativas sobre cómo cualquier cambio llega a producción.
    - `~/petal-sheet-api/` (local) — código fuente editable.
    - `github.com/jeronimosanchez/petal-sheet-api` (privado) — copia de seguridad.
    - Cloud Run `europe-west1` — servidor que corre 24/7.
-5. **Sprint 5** — nunca en autopilot. Gate humano obligatorio en cada paso de migración de artefactos reales.
 
 ---
 
