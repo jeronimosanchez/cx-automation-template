@@ -17,6 +17,10 @@ Versión: V0 | Fecha: 2026-05-11 | Proyecto: cx-automation-template (Petal)
 
 **Sistema de Automatización CD (4 líneas):** ACT (este repo) · GEN · QAP · RES. Cada línea tendrá su propio repo. Este `CLAUDE.md` es **solo de ACT**.
 
+**Dos repos del sistema:**
+- `cx-automation-template` — fuente de verdad de todos los YAMLs (`definitions/`). Scripts de despliegue (`push_*.py`) y CI/CD.
+- `agent-validation-engine` — simulación y QA local. Su `definitions/` es un symlink a este repo. Contiene scripts de simulación (`qap/sim/`), skills (`qap/skills/`), runner QA y test cases.
+
 ---
 
 ---
