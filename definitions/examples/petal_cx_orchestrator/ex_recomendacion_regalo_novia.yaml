@@ -2,7 +2,7 @@ playbook: Petal CX Orchestrator
 displayName: EX — Recomendación regalo novia
 description: >
   El usuario pide algo bonito sin nombrar ningún producto concreto.
-  Orquestador detecta $ocasion_detectada=Romantico, $explorar=true y transfiere a Compra.
+  Orquestador detecta $ocasion_detectada=Romantico y transfiere a Compra.
 actions:
 - userUtterance:
     text: Algo bonito para mi novia
@@ -11,8 +11,7 @@ actions:
 playbookOutput:
   executionSummary: >
     Usuario pide recomendación sin producto concreto. Orquestador detecta intención
-    de compra con explorar=true y transfiere a Compra.
+    de compra y transfiere a Compra.
   actionParameters:
-    explorar: true
     intencion: algo bonito para mi novia
 languageCode: es

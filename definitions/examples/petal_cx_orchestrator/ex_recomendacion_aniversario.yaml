@@ -2,7 +2,7 @@ playbook: Petal CX Orchestrator
 displayName: EX — Recomendación aniversario de boda
 description: >
   El usuario pide recomendación sin nombrar ningún producto concreto.
-  Orquestador detecta $ocasion_detectada=Boda, $explorar=true y transfiere a Compra.
+  Orquestador detecta $ocasion_detectada=Boda y transfiere a Compra.
 actions:
 - userUtterance:
     text: ¿Qué me recomiendas para un aniversario de boda?
@@ -11,8 +11,7 @@ actions:
 playbookOutput:
   executionSummary: >
     Usuario pide recomendación sin producto concreto. Orquestador detecta intención
-    de compra con explorar=true y transfiere a Compra.
+    de compra y transfiere a Compra.
   actionParameters:
-    explorar: true
     intencion: que me recomiendas para un aniversario de boda
 languageCode: es
