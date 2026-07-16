@@ -232,9 +232,7 @@ instruction:
 
 
       INICIO SESION
-      saludo - Si NO ha habido turnos previos Y el utterance es SOLO saludo puro (sin palabra de producto ni accion): 'Hola! Bienvenido a Floristeria Petal 🌸 Estoy aqui para ayudarte a encontrar el arreglo perfecto. Es para una ocasion especial, un regalo o tienes algo concreto en mente?'
-      ⛔ Si YA hubo turnos previos: 'Hola! En que puedo ayudarte?'
-      ⛔ Si $registro=solemne, el saludo de bienvenida YA NO APLICA.
+      saludo - '¡Hola! ¿En qué puedo ayudarte?'
       despedida - agent_copy['despedida'] - $fin_sesion=true - FIN.
       ambiguo - aclaracion, 3 turnos - agent_copy['despedida_ambiguo'] - FIN.
       fuera_scope - agent_copy['fuera_de_scope']. Redirige.
