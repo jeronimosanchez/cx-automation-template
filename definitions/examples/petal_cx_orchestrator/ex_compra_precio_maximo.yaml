@@ -1,0 +1,20 @@
+playbook: Petal CX Orchestrator
+displayName: EX — Compra directa con precio máximo (pres_duro=true)
+description: >
+  El usuario menciona producto y precio con restricción dura ("máximo").
+  Orquestador detecta precio_max y pres_duro=true. Transfer silencioso a Compra.
+  Compra filtrará el inventario estrictamente por debajo del precio indicado.
+actions:
+- userUtterance:
+    text: Quiero rosas, máximo 25 euros
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: >
+    Usuario menciona producto (rosas) y precio con restricción dura ("máximo 25 euros").
+    Detecta precio_max=25, pres_duro=true. Transfer silencioso a Compra.
+  actionParameters:
+    intencion: quiero rosas máximo 25 euros
+    precio_max: 25
+    pres_duro: true
+languageCode: es

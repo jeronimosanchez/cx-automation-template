@@ -1,0 +1,20 @@
+playbook: Petal CX Orchestrator
+displayName: EX — Compra directa celebración (flores para boda)
+description: >
+  El usuario menciona boda explícitamente. Orquestador detecta registro=celebracion,
+  ocasion_detectada=Boda y transfiere a Compra en silencio. Calidez genuina en
+  el executionSummary pero sin respuesta visible al usuario.
+actions:
+- userUtterance:
+    text: Busco flores para la boda de mi hermana
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: >
+    Señal de ocasión especial: "boda". Detecta registro=celebracion,
+    ocasion_detectada=Boda. Transfer silencioso a Compra.
+  actionParameters:
+    intencion: busco flores para la boda de mi hermana
+    registro: celebracion
+    ocasion_detectada: Boda
+languageCode: es

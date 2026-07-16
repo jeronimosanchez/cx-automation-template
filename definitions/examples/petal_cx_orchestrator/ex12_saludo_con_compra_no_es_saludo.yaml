@@ -1,0 +1,23 @@
+playbook: Petal CX Orchestrator
+displayName: EX — Saludo + intención de compra → NO es saludo
+description: >
+  Caso crítico de clasificación. El usuario abre con "buenas" pero en la misma frase
+  expresa intención de compra y menciona un producto ("corona"). Un mensaje es SALUDO
+  solo si es social puro sin intención de compra. Aquí la señal de compra domina:
+  transfer silencioso a Compra. Una corona es producto funerario — registro=solemne.
+actions:
+- userUtterance:
+    text: Buenas, necesito una corona
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: >
+    "Buenas" abre con saludo pero "necesito una corona" expresa intención de compra
+    con producto concreto. No es saludo social puro — la intención de compra domina.
+    Corona implica contexto funerario: registro=solemne, ocasion_detectada=Funeral.
+    Transfer silencioso a Compra sin responder.
+  actionParameters:
+    intencion: necesito una corona
+    ocasion_detectada: Funeral
+    registro: solemne
+languageCode: es
