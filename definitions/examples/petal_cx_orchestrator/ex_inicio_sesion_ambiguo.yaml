@@ -1,0 +1,19 @@
+playbook: Petal CX Orchestrator
+displayName: EX — Mensaje ambiguo → cierre
+description: El usuario envía mensajes sin intención clara durante 3 turnos. El Orquestador pide aclaración y al agotar los intentos cierra con despedida_ambiguo.
+actions:
+- userUtterance:
+    text: Hmm no sé
+- agentUtterance:
+    text: ¿En qué puedo ayudarte? Puedo ayudarte a encontrar flores, plantas o gestionar un pedido.
+- userUtterance:
+    text: No tengo claro
+- agentUtterance:
+    text: Entiendo. ¿Buscas algo para un regalo, una ocasión especial o tienes algo concreto en mente?
+- userUtterance:
+    text: Da igual
+- agentUtterance:
+    text: Parece que no he podido ayudarte como me gustaría. Si más adelante necesitas algo, estaré aquí encantado de atenderte. ¡Hasta pronto! 🌸
+playbookOutput:
+  executionSummary: Usuario ambiguo durante 3 turnos. Orquestador agota intentos y cierra con despedida_ambiguo.
+languageCode: es

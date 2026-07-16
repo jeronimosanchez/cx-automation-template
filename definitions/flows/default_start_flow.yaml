@@ -6,9 +6,7 @@ transitionRoutes:
     messages:
     - text:
         text:
-        - ¡Hola!
-        - ¡Hey!
-        - ¡Buenos días!
+        - '¡Hola! Bienvenido a Floristería Petal 🌸 Estoy aquí para ayudarte a encontrar el arreglo perfecto. ¿Es para una ocasión especial, un regalo o tienes algo concreto en mente?'
   name: f71cd841-490e-421c-a7aa-3f414576d52f
 eventHandlers:
 - event: sys.no-match-default

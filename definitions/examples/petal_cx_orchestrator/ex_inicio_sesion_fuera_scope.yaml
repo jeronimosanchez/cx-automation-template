@@ -1,0 +1,11 @@
+playbook: Petal CX Orchestrator
+displayName: EX — Fuera de scope
+description: El usuario pregunta algo fuera del ámbito de Floristería Petal. El Orquestador redirige con el copy estándar.
+actions:
+- userUtterance:
+    text: Cual es la capital de Francia?
+- agentUtterance:
+    text: Eso está fuera de mi especialidad como asistente de Floristería Petal 🌿. ¿En qué puedo ayudarte con tus flores o plantas?
+playbookOutput:
+  executionSummary: Usuario pregunta fuera de scope. Orquestador responde con fuera_de_scope y redirige.
+languageCode: es

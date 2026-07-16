@@ -1,6 +1,6 @@
 # Fuente de verdad de los Test Cases de Petal (extraídos de test_qa_playbooks.py).
 # Estructura: id · type · group · name · objetivo · turns · not_expected · session_params (opcional).
-# 56 TCs. El campo objetivo describe qué comportamiento del agente valida el TC — lo usa el juez LLM.
+# 60 TCs. El campo objetivo describe qué comportamiento del agente valida el TC — lo usa el juez LLM.
 # session_params: parámetros de sesión preinyectados antes del primer turno (sin coste LLM).
 #   Permite testear artefactos intermedios (Compra, Profile_Task...) sin recorrer la cadena completa.
 #   Ejemplo:
@@ -38,18 +38,72 @@
   not_expected:
   - email
   - correo
-- id: TC-R03
+- id: TC-ORQ-04
   type: REG
-  group: G4
-  name: Saludo
-  objetivo: El agente debe saludar y ofrecer ayuda sin pedir email
+  group: ORQ_INI
+  name: Inicio sesion - saludo
+  objetivo: El agente responde al saludo con oferta de ayuda sin pedir email
   turns:
   - user: Hola
     checks:
-    - hola|bienvenid|ayudar|Petal
+    - ayudar|puedo
+    playbook_check: Orquestador
   not_expected:
   - email
   - correo
+- id: TC-ORQ-05
+  type: REG
+  group: ORQ_INI
+  name: Inicio sesion - despedida
+  objetivo: El agente se despide y cierra la sesion sin pedir email
+  turns:
+  - user: Hasta luego
+    checks:
+    - gracias|luego|pronto|hasta
+    playbook_check: Orquestador
+  not_expected:
+  - email
+  - correo
+- id: TC-ORQ-06
+  type: REG
+  group: ORQ_INI
+  name: Inicio sesion - ambiguo
+  objetivo: El agente pide aclaración ante un mensaje que no puede enrutar
+  turns:
+  - user: Mmm no sé
+    checks:
+    - aclarar|entiendo|ayudar|puedo
+    playbook_check: Orquestador
+  not_expected:
+  - email
+  - correo
+- id: TC-ORQ-07
+  type: REG
+  group: ORQ_INI
+  name: Inicio sesion - fuera de scope
+  objetivo: El agente redirige cuando el usuario pregunta algo fuera del scope de Petal
+  turns:
+  - user: Cual es la capital de Francia?
+    checks:
+    - .+
+    playbook_check: Orquestador
+  not_expected:
+  - email
+  - correo
+- id: TC-ORQ-08
+  type: REG
+  group: ORQ_INI
+  name: Inicio sesion - sugerencia
+  objetivo: El agente agradece la sugerencia sin hacer handoff ni pedir email
+  turns:
+  - user: Deberiais tener mas variedad de plantas exoticas
+    checks:
+    - gracias|trasladamos|equipo
+    playbook_check: Orquestador
+  not_expected:
+  - email
+  - correo
+  - handoff
 - id: TC-ORQ-01
   type: REG
   group: ORQ
