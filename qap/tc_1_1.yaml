@@ -1,24 +1,11 @@
-# Fuente de verdad de los Test Cases de Petal (extraídos de test_qa_playbooks.py).
-# Estructura: id · type · group · name · objetivo · turns · not_expected · session_params (opcional).
-# 60 TCs. El campo objetivo describe qué comportamiento del agente valida el TC — lo usa el juez LLM.
-# session_params: parámetros de sesión preinyectados antes del primer turno (sin coste LLM).
-#   Permite testear artefactos intermedios (Compra, Profile_Task...) sin recorrer la cadena completa.
-#   Ejemplo:
-#     session_params:
-#       id_cliente: "12345"
-#       registro: "estandar"
-#       ocasion_detectada: "Regalo"
-# playbook_check (opcional, a nivel de turno): valida que el playbook indicado respondió ese turno (via traza).
-#   No afecta a TCs que no lo declaren. Valores válidos: Compra, Orquestador.
-#   Ejemplo:
-#     turns:
-#     - user: Quiero comprar rosas
-#       playbook_check: Compra
 - id: TC-R01
   type: REG
   group: G1
   name: Info negocio - horario
   objetivo: El agente debe informar el horario correcto de apertura
+  domain: orquestador
+  difficulty: core
+  status: stable
   turns:
   - user: A que hora abris?
     checks:
@@ -31,6 +18,9 @@
   group: G2
   name: Info catalogo - precio tulipanes
   objetivo: El agente debe informar el precio y detalles de los tulipanes
+  domain: compra
+  difficulty: core
+  status: stable
   turns:
   - user: Cuanto cuestan los tulipanes?
     checks:
@@ -43,6 +33,9 @@
   group: ORQ_INI
   name: Inicio sesion - saludo
   objetivo: El agente responde al saludo con oferta de ayuda sin pedir email
+  domain: orquestador
+  difficulty: core
+  status: stable
   turns:
   - user: Hola
     checks:
@@ -56,6 +49,9 @@
   group: ORQ_INI
   name: Inicio sesion - despedida
   objetivo: El agente se despide y cierra la sesion sin pedir email
+  domain: orquestador
+  difficulty: core
+  status: stable
   turns:
   - user: Hasta luego
     checks:
@@ -69,6 +65,9 @@
   group: ORQ_INI
   name: Inicio sesion - ambiguo
   objetivo: El agente pide aclaración ante un mensaje que no puede enrutar
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: Mmm no sé
     checks:
@@ -81,7 +80,11 @@
   type: REG
   group: ORQ_INI
   name: Inicio sesion - fuera de scope
-  objetivo: El agente redirige cuando el usuario pregunta algo fuera del scope de Petal
+  objetivo: El agente redirige cuando el usuario pregunta algo fuera del scope de
+    Petal
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: Cual es la capital de Francia?
     checks:
@@ -95,6 +98,9 @@
   group: ORQ_INI
   name: Inicio sesion - sugerencia
   objetivo: El agente agradece la sugerencia sin hacer handoff ni pedir email
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: Deberiais tener mas variedad de plantas exoticas
     checks:
@@ -108,11 +114,16 @@
   type: REG
   group: ORQ
   name: Routing compra directa — producto mencionado
-  objetivo: Orquestador detecta intención de compra con producto y transfiere en silencio a Compra sin interceptar
+  objetivo: Orquestador detecta intención de compra con producto y transfiere en silencio
+    a Compra sin interceptar
+  domain: orquestador
+  difficulty: core
+  status: stable
   turns:
   - user: Quiero comprar rosas rojas
     checks:
     - rosas|rosa
+    playbook_check: Compra
   not_expected:
   - email|correo
   - en qué puedo
@@ -121,6 +132,9 @@
   group: ESP
   name: Email espontaneo
   objetivo: El agente debe reconocer el email y ofrecer ayuda, no iniciar registro
+  domain: orquestador
+  difficulty: core
+  status: stable
   turns:
   - user: Mi email es ana@email.com
     checks:
@@ -130,22 +144,32 @@
   type: REG
   group: ORQ
   name: Routing compra directa — ocasión sin producto
-  objetivo: Orquestador detecta intención de compra con ocasión y transfiere en silencio a Compra sin interceptar
+  objetivo: Orquestador detecta intención de compra con ocasión y transfiere en silencio
+    a Compra sin interceptar
+  domain: orquestador
+  difficulty: core
+  status: stable
   turns:
   - user: Necesito flores para un cumpleaños
     checks:
     - .+
+    playbook_check: Compra
   not_expected:
   - email|correo
 - id: TC-ORQ-03
   type: REG
   group: ORQ
   name: Routing compra directa — recomendación sin producto
-  objetivo: Orquestador detecta intención de compra sin producto ni ocasión explícita y transfiere en silencio a Compra
+  objetivo: Orquestador detecta intención de compra sin producto ni ocasión explícita
+    y transfiere en silencio a Compra
+  domain: orquestador
+  difficulty: core
+  status: stable
   turns:
   - user: Algo bonito para mi novia
     checks:
     - .+
+    playbook_check: Compra
   not_expected:
   - email|correo
 - id: TC-N03
@@ -153,6 +177,9 @@
   group: G6
   name: Requiere perfil - pide email
   objetivo: El agente debe pedir email para consultar el saldo
+  domain: gestion_deuda
+  difficulty: core
+  status: stable
   turns:
   - user: Quiero ver mi saldo
     checks:
@@ -163,6 +190,9 @@
   group: ESP
   name: Hablar con humano - sin pedir email
   objetivo: El agente debe derivar a humano sin pedir email
+  domain: handoff
+  difficulty: core
+  status: stable
   turns:
   - user: Quiero hablar con una persona
     checks: []
@@ -174,6 +204,9 @@
   group: G7
   name: Registro completo happy path desde Orquestador
   objetivo: El agente debe completar el flujo de registro recogiendo todos los datos
+  domain: registro
+  difficulty: core
+  status: stable
   turns:
   - user: Quiero registrarme
     checks:
@@ -208,6 +241,9 @@
   group: G7>ERR
   name: Registro con email invalido desde Orquestador
   objetivo: El agente debe detectar email inválido y pedir uno correcto
+  domain: registro
+  difficulty: edge
+  status: stable
   turns:
   - user: Quiero registrarme
     checks:
@@ -224,6 +260,9 @@
   group: G7>CANCEL
   name: Registro cancelado a mitad desde Orquestador
   objetivo: El agente debe aceptar la cancelación del registro sin insistir
+  domain: registro
+  difficulty: edge
+  status: stable
   turns:
   - user: Quiero registrarme
     checks:
@@ -239,7 +278,11 @@
   type: NEW
   group: G5>CK>REG
   name: 'Flujo COMPLETO: Compra → Checkout → Registro_Task → completa pedido'
-  objetivo: "El agente debe completar flujo Compra → Checkout → Registro → confirmar pedido"
+  objetivo: El agente debe completar flujo Compra → Checkout → Registro → confirmar
+    pedido
+  domain: checkout
+  difficulty: core
+  status: stable
   turns:
   - user: Quiero comprar un ramo de rosas rojas para un cumpleanos
     checks:
@@ -285,7 +328,11 @@
   type: NEW
   group: G7>POST
   name: 'Post-registro: Orquestador retoma y ofrece ayuda'
-  objetivo: El agente debe completar el registro y retomar la conversación ofreciendo ayuda
+  objetivo: El agente debe completar el registro y retomar la conversación ofreciendo
+    ayuda
+  domain: registro
+  difficulty: core
+  status: stable
   turns:
   - user: Quiero registrarme
     checks:
@@ -323,6 +370,9 @@
   group: G6>SALDO
   name: Consulta saldo con email valido
   objetivo: El agente debe consultar y mostrar el saldo del cliente identificado
+  domain: gestion_deuda
+  difficulty: core
+  status: stable
   turns:
   - user: Quiero ver mi saldo
     checks:
@@ -336,6 +386,9 @@
   group: COMPRA-ZG
   name: Ambigüedad total sin datos
   objetivo: El agente debe explorar la necesidad sin pedir email
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: Algo bonito para mi madre
     checks:
@@ -346,6 +399,9 @@
   group: COMPRA-ZG
   name: Presupuesto sin producto
   objetivo: El agente debe ofrecer opciones dentro de un rango económico
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: Algo no muy caro
     checks:
@@ -355,7 +411,10 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cantidad ambigua — un par
-  objetivo: "El agente debe interpretar 'un par' como cantidad 2"
+  objetivo: El agente debe interpretar 'un par' como cantidad 2
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -371,7 +430,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cantidad ambigua — varios
-  objetivo: "El agente debe interpretar 'varios' como cantidad mayor a 2 y pedir número exacto"
+  objetivo: El agente debe interpretar 'varios' como cantidad mayor a 2 y pedir número
+    exacto
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -388,7 +451,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cantidad por función
-  objetivo: "El agente debe interpretar 'para llenar una mesa' como cantidad aproximada y pedir número"
+  objetivo: El agente debe interpretar 'para llenar una mesa' como cantidad aproximada
+    y pedir número
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -406,6 +473,9 @@
   group: COMPRA-ZG
   name: Ocasión ambigua emocional
   objetivo: El agente debe explorar la ocasión ante una señal emocional ambigua
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: Es para alguien especial
     checks:
@@ -416,6 +486,9 @@
   group: COMPRA-ZG
   name: Urgencia sin ocasión
   objetivo: El agente debe asumir urgencia y preguntar la ocasión
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: Necesito flores para mañana
     checks:
@@ -425,7 +498,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: Input numérico fuera de contexto
-  objetivo: "El agente debe interpretar 'El 3' como selección de la tercera opción listada"
+  objetivo: El agente debe interpretar 'El 3' como selección de la tercera opción
+    listada
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -439,7 +516,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: Emoji solo
-  objetivo: "El agente debe interpretar el emoji \U0001F339 como posible intención de compra y explorarla"
+  objetivo: El agente debe interpretar el emoji 🌹 como posible intención de compra
+    y explorarla
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: 🌹
     checks:
@@ -449,7 +530,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: Pregunta out of scope en PASO 2
-  objetivo: El agente debe responder la pregunta fuera de contexto y retomar el flujo de compra
+  objetivo: El agente debe responder la pregunta fuera de contexto y retomar el flujo
+    de compra
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -462,7 +547,14 @@
   type: EDGE
   group: COMPRA-ZG
   name: Handoff Compra → Checkout (pide email tras cantidad)
-  objetivo: 'El agente debe pedir email para completar el checkout tras confirmar cantidad. NOTA ARQUITECTURA: primer turno generico para que Orquestador transfiera sin resolver producto, y que los turnos siguientes (talla, cantidad, handoff) sean gestionados por Compra en solitario — es lo que se quiere medir (US-COMP-01-C2, US-COMP-01-C3).'
+  objetivo: 'El agente debe pedir email para completar el checkout tras confirmar
+    cantidad. NOTA ARQUITECTURA: primer turno generico para que Orquestador transfiera
+    sin resolver producto, y que los turnos siguientes (talla, cantidad, handoff)
+    sean gestionados por Compra en solitario — es lo que se quiere medir (US-COMP-01-C2,
+    US-COMP-01-C3).'
+  domain: checkout
+  difficulty: edge
+  status: stable
   turns:
   - user: Quiero comprar flores
     checks:
@@ -481,7 +573,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: Input ambiguo en PASO 0 Checkout — no cancela, re-pide email
-  objetivo: El agente debe re-pedir el email con formato de ejemplo ante respuesta ambigua
+  objetivo: El agente debe re-pedir el email con formato de ejemplo ante respuesta
+    ambigua
+  domain: checkout
+  difficulty: edge
+  status: stable
   turns:
   - user: Quiero rosas rojas para cumpleaños
     checks:
@@ -500,8 +596,13 @@
 - id: TC-DECO-01
   type: EDGE
   group: COMPRA-INV
-  name: Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato producto -- talla, acepta -- / — / –)
-  objetivo: "El agente debe mostrar margaritas reales del catálogo con formato producto — talla"
+  name: Margaritas para decorar — el catalogo debe mostrar margaritas reales (formato
+    producto -- talla, acepta -- / — / –)
+  objetivo: El agente debe mostrar margaritas reales del catálogo con formato producto
+    — talla
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: quiero un ramo de margaritas para decorar mi recibidor
     checks:
@@ -512,8 +613,13 @@
 - id: TC-DECO-02
   type: EDGE
   group: COMPRA-INV
-  name: Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto -- talla, acepta -- / — / –)
-  objetivo: "El agente debe mostrar rosas reales del catálogo con formato producto — talla"
+  name: Rosas para decorar — el catalogo debe mostrar rosas reales (formato producto
+    -- talla, acepta -- / — / –)
+  objetivo: El agente debe mostrar rosas reales del catálogo con formato producto
+    — talla
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: quiero un ramo de rosas para decorar mi salon
     checks:
@@ -525,7 +631,11 @@
   type: NEW
   group: G5
   name: Modo solemne — corona para funeral
-  objetivo: El agente debe adoptar tono solemne y ofrecer opciones adecuadas para funeral
+  objetivo: El agente debe adoptar tono solemne y ofrecer opciones adecuadas para
+    funeral
+  domain: compra
+  difficulty: core
+  status: stable
   turns:
   - user: necesito una corona para un funeral
     checks:
@@ -537,6 +647,9 @@
   group: G5
   name: Presupuesto duro — precio_max explicito
   objetivo: El agente debe mostrar solo opciones por debajo del precio máximo indicado
+  domain: compra
+  difficulty: core
+  status: stable
   turns:
   - user: quiero rosas maximo 30 euros
     checks:
@@ -547,7 +660,11 @@
   type: NEW
   group: G5
   name: Compra con color especifico no-rojo (tulipanes blancos)
-  objetivo: El agente debe ofrecer tulipanes blancos específicamente, no sustituir por otra flor
+  objetivo: El agente debe ofrecer tulipanes blancos específicamente, no sustituir
+    por otra flor
+  domain: compra
+  difficulty: core
+  status: stable
   turns:
   - user: quiero tulipanes blancos
     checks:
@@ -558,7 +675,11 @@
   type: NEW
   group: G5
   name: Rosa como color — "un ramo en rosa" (desambiguacion flor vs color)
-  objetivo: '"en rosa" debe interpretarse como color=Rosa (modificador), mostrando productos de varias especies en color rosa, NO como especie=Rosas (la flor)'
+  objetivo: '"en rosa" debe interpretarse como color=Rosa (modificador), mostrando
+    productos de varias especies en color rosa, NO como especie=Rosas (la flor)'
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: quiero un ramo en rosa
     checks:
@@ -568,7 +689,11 @@
   type: NEW
   group: G5
   name: Refinamiento de precio mid-flow — mas baratas
-  objetivo: El agente debe mostrar opciones más baratas cuando el usuario lo pide mid-flow
+  objetivo: El agente debe mostrar opciones más baratas cuando el usuario lo pide
+    mid-flow
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: quiero un ramo de rosas para cumpleaños
     checks:
@@ -581,7 +706,11 @@
   type: NEW
   group: G5
   name: Modo Boda — ramo nupcial
-  objetivo: El agente debe ofrecer opciones de ramo nupcial en tono adecuado para boda
+  objetivo: El agente debe ofrecer opciones de ramo nupcial en tono adecuado para
+    boda
+  domain: compra
+  difficulty: core
+  status: stable
   turns:
   - user: quiero un ramo de novia para mi boda
     checks:
@@ -592,7 +721,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: Cambio de opinion mid-flow — usuario abandona tras seleccionar
-  objetivo: El agente debe aceptar el abandono mid-flow sin insistir en completar el pedido
+  objetivo: El agente debe aceptar el abandono mid-flow sin insistir en completar
+    el pedido
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: quiero rosas rojas para cumpleaños
     checks:
@@ -610,6 +743,9 @@
   group: COMPRA-ZG
   name: Multiples rechazos consecutivos — debe escalar o reformular
   objetivo: El agente debe escalar a humano o reformular tras múltiples rechazos consecutivos
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: quiero rosas
     checks:
@@ -620,7 +756,8 @@
   - user: tampoco me convencen, dame otras
     checks:
     - propongo|alternativ.{0,30}tipo|otra ocasion|equipo|persona|humano
-    desc: Segundo rechazo consecutivo — el agente debía proponer alternativa por tipo u ocasión, o escalar al equipo
+    desc: Segundo rechazo consecutivo — el agente debía proponer alternativa por tipo
+      u ocasión, o escalar al equipo
   - user: ninguna me gusta
     checks:
     - equipo|persona|humano|hablar|asistente|encontrar|contacto|disculpa|otra ocasion
@@ -630,7 +767,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: TT-11 Caso B — 3 variantes S/M/L del mismo producto, eleccion por tamano coloquial
-  objetivo: El agente debe mostrar solo variantes S/M/L del mismo producto, no productos distintos
+  objetivo: El agente debe mostrar solo variantes S/M/L del mismo producto, no productos
+    distintos
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: quiero un ramo de rosas rojas para cumpleaños
     checks:
@@ -644,7 +785,11 @@
   type: EDGE
   group: COMPRA-ZG
   name: Robustez parser — input en MAYUSCULAS sin acentos
-  objetivo: El agente debe entender el input en mayúsculas sin acentos y responder correctamente
+  objetivo: El agente debe entender el input en mayúsculas sin acentos y responder
+    correctamente
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: QUIERO ROSAS ROJAS PARA CUMPLEANOS
     checks:
@@ -656,6 +801,9 @@
   group: COMPRA-ZG
   name: TT-25 — cantidad > stock disponible, agente debe avisar
   objetivo: El agente debe avisar que la cantidad solicitada supera el stock disponible
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: quiero un ramo de rosas rojas pequeño
     checks:
@@ -672,23 +820,32 @@
   type: EDGE
   group: COMPRA-ZG
   name: Entrega urgente — hora exacta ('quiero rosas para hoy a las 18:00')
-  objetivo: "El agente debe confirmar si la entrega para hoy a las 18:00 es viable antes de mostrar catálogo"
+  objetivo: El agente debe confirmar si la entrega para hoy a las 18:00 es viable
+    antes de mostrar catálogo
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: quiero un ramo de rosas para hoy a las 18:00
     checks:
     - hoy.{0,40}no|plazo|24h|24 horas|entrega.{0,30}simulad|entrega.{0,30}disponible|equipo|humano
-    desc: El agente debía reconocer la urgencia horaria y verificar el plazo de entrega antes de mostrar catálogo
+    desc: El agente debía reconocer la urgencia horaria y verificar el plazo de entrega
+      antes de mostrar catálogo
   not_expected: []
 - id: TC-URGENCIA-02
   type: EDGE
   group: COMPRA-ZG
   name: Entrega urgente — urgencia sin fecha, usuario confirma mañana por la mañana
   objetivo: El agente debe confirmar que la entrega para mañana por la mañana es viable
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: lo necesito urgente, ¿en cuánto tiempo entregáis?
     checks:
     - plazo|24h|24 horas|entrega|hora|tiempo
-    desc: El agente debía informar sobre el plazo de entrega antes de continuar con la compra
+    desc: El agente debía informar sobre el plazo de entrega antes de continuar con
+      la compra
   - user: mañana por la mañana
     checks:
     - mañana|perfecto|posible|24h|llega|pedido
@@ -696,19 +853,29 @@
 - id: TC-URGENCIA-03
   type: EDGE
   group: COMPRA-ZG
-  name: Entrega urgente — plazo viernes, agente confirma viabilidad y politica de envio
-  objetivo: "El agente debe confirmar viabilidad del plazo del viernes y explicar política de envío"
+  name: Entrega urgente — plazo viernes, agente confirma viabilidad y politica de
+    envio
+  objetivo: El agente debe confirmar viabilidad del plazo del viernes y explicar política
+    de envío
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: lo necesito para este viernes
     checks:
     - 24h|24 horas|plazo|días|dias|llega|tiempo.{0,20}entrega|entrega.{0,20}tiempo
-    desc: El agente debía confirmar la viabilidad de entrega para el viernes antes de mostrar catálogo
+    desc: El agente debía confirmar la viabilidad de entrega para el viernes antes
+      de mostrar catálogo
   not_expected: []
 - id: TC-FRUSTRACION-LEX-01
   type: EDGE
   group: COMPRA-ZG
   name: Lexico negativo del usuario — agente reconoce frustracion
-  objetivo: El agente debe detectar léxico de frustración y escalar a humano sin ofrecer productos
+  objetivo: El agente debe detectar léxico de frustración y escalar a humano sin ofrecer
+    productos
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: quiero rosas
     checks:
@@ -722,6 +889,9 @@
   group: COMPRA-ZG
   name: Cambio de registro mid-conversacion — estandar -> solemne (duelo)
   objetivo: El agente debe cambiar a tono solemne al detectar que es para un velatorio
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: ¿cuánto cuestan los lirios blancos?
     checks:
@@ -731,12 +901,16 @@
     - opcion|apropiad|acompan|ceremonia|encaja|tipo
     not_expected:
     - 🌸|genial|mira,|fenomenal
-    desc: Tras la senal de duelo el registro debe pasar a solemne (sin emoji ni exclamaciones estandar)
+    desc: Tras la senal de duelo el registro debe pasar a solemne (sin emoji ni exclamaciones
+      estandar)
 - id: TC-CAMBIO-URGENCIA-01
   type: EDGE
   group: COMPRA-ZG
   name: Cambio mid-conversacion — prisa activa urgente (registro NO cambia)
-  objetivo: "El agente debe activar modo urgente al detectar 'para hoy' mid-conversación"
+  objetivo: El agente debe activar modo urgente al detectar 'para hoy' mid-conversación
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: quiero un ramo para regalar
     checks:
@@ -744,12 +918,16 @@
   - user: es para hoy, lo necesito ya
     checks:
     - flor|prefier|rapido|vale|opcion|tipo
-    desc: La prisa acorta la respuesta y va directa al slot; el registro sigue estandar (no cambia a solemne)
+    desc: La prisa acorta la respuesta y va directa al slot; el registro sigue estandar
+      (no cambia a solemne)
 - id: TC-CAMBIO-FRUSTRACION-01
   type: EDGE
   group: COMPRA-ZG
   name: Cambio de registro mid-conversacion — estandar -> solemne (frustracion)
   objetivo: El agente debe detectar frustración mid-conversación y escalar a humano
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: busco flores para mi madre
     checks:
@@ -759,12 +937,17 @@
     - entiend|resolver|dime|ayud|busco
     not_expected:
     - 🌸|genial|fenomenal
-    desc: Tras la senal de frustracion reconoce sin adornos y pasa a solemne (sin emoji ni genial)
+    desc: Tras la senal de frustracion reconoce sin adornos y pasa a solemne (sin
+      emoji ni genial)
 - id: TC-MULTI-SLOT-01
   type: EDGE
   group: COMPRA-ZG
   name: Parseo multi-info en un solo input — extraccion robusta
-  objetivo: El agente debe extraer todos los slots (tipo, color, precio máximo, ocasión) de un único mensaje
+  objetivo: El agente debe extraer todos los slots (tipo, color, precio máximo, ocasión)
+    de un único mensaje
+  domain: compra
+  difficulty: edge
+  status: stable
   turns:
   - user: hola, quiero un ramo de rosas rojas maximo 40 euros para mi boda
     checks:
@@ -776,6 +959,9 @@
   group: COMPRA-ZG
   name: Despedida abrupta — cierre amable sin pedido completo
   objetivo: El agente debe cerrar la conversación con cortesía sin insistir en vender
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: quiero rosas
     checks:
@@ -789,9 +975,14 @@
   type: EDGE
   group: G5>CK
   name: Override direccion habitual — cliente identificado pide otra direccion
-  objetivo: El agente debe usar la dirección de envío alternativa indicada, no la habitual
+  objetivo: El agente debe usar la dirección de envío alternativa indicada, no la
+    habitual
+  domain: checkout
+  difficulty: edge
+  status: stable
   turns:
-  - user: mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo, pero envialo a la oficina, no a mi casa
+  - user: mi email es ana@email.com y quiero un ramo de rosas rojas talla M para regalo,
+      pero envialo a la oficina, no a mi casa
     checks:
     - rosa|ramo|oficina|otra direcc|nueva direcc|Ana|opcion
   not_expected: []
@@ -800,6 +991,9 @@
   group: COMPRA-INV
   name: Pedido multi-item — ECO RESUMEN muestra total antes de confirmar
   objetivo: El agente debe mostrar resumen con total antes de confirmar pedido multi-producto
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: quiero un ramo de rosas y un centro de mesa para mi casa
     checks:
@@ -811,13 +1005,18 @@
   - user: el centro de tulipanes de 28 euros
     checks:
     - '65'
-    desc: El agente debía mostrar el resumen con el total calculado (37 + 28 = 65€) antes de pedir confirmación
+    desc: El agente debía mostrar el resumen con el total calculado (37 + 28 = 65€)
+      antes de pedir confirmación
   not_expected: []
 - id: TC-MOROSO-01
   type: EDGE
   group: G6>DEUDA
   name: Cliente con deuda detectada — handoff a Gestion_Deuda
-  objetivo: El agente debe detectar cuenta con deuda y derivar a gestión sin procesar el pedido
+  objetivo: El agente debe detectar cuenta con deuda y derivar a gestión sin procesar
+    el pedido
+  domain: gestion_deuda
+  difficulty: edge
+  status: stable
   turns:
   - user: mi email es pedro.moroso@test.com quiero comprar rosas
     checks:
@@ -827,7 +1026,11 @@
   type: EDGE
   group: G6
   name: Solicitud de devolucion — out-of-scope, deriva a Handoff
-  objetivo: El agente debe derivar a humano sin intentar gestionar la devolución él mismo
+  objetivo: El agente debe derivar a humano sin intentar gestionar la devolución él
+    mismo
+  domain: handoff
+  difficulty: edge
+  status: stable
   turns:
   - user: quiero devolver mi pedido
     checks:
@@ -839,6 +1042,9 @@
   group: COMPRA-ZG
   name: Input solo signos de puntuacion — robustez
   objetivo: El agente debe pedir aclaración ante input de solo signos de puntuación
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: ???
     checks:
@@ -849,6 +1055,9 @@
   group: COMPRA-ZG
   name: Lexico abusivo — agente mantiene tono profesional, no repite
   objetivo: El agente debe mantener tono profesional sin repetir el lenguaje abusivo
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: esto es una mierda, que porqueria
     checks:
@@ -860,17 +1069,28 @@
   group: COMPRA-ZG
   name: Peticion fuera de scope — descuento del 50%
   objetivo: El agente debe rechazar la petición fuera de scope sin ofrecer descuento
+  domain: orquestador
+  difficulty: edge
+  status: stable
   turns:
   - user: hacedme un descuento del 50%
     checks:
-    - no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar|no tenemos|ayudar
+    - no puedo|disculp|equipo|persona|precio|sin descuento|venta|cliente|comercial|aplicar|no
+      tenemos|ayudar
   not_expected:
   - 50%.{0,30}aplicado|claro, descuento
 - id: TC-PROD-CANT-01
   type: NEW
   group: COMPRA-ZG
   name: Producto y cantidad en el mismo turno — sin repreguntar
-  objetivo: 'El agente debe recoger producto y cantidad cuando se dan juntos en el mismo mensaje, sin volver a preguntar la cantidad. NOTA ARQUITECTURA: al ser el primer turno, es Orquestador quien parsea ambos slots y transfiere completo a Compra (linea 279 petal_cx_orchestrator.yaml); Compra tiene la misma capacidad de forma independiente en turnos posteriores (PASO 1.1 compra.yaml).'
+  objetivo: 'El agente debe recoger producto y cantidad cuando se dan juntos en el
+    mismo mensaje, sin volver a preguntar la cantidad. NOTA ARQUITECTURA: al ser el
+    primer turno, es Orquestador quien parsea ambos slots y transfiere completo a
+    Compra (linea 279 petal_cx_orchestrator.yaml); Compra tiene la misma capacidad
+    de forma independiente en turnos posteriores (PASO 1.1 compra.yaml).'
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: Quiero 3 ramos de tulipanes amarillos
     checks:
@@ -884,7 +1104,12 @@
   type: NEW
   group: COMPRA-ZG
   name: Producto y cantidad juntos ya dentro de Compra (turno posterior)
-  objetivo: El agente (Compra) debe recoger producto y cantidad cuando llegan juntos en un turno posterior, ya dentro del flujo de Compra, sin volver a preguntar la cantidad
+  objetivo: El agente (Compra) debe recoger producto y cantidad cuando llegan juntos
+    en un turno posterior, ya dentro del flujo de Compra, sin volver a preguntar la
+    cantidad
+  domain: compra
+  difficulty: edge
+  status: experimental
   turns:
   - user: Quiero comprar flores
     checks:
