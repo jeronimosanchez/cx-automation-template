@@ -50,17 +50,7 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: producto
-  description: tipo de producto
-  typeSchema:
-    inlineSchema:
-      type: STRING
 outputParameterDefinitions:
-- name: producto
-  description: Nombre del producto confirmado
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: cantidad
   description: Cantidad del pedido.
   typeSchema:
@@ -118,11 +108,6 @@ outputParameterDefinitions:
       type: STRING
 - name: ocasion_detectada
   description: Funeral, Boda, Regalo, Decoración, o vacío
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: grupo_intent
-  description: 'Código del grupo semántico: G3, G5, G6, G7'
   typeSchema:
     inlineSchema:
       type: STRING
@@ -256,13 +241,6 @@ instruction:
       Si acepta - reclasifica como G5.
       ZG-4: verbo existencia (tener, hay) - G2. Verbo accion (quiero, ponme) - G5.
 
-      ⛔ G3 (recomendación) es la EXCEPCION: SOLO cuando el usuario pide una sugerencia SIN nombrar ningún producto (ej 'algo bonito', 'no se que llevar', 'que me recomiendas', 'un detalle para sorprender'). Todo lo demas es G5 (compra directa), aunque diga 'para X'.
-
-      G3 RECOMENDACION: NO explores en el Orquestador. Captura y transfiere:
-      - Captura $ocasion_detectada del utterance (incluye receptor a ocasion; ver mapa OCASION arriba).
-      - Captura $precio_max si lo menciona.
-      - $grupo_intent='G3'. Guarda $intencion.
-      - ${PLAYBOOK:Compra} con $intencion, $ocasion_detectada, $grupo_intent, $precio_max, $saludo_inicial.
 
       G4 SESION
       saludo - Si NO ha habido turnos previos Y el utterance es SOLO saludo puro (sin palabra de producto ni accion): 'Hola! Bienvenido a Floristeria Petal 🌸 Estoy aqui para ayudarte a encontrar el arreglo perfecto. Es para una ocasion especial, un regalo o tienes algo concreto en mente?'
@@ -274,16 +252,16 @@ instruction:
       fuera_scope - agent_copy['fuera_de_scope']. Redirige.
       sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
 
-      G5 COMPRA (comprar, explorar con producto concreto)
+      COMPRA DIRECTA
+      el usuario menciona un producto, flor o planta, usa verbo de accion
+      ('quiero', 'ponme', 'dame', 'busco'), o pide sugerencia sin producto
+      ('algo bonito', 'que me recomiendas?').
+      ⛔ Transfer silencioso. NO respondas antes de transferir.
       ⛔ NO pidas email. NUNCA.
-      - Guarda $intencion.
-      - Parsea $ocasion_detectada, $cantidad, $precio_max del utterance.
-      - ⛔ APLICA REGLA FIX 1.3-A: $producto solo se prellena si el usuario menciono tamano.
-      - $precio_estimado solo se prellena si $producto es EXACTO.
-      - $grupo_intent='G5'
-      - Si $id_cliente tiene valor - ${PLAYBOOK:Compra} con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max, $saludo_inicial.
-      - Si $id_cliente vacio - ${PLAYBOOK:Compra} con $intencion, $cantidad, $ocasion_detectada, $producto, $precio_estimado, $grupo_intent, $precio_max, $saludo_inicial.
-      ⛔ NO pases $id_cliente ni datos de perfil si estan vacios.
+      - Guarda $intencion (frase completa del usuario).
+      - Si abre con saludo + compra → $saludo_inicial=true.
+      - Sin perfil → ${PLAYBOOK:Compra} con $intencion, $saludo_inicial.
+      - Con perfil → añade $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago.
 
       G6 REQUIERE PERFIL (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)
       ⛔ Sin perfil es IMPOSIBLE avanzar. Pide email.

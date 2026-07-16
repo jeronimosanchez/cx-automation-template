@@ -16,5 +16,5 @@ playbookOutput:
     con producto concreto. No es saludo social puro — la intención de compra domina.
     Orquestador detecta intención de compra y transfiere a Compra en silencio.
   actionParameters:
-    intencion: necesito una corona
+    intencion: buenas, necesito una corona
 languageCode: es
