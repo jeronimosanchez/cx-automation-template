@@ -1,6 +1,6 @@
 # Fuente de verdad de los Test Cases de Petal (extraídos de test_qa_playbooks.py).
 # Estructura: id · type · group · name · objetivo · turns · not_expected · session_params (opcional).
-# 57 TCs. El campo objetivo describe qué comportamiento del agente valida el TC — lo usa el juez LLM.
+# 56 TCs. El campo objetivo describe qué comportamiento del agente valida el TC — lo usa el juez LLM.
 # session_params: parámetros de sesión preinyectados antes del primer turno (sin coste LLM).
 #   Permite testear artefactos intermedios (Compra, Profile_Task...) sin recorrer la cadena completa.
 #   Ejemplo:
@@ -8,6 +8,12 @@
 #       id_cliente: "12345"
 #       registro: "estandar"
 #       ocasion_detectada: "Regalo"
+# playbook_check (opcional, a nivel de turno): valida que el playbook indicado respondió ese turno (via traza).
+#   No afecta a TCs que no lo declaren. Valores válidos: Compra, Orquestador.
+#   Ejemplo:
+#     turns:
+#     - user: Quiero comprar rosas
+#       playbook_check: Compra
 - id: TC-R01
   type: REG
   group: G1
