@@ -14,10 +14,7 @@ playbookOutput:
   executionSummary: >
     "Buenas" abre con saludo pero "necesito una corona" expresa intención de compra
     con producto concreto. No es saludo social puro — la intención de compra domina.
-    Corona implica contexto funerario: registro=solemne, ocasion_detectada=Funeral.
-    Transfer silencioso a Compra sin responder.
+    Orquestador detecta intención de compra y transfiere a Compra en silencio.
   actionParameters:
     intencion: necesito una corona
-    ocasion_detectada: Funeral
-    registro: solemne
 languageCode: es

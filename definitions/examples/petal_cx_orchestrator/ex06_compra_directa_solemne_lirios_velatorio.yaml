@@ -12,9 +12,7 @@ actions:
 playbookOutput:
   executionSummary: >
     Usuario menciona producto (lirios blancos) y contexto funerario (velatorio).
-    Detecta registro=solemne, ocasion_detectada=Funeral. Transfer silencioso a Compra.
+    Orquestador detecta intención de compra y transfiere a Compra en silencio.
   actionParameters:
     intencion: quiero lirios blancos para un velatorio
-    registro: solemne
-    ocasion_detectada: Funeral
 languageCode: es

@@ -12,9 +12,7 @@ actions:
 playbookOutput:
   executionSummary: >
     Usuario menciona producto (rosas) y precio con restricción dura ("máximo 25 euros").
-    Detecta precio_max=25, pres_duro=true. Transfer silencioso a Compra.
+    Orquestador detecta intención de compra y transfiere a Compra en silencio.
   actionParameters:
     intencion: quiero rosas máximo 25 euros
-    precio_max: 25
-    pres_duro: true
 languageCode: es

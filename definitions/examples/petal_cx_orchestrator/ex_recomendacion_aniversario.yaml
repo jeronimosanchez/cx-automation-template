@@ -10,10 +10,9 @@ actions:
     playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
 playbookOutput:
   executionSummary: >
-    Usuario pide recomendación sin producto concreto. Orquestador captura
-    ocasion_detectada=Boda, explorar=true y transfiere a Compra sin explorar.
+    Usuario pide recomendación sin producto concreto. Orquestador detecta intención
+    de compra con explorar=true y transfiere a Compra.
   actionParameters:
-    ocasion_detectada: Boda
     explorar: true
     intencion: que me recomiendas para un aniversario de boda
 languageCode: es
