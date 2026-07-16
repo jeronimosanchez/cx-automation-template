@@ -44,18 +44,18 @@
   not_expected:
   - email
   - correo
-- id: TC-R04
+- id: TC-COMPRA-01
   type: REG
-  group: G5
-  name: Compra directa sin email
-  objetivo: El agente debe ofrecer opciones de compra sin pedir email
+  group: ORQ
+  name: Routing compra directa — producto mencionado
+  objetivo: Orquestador detecta intención de compra con producto y transfiere en silencio a Compra sin interceptar
   turns:
   - user: Quiero comprar rosas rojas
     checks:
-    - rosas|rosa|Ramo|Boutonniere|ocasi
+    - rosas|rosa
   not_expected:
-  - email
-  - correo
+  - email|correo
+  - en qué puedo
 - id: TC-R06
   type: REG
   group: ESP
@@ -66,18 +66,28 @@
     checks:
     - Ana|hola|ayudar|bienvenid|puedo|Hola
   not_expected: []
-- id: TC-N01
+- id: TC-COMPRA-02
   type: REG
-  group: G3
-  name: Recomendacion - transfiere a Compra
-  objetivo: El agente debe explorar la necesidad y derivar al flujo de Compra
+  group: ORQ
+  name: Routing compra directa — ocasión sin producto
+  objetivo: Orquestador detecta intención de compra con ocasión y transfiere en silencio a Compra sin interceptar
   turns:
-  - user: Necesito flores para un cumpleanos
+  - user: Necesito flores para un cumpleaños
     checks:
-    - regalo|presupuesto|ocasion|opciones|suger|buscar
+    - .+
   not_expected:
-  - email
-  - correo
+  - email|correo
+- id: TC-COMPRA-03
+  type: REG
+  group: ORQ
+  name: Routing compra directa — recomendación sin producto
+  objetivo: Orquestador detecta intención de compra sin producto ni ocasión explícita y transfiere en silencio a Compra
+  turns:
+  - user: Algo bonito para mi novia
+    checks:
+    - .+
+  not_expected:
+  - email|correo
 - id: TC-N03
   type: REG
   group: G6
