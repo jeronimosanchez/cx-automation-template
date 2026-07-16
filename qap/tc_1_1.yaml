@@ -44,7 +44,7 @@
   not_expected:
   - email
   - correo
-- id: TC-COMPRA-01
+- id: TC-ORQ-01
   type: REG
   group: ORQ
   name: Routing compra directa — producto mencionado
@@ -66,7 +66,7 @@
     checks:
     - Ana|hola|ayudar|bienvenid|puedo|Hola
   not_expected: []
-- id: TC-COMPRA-02
+- id: TC-ORQ-02
   type: REG
   group: ORQ
   name: Routing compra directa — ocasión sin producto
@@ -77,7 +77,7 @@
     - .+
   not_expected:
   - email|correo
-- id: TC-COMPRA-03
+- id: TC-ORQ-03
   type: REG
   group: ORQ
   name: Routing compra directa — recomendación sin producto
