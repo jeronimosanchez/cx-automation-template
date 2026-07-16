@@ -103,7 +103,8 @@ Reglas operativas sobre cómo cualquier cambio llega a producción.
 1. **IAM y roles en GCP** — ningún cambio sin aprobación explícita de Jero.
 2. **Agente Petal en producción** — `<AGENT_ID_PETAL_1.0>`. Ningún cambio sin aprobación.
 3. **GitHub Secrets** — nunca crear, modificar ni leer sin aprobación.
-4. **`petal-sheet-api`** — proyecto separado (backend Cloud Run de inventario). Vive en tres instancias, ninguna se toca desde este repo:
+4. **Templates — material sagrado del knowledgebase** — ningún template (TCs, examples, playbooks, schemas u otro artefacto de definición) se crea, modifica ni elimina sin validación explícita de Jero. Mostrar siempre "cómo quedaría" y esperar OK antes de tocar cualquier archivo. Aplica aunque el cambio sea retrocompatible o parezca trivial.
+5. **`petal-sheet-api`** — proyecto separado (backend Cloud Run de inventario). Vive en tres instancias, ninguna se toca desde este repo:
    - `~/petal-sheet-api/` (local) — código fuente editable.
    - `github.com/jeronimosanchez/petal-sheet-api` (privado) — copia de seguridad.
    - Cloud Run `europe-west1` — servidor que corre 24/7.
