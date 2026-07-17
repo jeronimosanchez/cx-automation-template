@@ -232,5 +232,3 @@ qap/.promptfoo/
 # macOS metadata
 .DS_Store
 
-# Research sessions — local only, no subir a repo público
-research/
