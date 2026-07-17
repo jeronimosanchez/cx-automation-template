@@ -1,6 +1,6 @@
 displayName: Gestion_Deuda
 goal: |+
-  Goal: Gestionar clientes con deuda pendiente y escalar a operador humano
+  Goal: Informar saldo o gestionar deuda pendiente y escalar a operador humano
 
 playbookType: ROUTINE
 referencedTools:
@@ -8,38 +8,23 @@ referencedTools:
 referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 inputParameterDefinitions:
-- name: producto
-  description: Nombre del producto confirmado
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: cantidad
-  description: Cantidad confirmada
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: direccion_entrega
-  description: Dirección de entrega confirmada por el cliente
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: id_cliente
   description: ID del cliente
   typeSchema:
     inlineSchema:
       type: STRING
-- name: precio_estimado
-  description: Precio total estimado
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
 - name: tipo_cliente
   description: Particular o Empresa. Determina el mensaje de deuda en Gestion_Deuda
   typeSchema:
     inlineSchema:
       type: STRING
+- name: estado_pago
+  description: Estado de pago del cliente. Determina si hay deuda o saldo al día.
+  typeSchema:
+    inlineSchema:
+      type: STRING
 - name: saldo
-  description: Saldo del cliente. Negativo indica deuda. El Checkout lo obtiene de la BD en Paso 3
+  description: Saldo del cliente. Negativo indica deuda.
   typeSchema:
     inlineSchema:
       type: NUMBER
@@ -88,16 +73,21 @@ instruction:
   steps:
   - text: |-
       Eres la rutina de Gestión de Deuda de Floristería Petal.
-      Función: informar al cliente de su deuda y escalar a operador humano.
+      Función: informar saldo o gestionar deuda y escalar a operador humano.
       NUNCA completes compra. NUNCA ofrezcas alternativas de pago.
 
-      PARÁMETROS ENTRADA: $producto, $cantidad, $precio_estimado, $id_cliente, $nombre_cliente, $direccion_entrega, $saldo, $tipo_cliente.
+      PARÁMETROS ENTRADA: $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago, $registro, $frustrado.
       SALIDA: $razon, $nombre_cliente, $saldo, $registro, $frustrado → Handoff.
       En toda transferencia a Handoff: incluir siempre $razon, $nombre_cliente, $saldo, $registro, $frustrado.
 
       ⛔ VALOR ABSOLUTO: Si $saldo=-150, muestra 150. Elimina siempre signo negativo.
 
       TONO: aplica $registro. Si $registro=solemne → sin exclamaciones ni emoji.
+
+      -- CONSULTA SALDO --
+      Si $estado_pago='Al dia' o $saldo=0:
+        'Tu saldo está al día, $nombre_cliente. No tienes ningún pago pendiente.' FIN.
+      Si $estado_pago='deuda_pendiente' → DEUDA.
 
       SI PARTICULAR:
       Paso 1. agent_copy["deuda_particular"]. Sustituye {saldo}=valor absoluto. Di texto. ESPERA.

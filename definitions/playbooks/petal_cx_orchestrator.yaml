@@ -278,9 +278,8 @@ instruction:
         - $recien_reg=false - 'Hola, $nombre_cliente! En que puedo ayudarte?'
 
       cancelar - 'Otro producto o dejamos?' Otro-Compra. Dejarlo-FIN.
-      consulta_saldo - $saldo=0: 'No tienes saldo pendiente, $nombre_cliente.' $saldo>0 + $estado_pago='Al dia': 'Tu saldo es [X]euros.' $estado_pago='deuda_pendiente': 'Tienes un pago pendiente de [X]euros. Quieres gestionarlo?' - si - ${PLAYBOOK:Gestion_Deuda}.
+      consulta_saldo/deuda.* → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago.
       consulta_descuento (posesivo) - consulta business clave='descuentos' + usa $tipo_cliente - responde - 'Algo mas?'
-      deuda.consulta/deuda.aceptar - ${PLAYBOOK:Gestion_Deuda}.
       reclamacion - ⛔ OBLIGATORIO 'Lamento lo sucedido.' - ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
       consulta_pedido/historial_pedidos/modificar_pedido/devolver - ${PLAYBOOK:Handoff} con $razon=[intent], $id_cliente, $nombre_cliente.
 
