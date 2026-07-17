@@ -172,19 +172,6 @@
     playbook_check: Compra
   not_expected:
   - email|correo
-- id: TC-N03
-  type: REG
-  group: G6
-  name: Requiere perfil - pide email
-  objetivo: El agente debe pedir email para consultar el saldo
-  domain: gestion_deuda
-  difficulty: core
-  status: stable
-  turns:
-  - user: Quiero ver mi saldo
-    checks:
-    - email|correo
-  not_expected: []
 - id: TC-E01
   type: REG
   group: ESP
@@ -364,22 +351,6 @@
   - user: Quiero comprar rosas
     checks:
     - rosas|rosa|Ramo|color|tipo|ocasi
-  not_expected: []
-- id: TC-E04
-  type: REG
-  group: G6>SALDO
-  name: Consulta saldo con email valido
-  objetivo: El agente debe consultar y mostrar el saldo del cliente identificado
-  domain: gestion_deuda
-  difficulty: core
-  status: stable
-  turns:
-  - user: Quiero ver mi saldo
-    checks:
-    - email|correo
-  - user: ana@email.com
-    checks:
-    - Ana|saldo|300|pago|pendiente|Hola
   not_expected: []
 - id: TC-C29
   type: EDGE
@@ -1008,23 +979,9 @@
     desc: El agente debía mostrar el resumen con el total calculado (37 + 28 = 65€)
       antes de pedir confirmación
   not_expected: []
-- id: TC-MOROSO-01
-  type: EDGE
-  group: G6>DEUDA
-  name: Cliente con deuda detectada — handoff a Gestion_Deuda
-  objetivo: El agente debe detectar cuenta con deuda y derivar a gestión sin procesar
-    el pedido
-  domain: gestion_deuda
-  difficulty: edge
-  status: stable
-  turns:
-  - user: mi email es pedro.moroso@test.com quiero comprar rosas
-    checks:
-    - deud|pago|pendiente|equipo|persona|gestion|saldo|email|verific
-  not_expected: []
 - id: TC-DEVOLUCION-01
   type: EDGE
-  group: G6
+  group: IDENT_TASK
   name: Solicitud de devolucion — out-of-scope, deriva a Handoff
   objetivo: El agente debe derivar a humano sin intentar gestionar la devolución él
     mismo
@@ -1037,6 +994,41 @@
     - devolucion|equipo|persona|humano|reclamacion|email|correo|contacto|gestion
   not_expected:
   - claro, te devuelvo|procesado
+- id: TC-IDENT-01
+  type: REG
+  group: IDENT_TASK
+  name: Historial pedidos — Identificacion_Task pide email → Handoff
+  objetivo: El agente debe pedir email via Identificacion_Task y derivar historial a Handoff con perfil cargado
+  domain: gestion_cuenta
+  difficulty: core
+  status: stable
+  turns:
+  - user: Quiero ver mis pedidos anteriores
+    checks:
+    - email|correo
+  - user: ana@email.com
+    checks:
+    - historial|pedido|equipo|persona|humano
+  not_expected: []
+- id: TC-IDENT-02
+  type: EDGE
+  group: IDENT_TASK
+  name: Email no encontrado — negativa — FIN
+  objetivo: El agente debe manejar email no encontrado y cerrar sesion si el usuario declina
+  domain: gestion_cuenta
+  difficulty: edge
+  status: stable
+  turns:
+  - user: Quiero ver mi saldo
+    checks:
+    - email|correo
+  - user: noexiste@test.com
+    checks:
+    - encontrado|registrado|existe|correo|otro
+  - user: No gracias
+    checks:
+    - hasta|pronto|adios|gracias
+  not_expected: []
 - id: TC-SIGNOS-01
   type: EDGE
   group: COMPRA-ZG

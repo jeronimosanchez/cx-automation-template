@@ -1,0 +1,93 @@
+displayName: Identificacion_Task
+goal: Identificar al cliente por email — validar formato, consultar perfil en BD y devolver datos de sesión al caller
+playbookType: TASK
+referencedPlaybooks:
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
+referencedTools:
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+inputParameterDefinitions:
+- name: email_hint
+  description: Email ya capturado espontáneamente por el caller. Si tiene valor y formato válido, la task lo acepta sin preguntar. Si está vacío, la task lo recoge del usuario.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+outputParameterDefinitions:
+- name: email
+  description: Email validado y usado para consultar el perfil.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: id_cliente
+  description: ID numérico del cliente en BD.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: nombre_cliente
+  description: Nombre del cliente cargado desde BD.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: tipo_cliente
+  description: Tipo de cliente (particular o empresa).
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: estado_pago
+  description: Estado de pago del cliente.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: saldo
+  description: Saldo pendiente del cliente.
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
+- name: dir_habitual
+  description: Dirección habitual del cliente cargada desde BD.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: recien_reg
+  description: True si el cliente se acaba de registrar en esta sesión.
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
+- name: fin_sesion
+  description: True si el flujo no puede continuar (error, negativa o intentos agotados).
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
+instruction:
+  steps:
+  - text: |-
+      INPUT: $email_hint (opcional)
+      OUTPUTS: $email, $id_cliente, $nombre_cliente, $tipo_cliente, $estado_pago, $saldo, $dir_habitual, $recien_reg, $fin_sesion
+
+      -- CAPTURA EMAIL --
+      Si $email_hint tiene @ → $email=$email_hint → PERFIL.
+      Si no:
+        ESPERA input del usuario.
+        BUCLE máx 3 intentos:
+          Email con @ → $email=valor → PERFIL.
+          No es email:
+            ⛔ No es cancelación. No salgas del bucle.
+            F1: 'Disculpa, no he captado tu correo. ¿Me lo das otra vez? Por ejemplo: nombre@dominio.com' ESPERA.
+            F2: 'Sigo sin entender tu correo. Asegúrate de que está escrito correctamente.' ESPERA.
+            F3: 'Lo siento, no hemos podido continuar sin un correo válido. Cuando lo tengas, estaremos encantados de atenderte.' → $fin_sesion=true → done.
+
+      -- PERFIL --
+      PetalDataTool recurso='perfil' id=$email. Silencio.
+      Existe → carga $id_cliente, $nombre_cliente, $tipo_cliente, $estado_pago, $saldo, $dir_habitual. $recien_reg=false → done.
+      No existe → EMAIL NO ENCONTRADO.
+      Falla → agent_copy['error_generico'] → $fin_sesion=true → done.
+
+      -- EMAIL NO ENCONTRADO --
+      agent_copy['email_no_encontrado']. ESPERA.
+      - Otro email(@) → $email=nuevo → PERFIL.
+      - Registrarse → Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
+          Cuando vuelve:
+          - $fin_sesion=true → done.
+          - $recien_reg=true → PetalDataTool recurso='perfil' id=$email → carga $id_cliente, $nombre_cliente, $tipo_cliente, $estado_pago, $saldo, $dir_habitual. $recien_reg=true → done.
+      - Negativa → $fin_sesion=true → done.
+      ⛔ 'no' = quiere irse. NUNCA interpretes negativa como email inválido.
+codeBlock: {}

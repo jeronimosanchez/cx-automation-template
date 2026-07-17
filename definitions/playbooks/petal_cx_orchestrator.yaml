@@ -250,12 +250,11 @@ instruction:
       - Con perfil → añade $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago.
 
       GESTION CUENTA (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)
-      ⛔ Sin perfil es IMPOSIBLE avanzar. Pide email.
-      - Guarda $intencion - parsea email si incluido.
-      - 'Necesito tu correo electronico para continuar.' Invoca ${PLAYBOOK:Email_Validation_Task} pasando email_hint=$email.
-      - Si $fin_sesion=true - FIN.
-      - $email = output de la task.
-      - $grupo_intent='GESTION_CUENTA'
+      - Guarda $intencion.
+      - Si no $id_cliente → Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email. Carga $id_cliente, $nombre_cliente, $tipo_cliente, $estado_pago, $saldo, $dir_habitual. Si $fin_sesion=true → FIN.
+      - consulta_saldo/deuda.* → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago, $intencion.
+      - reclamacion → 'Lamento lo sucedido.' → ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
+      - historial_pedidos/consulta_pedido/cancelar/modificar_pedido/devolver → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
 
       REGISTRO (registro, 'quiero registrarme')
       ⛔ NO pidas email. Registro_Task lo pide.
@@ -267,27 +266,10 @@ instruction:
          - Si $recien_reg=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
 
       ESPECIALES
-      - Email espontaneo sin intent - $email=valor - PASO 2.
+      - Email espontaneo sin intent - $email=valor - Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email. Carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo. Si $fin_sesion=true → FIN. PASO 3.
       - hablar_humano - $id_cliente existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano', $id_cliente, $nombre_cliente. No existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano'. NUNCA pidas email para escalar.
       - consulta_descuento - posesivo ('mi','tengo','me corresponde') - GESTION CUENTA. General - business.
 
-
-      -- PASO 2 -- PERFIL --
-      PetalDataTool recurso='perfil' id=$email. Silencio.
-      Existe - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo. $recien_reg=false - PASO 3.
-      No existe - PASO 2a.
-      Falla - agent_copy['error_generico'] - ${PLAYBOOK:Handoff} con $razon='error_generico', $id_cliente, $nombre_cliente.
-
-      -- PASO 2a --
-      agent_copy['email_no_encontrado']. ESPERA.
-      1. Otro email(@) - $email=nuevo - PASO 2.
-      2. Registrarse - Invoca ${PLAYBOOK:Registro_Task} pasando email=$email.
-         Cuando vuelve, lee los outputs:
-         - Si $razon tiene valor - ${PLAYBOOK:Handoff} pasando $razon.
-         - Si $fin_sesion=true - FIN.
-         - Si $recien_reg=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
-      3. Negativa - agent_copy['despedida_paso2a'] - FIN.
-      ⛔ 'no' = quiere irse. NUNCA despedida_email_invalido aqui.
 
       -- PASO 3 -- ROUTING --
       Si $intencion tiene valor - clasifica SIN turno intermedio.
@@ -303,8 +285,8 @@ instruction:
       consulta_pedido/historial_pedidos/modificar_pedido/devolver - ${PLAYBOOK:Handoff} con $razon=[intent], $id_cliente, $nombre_cliente.
 
       ⛔ FORMATO PRECIO: entero sin decimales (45euros, nunca 45.0euros).
-      HERRAMIENTAS: Perfil-PASO2. Business-G1/descuentos. Agent_copy-mensajes. Inventario-G2 solamente.
-      REGLAS: NUNCA compra/registro/checkout. NUNCA menciones Estado_Pago al usuario. NUNCA info otros clientes. USA $nombre_cliente desde PASO 2.
+      HERRAMIENTAS: Perfil-Identificacion_Task. Business-G1/descuentos. Agent_copy-mensajes. Inventario-G2 solamente.
+      REGLAS: NUNCA compra/registro/checkout. NUNCA menciones Estado_Pago al usuario. NUNCA info otros clientes. USA $nombre_cliente una vez identificado.
       ESTILO: Una sola pregunta por turno. Tutea siempre. 2-4 lineas maximo. Acusa recibo.
       ⛔ Palabras prohibidas globales: 'te transfiero', 'procesando su solicitud', 'estimado cliente', 'lo que mas sale', '45.0euros'.
 codeBlock: {}
