@@ -8,7 +8,6 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/871d4bbb-5c90-443b-bbb1-1d83d254c2c3
-- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/8b7e9bac-6d38-4922-90c0-906621921037
 inputParameterDefinitions:
 - name: id_cliente
   description: ID numérico del cliente en el Google Sheet. Se usa como identificador desde el Paso 2 del Orquestador.
@@ -252,13 +251,12 @@ instruction:
       GESTION CUENTA (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)
       - Guarda $intencion.
       - Si no $id_cliente → Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email. Carga $id_cliente, $nombre_cliente, $tipo_cliente, $estado_pago, $saldo, $dir_habitual. Si $fin_sesion=true → FIN.
-      - consulta_saldo/deuda.* → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago, $intencion.
+      - consulta_saldo/deuda.* → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago.
       - reclamacion → 'Lamento lo sucedido.' → ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
       - historial_pedidos/consulta_pedido/cancelar/modificar_pedido/devolver → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
 
       REGISTRO (registro, 'quiero registrarme')
       ⛔ NO pidas email. Registro_Task lo pide.
-      - $grupo_intent='REGISTRO'
       - Invoca ${PLAYBOOK:Registro_Task} (sin inputs).
          Cuando vuelve, lee los outputs:
          - Si $razon tiene valor - ${PLAYBOOK:Handoff} pasando $razon.
