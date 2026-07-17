@@ -211,3 +211,16 @@ Si Claude Code encuentra una situación no documentada en este archivo:
 4. Espera confirmación de Jero.
 
 Nunca decide solo en territorio no cubierto.
+
+---
+
+## 10. Modos de trabajo (Research)
+
+Si el usuario indica "modo research CX", "trabaja en research CX" o similar:
+→ Lee `research/cx-dialogflow/CLAUDE.md` y opera desde ahí.
+
+Si el usuario indica "modo research diseño conversacional" o similar:
+→ Lee `research/conversational-design/CLAUDE.md` y opera desde ahí.
+
+Si el usuario indica "modo research Anthropic", "modo research Claude" o similar:
+→ Lee `research/claude-anthropic/CLAUDE.md` y opera desde ahí.
