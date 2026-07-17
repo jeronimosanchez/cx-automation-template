@@ -223,7 +223,7 @@ instruction:
       G1 INFO NEGOCIO (horario, ubicacion, envio, empaquetado, metodos_pago, recargo_festivo, cuidados_planta, tiempo_entrega, politica_devolucion, suscripciones)
       - PetalDataTool business/agent_copy - responde - 'Algo mas en lo que pueda ayudarte?'
       suscripciones - 'Ahora mismo no ofrecemos planes de suscripcion. Puedo ayudarte con otra cosa?'
-      ZG-3: Normas/politica devolucion? - G1(business). Ejecutar devolucion? - G6.
+      ZG-3: Normas/politica devolucion? - G1(business). Ejecutar devolucion? - GESTION CUENTA.
       ZG-5: Pregunta plazo entrega - G1(business). Frustracion repetida - ofrecer handoff.
 
       G2 INFO CATALOGO (consulta_precio, informacion_plantas)
@@ -249,17 +249,17 @@ instruction:
       - Sin perfil → ${PLAYBOOK:Compra} con $intencion, $saludo_inicial.
       - Con perfil → añade $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago.
 
-      G6 REQUIERE PERFIL (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)
+      GESTION CUENTA (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)
       ⛔ Sin perfil es IMPOSIBLE avanzar. Pide email.
       - Guarda $intencion - parsea email si incluido.
       - 'Necesito tu correo electronico para continuar.' Invoca ${PLAYBOOK:Email_Validation_Task} pasando email_hint=$email.
       - Si $fin_sesion=true - FIN.
       - $email = output de la task.
-      - $grupo_intent='G6'
+      - $grupo_intent='GESTION_CUENTA'
 
-      G7 REGISTRO (registro, 'quiero registrarme')
+      REGISTRO (registro, 'quiero registrarme')
       ⛔ NO pidas email. Registro_Task lo pide.
-      - $grupo_intent='G7'
+      - $grupo_intent='REGISTRO'
       - Invoca ${PLAYBOOK:Registro_Task} (sin inputs).
          Cuando vuelve, lee los outputs:
          - Si $razon tiene valor - ${PLAYBOOK:Handoff} pasando $razon.
@@ -269,7 +269,7 @@ instruction:
       ESPECIALES
       - Email espontaneo sin intent - $email=valor - PASO 2.
       - hablar_humano - $id_cliente existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano', $id_cliente, $nombre_cliente. No existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano'. NUNCA pidas email para escalar.
-      - consulta_descuento - posesivo ('mi','tengo','me corresponde') - G6. General - business.
+      - consulta_descuento - posesivo ('mi','tengo','me corresponde') - GESTION CUENTA. General - business.
 
 
       -- PASO 2 -- PERFIL --

@@ -1,6 +1,6 @@
 playbook: Petal CX Orchestrator
 id: b03947cb-07c9-4c5b-bd12-015d5bf47054
-displayName: Ex11 — G7 Registro → post-Task → Compra
+displayName: Ex11 — REGISTRO → post-Task → Compra
 description: Usuario pide registrarse. Orquestador invoca Registro_Task. Task completa y devuelve done. Orquestador retoma, pregunta en qué ayudar y transfiere a Compra (COMPRA DIRECTA).
 actions:
 - userUtterance:
@@ -34,7 +34,7 @@ actions:
     playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
 playbookOutput:
   executionSummary: |
-    Usuario pide registrarse (G7). Orquestador invoca Registro_Task sin inputs. Task completa registro y devuelve done con outputs. Orquestador carga datos del perfil, pregunta en qué ayudar. Usuario pide comprar rosas. Orquestador detecta COMPRA DIRECTA y transfiere a Compra con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $intencion.
+    Usuario pide registrarse (REGISTRO). Orquestador invoca Registro_Task sin inputs. Task completa registro y devuelve done con outputs. Orquestador carga datos del perfil, pregunta en qué ayudar. Usuario pide comprar rosas. Orquestador detecta COMPRA DIRECTA y transfiere a Compra con $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $intencion.
   actionParameters:
     apellidos: Vidal
     nombre_cliente: Zara
@@ -44,6 +44,6 @@ playbookOutput:
     id_cliente: '155'
     estado_pago: Al dia
     recien_reg: 'true'
-    grupo_intent: G7
+    grupo_intent: REGISTRO
 conversationState: OUTPUT_STATE_OK
 languageCode: es

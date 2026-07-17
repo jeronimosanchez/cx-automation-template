@@ -1,6 +1,6 @@
 playbook: Petal CX Orchestrator
 id: ddf7b63c-8912-4a51-8bbf-2b2ea051de7e
-displayName: Ex10 — G6 Historial → pide email
+displayName: Ex10 — GESTION CUENTA Historial → pide email
 actions:
 - userUtterance:
     text: Quiero ver mi historial de pedidos
@@ -23,6 +23,6 @@ playbookOutput:
     razon: historial_pedidos
     nombre_cliente: Ana
     intencion: ver historial de pedidos
-    grupo_intent: G6
+    grupo_intent: GESTION_CUENTA
     id_cliente: '101'
 languageCode: es

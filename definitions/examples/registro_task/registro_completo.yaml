@@ -103,11 +103,11 @@ actions:
         }
 playbookInput:
   precedingConversationSummary: |
-    Usuario pidió registrarse (G7). Orquestador invocó Registro_Task sin email. El Task debe pedir el email al usuario.
+    Usuario pidió registrarse (REGISTRO). Orquestador invocó Registro_Task sin email. El Task debe pedir el email al usuario.
   actionParameters:
     email: ''
 playbookOutput:
-  executionSummary: 'Registro completo G7. Email recogido del usuario (no viene del caller). Nombre: Zara Vidal, particular. Dirección unificada en un prompt — usuario da "Paseo del Prado 22, Madrid" sin CP, agente pide CP por slot filling. Pregunta portal/planta/letra, usuario dice no. Teléfono facilitado. PASO 2.9: verificación de datos con resumen completo, usuario confirma. PetalDataTool crea cliente id_cliente=155. Done con 11 outputs. El caller retoma el control.'
+  executionSummary: 'Registro completo REGISTRO. Email recogido del usuario (no viene del caller). Nombre: Zara Vidal, particular. Dirección unificada en un prompt — usuario da "Paseo del Prado 22, Madrid" sin CP, agente pide CP por slot filling. Pregunta portal/planta/letra, usuario dice no. Teléfono facilitado. PASO 2.9: verificación de datos con resumen completo, usuario confirma. PetalDataTool crea cliente id_cliente=155. Done con 11 outputs. El caller retoma el control.'
   actionParameters:
     email: zara.vidal@correo.com
     'razon ': ''
