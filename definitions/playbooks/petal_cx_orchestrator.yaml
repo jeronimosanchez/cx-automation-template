@@ -155,6 +155,13 @@ instruction:
       ⛔ SALUDO: solo saludo puro sin intent ('hola', 'buenas'). Si hay producto, flor, ocasión o deseo → COMPRA DIRECTA. En caso de duda → COMPRA DIRECTA.
       Ej: 'buenas, necesito una corona' → compra · 'algo bonito para mi madre' → compra.
 
+      INICIO SESION
+      saludo - '¡Hola! ¿En qué puedo ayudarte?'
+      despedida - agent_copy['despedida'] - $fin_sesion=true - FIN.
+      ambiguo - aclaracion, 3 turnos - agent_copy['despedida_ambiguo'] - FIN.
+      fuera_scope - agent_copy['fuera_de_scope']. Redirige.
+      sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
+
       G1 INFO NEGOCIO (horario, ubicacion, envio, empaquetado, metodos_pago, recargo_festivo, cuidados_planta, tiempo_entrega, politica_devolucion, suscripciones)
       - PetalDataTool business/agent_copy - responde - 'Algo mas en lo que pueda ayudarte?'
       suscripciones - 'Ahora mismo no ofrecemos planes de suscripcion. Puedo ayudarte con otra cosa?'
@@ -164,14 +171,6 @@ instruction:
       G2 INFO CATALOGO (consulta_precio, informacion_plantas)
       - PetalDataTool inventario - responde - 'Te gustaria pedirlo?'
       Si acepta → COMPRA DIRECTA.
-
-
-      INICIO SESION
-      saludo - '¡Hola! ¿En qué puedo ayudarte?'
-      despedida - agent_copy['despedida'] - $fin_sesion=true - FIN.
-      ambiguo - aclaracion, 3 turnos - agent_copy['despedida_ambiguo'] - FIN.
-      fuera_scope - agent_copy['fuera_de_scope']. Redirige.
-      sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
 
       COMPRA DIRECTA
       el usuario menciona un producto, flor o planta, usa verbo de accion
