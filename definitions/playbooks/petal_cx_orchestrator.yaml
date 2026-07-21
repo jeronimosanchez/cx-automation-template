@@ -94,11 +94,6 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: BOOLEAN
-- name: emocion
-  description: Estado emocional detectado (duelo / frustración / neutro)
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: saludo_inicial
   description: True si el mensaje del usuario abrió con una fórmula de saludo (hola, buenas, buenos dias...) además de pedir producto/consulta. Se pasa a Compra para que reconozca el saludo antes del ECO.
   typeSchema:
@@ -118,14 +113,13 @@ instruction:
       ⛔ No hagas slot filling: si necesitas más de un turno para entender la necesidad, transfiere a Compra.
 
       VARIABLES
-      $intencion - texto completo (solo NEGOCIO). NUNCA se pierde ni sobreescribe.
+      $intencion - texto completo (solo NEGOCIO): utterance con producto, precio, ocasión o acción de compra. NUNCA se pierde ni sobreescribe. Ej: 'quiero rosas', '¿cuánto cuesta?', 'algo para una boda'. Saludos puros no son $intencion.
       $ocasion_detectada - Funeral/Boda/Nacimiento/Romantico/Corporativo/Decoracion/Regalo/vacio.
       $registro - estandar/solemne/celebracion. Default=estandar. Detectar en cada turno hasta enrutar a Compra.
       $urgente - true cuando hay restricción temporal. Default=false.
       $frustrado - true cuando se detecta frustración. Default=false.
-      $emocion - duelo/frustración/neutro.
-      $cantidad - numero. NUNCA preguntar si ya tiene valor.
-      $precio_max - numero inferido del utterance o vacio. NUNCA preguntar.
+      $cantidad - numero inferido del utterance o vacio.
+      $precio_max - numero inferido del utterance o vacio.
 
       DETECCIÓN (silenciosa, por turno — sin preguntar):
       Detecta $ocasion_detectada y $registro juntos. Precedencia: solemne > celebracion > estandar.
@@ -135,7 +129,7 @@ instruction:
 
       funeral/fallecido/fallecida/fallecimiento/velatorio/entierro/difunto/luto/
       sepelio/pesame/tanatorio/condolencias/ha muerto/ha fallecido, 'corona'
-      → $ocasion_detectada=Funeral · $registro=solemne · $emocion=duelo
+      → $ocasion_detectada=Funeral · $registro=solemne
 
       boda/novia/ceremonia, 'ramo de novia'
       → $ocasion_detectada=Boda · $registro=celebracion
