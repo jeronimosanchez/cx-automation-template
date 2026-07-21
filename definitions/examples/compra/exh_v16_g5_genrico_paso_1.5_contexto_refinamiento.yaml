@@ -60,7 +60,7 @@ playbookInput:
     dir_habitual: Calle Mayor 10, Madrid
     tipo_cliente: particular
     estado_pago: Al dia
-    grupo_intent: G5
+    grupo_intent: COMPRA_DIRECTA
     intencion: quiero rosas
     id_cliente: '101'
     nombre_cliente: Ana

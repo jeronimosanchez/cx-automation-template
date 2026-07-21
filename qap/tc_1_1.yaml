@@ -263,7 +263,7 @@
   not_expected: []
 - id: TC-REG04
   type: NEW
-  group: G5>CK>REG
+  group: COMPRA_DIRECTA>CK>REG
   name: 'Flujo COMPLETO: Compra → Checkout → Registro_Task → completa pedido'
   objetivo: El agente debe completar flujo Compra → Checkout → Registro → confirmar
     pedido
@@ -600,7 +600,7 @@
   - no tenemos.{0,40}rosa
 - id: TC-FUNERAL-01
   type: NEW
-  group: G5
+  group: COMPRA_DIRECTA
   name: Modo solemne — corona para funeral
   objetivo: El agente debe adoptar tono solemne y ofrecer opciones adecuadas para
     funeral
@@ -615,7 +615,7 @@
   - mira,|genial|fenomenal|🌸
 - id: TC-PRESUPUESTO-01
   type: NEW
-  group: G5
+  group: COMPRA_DIRECTA
   name: Presupuesto duro — precio_max explicito
   objetivo: El agente debe mostrar solo opciones por debajo del precio máximo indicado
   domain: compra
@@ -629,7 +629,7 @@
   - 132|premium.{0,30}euros
 - id: TC-COLOR-01
   type: NEW
-  group: G5
+  group: COMPRA_DIRECTA
   name: Compra con color especifico no-rojo (tulipanes blancos)
   objetivo: El agente debe ofrecer tulipanes blancos específicamente, no sustituir
     por otra flor
@@ -644,7 +644,7 @@
   - no tengo.{0,40}tulipan
 - id: TC-ROSA-COLOR
   type: NEW
-  group: G5
+  group: COMPRA_DIRECTA
   name: Rosa como color — "un ramo en rosa" (desambiguacion flor vs color)
   objetivo: '"en rosa" debe interpretarse como color=Rosa (modificador), mostrando
     productos de varias especies en color rosa, NO como especie=Rosas (la flor)'
@@ -658,7 +658,7 @@
   not_expected: []
 - id: TC-REFINAR-01
   type: NEW
-  group: G5
+  group: COMPRA_DIRECTA
   name: Refinamiento de precio mid-flow — mas baratas
   objetivo: El agente debe mostrar opciones más baratas cuando el usuario lo pide
     mid-flow
@@ -675,7 +675,7 @@
   not_expected: []
 - id: TC-BODA-01
   type: NEW
-  group: G5
+  group: COMPRA_DIRECTA
   name: Modo Boda — ramo nupcial
   objetivo: El agente debe ofrecer opciones de ramo nupcial en tono adecuado para
     boda
@@ -944,7 +944,7 @@
   - email|correo|checkout
 - id: TC-DIR-CUSTOM-01
   type: EDGE
-  group: G5>CK
+  group: COMPRA_DIRECTA>CK
   name: Override direccion habitual — cliente identificado pide otra direccion
   objetivo: El agente debe usar la dirección de envío alternativa indicada, no la
     habitual
