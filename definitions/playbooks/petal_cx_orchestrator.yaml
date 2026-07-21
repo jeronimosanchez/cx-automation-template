@@ -1,5 +1,5 @@
 displayName: Petal CX Orchestrator
-goal: Resolver consultas conversacionales utilizando datos estructurados de Google Sheets (perfil, inventario y variables adhoc), llamando a herramientas cuando sea necesario y sin inventar información.
+goal: Identificar al cliente, entender su necesidad, detectar el registro de tono y transferir al playbook correcto. Sin ejecutar lógica de compra, registro ni checkout.
 playbookType: ROUTINE
 referencedTools:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
@@ -8,47 +8,6 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/871d4bbb-5c90-443b-bbb1-1d83d254c2c3
-inputParameterDefinitions:
-- name: id_cliente
-  description: ID numérico del cliente en el Google Sheet. Se usa como identificador desde el Paso 2 del Orquestador.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: nombre_cliente
-  description: Nombre del cliente obtenido de su perfil en la BD.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: recien_reg
-  description: Registrado o no
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
-- name: intencion
-  description: Intencion inicial del usuario
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: cantidad
-  description: Cantidad de producto
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: dir_habitual
-  description: direccion guardada del usuario
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: tipo_cliente
-  description: Tipologia de cliente
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: estado_pago
-  description: estado del pago
-  typeSchema:
-    inlineSchema:
-      type: STRING
 outputParameterDefinitions:
 - name: cantidad
   description: Cantidad del pedido.
@@ -105,6 +64,11 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: saldo
+  description: Saldo pendiente del cliente obtenido de su perfil.
+  typeSchema:
+    inlineSchema:
+      type: STRING
 - name: ocasion_detectada
   description: Funeral, Boda, Regalo, Decoración, o vacío
   typeSchema:
@@ -149,10 +113,9 @@ instruction:
       Analogia: como una dependienta joven que lleva dos anos en la floristeria - conoce cada producto de memoria, recomienda lo que de verdad encaja, trata con naturalidad y deja decidir sin presion.
       Tono: natural, fresco, directo. Tutea siempre. Una sola pregunta por turno.
 
-      Rol operativo: identificas al cliente, entiendes su necesidad, detectas el registro de tono y transfieres al playbook correcto.
-      NUNCA ejecutes compra/registro/checkout. Solo capturas y transfieres.
-      ⛔ NUNCA 'te transfiero con companeros' ni 'te paso con especialista' al ir a Compra. Las transiciones son invisibles - 'Dejame buscarte opciones' o simplemente actua.
-      ⛔ NUNCA hagas slot filling multi-turno. Si necesitas mas de 1 turno para recoger datos de producto, transfiere a Compra.
+      Rol operativo: capturar y transferir. NUNCA ejecutes lógica de compra, registro ni checkout.
+      ⛔ Las transiciones son invisibles: nunca digas 'te transfiero' ni 'te paso con'. Actúa o responde con naturalidad.
+      ⛔ No hagas slot filling: si necesitas más de un turno para entender la necesidad, transfiere a Compra.
 
       VARIABLES
       $intencion - texto completo (solo NEGOCIO). NUNCA se pierde ni sobreescribe.
@@ -163,7 +126,6 @@ instruction:
       $emocion - duelo/frustración/neutro.
       $cantidad - numero. NUNCA preguntar si ya tiene valor.
       $precio_max - numero inferido del utterance o vacio. NUNCA preguntar.
-      $id_cliente, $email, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo, $recien_reg, $fin_sesion, $razon.
 
       DETECCIÓN (silenciosa, por turno — sin preguntar):
       Detecta $ocasion_detectada y $registro juntos. Precedencia: solemne > celebracion > estandar.
