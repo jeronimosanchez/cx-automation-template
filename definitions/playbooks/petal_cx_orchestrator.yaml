@@ -9,11 +9,6 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/871d4bbb-5c90-443b-bbb1-1d83d254c2c3
 outputParameterDefinitions:
-- name: cantidad
-  description: Cantidad del pedido.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
 - name: id_cliente
   description: ID del cliente
   typeSchema:
@@ -74,11 +69,6 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: precio_max
-  description: Precio máximo indicado por el usuario.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
 - name: registro
   description: Registro de tono seleccionado (estandar / solemne / celebracion)
   typeSchema:
@@ -118,17 +108,14 @@ instruction:
       $registro - estandar/solemne/celebracion. Default=estandar. Detectar en cada turno hasta enrutar a Compra.
       $urgente - true cuando hay restricción temporal. Default=false.
       $frustrado - true cuando se detecta frustración. Default=false.
-      $cantidad - numero inferido del utterance o vacio.
-      $precio_max - numero inferido del utterance o vacio.
 
       DETECCIÓN (silenciosa, por turno — sin preguntar):
       Detecta $ocasion_detectada y $registro juntos. Precedencia: solemne > celebracion > estandar.
-      En TODA transferencia a Compra incluir: $registro, $urgente, $frustrado.
+      En TODA transferencia a Compra incluir: $intencion, $registro, $ocasion_detectada, $urgente, $frustrado.
       Si $registro=solemne: sin exclamaciones ni '¡Genial!', foco en la tarea.
       ⛔ El destinatario NO se pasa a Compra. Solo sirve para inferir $ocasion_detectada.
 
-      funeral/fallecido/fallecida/fallecimiento/velatorio/entierro/difunto/luto/
-      sepelio/pesame/tanatorio/condolencias/ha muerto/ha fallecido, 'corona'
+      funeral/fallecido/entierro/luto/pésame/corona (fúnebre)
       → $ocasion_detectada=Funeral · $registro=solemne
 
       boda/novia/ceremonia, 'ramo de novia'
@@ -162,16 +149,11 @@ instruction:
 
 
       -- PASO 0 -- CLASIFICACION --
-      ⛔ REGLA PERFIL (PRIORITARIA): Si el mensaje del usuario contiene un email (algo@algo) y $id_cliente esta vacio - LLAMA PetalDataTool recurso='perfil' id=<email> AHORA y carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago ANTES de clasificar, saludar o derivar. NUNCA respondas sin haber cargado la ficha si hay un email.
-      Si $id_cliente tiene valor - PASO 3.
-      Si $fin_sesion=true - 'La sesion ha terminado. Hasta pronto!' FIN. NUNCA retomes.
+      ⛔ REGLA PERFIL (PRIORITARIA): Si el mensaje contiene un email (formato texto@texto.texto) y $id_cliente está vacío → invoca Identificacion_Task pasando email_hint=<el email del mensaje>. Si $fin_sesion=true → FIN.
+      Si $id_cliente tiene valor → PASO 3.
 
-      ⛔ CLASIFICACION SALUDO vs COMPRA/CONSULTA:
-      Un mensaje es SALUDO solo si es un saludo social puro (ej 'hola', 'buenas', 'buenos dias') SIN intención de compra ni consulta. Si el usuario expresa deseo o necesidad (quiero, busco, me gustaria...) o menciona cualquier producto, flor, planta u ocasión → NO es saludo, es COMPRA DIRECTA.
-      Ejemplos: 'hola' → saludo · 'quiero rosas' → compra · 'algo bonito para mi madre' → compra · 'buenas, necesito una corona' → compra.
-      ⛔ En caso de DUDA, NO es saludo — trata como compra/consulta.
-
-      ⛔ MARCA DE SALUDO INICIAL (UX): si el mensaje ABRE con una formula de saludo ('hola','buenas','buenos dias','buenas tardes','buenas noches','hey','holaa') PERO tambien pide producto/consulta → es COMPRA DIRECTA, marca $saludo_inicial=true. Si NO hay formula de saludo al inicio, $saludo_inicial=false.
+      ⛔ SALUDO: solo saludo puro sin intent ('hola', 'buenas'). Si hay producto, flor, ocasión o deseo → COMPRA DIRECTA. En caso de duda → COMPRA DIRECTA.
+      Ej: 'buenas, necesito una corona' → compra · 'algo bonito para mi madre' → compra.
 
       G1 INFO NEGOCIO (horario, ubicacion, envio, empaquetado, metodos_pago, recargo_festivo, cuidados_planta, tiempo_entrega, politica_devolucion, suscripciones)
       - PetalDataTool business/agent_copy - responde - 'Algo mas en lo que pueda ayudarte?'
@@ -218,7 +200,6 @@ instruction:
          - Si $recien_reg=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
 
       ESPECIALES
-      - Email espontaneo sin intent - $email=valor - Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email. Carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo. Si $fin_sesion=true → FIN. PASO 3.
       - hablar_humano - $id_cliente existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano', $id_cliente, $nombre_cliente. No existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano'. NUNCA pidas email para escalar.
       - consulta_descuento - posesivo ('mi','tengo','me corresponde') - GESTION CUENTA. General - business.
 
