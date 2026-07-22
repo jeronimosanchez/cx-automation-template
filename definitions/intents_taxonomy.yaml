@@ -113,7 +113,7 @@
     - "¿qué precio tiene el ramo de novia?"
 
 - id: info_plantas
-  descripcion: Usuario pide informacion sobre caracteristicas o disponibilidad de una planta concreta
+  descripcion: Usuario pide información sobre características o disponibilidad de una planta concreta
   scope: true
   razon: El usuario quiere conocer el producto antes de comprarlo
   ejemplos:
