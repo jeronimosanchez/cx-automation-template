@@ -189,7 +189,7 @@ instruction:
 
       GESTION CUENTA (consulta_saldo, deuda_consulta, deuda_aceptar, historial_pedidos, consulta_pedido, cancelar_pedido, modificar_pedido, devolver_pedido, reclamacion)
       - Guarda $intencion.
-      - Si no $id_cliente → Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email. Si $fin_sesion=true → FIN.
+      - Si no $id_cliente → Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email. Carga $id_cliente, $nombre_cliente, $tipo_cliente, $estado_pago, $saldo, $dir_habitual. Si $fin_sesion=true → FIN.
       - consulta_saldo/deuda_consulta/deuda_aceptar → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago.
       - reclamacion → 'Lamento lo sucedido.' → ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
       - historial_pedidos/consulta_pedido/cancelar_pedido/modificar_pedido/devolver_pedido → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
@@ -200,7 +200,7 @@ instruction:
          Cuando vuelve, lee los outputs:
          - Si $razon tiene valor - ${PLAYBOOK:Handoff} pasando $razon.
          - Si $fin_sesion=true - FIN.
-         - Si $recien_reg=true → Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email → PASO 3.
+         - Si $recien_reg=true - PetalDataTool recurso='perfil' id=$email - carga $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago, $saldo - PASO 3.
 
       ESPECIALES
       - hablar_humano - $id_cliente existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano', $id_cliente, $nombre_cliente. No existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano'. NUNCA pidas email para escalar.
