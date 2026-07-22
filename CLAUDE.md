@@ -103,7 +103,7 @@ Reglas operativas sobre cómo cualquier cambio llega a producción.
 1. **IAM y roles en GCP** — ningún cambio sin aprobación explícita de Jero.
 2. **Agente Petal en producción** — `<AGENT_ID_PETAL_1.0>`. Ningún cambio sin aprobación.
 3. **GitHub Secrets** — nunca crear, modificar ni leer sin aprobación.
-4. **Templates — material sagrado del knowledgebase** — ningún template (TCs, examples, playbooks, schemas u otro artefacto de definición) se crea, modifica ni elimina sin validación explícita de Jero. Mostrar siempre "cómo quedaría" y esperar OK antes de tocar cualquier archivo. Aplica aunque el cambio sea retrocompatible o parezca trivial. **Modo por defecto en toda revisión: MOSTRAR y EXPLICAR para que Jero aprenda. Nunca ejecutar durante una revisión.** "Seguimos", "vamos", "continúa" son dirección, no autorización. Ejecución solo con "aplícalo", "hazlo", "cámbialo" sobre un cambio concreto ya revisado.
+4. **Templates — material sagrado del knowledgebase** — ningún template (TCs, examples, playbooks, schemas u otro artefacto de definición) se crea, modifica ni elimina sin validación explícita de Jero. Mostrar siempre "cómo quedaría" y esperar OK antes de tocar cualquier archivo. Aplica aunque el cambio sea retrocompatible o parezca trivial. **Modo por defecto en toda revisión: MOSTRAR y EXPLICAR para que Jero aprenda. Nunca ejecutar durante una revisión.** "Seguimos", "vamos", "continúa" son dirección, no autorización. Ejecución solo con "aplícalo", "hazlo", "cámbialo" sobre un cambio concreto ya revisado. Al mostrar "cómo quedaría" un cambio, incluir siempre una sección **Por qué** que explique el mecanismo o problema que resuelve.
 5. **`petal-sheet-api`** — proyecto separado (backend Cloud Run de inventario). Vive en tres instancias, ninguna se toca desde este repo:
    - `~/petal-sheet-api/` (local) — código fuente editable.
    - `github.com/jeronimosanchez/petal-sheet-api` (privado) — copia de seguridad.
@@ -224,3 +224,15 @@ Si el usuario indica "modo research diseño conversacional" o similar:
 
 Si el usuario indica "modo research Anthropic", "modo research Claude" o similar:
 → Lee `research/claude-anthropic/CLAUDE.md` y opera desde ahí.
+
+---
+
+## 11. Comunicación por defecto
+
+Cuando se presente información relevante sobre el sistema (decisiones de diseño, cambios propuestos, mecanismos internos), incluir siempre una sección **Por qué** con:
+- el mecanismo por debajo, o
+- el problema que resuelve
+
+Aplica a: análisis de diseño, propuestas de cambio, explicaciones de comportamiento del agente, cambios en playbooks o examples.
+
+No solo qué cambia — también por qué funciona así.
