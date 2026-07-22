@@ -132,7 +132,7 @@
     - "¿cuánto tengo en mi cuenta?"
     - "¿me queda saldo?"
 
-- id: deuda_consulta
+- id: consulta_deuda
   descripcion: Usuario pregunta por el importe de su deuda o saldo pendiente de pago
   scope: true
   razon: El usuario necesita conocer lo que debe para poder regularizarlo
@@ -140,7 +140,7 @@
     - "¿tengo alguna deuda pendiente?"
     - "¿cuánto debo?"
 
-- id: deuda_aceptar
+- id: aceptar_deuda
   descripcion: Usuario acepta o confirma el pago de su deuda pendiente
   scope: true
   razon: El usuario quiere regularizar su situación de pago para poder seguir comprando

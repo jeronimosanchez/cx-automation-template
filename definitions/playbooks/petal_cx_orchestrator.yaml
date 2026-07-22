@@ -166,13 +166,13 @@ instruction:
       fuera_scope - agent_copy['fuera_de_scope']. Redirige.
       sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
 
-      G1 INFO NEGOCIO (horario, ubicacion, envio, empaquetado, metodos_pago, recargo_festivo, cuidados_planta, tiempo_entrega, politica_devolucion, suscripciones)
+      G1 INFO NEGOCIO (info_horario, info_ubicacion, info_envio, info_empaquetado, info_metodos_pago, info_recargo_festivo, info_cuidados_planta, info_tiempo_entrega, info_politica_devolucion, info_suscripciones)
       - PetalDataTool business/agent_copy - responde - 'Algo mas en lo que pueda ayudarte?'
       suscripciones - 'Ahora mismo no ofrecemos planes de suscripcion. Puedo ayudarte con otra cosa?'
       ZG-3: Normas/politica devolucion? - G1(business). Ejecutar devolucion? - GESTION CUENTA.
       ZG-5: Pregunta plazo entrega - G1(business). Frustracion repetida - ofrecer handoff.
 
-      G2 INFO CATALOGO (consulta_precio, informacion_plantas)
+      G2 INFO CATALOGO (consulta_precio, info_plantas)
       - PetalDataTool inventario - responde - 'Te gustaria pedirlo?'
       Si acepta → COMPRA DIRECTA.
 
@@ -187,12 +187,12 @@ instruction:
       - Sin perfil → ${PLAYBOOK:Compra} con $intencion, $saludo_inicial.
       - Con perfil → añade $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago.
 
-      GESTION CUENTA (consulta_saldo, deuda.consulta, deuda.aceptar, historial_pedidos, consulta_pedido, cancelar, modificar_pedido, devolver, reclamacion)
+      GESTION CUENTA (consulta_saldo, consulta_deuda, aceptar_deuda, historial_pedidos, consulta_pedido, cancelar_pedido, modificar_pedido, devolver_pedido, reclamacion)
       - Guarda $intencion.
       - Si no $id_cliente → Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email. Carga $id_cliente, $nombre_cliente, $tipo_cliente, $estado_pago, $saldo, $dir_habitual. Si $fin_sesion=true → FIN.
-      - consulta_saldo/deuda.* → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago.
+      - consulta_saldo/consulta_deuda/aceptar_deuda → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago.
       - reclamacion → 'Lamento lo sucedido.' → ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
-      - historial_pedidos/consulta_pedido/cancelar/modificar_pedido/devolver → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
+      - historial_pedidos/consulta_pedido/cancelar_pedido/modificar_pedido/devolver_pedido → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
 
       REGISTRO (registro, 'quiero registrarme')
       → sin pedir email (ver RESTRICCIONES)
@@ -213,7 +213,7 @@ instruction:
         - $recien_reg=true - 'En que puedo ayudarte, $nombre_cliente?' ESPERA. Cuando responda, clasifica como intent nuevo siguiendo PASO 0. NUNCA repitas la pregunta si ya dijo que quiere.
         - $recien_reg=false - 'Hola, $nombre_cliente! En que puedo ayudarte?'
 
-      cancelar - '¿En qué más puedo ayudarte?'
+      cancelar_pedido - '¿En qué más puedo ayudarte?'
       consulta_descuento (posesivo) - consulta business clave='descuentos' + usa $tipo_cliente - responde - 'Algo mas?'
 
       -- GLOBAL RULES --
