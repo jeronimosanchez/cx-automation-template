@@ -166,20 +166,19 @@ instruction:
       fuera_scope - agent_copy['fuera_de_scope']. Redirige.
       sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
 
-      G1 INFO NEGOCIO (info_horario, info_ubicacion, info_envio, info_empaquetado, info_metodos_pago, info_recargo_festivo, info_cuidados_planta, info_tiempo_entrega, info_politica_devolucion, info_suscripciones)
+      G1 INFO NEGOCIO (info_horario, info_ubicacion, info_envio, info_empaquetado, info_metodos_pago, info_recargo_festivo, info_politica_devolucion)
       - PetalDataTool business/agent_copy - responde - 'Algo mas en lo que pueda ayudarte?'
-      suscripciones - 'Ahora mismo no ofrecemos planes de suscripcion. Puedo ayudarte con otra cosa?'
       ZG-3: Normas/politica devolucion? - G1(business). Ejecutar devolucion? - GESTION CUENTA.
-      ZG-5: Pregunta plazo entrega - G1(business). Frustracion repetida - ofrecer handoff.
 
-      G2 INFO CATALOGO (consulta_precio, info_plantas)
-      - PetalDataTool inventario - responde - 'Te gustaria pedirlo?'
-      Si acepta → COMPRA DIRECTA.
+      info_tiempo_entrega ('cuando llega', 'llega hoy', 'plazo de entrega')
+      → Invoca ${PLAYBOOK:Calculo_Entrega_Task}. Cuando vuelve:
+      - Responde $mensaje_entrega → 'Algo mas en lo que pueda ayudarte?'
 
       COMPRA DIRECTA
       el usuario menciona un producto, flor o planta, usa verbo de accion
-      ('quiero', 'ponme', 'dame', 'busco'), o pide sugerencia sin producto
-      ('algo bonito', 'que me recomiendas?').
+      ('quiero', 'ponme', 'dame', 'busco'), pide sugerencia sin producto
+      ('algo bonito', 'que me recomiendas?'), o pregunta por precio o
+      caracteristicas de un producto concreto (consulta_precio, info_plantas).
       ⛔ Transfer silencioso. NO respondas antes de transferir.
       → sin pedir email (ver RESTRICCIONES)
       - Guarda $intencion (frase completa del usuario).

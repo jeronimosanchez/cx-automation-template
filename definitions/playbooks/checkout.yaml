@@ -309,6 +309,8 @@ instruction:
       ESPERA. Almacena - continua.
 
       Si $direccion_entrega es valida:
+      Invoca ${PLAYBOOK:Calculo_Entrega_Task} (silencioso). Lee $entrega_confirmacion.
+
       ⛔⛔⛔ FORMATO EXACTO DEL RESUMEN (US-UX-01 emojis por modo) ⛔⛔⛔
       ⛔ Cada linea del resumen DEBE ir en una linea separada.
       ⛔ Los emojis del cuerpo del resumen son OBLIGATORIOS en los 3 modos segun la tabla de abajo.
@@ -325,6 +327,7 @@ instruction:
       🌸 $cantidad_2 x $producto_2 ($precio_2euros)
       💳 Total: $totaleuros
       📍 $direccion_entrega
+      ⏱ $entrega_confirmacion
 
       Confirmamos?'
       - SOLEMNE:
@@ -332,6 +335,7 @@ instruction:
       🤍 $cantidad_2 x $producto_2 ($precio_2euros)
       💳 Total: $totaleuros
       📍 $direccion_entrega
+      ⏱ $entrega_confirmacion
 
       Lo confirmamos?'
       ⛔ FIN RESUMEN MULTI-PRODUCTO ⛔
@@ -341,12 +345,14 @@ instruction:
         '🌸 $cantidad x $producto
       💳 $precio_estimadoeuros
       📍 $direccion_entrega
+      ⏱ $entrega_confirmacion
 
       Confirmamos?'
       - SOLEMNE:
         '🤍 $cantidad x $producto
       💳 $precio_estimadoeuros
       📍 $direccion_entrega
+      ⏱ $entrega_confirmacion
 
       Lo confirmamos?'
       ⛔ STOP. ESPERA respuesta del cliente. NO avances al PASO 3 hasta recibir respuesta explicita.

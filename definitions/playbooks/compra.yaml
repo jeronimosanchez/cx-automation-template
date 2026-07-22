@@ -314,8 +314,10 @@ instruction:
       5. CAMBIO DE TIPO O CATEGORIA: el usuario pide otro tipo de producto ('tienes coronas', 'y centros?', 'o plantas').
          Accion: TURNO TRAS MOSTRAR OPCIONES — R2 (ajusta un filtro: formato).
 
-      6. PREGUNTA sobre opciones mostradas: 'cuanto duran', 'se entrega hoy', 'incluye tarjeta'.
+      6. PREGUNTA sobre opciones mostradas: 'cuanto duran', 'incluye tarjeta'.
          Accion: responde con datos + mantiene opciones visibles + APERTURA.
+         'se entrega hoy' / 'cuando llega' / 'llega hoy':
+         → Invoca ${PLAYBOOK:Calculo_Entrega_Task} → responde $mensaje_entrega → mantiene opciones visibles + APERTURA.
       ⛔ FIN CLASIFICACION DE INPUT ⛔
 
       PASO 2 - REFINAMIENTO PROGRESIVO

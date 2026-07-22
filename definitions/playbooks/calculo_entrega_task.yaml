@@ -1,0 +1,42 @@
+displayName: Calculo_Entrega_Task
+goal: Calcular si la entrega es posible hoy y en qué franja horaria, usando la hora real del servidor.
+playbookType: TASK
+referencedTools:
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+inputParameterDefinitions: []
+outputParameterDefinitions:
+- name: entrega_hoy
+  description: True si el pedido puede entregarse hoy (antes del corte). False si llegaría mañana.
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
+- name: mensaje_entrega
+  description: Texto standalone para respuesta informativa al usuario. Ej. 'Si confirmas ahora, lo recibes hoy antes de las 19:00.'
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: entrega_confirmacion
+  description: Fragmento corto para incrustar en el resumen de confirmación de Checkout. Ej. 'entrega hoy antes de las 19:00' o 'entrega mañana'.
+  typeSchema:
+    inlineSchema:
+      type: STRING
+instruction:
+  steps:
+  - text: |-
+      OUTPUT: $entrega_hoy | $mensaje_entrega | $entrega_confirmacion
+
+      1. Llama PetalDataTool recurso=temporal.
+         Lee: entrega_hoy_posible, horario_limite_entrega_hoy, horario_corte_mismo_dia.
+
+      2. Si entrega_hoy_posible=ANTES_DEL_CORTE:
+         - $entrega_hoy=true
+         - $mensaje_entrega='Si confirmas ahora, lo recibes hoy antes de las {horario_limite_entrega_hoy}.'
+         - $entrega_confirmacion='entrega hoy antes de las {horario_limite_entrega_hoy}'
+
+      3. Si entrega_hoy_posible=DESPUES_DEL_CORTE:
+         - $entrega_hoy=false
+         - $mensaje_entrega='El pedido llegaría mañana.'
+         - $entrega_confirmacion='entrega mañana'
+
+      ⛔ No respondas al usuario. Devuelve los outputs al playbook que te invocó.
+codeBlock: {}
