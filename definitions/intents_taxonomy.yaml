@@ -1,0 +1,293 @@
+# Intent Taxonomy — Petal CX
+# Fuente canónica de intents del sistema conversacional.
+# scope: true  → Petal lo resuelve
+# scope: false → fuera del alcance del sistema (decisión de negocio explícita)
+
+# ─────────────────────────────────────────────
+# COMPRA
+# ─────────────────────────────────────────────
+
+- id: compra
+  descripcion: Usuario quiere comprar flores, plantas o productos, pide sugerencia o menciona un producto con verbo de acción
+  scope: true
+  razon: La compra es el flujo principal de negocio de Petal
+  ejemplos:
+    - "quiero unas rosas rojas"
+    - "ponme un ramo bonito para regalar"
+    - "¿qué me recomiendas para una boda?"
+
+# ─────────────────────────────────────────────
+# INFO NEGOCIO
+# ─────────────────────────────────────────────
+
+- id: info_horario
+  descripcion: Usuario pregunta por el horario de apertura o cierre de la floristería
+  scope: true
+  razon: El usuario necesita saber cuándo puede comprar o contactar
+  ejemplos:
+    - "¿a qué hora abrís?"
+    - "¿los domingos estáis abiertos?"
+
+- id: info_ubicacion
+  descripcion: Usuario pregunta por la dirección o localización de la floristería
+  scope: true
+  razon: El usuario puede querer visitar la tienda física o verificar cercanía
+  ejemplos:
+    - "¿dónde estáis?"
+    - "¿tenéis tienda en Madrid?"
+
+- id: info_envio
+  descripcion: Usuario pregunta por opciones, zonas o condiciones de envío
+  scope: true
+  razon: El usuario necesita saber si puede recibir el pedido en su ubicación
+  ejemplos:
+    - "¿hacéis envíos a Barcelona?"
+    - "¿cuánto cuesta el envío?"
+
+- id: info_empaquetado
+  descripcion: Usuario pregunta cómo se presentan o empaquetan los productos
+  scope: true
+  razon: El usuario quiere saber si el producto llega bien presentado para regalo
+  ejemplos:
+    - "¿viene en caja o en papel?"
+    - "¿podéis ponerle un lazo?"
+
+- id: info_metodos_pago
+  descripcion: Usuario pregunta por las formas de pago aceptadas
+  scope: true
+  razon: El usuario necesita confirmar que puede pagar con su método habitual
+  ejemplos:
+    - "¿aceptáis Bizum?"
+    - "¿puedo pagar con tarjeta?"
+
+- id: info_recargo_festivo
+  descripcion: Usuario pregunta si hay recargo adicional en días festivos o especiales
+  scope: true
+  razon: El usuario quiere saber el coste real antes de confirmar el pedido
+  ejemplos:
+    - "¿hay recargo el 14 de febrero?"
+    - "¿los festivos cuesta más el envío?"
+
+- id: info_cuidados_planta
+  descripcion: Usuario pregunta cómo cuidar una planta comprada en Petal
+  scope: true
+  razon: El usuario quiere mantener en buen estado el producto adquirido
+  ejemplos:
+    - "¿cómo cuido la orquídea que me llegó?"
+    - "¿cada cuánto riego el ficus?"
+
+- id: info_tiempo_entrega
+  descripcion: Usuario pregunta cuánto tarda en llegar un pedido
+  scope: true
+  razon: El usuario necesita planificar si el pedido llega a tiempo para su ocasión
+  ejemplos:
+    - "¿cuánto tarda el envío?"
+    - "si pido ahora, ¿llega hoy?"
+
+- id: info_politica_devolucion
+  descripcion: Usuario pregunta por la política de devoluciones o cambios
+  scope: true
+  razon: El usuario quiere conocer sus derechos antes de comprar
+  ejemplos:
+    - "¿puedo devolver si no me gusta?"
+    - "¿qué pasa si llegan mal las flores?"
+
+- id: info_suscripciones
+  descripcion: Usuario pregunta por planes de suscripción periódica de flores
+  scope: true
+  razon: El usuario explora opciones de compra recurrente — Petal responde que no ofrece este servicio
+  ejemplos:
+    - "¿tenéis suscripción mensual?"
+    - "¿puedo recibir flores cada semana?"
+
+# ─────────────────────────────────────────────
+# INFO CATÁLOGO
+# ─────────────────────────────────────────────
+
+- id: consulta_precio
+  descripcion: Usuario pregunta por el precio de un producto concreto del catálogo
+  scope: true
+  razon: El usuario necesita conocer el precio antes de decidir si comprar
+  ejemplos:
+    - "¿cuánto cuestan las rosas?"
+    - "¿qué precio tiene el ramo de novia?"
+
+- id: info_plantas
+  descripcion: Usuario pide información sobre características o disponibilidad de una planta concreta
+  scope: true
+  razon: El usuario quiere conocer el producto antes de comprarlo
+  ejemplos:
+    - "¿tenéis plantas de interior?"
+    - "¿qué tipos de orquídeas tenéis?"
+
+# ─────────────────────────────────────────────
+# GESTIÓN DE CUENTA
+# ─────────────────────────────────────────────
+
+- id: consulta_saldo
+  descripcion: Usuario consulta su saldo o crédito disponible en su cuenta Petal
+  scope: true
+  razon: El usuario necesita conocer su saldo antes de realizar una compra
+  ejemplos:
+    - "¿cuánto tengo en mi cuenta?"
+    - "¿me queda saldo?"
+
+- id: deuda_consulta
+  descripcion: Usuario pregunta por el importe de su deuda o saldo pendiente de pago
+  scope: true
+  razon: El usuario necesita conocer lo que debe para poder regularizarlo
+  ejemplos:
+    - "¿tengo alguna deuda pendiente?"
+    - "¿cuánto debo?"
+
+- id: deuda_aceptar
+  descripcion: Usuario acepta o confirma el pago de su deuda pendiente
+  scope: true
+  razon: El usuario quiere regularizar su situación de pago para poder seguir comprando
+  ejemplos:
+    - "quiero pagar lo que debo"
+    - "acepto el cargo pendiente"
+
+- id: historial_pedidos
+  descripcion: Usuario quiere ver la lista de sus pedidos anteriores
+  scope: true
+  razon: El usuario necesita consultar su historial de compras
+  ejemplos:
+    - "¿qué pedidos he hecho?"
+    - "quiero ver mis compras anteriores"
+
+- id: consulta_pedido
+  descripcion: Usuario pregunta por el estado de un pedido específico en curso
+  scope: true
+  razon: El usuario quiere saber dónde está su pedido y cuándo llega
+  ejemplos:
+    - "¿dónde está mi pedido?"
+    - "llevo días esperando mi envío"
+
+- id: cancelar_pedido
+  descripcion: Usuario quiere cancelar un pedido ya realizado
+  scope: true
+  razon: El usuario necesita anular una compra antes de que se procese o envíe
+  ejemplos:
+    - "quiero cancelar mi pedido"
+    - "ya no necesito las flores, cancelad"
+
+- id: modificar_pedido
+  descripcion: Usuario quiere cambiar algo de un pedido ya realizado
+  scope: true
+  razon: El usuario necesita ajustar dirección, fecha o producto antes del envío
+  ejemplos:
+    - "quiero cambiar la dirección de entrega"
+    - "¿puedo cambiar las flores por otras?"
+
+- id: devolver_pedido
+  descripcion: Usuario quiere devolver un pedido ya recibido
+  scope: true
+  razon: El usuario no está satisfecho con el pedido recibido y quiere devolverlo
+  ejemplos:
+    - "quiero devolver el pedido"
+    - "las flores llegaron mal, quiero la devolución"
+
+- id: reclamacion
+  descripcion: Usuario reporta un problema, queja o incidencia con un pedido o el servicio
+  scope: true
+  razon: El usuario tiene una experiencia negativa que necesita resolución urgente
+  ejemplos:
+    - "llevo esperando tres días y nada"
+    - "me han cobrado y no ha llegado nada"
+
+# ─────────────────────────────────────────────
+# REGISTRO
+# ─────────────────────────────────────────────
+
+- id: registro
+  descripcion: Usuario quiere crear una cuenta nueva en Petal
+  scope: true
+  razon: El registro permite al usuario acceder a precios, historial y gestión de cuenta
+  ejemplos:
+    - "quiero registrarme"
+    - "¿cómo creo una cuenta?"
+
+# ─────────────────────────────────────────────
+# ESPECIALES
+# ─────────────────────────────────────────────
+
+- id: hablar_humano
+  descripcion: Usuario solicita explícitamente hablar con un agente humano
+  scope: true
+  razon: Algunos usuarios prefieren o necesitan atención humana directa
+  ejemplos:
+    - "quiero hablar con una persona"
+    - "ponme con un agente"
+
+- id: consulta_descuento
+  descripcion: Usuario pregunta por descuentos disponibles, propios o generales
+  scope: true
+  razon: El usuario quiere optimizar el precio antes de comprar
+  ejemplos:
+    - "¿tengo algún descuento?"
+    - "¿hay alguna oferta ahora mismo?"
+
+# ─────────────────────────────────────────────
+# SESIÓN
+# ─────────────────────────────────────────────
+
+- id: saludo
+  descripcion: Usuario abre la conversación con un saludo puro sin intent de negocio
+  scope: true
+  razon: El saludo inicial es el punto de entrada a la conversación
+  ejemplos:
+    - "hola"
+    - "buenas tardes"
+
+- id: despedida
+  descripcion: Usuario indica que quiere terminar la conversación
+  scope: true
+  razon: El cierre correcto de sesión mejora la experiencia del usuario
+  ejemplos:
+    - "hasta luego"
+    - "gracias, ya está"
+
+- id: sugerencia
+  descripcion: Usuario hace una sugerencia o deja feedback sobre el servicio
+  scope: true
+  razon: Las sugerencias se recogen para el equipo sin escalar a Handoff
+  ejemplos:
+    - "deberíais tener más variedad de cactus"
+    - "estaría bien poder pagar con PayPal"
+
+# ─────────────────────────────────────────────
+# FUERA DE SCOPE
+# ─────────────────────────────────────────────
+
+- id: consejos_jardineria
+  descripcion: Usuario pide consejos de cultivo, mantenimiento o jardinería en casa
+  scope: false
+  razon: Petal es floristería de venta, no servicio de asesoría de jardinería
+  ejemplos:
+    - "¿cómo planto un rosal en el jardín?"
+    - "¿qué abono uso para mis plantas?"
+
+- id: comparar_competencia
+  descripcion: Usuario pide comparación con otras floristerías o servicios similares
+  scope: false
+  razon: Petal no comenta ni compara con la competencia
+  ejemplos:
+    - "¿sois más baratos que Interflora?"
+    - "¿qué diferencia hay con otras floristerías?"
+
+- id: soporte_web
+  descripcion: Usuario reporta un problema técnico con la web o la aplicación
+  scope: false
+  razon: El soporte técnico web no es gestionable por el agente conversacional
+  ejemplos:
+    - "la web no me deja completar el pago"
+    - "no puedo entrar a mi cuenta desde la app"
+
+- id: wedding_planning
+  descripcion: Usuario pide planificación completa de boda más allá de la decoración floral
+  scope: false
+  razon: Petal suministra flores para bodas pero no ofrece servicio de wedding planning
+  ejemplos:
+    - "¿podéis organizar toda la decoración de mi boda?"
+    - "necesito un coordinador de boda"
