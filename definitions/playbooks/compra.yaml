@@ -8,27 +8,12 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
 inputParameterDefinitions:
 - name: id_cliente
-  description: identificador cliente
+  description: Identificador del cliente. Vacío si no registrado.
   typeSchema:
     inlineSchema:
       type: STRING
-- name: nombre_cliente
-  description: Nombre del cliente
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: dir_habitual
-  description: Direccion guardada en base de datos
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: tipo_cliente
-  description: tipología de cliente
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: estado_pago
-  description: Definicion del estado de pago del cliente
+- name: email
+  description: Email del cliente. Vacío si no registrado.
   typeSchema:
     inlineSchema:
       type: STRING
@@ -37,58 +22,23 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: cantidad
-  description: 'Numero de productos '
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: producto
-  description: Tipo de producto seleccionado
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: ocasion_detectada
   description: Funeral, Boda, Regalo, Decoración, o vacío
   typeSchema:
     inlineSchema:
       type: STRING
-- name: grupo_intent
-  description: 'Código del grupo semántico: G3, G5, G6, G7'
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: explorar
-  description: True si el usuario no nombró ningún producto — Compra debe sugerir antes de ejecutar.
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
-- name: pres_duro
-  description: Flag que indica si el usuario ha fijado un precio_max como tope firme (true) o aproximado (false). Se detecta por lenguaje (maximo, no mas de, tope).
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
 - name: registro
-  description: 'Registro de tono activo. Valores: solemne, celebracion, estandar. Default=estandar. Puede reasignarse si hay señal de cambio mid-conversación.'
+  description: 'Registro de tono activo. Valores: solemne, celebracion, estandar. Default=estandar.'
   typeSchema:
     inlineSchema:
       type: STRING
 - name: urgente
-  description: 'Flag de urgencia. true si el usuario tiene restricción temporal explícita. Modifica estructura (más corto, slot-filling directo) pero no el registro.'
+  description: 'Flag de urgencia. true si el usuario tiene restricción temporal explícita.'
   typeSchema:
     inlineSchema:
       type: BOOLEAN
 - name: frustrado
-  description: 'Flag de frustración detectada. true si el usuario muestra frustración. Modifica el comportamiento dentro del registro vigente.'
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
-- name: contador_rechazos
-  description: Rechazos consecutivos. Incrementa en cada rechazo. Resetea al cambiar ocasión.
-  typeSchema:
-    inlineSchema:
-      type: NUMBER
-- name: saludo_inicial
-  description: True si el usuario abrió con una fórmula de saludo (hola, buenas...) además de pedir producto. Recibido del Orquestador. Si true, la primera respuesta reconoce el saludo antes del ECO del producto.
+  description: 'Flag de frustración detectada. true si el usuario muestra frustración.'
   typeSchema:
     inlineSchema:
       type: BOOLEAN

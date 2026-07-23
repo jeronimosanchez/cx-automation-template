@@ -10,57 +10,17 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/871d4bbb-5c90-443b-bbb1-1d83d254c2c3
 outputParameterDefinitions:
 - name: id_cliente
-  description: ID del cliente
+  description: ID del cliente. Vacío si no registrado.
   typeSchema:
     inlineSchema:
       type: STRING
-- name: tipo_cliente
-  description: Particular o Empresa. Determina el mensaje de deuda en Gestion_Deuda
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: estado_pago
-  description: Estado de pago del cliente.
+- name: email
+  description: Email del cliente. Vacío si no registrado.
   typeSchema:
     inlineSchema:
       type: STRING
 - name: intencion
   description: Intención inicial del usuario.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: nombre_cliente
-  description: Nombre del cliente.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: razon
-  description: Causa del traspaso a Handoff.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: dir_habitual
-  description: Dirección habitual del cliente.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: recien_reg
-  description: True si acaba de registrarse.
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
-- name: fin_sesion
-  description: True si la sesión terminó.
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
-- name: email
-  description: email del cliente
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: saldo
-  description: Saldo pendiente del cliente obtenido de su perfil.
   typeSchema:
     inlineSchema:
       type: STRING
@@ -81,11 +41,6 @@ outputParameterDefinitions:
       type: BOOLEAN
 - name: frustrado
   description: True si se detecta frustración.
-  typeSchema:
-    inlineSchema:
-      type: BOOLEAN
-- name: saludo_inicial
-  description: True si el mensaje del usuario abrió con una fórmula de saludo (hola, buenas, buenos dias...) además de pedir producto/consulta. Se pasa a Compra para que reconozca el saludo antes del ECO.
   typeSchema:
     inlineSchema:
       type: BOOLEAN
