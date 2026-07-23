@@ -7,16 +7,6 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
 inputParameterDefinitions:
-- name: id_cliente
-  description: Identificador del cliente. Vacío si no registrado.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: email
-  description: Email del cliente. Vacío si no registrado.
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: intencion
   description: Intención al inicio de la conversación
   typeSchema:

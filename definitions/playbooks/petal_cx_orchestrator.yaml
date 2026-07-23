@@ -9,16 +9,6 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/871d4bbb-5c90-443b-bbb1-1d83d254c2c3
 outputParameterDefinitions:
-- name: id_cliente
-  description: ID del cliente. Vacío si no registrado.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: email
-  description: Email del cliente. Vacío si no registrado.
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: intencion
   description: Intención inicial del usuario.
   typeSchema:
@@ -108,15 +98,12 @@ instruction:
 
 
       -- PASO 0 -- CLASIFICACION --
-      ⛔ REGLA PERFIL (PRIORITARIA): Si el mensaje contiene un email (formato texto@texto.texto) y $id_cliente está vacío → invoca Identificacion_Task pasando email_hint=<el email del mensaje>. Si $fin_sesion=true → FIN.
-      Si $id_cliente tiene valor → PASO 3.
-
       ⛔ SALUDO: solo saludo puro sin intent ('hola', 'buenas'). Si hay producto, flor, ocasión o deseo → COMPRA DIRECTA. En caso de duda → COMPRA DIRECTA.
       Ej: 'buenas, necesito una corona' → compra · 'algo bonito para mi madre' → compra.
 
       INICIO SESION
       saludo - '¡Hola! ¿En qué puedo ayudarte?'
-      despedida - agent_copy['despedida'] - $fin_sesion=true - FIN.
+      despedida - agent_copy['despedida'] - FIN.
       ambiguo - aclaracion, 3 turnos - agent_copy['despedida_ambiguo'] - FIN.
       fuera_scope - agent_copy['fuera_de_scope']. Redirige.
       sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
@@ -137,13 +124,11 @@ instruction:
       ⛔ Transfer silencioso. NO respondas antes de transferir.
       → sin pedir email (ver RESTRICCIONES)
       - Guarda $intencion (frase completa del usuario).
-      - Si abre con saludo + compra → $saludo_inicial=true.
-      - Sin perfil → ${PLAYBOOK:Compra} con $intencion, $saludo_inicial.
-      - Con perfil → añade $id_cliente, $nombre_cliente, $dir_habitual, $tipo_cliente, $estado_pago.
+      → ${PLAYBOOK:Compra} con $intencion, $registro, $ocasion_detectada, $urgente, $frustrado.
 
       GESTION CUENTA (consulta_saldo, consulta_deuda, aceptar_deuda, historial_pedidos, consulta_pedido, cancelar_pedido, modificar_pedido, devolver_pedido, reclamacion)
       - Guarda $intencion.
-      - Si no $id_cliente → Invoca ${PLAYBOOK:Identificacion_Task} pasando email_hint=$email. Si $fin_sesion=true → FIN.
+      - Si no $id_cliente → Invoca ${PLAYBOOK:Identificacion_Task}.
       - consulta_saldo/consulta_deuda/aceptar_deuda → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago.
       - reclamacion → 'Lamento lo sucedido.' → ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
       - historial_pedidos/consulta_pedido/cancelar_pedido/modificar_pedido/devolver_pedido → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
