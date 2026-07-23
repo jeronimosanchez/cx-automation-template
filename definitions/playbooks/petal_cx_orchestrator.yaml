@@ -34,11 +34,21 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: razon
+  description: Causa del traspaso a Handoff.
+  typeSchema:
+    inlineSchema:
+      type: STRING
 - name: dir_habitual
   description: Dirección habitual del cliente.
   typeSchema:
     inlineSchema:
       type: STRING
+- name: recien_reg
+  description: True si acaba de registrarse.
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
 - name: fin_sesion
   description: True si la sesión terminó.
   typeSchema:

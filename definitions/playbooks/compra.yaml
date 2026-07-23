@@ -32,18 +32,18 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: email
-  description: Email del cliente.
-  typeSchema:
-    inlineSchema:
-      type: STRING
-- name: saldo
-  description: Saldo pendiente del cliente.
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: intencion
   description: Intención al inicio de la conversación
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: cantidad
+  description: 'Numero de productos '
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
+- name: producto
+  description: Tipo de producto seleccionado
   typeSchema:
     inlineSchema:
       type: STRING
@@ -52,6 +52,21 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
+- name: grupo_intent
+  description: 'Código del grupo semántico: G3, G5, G6, G7'
+  typeSchema:
+    inlineSchema:
+      type: STRING
+- name: explorar
+  description: True si el usuario no nombró ningún producto — Compra debe sugerir antes de ejecutar.
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
+- name: pres_duro
+  description: Flag que indica si el usuario ha fijado un precio_max como tope firme (true) o aproximado (false). Se detecta por lenguaje (maximo, no mas de, tope).
+  typeSchema:
+    inlineSchema:
+      type: BOOLEAN
 - name: registro
   description: 'Registro de tono activo. Valores: solemne, celebracion, estandar. Default=estandar. Puede reasignarse si hay señal de cambio mid-conversación.'
   typeSchema:
@@ -67,6 +82,11 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: BOOLEAN
+- name: contador_rechazos
+  description: Rechazos consecutivos. Incrementa en cada rechazo. Resetea al cambiar ocasión.
+  typeSchema:
+    inlineSchema:
+      type: NUMBER
 - name: saludo_inicial
   description: True si el usuario abrió con una fórmula de saludo (hola, buenas...) además de pedir producto. Recibido del Orquestador. Si true, la primera respuesta reconoce el saludo antes del ECO del producto.
   typeSchema:
