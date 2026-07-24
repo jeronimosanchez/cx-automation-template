@@ -197,6 +197,46 @@ def get_latest_version_name(cfg, headers):
     return latest["name"]
 
 
+def get_all_versions(cfg, headers):
+    """LIST versions del Default Start Flow ordenadas por createTime desc."""
+    flow_id = "00000000-0000-0000-0000-000000000000"
+    flow_path = f"{parent_path(cfg)}/flows/{flow_id}"
+    r = requests.get(
+        f"{base_url(cfg)}/{flow_path}/versions",
+        headers=headers,
+        params={"pageSize": 100},
+    )
+    if r.status_code != 200:
+        return []
+    versions = r.json().get("versions", [])
+    return sorted(versions, key=lambda v: v.get("createTime", ""), reverse=True)
+
+
+def get_production_version(cfg, headers, prod_env_id="e7cb0d2e-6f97-48e8-8024-0a2e04687f9d"):
+    """Devuelve el name de la version que usa production actualmente."""
+    env_path = f"{parent_path(cfg)}/environments/{prod_env_id}"
+    r = requests.get(f"{base_url(cfg)}/{env_path}", headers=headers)
+    if r.status_code != 200:
+        return None
+    configs = r.json().get("versionConfigs", [])
+    return configs[0]["version"] if configs else None
+
+
+def delete_version(cfg, headers, version_name, dry_run=False):
+    """DELETE una version por su name completo."""
+    short = version_name.split("/")[-1]
+    print(f"\n  → DELETE version/{short}")
+    if dry_run:
+        print("    (dry-run — no se ejecuta)")
+        return True
+    r = requests.delete(f"{base_url(cfg)}/{version_name}", headers=headers)
+    if r.status_code in (200, 204):
+        print("    OK borrada")
+        return True
+    print(f"    ERR DELETE {r.status_code}: {r.text[:300]}")
+    return False
+
+
 def update_staging(cfg, headers, version_name, env_id=STAGING_ENV_ID, dry_run=False):
     """PATCH el Environment staging para apuntar a version_name."""
     env_path = f"{parent_path(cfg)}/environments/{env_id}"
@@ -269,18 +309,39 @@ def main():
     create_snap = ask("¿Crear snapshot?", default="s") in ("s", "si", "sí", "y", "yes")
     snap_name = None
 
+    replace_snap = False
+    version_to_delete = None
+
     if create_snap:
         default_name = summary.replace("cambios en: ", "").replace(", ", "-").replace(" ", "-")
         snap_name = ask("Nombre del snapshot", default=default_name) or default_name
-        # Limpiar caracteres no válidos
         snap_name = snap_name.replace(" ", "-").replace("/", "-")[:50]
         print(f"  Snapshot: {snap_name}")
+
+        replace_snap = ask("¿Reemplazar el snapshot anterior?", default="n") in ("s", "si", "sí", "y", "yes")
+        if replace_snap:
+            cfg_tmp = load_agent_config()
+            token_tmp = get_token()
+            headers_tmp = build_headers(cfg_tmp, token_tmp)
+            prod_version = get_production_version(cfg_tmp, headers_tmp)
+            versions = get_all_versions(cfg_tmp, headers_tmp)
+            # El más reciente que NO sea el de production
+            candidates = [v for v in versions if v["name"] != prod_version]
+            if candidates:
+                version_to_delete = candidates[0]
+                print(f"  Reemplazará: version/{version_to_delete['name'].split('/')[-1]} ({version_to_delete.get('displayName', '?')})")
+            else:
+                print("  No hay snapshot anterior que reemplazar (solo existe el de production).")
+                replace_snap = False
 
     # 3. Confirmar
     print(f"\nResumen:")
     print(f"  Draft       → se actualiza con los cambios")
     if create_snap:
-        print(f"  Snapshot    → {snap_name}")
+        if replace_snap and version_to_delete:
+            print(f"  Snapshot    → reemplaza version/{version_to_delete['name'].split('/')[-1]} con {snap_name}")
+        else:
+            print(f"  Snapshot    → {snap_name} (nuevo)")
         print(f"  staging     → apuntará al nuevo snapshot")
     print(f"  production  → sin cambios")
     print()
@@ -308,6 +369,11 @@ def main():
     if create_snap:
         print(f"\n{'─'*55}")
         print("Creando snapshot...\n")
+        if replace_snap and version_to_delete:
+            ok = delete_version(cfg, headers, version_to_delete["name"], dry_run=dry_run)
+            if not ok:
+                print("  ERR No se pudo borrar el snapshot anterior. Abortando.")
+                return 1
         ok = create_version(cfg, headers, snap_name, f"Deploy manual: {summary}", dry_run=dry_run)
         if not ok:
             print("  ERR No se pudo crear el snapshot.")
