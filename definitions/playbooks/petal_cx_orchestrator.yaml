@@ -14,11 +14,6 @@ outputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: ocasion_detectada
-  description: Funeral, Boda, Regalo, Decoración, o vacío
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: registro
   description: Registro de tono seleccionado (estandar / solemne / celebracion)
   typeSchema:
@@ -53,42 +48,21 @@ instruction:
 
       VARIABLES
       $intencion - texto completo (solo NEGOCIO): utterance con producto, precio, ocasión o acción de compra. NUNCA se pierde ni sobreescribe. Ej: 'quiero rosas', '¿cuánto cuesta?', 'algo para una boda'. Saludos puros no son $intencion.
-      $ocasion_detectada - Funeral/Boda/Nacimiento/Romantico/Corporativo/Decoracion/Regalo/vacio.
       $registro - estandar/solemne/celebracion. Default=estandar. Detectar en cada turno hasta enrutar a Compra.
       $urgente - true cuando hay restricción temporal. Default=false.
       $frustrado - true cuando se detecta frustración. Default=false.
 
       DETECCIÓN (silenciosa, por turno — sin preguntar):
-      Detecta $ocasion_detectada y $registro juntos. Precedencia: solemne > celebracion > estandar.
-      En TODA transferencia a Compra incluir: $intencion, $registro, $ocasion_detectada, $urgente, $frustrado.
+      Detecta $registro. Precedencia: solemne > celebracion > estandar.
+      En TODA transferencia a Compra incluir: $intencion, $registro, $urgente, $frustrado.
       Si $registro=solemne: sin exclamaciones ni '¡Genial!', foco en la tarea.
-      ⛔ El destinatario NO se pasa a Compra. Solo sirve para inferir $ocasion_detectada.
 
-      funeral/fallecido/entierro/luto/pésame/corona (fúnebre)
-      → $ocasion_detectada=Funeral · $registro=solemne
+      funeral/fallecido/entierro/luto/pésame/corona (fúnebre) → $registro=solemne
+      boda/novia/ceremonia/ramo de novia/nacimiento/bebe/recien nacido → $registro=celebracion
+      cumpleanos/aniversario/san valentin/romantico → $registro=celebracion
+      resto/default → $registro=estandar
 
-      boda/novia/ceremonia, 'ramo de novia'
-      → $ocasion_detectada=Boda · $registro=celebracion
-
-      bebe/nacimiento/recien nacido/maternidad
-      → $ocasion_detectada=Nacimiento · $registro=celebracion
-
-      cumpleanos/aniversario
-      → $ocasion_detectada=Regalo · $registro=celebracion
-
-      san valentin/romantico/enamorados, pareja/novio/novia/marido/mujer como destinatario
-      → $ocasion_detectada=Romantico · $registro=estandar
-
-      oficina/empresa/corporativo/evento, jefe/companero/cliente como destinatario
-      → $ocasion_detectada=Corporativo · $registro=estandar
-
-      decorar/hogar/casa/jardin
-      → $ocasion_detectada=Decoracion · $registro=estandar
-
-      resto/default (madre/padre/amigo/familiar/sin contexto claro)
-      → $ocasion_detectada=Regalo · $registro=estandar
-
-      [Modificadores ortogonales — sin cambiar $ocasion_detectada]
+      [Modificadores ortogonales]
       no me ha llegado/llevo esperando/inaceptable/quiero reclamar/pesimo servicio/
       estoy molesto/estoy harto/me han cobrado y nada
       → $registro=solemne · $frustrado=true
@@ -124,7 +98,7 @@ instruction:
       ⛔ Transfer silencioso. NO respondas antes de transferir.
       → sin pedir email (ver RESTRICCIONES)
       - Guarda $intencion (frase completa del usuario).
-      → ${PLAYBOOK:Compra} con $intencion, $registro, $ocasion_detectada, $urgente, $frustrado.
+      → ${PLAYBOOK:Compra} con $intencion, $registro, $urgente, $frustrado.
 
       GESTION CUENTA (consulta_saldo, consulta_deuda, aceptar_deuda, historial_pedidos, consulta_pedido, cancelar_pedido, modificar_pedido, devolver_pedido, reclamacion)
       - Guarda $intencion.

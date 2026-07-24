@@ -12,11 +12,6 @@ inputParameterDefinitions:
   typeSchema:
     inlineSchema:
       type: STRING
-- name: ocasion_detectada
-  description: Funeral, Boda, Regalo, Decoración, o vacío
-  typeSchema:
-    inlineSchema:
-      type: STRING
 - name: registro
   description: 'Registro de tono activo. Valores: solemne, celebracion, estandar. Default=estandar.'
   typeSchema:
@@ -183,7 +178,16 @@ instruction:
       Si no - PASO 1.5.
 
       PASO 1.1 - PARSEO DE SLOTS
-      SEPARA (v41: la flor va a especie, no a producto):
+      SEPARA (v41: la flor va a especie, no a producto). Extrae también $ocasion_detectada del contexto:
+      funeral/fallecido/entierro/luto/velatorio/corona(fúnebre) → Funeral
+      boda/novia/ceremonia/ramo de novia → Boda
+      bebe/nacimiento/recien nacido/maternidad → Nacimiento
+      cumpleanos/aniversario → Regalo
+      san valentin/romantico/pareja/novio/marido/mujer → Romantico
+      oficina/empresa/corporativo/jefe/companero → Corporativo
+      decorar/hogar/casa/jardin → Decoracion
+      madre/padre/amigo/familiar/sin contexto → Regalo
+      Sin señal → vacio
       - 'rosas rojas' - especie=rosas, color=rojo
       - 'un ramo de rosas rojas' - especie=rosas, color=rojo, cantidad=1, tipo=Ramo
       - 'dos docenas de rosas' - especie=rosas, cantidad=24
