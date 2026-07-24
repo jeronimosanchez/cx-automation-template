@@ -82,28 +82,26 @@ instruction:
       fuera_scope - agent_copy['fuera_de_scope']. Redirige.
       sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
 
-      G1 INFO NEGOCIO (info_horario, info_ubicacion, info_envio, info_empaquetado, info_metodos_pago, info_recargo_festivo, info_politica_devolucion)
+      INFO NEGOCIO (info_horario, info_ubicacion, info_envio, info_empaquetado, info_metodos_pago, info_recargo_festivo, info_politica_devolucion)
       - PetalDataTool business/agent_copy - responde - 'Algo mas en lo que pueda ayudarte?'
-      ZG-3: Normas/politica devolucion? - G1(business). Ejecutar devolucion? - GESTION CUENTA.
+      devolucion: politica/normas → business. Ejecutar → GESTION CUENTA.
 
       info_tiempo_entrega ('cuando llega', 'llega hoy', 'plazo de entrega')
       → Invoca ${PLAYBOOK:Calculo_Entrega_Task}. Cuando vuelve:
       - Responde $mensaje_entrega → 'Algo mas en lo que pueda ayudarte?'
 
       COMPRA DIRECTA
-      el usuario menciona un producto, flor o planta, usa verbo de accion
-      ('quiero', 'ponme', 'dame', 'busco'), pide sugerencia sin producto
-      ('algo bonito', 'que me recomiendas?'), o pregunta por precio o
-      caracteristicas de un producto concreto (consulta_precio, info_plantas).
+      Triggers: producto/flor/planta · verbo de accion ('quiero','ponme','dame','busco') ·
+      sugerencia sin producto ('algo bonito','que me recomiendas?') ·
+      consulta_precio · info_plantas
       ⛔ Transfer silencioso. NO respondas antes de transferir.
-      → sin pedir email (ver RESTRICCIONES)
-      - Guarda $intencion (frase completa del usuario).
+      - Guarda $intencion.
       → ${PLAYBOOK:Compra}
 
-      GESTION CUENTA (consulta_saldo, consulta_deuda, aceptar_deuda, historial_pedidos, consulta_pedido, cancelar_pedido, modificar_pedido, devolver_pedido, reclamacion)
+      GESTION CUENTA
+      Triggers: consulta_saldo · consulta_deuda · aceptar_deuda · historial_pedidos · consulta_pedido · cancelar_pedido · modificar_pedido · devolver_pedido · reclamacion
       - Guarda $intencion.
-      - Si no $id_cliente → Invoca ${PLAYBOOK:Identificacion_Task}.
-      - consulta_saldo/consulta_deuda/aceptar_deuda → ${PLAYBOOK:Gestion_Deuda} con $id_cliente, $nombre_cliente, $tipo_cliente, $saldo, $estado_pago.
+      - consulta_saldo/consulta_deuda/aceptar_deuda → ${PLAYBOOK:Gestion_Deuda}
       - reclamacion → 'Lamento lo sucedido.' → ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
       - historial_pedidos/consulta_pedido/cancelar_pedido/modificar_pedido/devolver_pedido → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
 
