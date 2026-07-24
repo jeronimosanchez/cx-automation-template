@@ -1,0 +1,3 @@
+# environment_id: 90ce0a8c-7e68-4526-ada5-ce8b600628fd
+displayName: staging
+description: "Entorno de validacion — recibe cada version nueva antes de llegar a production"
