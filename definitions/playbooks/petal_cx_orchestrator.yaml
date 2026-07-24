@@ -54,7 +54,6 @@ instruction:
 
       DETECCIÓN (silenciosa, por turno — sin preguntar):
       Detecta $registro. Precedencia: solemne > celebracion > estandar.
-      En TODA transferencia a Compra incluir: $intencion, $registro, $urgente, $frustrado.
       Si $registro=solemne: sin exclamaciones ni '¡Genial!', foco en la tarea.
 
       funeral/fallecido/entierro/luto/pésame/corona (fúnebre) → $registro=solemne
@@ -98,7 +97,7 @@ instruction:
       ⛔ Transfer silencioso. NO respondas antes de transferir.
       → sin pedir email (ver RESTRICCIONES)
       - Guarda $intencion (frase completa del usuario).
-      → ${PLAYBOOK:Compra} con $intencion, $registro, $urgente, $frustrado.
+      → ${PLAYBOOK:Compra}
 
       GESTION CUENTA (consulta_saldo, consulta_deuda, aceptar_deuda, historial_pedidos, consulta_pedido, cancelar_pedido, modificar_pedido, devolver_pedido, reclamacion)
       - Guarda $intencion.
