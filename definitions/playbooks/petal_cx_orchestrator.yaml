@@ -58,7 +58,7 @@ instruction:
       Si $registro=solemne: sin exclamaciones ni '¡Genial!', foco en la tarea.
 
       funeral/fallecido/entierro/luto/pésame/corona (fúnebre) → $registro=solemne
-      boda/novia/ceremonia/ramo de novia/nacimiento/bebe/recien nacido → $registro=celebracion
+      boda/novia/ceremonia/ramo de novia/nacimiento/bebe/recien nacido/
       cumpleanos/aniversario/san valentin/romantico → $registro=celebracion
       resto/default → $registro=estandar
 
