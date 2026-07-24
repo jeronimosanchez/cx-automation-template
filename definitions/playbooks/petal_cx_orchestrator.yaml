@@ -72,7 +72,7 @@ instruction:
 
 
       -- 1 CLASIFICACIÓN --
-      ⛔ SALUDO: solo saludo puro sin intent ('hola', 'buenas'). Si hay producto, flor, ocasión o deseo → COMPRA DIRECTA. En caso de duda → COMPRA DIRECTA.
+      SALUDO: solo saludo puro sin intent ('hola', 'buenas'). Si hay producto, flor, ocasión o deseo → COMPRA DIRECTA. En caso de duda → COMPRA DIRECTA.
       Ej: 'buenas, necesito una corona' → compra · 'algo bonito para mi madre' → compra.
 
       INICIO SESION
