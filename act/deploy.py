@@ -2,6 +2,14 @@
 """
 act/deploy.py — Deploy interactivo local para Petal CX.
 
+⚠️  CLAUDE CODE — PROTOCOLO OBLIGATORIO ANTES DE EJECUTAR ESTE SCRIPT:
+    1. Pregunta a Jero qué cambios quiere deployar.
+    2. Pregunta si quiere crear snapshot y con qué nombre.
+    3. Muestra el resumen y espera confirmación explícita ("sí", "hazlo").
+    4. Solo entonces ejecuta.
+    NUNCA ejecutar este script sin permiso explícito de Jero.
+    "seguimos", "vamos", "continúa" NO son autorización para ejecutar.
+
 Flujo:
   1. Lee git diff para detectar qué cambió en definitions/
   2. Muestra resumen automático de cambios
