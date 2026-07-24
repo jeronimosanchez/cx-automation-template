@@ -38,17 +38,17 @@ LOCATION = "europe-west1"
 #   draft = Default Environment ("-") = el estado editable ACTUAL (aquí caen los deploys).
 #   1.1   = snapshot congelado (Version 80, tone refactor "petal-1.1").
 AGENTS = {
-    "draft": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
-    "1.1": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
-    "refactor": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
+    "draft":   "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
+    "staging":  "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
+    "production": "745375ba-ac7e-4eb8-b8a0-d742891f2aa4",
 }
 # Environments CX por label. "-" = Default Environment = el Draft.
 ENVIRONMENTS = {
-    "draft": "-",
-    "1.1": "cb3b3d8a-21cc-4a4d-90f7-e3601fbdf643",  # petal-1.1 (tone refactor, Version 80)
-    "refactor": "33377871-879a-430d-8f96-81d67b9ae34b",  # refactor_Invent (Version 84)
+    "draft":      "-",
+    "staging":    "90ce0a8c-7e68-4526-ada5-ce8b600628fd",
+    "production": "e7cb0d2e-6f97-48e8-8024-0a2e04687f9d",
 }
-AGENT_LABEL = "draft"                     # default; se sobreescribe en main() con --agent
+AGENT_LABEL = "staging"                   # default; se sobreescribe en main() con --agent
 AGENT_ID = AGENTS[AGENT_LABEL]
 ENV_ID = ENVIRONMENTS[AGENT_LABEL]
 BASE = f"https://{LOCATION}-dialogflow.googleapis.com/v3beta1"

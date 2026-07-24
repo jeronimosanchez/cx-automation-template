@@ -73,7 +73,11 @@ source .venv/bin/activate
 # Tests
 python -m pytest act/tests/ -q
 
-# Deploy manual (SIEMPRE dry-run primero)
+# Deploy a CX (interactivo — pregunta cambios, snapshot y nombre)
+python act/deploy.py
+python act/deploy.py --dry-run  # previsualizar sin ejecutar
+
+# Deploy manual directo (solo si se necesita un recurso concreto)
 python act/push_playbooks.py --all --dry-run
 python act/push_playbooks.py --all
 
