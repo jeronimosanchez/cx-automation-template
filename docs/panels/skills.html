@@ -1,0 +1,251 @@
+<title>Skills Registry</title>
+<style>
+  :root {
+    --bg: #f5f6f9;
+    --surface: #ffffff;
+    --border: #dde0e8;
+    --text: #111827;
+    --text-2: #4b5563;
+    --text-3: #9ca3af;
+    --accent: #1d6fa4;
+    --cmd-bg: #eef3f8;
+    --cmd-text: #1d6fa4;
+    --badge-global-bg: #e8f5e2;
+    --badge-global-text: #2d6a1f;
+    --badge-project-bg: #fef3e2;
+    --badge-project-text: #8a5a0a;
+    --th-bg: #f0f2f6;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --surface: #161b24;
+      --border: #252d3a;
+      --text: #e2e8f0;
+      --text-2: #94a3b8;
+      --text-3: #4b5563;
+      --accent: #60a5d4;
+      --cmd-bg: #1a2535;
+      --cmd-text: #60a5d4;
+      --badge-global-bg: #162413;
+      --badge-global-text: #6bcf4f;
+      --badge-project-bg: #251a08;
+      --badge-project-text: #f59e3a;
+      --th-bg: #131820;
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f5f6f9; --surface: #ffffff; --border: #dde0e8; --text: #111827;
+    --text-2: #4b5563; --text-3: #9ca3af; --accent: #1d6fa4;
+    --cmd-bg: #eef3f8; --cmd-text: #1d6fa4;
+    --badge-global-bg: #e8f5e2; --badge-global-text: #2d6a1f;
+    --badge-project-bg: #fef3e2; --badge-project-text: #8a5a0a;
+    --th-bg: #f0f2f6;
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --surface: #161b24; --border: #252d3a; --text: #e2e8f0;
+    --text-2: #94a3b8; --text-3: #4b5563; --accent: #60a5d4;
+    --cmd-bg: #1a2535; --cmd-text: #60a5d4;
+    --badge-global-bg: #162413; --badge-global-text: #6bcf4f;
+    --badge-project-bg: #251a08; --badge-project-text: #f59e3a;
+    --th-bg: #131820;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 40px 28px 80px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .meta-right {
+    font-size: 11px;
+    color: var(--text-3);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  thead th {
+    background: var(--th-bg);
+    color: var(--text-3);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody tr:hover { background: var(--th-bg); }
+
+  td {
+    padding: 13px 14px;
+    vertical-align: top;
+  }
+
+  .cmd {
+    display: inline-block;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--cmd-bg);
+    color: var(--cmd-text);
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .badge.global {
+    background: var(--badge-global-bg);
+    color: var(--badge-global-text);
+  }
+
+  .badge.project {
+    background: var(--badge-project-bg);
+    color: var(--badge-project-text);
+  }
+
+  .desc {
+    color: var(--text-2);
+    max-width: 340px;
+    line-height: 1.55;
+  }
+
+  .path {
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 10.5px;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+
+  .dates {
+    font-size: 11px;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    line-height: 1.8;
+  }
+
+  .dates span { display: block; }
+  .dates .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; }
+</style>
+
+<header>
+  <div>
+    <div class="eyebrow">Claude Code</div>
+    <h1>Skills Registry</h1>
+  </div>
+  <div class="meta-right">
+    4 skills<br>
+    actualizado 2026-07-26
+  </div>
+</header>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Comando</th>
+        <th>Scope</th>
+        <th>Descripción</th>
+        <th>Ubicación</th>
+        <th>Creada</th>
+        <th>Modificada</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="cmd">/back</span></td>
+        <td><span class="badge global">Global</span></td>
+        <td class="desc">Lanza cualquier instrucción como subagente en segundo plano. Declara acciones con gate antes de ejecutar, pide confirmación y para si aparece algo no declarado durante la ejecución.</td>
+        <td class="path">~/.claude/skills/back/</td>
+        <td class="dates"><span class="label">creada</span><span>2026-07-26</span></td>
+        <td class="dates"><span class="label">modificada</span><span>2026-07-26</span></td>
+      </tr>
+      <tr>
+        <td><span class="cmd">/qa-tc-analyzer</span></td>
+        <td><span class="badge project">cx-automation</span></td>
+        <td class="desc">Analiza FAILs de QA con 9 capas de causa raíz. Arquitectura en dos fases — subagentes TC en paralelo (fase 1) + subagente de patrones con contexto limpio (fase 2). Escalable a 50+ TCs. Coste ~0€.</td>
+        <td class="path">.claude/skills/qa-tc-analyzer/</td>
+        <td class="dates"><span class="label">creada</span><span>2026-05-24</span></td>
+        <td class="dates"><span class="label">modificada</span><span>2026-07-04</span></td>
+      </tr>
+      <tr>
+        <td><span class="cmd">/qa-fix</span></td>
+        <td><span class="badge project">cx-automation</span></td>
+        <td class="desc">Aplica una solución propuesta por <span class="cmd" style="font-size:11px">/qa-tc-analyzer</span> a un TC. Crea branch, edita el artefacto (Playbook / Test / Tool), commit + PR + merge, espera deploy a CX y valida con rerun. Pre-requisito: análisis previo del TC. ~3 min.</td>
+        <td class="path">.claude/skills/qa-fix/</td>
+        <td class="dates"><span class="label">creada</span><span>2026-05-21</span></td>
+        <td class="dates"><span class="label">modificada</span><span>2026-06-19</span></td>
+      </tr>
+      <tr>
+        <td><span class="cmd">/qa-revert</span></td>
+        <td><span class="badge project">cx-automation</span></td>
+        <td class="desc">Revierte el último fix de un TC para volver al estado roto. Útil para demos. Crea PR de revert, mergea, espera deploy y confirma con rerun que el TC vuelve a FAIL. ~2 min.</td>
+        <td class="path">.claude/skills/qa-revert/</td>
+        <td class="dates"><span class="label">creada</span><span>2026-05-21</span></td>
+        <td class="dates"><span class="label">modificada</span><span>2026-06-19</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
