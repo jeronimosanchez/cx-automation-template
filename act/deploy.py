@@ -305,43 +305,54 @@ def main():
         print(f"  {' '.join(cmd[1:])}")
 
     # 2. Snapshot
-    print()
-    create_snap = ask("¿Crear snapshot?", default="s") in ("s", "si", "sí", "y", "yes")
-    snap_name = None
+    cfg_tmp = load_agent_config()
+    token_tmp = get_token()
+    headers_tmp = build_headers(cfg_tmp, token_tmp)
+    prod_version = get_production_version(cfg_tmp, headers_tmp)
+    versions = get_all_versions(cfg_tmp, headers_tmp)
+    candidates = [v for v in versions if v["name"] != prod_version]
+    prev_name = candidates[0].get("displayName", "?") if candidates else None
 
+    print()
+    print("¿Qué hacer con el snapshot?")
+    print("  [1] Solo actualizar Draft")
+    if prev_name:
+        print(f"  [2] Reemplazar snapshot anterior  ({prev_name})")
+    else:
+        print("  [2] Reemplazar snapshot anterior  (ninguno disponible)")
+    print("  [3] Crear nuevo snapshot")
+    print()
+
+    snap_mode = ask("Opción", default="1")
+    snap_name = None
     replace_snap = False
     version_to_delete = None
 
-    if create_snap:
+    if snap_mode == "2":
+        if not candidates:
+            print("  No hay snapshot anterior que reemplazar. Cambiando a modo 1.")
+            snap_mode = "1"
+        else:
+            version_to_delete = candidates[0]
+            snap_name = version_to_delete.get("displayName", "snapshot")
+            replace_snap = True
+    elif snap_mode == "3":
         default_name = summary.replace("cambios en: ", "").replace(", ", "-").replace(" ", "-")
         snap_name = ask("Nombre del snapshot", default=default_name) or default_name
         snap_name = snap_name.replace(" ", "-").replace("/", "-")[:50]
-        print(f"  Snapshot: {snap_name}")
 
-        replace_snap = ask("¿Reemplazar el snapshot anterior?", default="n") in ("s", "si", "sí", "y", "yes")
-        if replace_snap:
-            cfg_tmp = load_agent_config()
-            token_tmp = get_token()
-            headers_tmp = build_headers(cfg_tmp, token_tmp)
-            prod_version = get_production_version(cfg_tmp, headers_tmp)
-            versions = get_all_versions(cfg_tmp, headers_tmp)
-            # El más reciente que NO sea el de production
-            candidates = [v for v in versions if v["name"] != prod_version]
-            if candidates:
-                version_to_delete = candidates[0]
-                print(f"  Reemplazará: version/{version_to_delete['name'].split('/')[-1]} ({version_to_delete.get('displayName', '?')})")
-            else:
-                print("  No hay snapshot anterior que reemplazar (solo existe el de production).")
-                replace_snap = False
+    create_snap = snap_mode in ("2", "3")
 
     # 3. Confirmar
     print(f"\nResumen:")
     print(f"  Draft       → se actualiza con los cambios")
-    if create_snap:
-        if replace_snap and version_to_delete:
-            print(f"  Snapshot    → reemplaza version/{version_to_delete['name'].split('/')[-1]} con {snap_name}")
-        else:
-            print(f"  Snapshot    → {snap_name} (nuevo)")
+    if snap_mode == "1":
+        print(f"  Snapshot    → sin cambios")
+    elif snap_mode == "2":
+        print(f"  Snapshot    → reemplaza '{prev_name}' con versión nueva del mismo nombre")
+        print(f"  staging     → apuntará al nuevo snapshot")
+    elif snap_mode == "3":
+        print(f"  Snapshot    → {snap_name} (nuevo)")
         print(f"  staging     → apuntará al nuevo snapshot")
     print(f"  production  → sin cambios")
     print()
@@ -393,7 +404,8 @@ def main():
     print(f"\n{'='*55}")
     print("  Deploy completado.")
     if create_snap and not dry_run:
-        print(f"  staging → {snap_name}")
+        label = f"'{snap_name}' (reemplazado)" if replace_snap else snap_name
+        print(f"  staging → {label}")
     print(f"{'='*55}\n")
     return 0
 
