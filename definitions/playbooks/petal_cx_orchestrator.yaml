@@ -72,6 +72,8 @@ instruction:
 
 
       -- 1 CLASIFICACIÓN --
+      PRECEDENCIA (conflicto de intents en un turno): HANDOFF > RECLAMACION > GESTION CUENTA > COMPRA > REGISTRO > INFO
+
       SALUDO: solo saludo puro sin intent ('hola', 'buenas'). Si hay producto, flor, ocasión o deseo → COMPRA DIRECTA. En caso de duda → COMPRA DIRECTA.
       Ej: 'buenas, necesito una corona' → compra · 'algo bonito para mi madre' → compra.
 
@@ -90,32 +92,40 @@ instruction:
       → Invoca ${PLAYBOOK:Calculo_Entrega_Task}. Cuando vuelve:
       - Responde $mensaje_entrega → 'Algo mas en lo que pueda ayudarte?'
 
-      COMPRA DIRECTA
+      COMPRA
       Triggers: producto/flor/planta · verbo de accion ('quiero','ponme','dame','busco') ·
       sugerencia sin producto ('algo bonito','que me recomiendas?') ·
       consulta_precio · info_plantas
-      ⛔ Transfer silencioso. NO respondas antes de transferir.
+      TRANSFER SILENCIOSO. NO respondas antes de transferir.
       - Guarda $intencion.
       → ${PLAYBOOK:Compra}
 
       GESTION CUENTA
-      Triggers: consulta_saldo · consulta_deuda · aceptar_deuda · historial_pedidos · consulta_pedido · cancelar_pedido · modificar_pedido · devolver_pedido · reclamacion
+      Triggers: consulta_saldo · consulta_deuda · aceptar_deuda · historial_pedidos · consulta_pedido · cancelar_pedido · modificar_pedido · devolver_pedido
+      TRANSFER SILENCIOSO. NO respondas antes de transferir.
       - Guarda $intencion.
       - consulta_saldo/consulta_deuda/aceptar_deuda → ${PLAYBOOK:Gestion_Deuda}
-      - reclamacion → 'Lamento lo sucedido.' → ${PLAYBOOK:Handoff} con $razon='reclamacion', $id_cliente, $nombre_cliente.
-      - historial_pedidos/consulta_pedido/cancelar_pedido/modificar_pedido/devolver_pedido → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
+      - resto → ${PLAYBOOK:Handoff} con $razon=$intencion, $id_cliente, $nombre_cliente.
 
-      REGISTRO (registro, 'quiero registrarme')
-      → sin pedir email (ver RESTRICCIONES)
-      - Invoca ${PLAYBOOK:Registro_Task} (sin inputs).
-         Cuando vuelve, lee los outputs:
-         - Si $razon tiene valor - ${PLAYBOOK:Handoff} pasando $razon.
-         - Si $fin_sesion=true - FIN.
-         - Si $recien_reg=true → PASO 3.
+      RECLAMACION
+      Triggers: no ha llegado · llevo esperando · inaceptable · quiero reclamar ·
+      pesimo servicio · me han cobrado y nada · estoy harto ·
+      flores mal estado · exijo solucion · esto no es lo pedido
+      TRANSFER SILENCIOSO. NO respondas antes de transferir.
+      - Guarda $intencion.
+      → ${PLAYBOOK:Handoff}
 
-      ESPECIALES
-      - hablar_humano - $id_cliente existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano', $id_cliente, $nombre_cliente. No existe - ${PLAYBOOK:Handoff} con $razon='cliente_solicita_humano'. NUNCA pidas email para escalar.
-      - consulta_descuento - posesivo ('mi','tengo','me corresponde') - GESTION CUENTA. General - business.
+      REGISTRO
+      Triggers: registro · quiero registrarme
+      TRANSFER SILENCIOSO. NO respondas antes de transferir.
+      - Invoca ${PLAYBOOK:Registro_Task}.
+      - Cuando vuelve: confirma registro completado → retoma $intencion si tiene valor.
+
+      HANDOFF
+      Triggers: hablar con persona · quiero un humano · ponme con alguien · no me ayudas
+      TRANSFER SILENCIOSO. NO respondas antes de transferir.
+      - Guarda $intencion.
+      → ${PLAYBOOK:Handoff}
 
 
       -- 2 ROUTING --
