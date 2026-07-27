@@ -771,8 +771,60 @@ const PHASES = [
       "Ningún script usa google.auth.default()",
       "push_playbooks.py usa Full Update sin updateMask"
     ] }], decisions: [] } },
-  { id: 3, title: "CX_inventory.py", subtitle: "generate_cx_petal_artefacts_inventory.py → act_cx_petal_artefacts_inventory.json", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear act/scripts/utils/generate_cx_petal_artefacts_inventory.py que produce docs/data/act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["act_cx_petal_artefacts_inventory.json válido", "12 tipos de artefactos", "en .gitignore"] }], decisions: [] } },
-  { id: 4, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Vista completa del estado del sistema", tag: "html", tagLabel: ".html", llm: { objetivo: "Crear docs/panels/act_cx_petal_artefacts_inventory.html que consume act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Sin errores de consola", "Filtros funcionan", "Estado coincide con --cx"] }], decisions: [] } },
+  { id: 3, title: "CX_inventory.py", subtitle: "Snapshot del estado actual del agente Petal en Dialogflow CX", tag: "py", tagLabel: ".py",
+    llm: {
+      objetivo: "Crear el script que consulta la API de Dialogflow CX y genera un JSON con el estado actual de los 12 tipos de recursos del agente Petal. Ese JSON es la fuente de verdad de lo que hay ahora mismo desplegado en CX.",
+      porQue: "Sin saber qué hay en CX no puedes comparar, no puedes ser idempotente y el panel de deploy no tiene nada que mostrar. Este script es el paso previo a todo lo demás: el panel de inventario lo consume para visualizarlo, act_deploy.html lo usa en el Paso 1, y deploy.py lo usa para decidir qué ha cambiado y qué hay que desplegar.",
+      leer: [
+        "Constraints de Fase 0 — auth (gcloud auth print-access-token) y headers obligatorios"
+      ],
+      pasos: [
+        "Crear act/scripts/utils/cx_inventory.py",
+        "El script llama a la API de CX una vez por cada tipo de recurso (12 en total), recoge la lista completa de lo que hay desplegado y lo guarda en un JSON estructurado",
+        "Autenticación: usa gcloud auth print-access-token — igual que el resto del sistema",
+        "Estructura del JSON de salida: { generated_at, agent, totals: { playbooks: N, examples: N, ... }, resources: { playbooks: [...], examples: [...], tools: [...], ... 12 tipos } }",
+        "Guardar en docs/data/act_cx_petal_artefacts_inventory.json",
+        "Añadir docs/data/act_cx_petal_artefacts_inventory.json al .gitignore — es un archivo generado, no código"
+      ],
+      outputs: [
+        { path: 'act/scripts/utils/cx_inventory.py', desc: 'Script que genera el snapshot del agente en CX' },
+        { path: 'docs/data/act_cx_petal_artefacts_inventory.json', desc: 'Snapshot del estado actual — generado, en .gitignore' }
+      ]
+    },
+    val: { grupos: [{ title: "Verificación", items: [
+      "act_cx_petal_artefacts_inventory.json existe y es JSON válido",
+      "Tiene los 12 tipos de recursos",
+      "generated_at, agent y totals presentes en el JSON",
+      "docs/data/act_cx_petal_artefacts_inventory.json está en .gitignore",
+      "python act/scripts/utils/cx_inventory.py corre sin errores"
+    ] }], decisions: [] }
+  },
+  { id: 4, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Panel visual del estado actual del agente Petal en CX", tag: "html", tagLabel: ".html",
+    llm: {
+      objetivo: "Crear el panel HTML que muestra de forma visual el contenido del snapshot de CX — qué recursos hay desplegados, cuántos son de cada tipo y cuáles son sus datos principales.",
+      porQue: "El JSON que genera cx_inventory.py no es legible directamente. Este panel es la capa de visualización: convierte ese JSON en algo que una persona puede leer, explorar y usar para entender el estado actual del agente antes de desplegar.",
+      leer: [
+        "docs/data/act_cx_petal_artefacts_inventory.json — estructura: { generated_at, agent, totals: { playbooks: N, ... }, resources: { playbooks: [...], ... } }"
+      ],
+      pasos: [
+        "El panel lee docs/data/act_cx_petal_artefacts_inventory.json al cargarse",
+        "Zona 1 — Cabecera: muestra el nombre del agente (campo agent) y cuándo se generó el snapshot (campo generated_at, en tiempo relativo: 'hace 3 min'). Botón 'Actualizar snapshot' que al hacer clic ejecuta cx_inventory.py y recarga la página.",
+        "Zona 2 — Resumen en grid: 12 tarjetas, una por tipo de recurso (del campo totals). Cada tarjeta muestra el nombre del tipo y el número de recursos desplegados. Al clicar una tarjeta, la zona de detalle filtra por ese tipo.",
+        "Zona 3 — Detalle por tipo: tabla con los recursos del tipo seleccionado (del campo resources). Muestra name, displayName y los demás campos relevantes que devuelva la API. Por defecto la primera tarjeta (Playbooks) está seleccionada.",
+        "Diseño limpio, legible en modo oscuro y claro. Sin dependencias externas — todo inline."
+      ],
+      outputs: [
+        { path: 'docs/panels/act_cx_petal_artefacts_inventory.html', desc: 'Panel visual del inventario CX — lee el JSON y lo muestra' }
+      ]
+    },
+    val: { grupos: [{ title: "Verificación", items: [
+      "El panel carga sin errores de consola",
+      "Las 12 tarjetas muestran los conteos correctos del JSON",
+      "Al clicar cada tarjeta cambia la tabla de detalle",
+      "El timestamp de la cabecera refleja generated_at del JSON",
+      "El panel funciona en modo oscuro y claro"
+    ] }], decisions: [] }
+  },
   { id: 5, title: "act_deploy.html", subtitle: "Panel de commits — 8 pasos del pipeline", tag: "html", tagLabel: ".html", llm: { objetivo: "Actualizar act_deploy.html para consumir act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Paso 1 desde act_cx_petal_artefacts_inventory.json", "8 pasos en orden", "Estado en localStorage"] }], decisions: [] } },
   { id: 6, title: "deploy.py", subtitle: "Reescribir act/scripts/deploy.py — pipeline de 8 pasos", tag: "py", tagLabel: ".py", llm: { objetivo: "Reescribir act/scripts/deploy.py desde cero con el pipeline completo de 8 pasos, corrigiendo el bug del orden del snapshot y añadiendo idempotencia, LRO polling y gates humanos.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--dry-run sin errores", "Orden snapshot: POST versión → PATCH environment → DELETE versión antigua", "LRO polling: espera done:true antes de continuar", "displayName presente en POST /versions", "deploy.py antiguo (act/deploy.py) ya no existe — reemplazado"] }], decisions: [] } },
   { id: 7, title: "diff_pipeline — TBD", subtitle: "Pendiente de definir tras act_deploy.html — puede integrarse en deploy.py", tag: "py", tagLabel: ".py", llm: { objetivo: "Decidir si diff_pipeline.py es un archivo separado o se integra como módulo dentro de deploy.py. Definir tras completar Fase 5 (act_deploy.html) y Fase 6 (deploy.py).", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--git coincide con git status", "--cx detecta cambios reales", "--all produce tabla ASCII"] }], decisions: [] } },
@@ -1134,6 +1186,8 @@ function renderOperaciones(ops) {
 }
 
 function renderGenericPhase(p, ps) {
+  const porQueHtml = p.llm.porQue
+    ? `<div class="llm-section"><div class="llm-section-title">Por qué</div><p>${p.llm.porQue}</p></div>` : '';
   const leerHtml = p.llm.leer && p.llm.leer.length
     ? `<div class="llm-section"><div class="llm-section-title">Qué leer antes de empezar</div>${renderList(p.llm.leer, false)}</div>` : '';
   const pasosHtml = p.llm.pasos && p.llm.pasos.length
@@ -1142,9 +1196,9 @@ function renderGenericPhase(p, ps) {
     ? `<div class="llm-section"><div class="llm-section-title">Operaciones</div>${renderOperaciones(p.llm.operaciones)}</div>` : '';
   const outputsHtml = p.llm.outputs && p.llm.outputs.length
     ? `<div class="llm-section"><div class="llm-section-title">Outputs</div>${p.llm.outputs.map(o=>`<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path||o}</div>${o.desc?`<div class="op-desc">${o.desc}</div>`:''}</div></div>`).join('')}</div>` : '';
-  const hasContent = leerHtml || pasosHtml || opHtml || outputsHtml;
+  const hasContent = porQueHtml || leerHtml || pasosHtml || opHtml || outputsHtml;
   const llmHtml = `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>`
-    + leerHtml + opHtml + pasosHtml + outputsHtml
+    + porQueHtml + leerHtml + opHtml + pasosHtml + outputsHtml
     + (!hasContent ? `<p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:12px">Contenido en construcción — se completa fase por fase en conversación.</p>` : '');
 
   let checkIdx = 0;
@@ -1401,6 +1455,10 @@ function generateMarkdown(phase) {
   }
 
   md += `## Objetivo\n\n${stripHtml(phase.llm.objetivo)}\n\n`;
+
+  if (phase.llm.porQue) {
+    md += `## Por qué\n\n${phase.llm.porQue}\n\n`;
+  }
 
   if (phase.llm.leer && phase.llm.leer.length) {
     md += `## Qué leer antes de empezar\n\n`;
