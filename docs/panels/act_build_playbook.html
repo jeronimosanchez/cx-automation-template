@@ -620,6 +620,7 @@ const PHASES = [
       filosofia: {
         norte: 'Liberar a la persona de leer e interpretar documentación técnica generada por máquina.',
         porQue: 'Validar documentación técnica exige un esfuerzo cognitivo alto, genera errores, y crea el riesgo de que los gates los complete el propio LLM en lugar de la persona. Cuando eso ocurre, se pierde lo único que la persona aporta de forma insustituible: conocimiento de dominio, criterio, dirección y capacidad creativa en la definición.',
+        rolLlm: 'Co-crear, no co-validar. El LLM propone estructura, implementa y ejecuta. La persona aporta criterio, dirección y decisiones de diseño. El resultado es de los dos — y ninguno lo habría producido igual solo.',
         principios: [
           { n: 1, titulo: 'Lenguaje natural primero', desc: 'Lo ves en la tabla de auditoría: columna Descripción (humano) antes que Mecanismo (técnico). Y en el playbook completo: Goal + Auditoría dan contexto en lenguaje natural antes de que Opus toque nada.' },
           { n: 2, titulo: 'La persona aporta el conocimiento', desc: 'Jero define qué hace diff.py, qué limitaciones tiene, por qué deploy.py es mejor nombre que orchestrator.py, qué principios guían el sistema. Eso no puede hacerlo el LLM solo.' },
@@ -939,6 +940,10 @@ function renderGoalPhase(p, ps) {
       <div class="llm-section-title">Norte</div>
       <p style="font-size:14px;font-weight:600;color:var(--text)">${f.norte}</p>
       <p style="margin-top:8px;color:var(--text-2);font-size:13px">${f.porQue}</p>
+    </div>
+    <div class="llm-section">
+      <div class="llm-section-title">El rol del LLM</div>
+      <p style="color:var(--text-2);font-size:13px">${f.rolLlm}</p>
     </div>
     <div class="llm-section">
       <div class="llm-section-title">Principios</div>
