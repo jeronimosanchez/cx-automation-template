@@ -608,15 +608,27 @@ const PHASES = [
       ],
       fases: [
         { n: 1, nombre: 'Auditoría inicial', desc: 'Estado actual del repo y decisiones de estructura' },
-        { n: 2, nombre: 'Rama de trabajo', desc: 'Crear rama feature/act-pipeline' },
-        { n: 3, nombre: 'Diff pipeline', desc: 'diff_pipeline.py — 3 dimensiones de diff' },
-        { n: 4, nombre: 'Orquestador', desc: 'orchestrator.py — 8 pasos con gates' },
-        { n: 5, nombre: 'Inventario', desc: 'generate_cx_petal_artefacts_inventory.py' },
-        { n: 6, nombre: 'Panel visual', desc: 'act_cx_petal_artefacts_inventory.html' },
-        { n: 7, nombre: 'act_deploy.html', desc: 'Panel de control y ejecución de deploy asistido por LLM' },
+        { n: 2, nombre: '.py placement', desc: 'Reorganizar todos los scripts Python en act/scripts/' },
+        { n: 3, nombre: 'CX_inventory.py', desc: 'generate_cx_petal_artefacts_inventory.py → inventory.json' },
+        { n: 4, nombre: 'act_cx_petal_artefacts_inventory.html', desc: 'Panel visual del estado del sistema' },
+        { n: 5, nombre: 'act_deploy.html', desc: 'Panel de control y ejecución del deploy' },
+        { n: 6, nombre: 'deploy.py', desc: 'Orquestador — pipeline completo de 8 pasos' },
+        { n: 7, nombre: 'diff_pipeline — TBD', desc: 'Pendiente: archivo propio o módulo de deploy.py' },
         { n: 8, nombre: 'QA pipeline', desc: 'Smoke tests pre-deploy' },
         { n: 9, nombre: 'ACT CI/CD', desc: 'deploy.yml — GitHub Actions completo' }
-      ]
+      ],
+      filosofia: {
+        norte: 'Liberar a la persona de leer e interpretar documentación técnica generada por máquina.',
+        porQue: 'Validar documentación técnica exige un esfuerzo cognitivo alto, genera errores, y crea el riesgo de que los gates los complete el propio LLM en lugar de la persona. Cuando eso ocurre, se pierde lo único que la persona aporta de forma insustituible: conocimiento de dominio, criterio, dirección y capacidad creativa en la definición.',
+        principios: [
+          { n: 1, titulo: 'Lenguaje natural primero', desc: 'Lo ves en la tabla de auditoría: columna Descripción (humano) antes que Mecanismo (técnico). Y en el playbook completo: Goal + Auditoría dan contexto en lenguaje natural antes de que Opus toque nada.' },
+          { n: 2, titulo: 'La persona aporta el conocimiento', desc: 'Jero define qué hace diff.py, qué limitaciones tiene, por qué deploy.py es mejor nombre que orchestrator.py, qué principios guían el sistema. Eso no puede hacerlo el LLM solo.' },
+          { n: 3, titulo: 'Contexto antes que comandos', desc: 'El playbook entero es esto. Fase 0 (Goal) y Fase 1 (Auditoría) existen solo para dar contexto. Opus no ejecuta nada hasta Fase 2. La mayoría de pipelines van directo al "haz esto" — aquí el "por qué existe" va primero.' },
+          { n: 4, titulo: 'El LLM como traductor', desc: 'Jero describe "mover los 12 push_*.py a scripts/push/" y el LLM sabe ejecutarlo con git mv, actualizar imports, verificar. La premisa: el LLM traduce lenguaje natural a ejecución técnica mejor y más rápido que una persona.' },
+          { n: 5, titulo: 'Verificación automática en cada fase', desc: 'Cada fase del playbook incluye un bloque de validación que la máquina ejecuta. El humano no revisa comandos intermedios — revisa que las verificaciones pasan.' },
+          { n: 6, titulo: 'El humano valida el resultado, no el proceso', desc: 'En los gates no se revisa cada git mv — se revisa que pytest pasa, que la estructura es la correcta, que deploy.py tiene el comportamiento esperado. La ejecución es invisible; el resultado es lo que se valida.' }
+        ]
+      }
     }
   },
   {
@@ -689,47 +701,81 @@ const PHASES = [
       decisions: []
     }
   },
-  { id: 2, title: "Push / Pull scripts", subtitle: "Reorganización completa de act/ en la estructura target", tag: "py", tagLabel: ".py",
+  { id: 2, title: ".py placement", subtitle: "Colocar todos los scripts en su ubicación definitiva dentro de act/scripts/", tag: "py", tagLabel: ".py",
     llm: {
       objetivo: "Reorganizar TODOS los scripts Python de act/ en la estructura target de act/scripts/. No solo push y pull — también utilidades, tests y eliminar los marcados como ✗. Al terminar, act/ raíz solo debe contener la carpeta scripts/.",
       leer: [
         "Inventario completo actual en act/: 12 push_*.py, 12 pull_*.py, diff.py, validate_api.py, deploy.py, validate_api_v2.py, audit_examples.py + act/tests/ (28 archivos)",
-        "CLAUDE.md §3 — constraints no negociables (auth, headers, Full Update)",
-        "docs/pipeline_nuevo.md — estructura target"
+        "Constraints — lee los constraints de Fase 0 antes de ejecutar, especialmente auth (gcloud auth print-access-token, nunca google.auth.default()) y Full Update (push_playbooks.py sin updateMask)"
       ],
-      pasos: [
-        "Crear directorios: act/scripts/push/ · act/scripts/pull/ · act/scripts/utils/ · act/scripts/orchestrator/ · act/scripts/tests/",
-        "Mover los 12 push_*.py → act/scripts/push/",
-        "Mover los 12 pull_*.py → act/scripts/pull/",
-        "Mover diff.py → act/scripts/utils/diff.py",
-        "Mover validate_api.py → act/scripts/utils/validate_api.py",
-        "Mover act/tests/ completo → act/scripts/tests/ (conftest.py, __init__.py, test_diff.py, 24 test_push/pull_*.py)",
-        "Eliminar deploy.py — será orchestrator.py en Fase 4",
-        "Eliminar validate_api_v2.py — auth incorrecto, hallazgos ya incorporados",
-        "Eliminar audit_examples.py — sin uso activo",
-        "Actualizar imports relativos en cada script movido si los hay",
-        "Verificar que ningún script usa google.auth.default() — solo gcloud auth print-access-token",
-        "Verificar que push_playbooks.py usa Full Update (GET completo → modificar → PATCH sin updateMask)",
-        "Correr pytest act/scripts/tests/ -q → 100% PASS antes de cerrar la fase"
-      ],
-      outputs: []
+      pasos: [],
+      outputs: [],
+      operaciones: [
+        { tipo: 'crear', items: [
+            'act/scripts/push/', 'act/scripts/pull/', 'act/scripts/utils/', 'act/scripts/tests/'
+        ]},
+        { tipo: 'mover', destino: 'act/scripts/push/', items: [
+            { archivo: 'act/push_playbooks.py', nota: 'Full Update — bug europe-west1' },
+            { archivo: 'act/push_examples.py', nota: '' },
+            { archivo: 'act/push_tools.py', nota: '' },
+            { archivo: 'act/push_intents.py', nota: '' },
+            { archivo: 'act/push_entity_types.py', nota: '' },
+            { archivo: 'act/push_webhooks.py', nota: '' },
+            { archivo: 'act/push_generators.py', nota: '' },
+            { archivo: 'act/push_flows.py', nota: '' },
+            { archivo: 'act/push_pages.py', nota: '' },
+            { archivo: 'act/push_agent_config.py', nota: '' },
+            { archivo: 'act/push_environments.py', nota: '' },
+            { archivo: 'act/push_versions.py', nota: '' }
+        ]},
+        { tipo: 'mover', destino: 'act/scripts/pull/', items: [
+            { archivo: 'act/pull_playbooks.py', nota: '' },
+            { archivo: 'act/pull_examples.py', nota: '' },
+            { archivo: 'act/pull_tools.py', nota: '' },
+            { archivo: 'act/pull_intents.py', nota: '' },
+            { archivo: 'act/pull_entity_types.py', nota: '' },
+            { archivo: 'act/pull_webhooks.py', nota: '' },
+            { archivo: 'act/pull_generators.py', nota: '' },
+            { archivo: 'act/pull_flows.py', nota: '' },
+            { archivo: 'act/pull_pages.py', nota: '' },
+            { archivo: 'act/pull_agent_config.py', nota: '' },
+            { archivo: 'act/pull_environments.py', nota: '' },
+            { archivo: 'act/pull_versions.py', nota: '' }
+        ]},
+        { tipo: 'mover', destino: 'act/scripts/utils/', items: [
+            { archivo: 'act/diff.py', nota: 'mantener intacto — se amplía en Fase 3' },
+            { archivo: 'act/validate_api.py', nota: '' }
+        ]},
+        { tipo: 'mover', archivo: 'act/deploy.py', destino: 'act/scripts/deploy.py', nota: 'conserva contenido — se reescribe en Fase 4' },
+        { tipo: 'mover', archivo: 'act/tests/', destino: 'act/scripts/tests/', nota: 'carpeta completa: conftest.py · __init__.py · test_diff.py · 12 test_push_*.py · 12 test_pull_*.py' },
+        { tipo: 'eliminar', items: [
+            { archivo: 'act/validate_api_v2.py', nota: 'auth incorrecto — hallazgos incorporados en validate_api.py' },
+            { archivo: 'act/audit_examples.py', nota: 'sin uso activo' }
+        ]},
+        { tipo: 'verificar', items: [
+            { archivo: 'imports relativos', nota: 'actualizar en cada script movido si los hay' },
+            { archivo: 'google.auth.default()', nota: 'ningún script debe usarlo — solo gcloud auth print-access-token' }
+        ]},
+        { tipo: 'ejecutar', archivo: 'pytest act/scripts/tests/ -q', nota: '100% PASS antes de cerrar la fase' }
+      ]
     },
     val: { grupos: [{ title: "Verificación", items: [
       "act/ raíz contiene solo scripts/ — sin .py sueltos",
-      "act/scripts/push/ tiene 12 push_*.py",
-      "act/scripts/pull/ tiene 12 pull_*.py",
+      "act/scripts/push/ tiene exactamente 12 push_*.py",
+      "act/scripts/pull/ tiene exactamente 12 pull_*.py",
       "act/scripts/utils/ tiene diff.py y validate_api.py",
+      "act/scripts/deploy.py existe (movido de act/deploy.py)",
       "act/scripts/tests/ tiene conftest.py + __init__.py + test_diff.py + 24 test_*.py",
-      "deploy.py, validate_api_v2.py, audit_examples.py eliminados",
+      "validate_api_v2.py y audit_examples.py eliminados",
       "pytest act/scripts/tests/ -q → 100% PASS",
       "Ningún script usa google.auth.default()",
       "push_playbooks.py usa Full Update sin updateMask"
     ] }], decisions: [] } },
-  { id: 3, title: "diff_pipeline.py", subtitle: "Visibilidad de cambios en 3 dimensiones", tag: "py", tagLabel: ".py", llm: { objetivo: "Mantener diff.py y crear diff_pipeline.py con tres modos.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--git coincide con git status", "--cx detecta cambios reales", "--all produce tabla ASCII"] }], decisions: [] } },
-  { id: 4, title: "Orquestador", subtitle: "Pipeline de 8 pasos — reemplaza deploy.py", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear orchestrator.py con el flujo completo.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--dry-run sin errores", "Orden snapshot: POST→PATCH→DELETE", "deploy.py eliminado"] }], decisions: [] } },
-  { id: 5, title: "Inventario .py", subtitle: "generate_cx_petal_artefacts_inventory.py → act_cx_petal_artefacts_inventory.json", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear act/scripts/utils/generate_cx_petal_artefacts_inventory.py que produce docs/data/act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["act_cx_petal_artefacts_inventory.json válido", "12 tipos de artefactos", "en .gitignore"] }], decisions: [] } },
-  { id: 6, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Vista completa del estado del sistema", tag: "html", tagLabel: ".html", llm: { objetivo: "Crear docs/panels/act_cx_petal_artefacts_inventory.html que consume act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Sin errores de consola", "Filtros funcionan", "Estado coincide con --cx"] }], decisions: [] } },
-  { id: 7, title: "act_deploy.html", subtitle: "Panel de commits — 8 pasos del pipeline", tag: "html", tagLabel: ".html", llm: { objetivo: "Actualizar act_deploy.html para consumir act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Paso 1 desde act_cx_petal_artefacts_inventory.json", "8 pasos en orden", "Estado en localStorage"] }], decisions: [] } },
+  { id: 3, title: "CX_inventory.py", subtitle: "generate_cx_petal_artefacts_inventory.py → act_cx_petal_artefacts_inventory.json", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear act/scripts/utils/generate_cx_petal_artefacts_inventory.py que produce docs/data/act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["act_cx_petal_artefacts_inventory.json válido", "12 tipos de artefactos", "en .gitignore"] }], decisions: [] } },
+  { id: 4, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Vista completa del estado del sistema", tag: "html", tagLabel: ".html", llm: { objetivo: "Crear docs/panels/act_cx_petal_artefacts_inventory.html que consume act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Sin errores de consola", "Filtros funcionan", "Estado coincide con --cx"] }], decisions: [] } },
+  { id: 5, title: "act_deploy.html", subtitle: "Panel de commits — 8 pasos del pipeline", tag: "html", tagLabel: ".html", llm: { objetivo: "Actualizar act_deploy.html para consumir act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Paso 1 desde act_cx_petal_artefacts_inventory.json", "8 pasos en orden", "Estado en localStorage"] }], decisions: [] } },
+  { id: 6, title: "deploy.py", subtitle: "Reescribir act/scripts/deploy.py — pipeline de 8 pasos", tag: "py", tagLabel: ".py", llm: { objetivo: "Reescribir act/scripts/deploy.py desde cero con el pipeline completo de 8 pasos, corrigiendo el bug del orden del snapshot y añadiendo idempotencia, LRO polling y gates humanos.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--dry-run sin errores", "Orden snapshot: POST versión → PATCH environment → DELETE versión antigua", "LRO polling: espera done:true antes de continuar", "displayName presente en POST /versions", "deploy.py antiguo (act/deploy.py) ya no existe — reemplazado"] }], decisions: [] } },
+  { id: 7, title: "diff_pipeline — TBD", subtitle: "Pendiente de definir tras act_deploy.html — puede integrarse en deploy.py", tag: "py", tagLabel: ".py", llm: { objetivo: "Decidir si diff_pipeline.py es un archivo separado o se integra como módulo dentro de deploy.py. Definir tras completar Fase 5 (act_deploy.html) y Fase 6 (deploy.py).", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--git coincide con git status", "--cx detecta cambios reales", "--all produce tabla ASCII"] }], decisions: [] } },
   { id: 8, title: "validate_pipeline", subtitle: "Smoke test pre-deploy de extremo a extremo", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear validate_pipeline.py con smoke test completo.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Todos PASS", "Environments coherentes", "Exit code 0"] }], decisions: [] } },
   { id: 9, title: "ACT CI/CD", subtitle: "CI/CD completo — .github/workflows/", tag: "ci", tagLabel: "ACT CI/CD", llm: { objetivo: "Crear deploy.yml, staging.yml y production.yml.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Tres .yml sin errores", "deploy.yml se dispara en push", "production.yml requiere aprobación"] }], decisions: [] } }
 ];
@@ -832,6 +878,26 @@ function renderGoalPhase(p, ps) {
       ${renderList(g.scope, false)}
     </div>`;
 
+  const f = g.filosofia;
+  const filosofiaHtml = `
+    <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.4);color:#ca8a04;font-size:11px;font-weight:600;margin-bottom:12px;">
+      ⚠ WIP — ejemplos pendientes de revisión
+    </div>
+    <div class="llm-section">
+      <div class="llm-section-title">Norte</div>
+      <p style="font-size:14px;font-weight:600;color:var(--text)">${f.norte}</p>
+      <p style="margin-top:8px;color:var(--text-2);font-size:13px">${f.porQue}</p>
+    </div>
+    <div class="llm-section">
+      <div class="llm-section-title">Principios</div>
+      <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px">
+        ${f.principios.map(p => `<li style="color:var(--text)">
+          <span style="font-weight:600">${p.titulo}</span>
+          <span style="color:var(--text-2);font-size:12px;display:block;margin-top:2px">${p.desc}</span>
+        </li>`).join('')}
+      </ol>
+    </div>`;
+
   const constraintsHtml = `
     <div class="llm-section">
       <div class="llm-section-title">Constraints no negociables</div>
@@ -865,6 +931,7 @@ function renderGoalPhase(p, ps) {
     </button>`;
 
   return makeBlock('ctx', '🎯', 'Qué construimos — contexto del proyecto', 'goal-ctx', ctxHtml, true)
+    + makeBlock('ctx', '🧭', 'Filosofía — por qué este pipeline se construye así', 'goal-filosofia', filosofiaHtml, false)
     + makeBlock('llm', '📦', 'Output esperado y scope', 'goal-llm', llmHtml, true)
     + makeBlock('val', '⚠️', 'Constraints no negociables', 'goal-constraints', constraintsHtml, true)
     + makeBlock('ref', '🗺️', 'Mapa de fases — 9 fases en total', 'goal-ref', refHtml, true)
@@ -996,9 +1063,89 @@ function renderPhase0(p, ps) {
     + renderMdBlock(p);
 }
 
+function renderOperaciones(ops) {
+  const TIPO_CFG = {
+    crear:    { label: 'CREAR',    bg: 'rgba(59,130,246,.15)',  color: '#60a5fa' },
+    mover:    { label: 'MOVER',    bg: 'rgba(100,116,139,.15)', color: 'var(--text-2)' },
+    eliminar: { label: 'ELIMINAR', bg: 'rgba(239,68,68,.15)',   color: '#f87171' },
+    verificar:{ label: 'VERIFICAR',bg: 'rgba(234,179,8,.15)',   color: '#facc15' },
+    ejecutar: { label: 'EJECUTAR', bg: 'rgba(168,85,247,.15)',  color: '#c084fc' },
+  };
+  const makePill = (tipo, customLabel) => {
+    const cfg = TIPO_CFG[tipo] || TIPO_CFG.mover;
+    const label = customLabel !== undefined ? customLabel : cfg.label;
+    return `<span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em;background:${cfg.bg};color:${cfg.color}">${label}</span>`;
+  };
+  const rows = ops.map(op => {
+    if (op.items) {
+      if (op.tipo === 'crear') {
+        const pill = makePill(op.tipo);
+        // items are strings — header row + individual sub-rows (same structure as MOVER)
+        const headerRow = `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:6px 10px 4px 0;white-space:nowrap">${pill}</td>
+          <td style="padding:6px 10px 4px 0" colspan="2"></td>
+        </tr>`;
+        const subRows = op.items.map(f => `<tr>
+          <td style="padding:2px 10px 2px 0"></td>
+          <td style="padding:2px 10px 2px 16px"><code style="font-size:11px;color:var(--text)">${f}</code></td>
+          <td style="padding:2px 0"></td>
+        </tr>`).join('');
+        return headerRow + subRows;
+      } else {
+        // items are objects {archivo, nota} — header row + indented sub-rows
+        // For MOVER groups: destination goes inside the pill label
+        const pillLabel = (op.tipo === 'mover' && op.destino)
+          ? `MOVER a ${op.destino}`
+          : TIPO_CFG[op.tipo].label;
+        const pill = makePill(op.tipo, pillLabel);
+        const headerRow = `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:6px 10px 4px 0;white-space:nowrap" colspan="3">${pill}</td>
+        </tr>`;
+        const subRows = op.items.map(item => {
+          const nota = item.nota ? `<span style="font-size:11px;color:var(--text-3)">${item.nota}</span>` : '';
+          return `<tr>
+            <td style="padding:2px 10px 2px 0"></td>
+            <td style="padding:2px 10px 2px 16px"><code style="font-size:11px;color:var(--text)">${item.archivo}</code></td>
+            <td style="padding:2px 0">${nota}</td>
+          </tr>`;
+        }).join('');
+        return headerRow + subRows;
+      }
+    } else {
+      // Single operation
+      // For MOVER with destino: destination goes inside the pill label
+      const pillLabel = (op.tipo === 'mover' && op.destino)
+        ? `MOVER a ${op.destino}`
+        : undefined;
+      const pill = makePill(op.tipo, pillLabel);
+      const archivo = `<code style="font-size:11px;color:var(--text)">${op.archivo}</code>`;
+      const nota = op.nota ? `<span style="font-size:11px;color:var(--text-3)">${op.nota}</span>` : '';
+      return `<tr><td style="padding:5px 10px 5px 0;white-space:nowrap">${pill}</td><td style="padding:5px 10px 5px 0">${archivo}</td><td style="padding:5px 0">${nota}</td></tr>`;
+    }
+  }).join('');
+  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums">
+    <thead><tr style="border-bottom:1px solid var(--border)">
+      <th style="text-align:left;padding:4px 10px 8px 0;font-size:11px;color:var(--text-3);font-weight:600">Tipo</th>
+      <th style="text-align:left;padding:4px 10px 8px 0;font-size:11px;color:var(--text-3);font-weight:600">Archivo</th>
+      <th style="text-align:left;padding:4px 0 8px;font-size:11px;color:var(--text-3);font-weight:600">Nota</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
 function renderGenericPhase(p, ps) {
-  const llmHtml = `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>
-    <p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:12px">Contenido en construcción — se completa fase por fase en conversación.</p>`;
+  const leerHtml = p.llm.leer && p.llm.leer.length
+    ? `<div class="llm-section"><div class="llm-section-title">Qué leer antes de empezar</div>${renderList(p.llm.leer, false)}</div>` : '';
+  const pasosHtml = p.llm.pasos && p.llm.pasos.length
+    ? `<div class="llm-section"><div class="llm-section-title">Pasos de ejecución</div>${renderList(p.llm.pasos, true)}</div>` : '';
+  const opHtml = p.llm.operaciones && p.llm.operaciones.length
+    ? `<div class="llm-section"><div class="llm-section-title">Operaciones</div>${renderOperaciones(p.llm.operaciones)}</div>` : '';
+  const outputsHtml = p.llm.outputs && p.llm.outputs.length
+    ? `<div class="llm-section"><div class="llm-section-title">Outputs</div>${p.llm.outputs.map(o=>`<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path||o}</div>${o.desc?`<div class="op-desc">${o.desc}</div>`:''}</div></div>`).join('')}</div>` : '';
+  const hasContent = leerHtml || pasosHtml || opHtml || outputsHtml;
+  const llmHtml = `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>`
+    + leerHtml + opHtml + pasosHtml + outputsHtml
+    + (!hasContent ? `<p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:12px">Contenido en construcción — se completa fase por fase en conversación.</p>` : '');
 
   let checkIdx = 0;
   const gruposHtml = p.val.grupos.map(g => {
@@ -1106,30 +1253,78 @@ function validatePhase(id) {
 
 /* ── Status table data para Fase 0 ── */
 const REPO_COMPONENTS = [
-  { file: 'act/push_playbooks.py',        tipo: 'push script', funcion: 'Deploy Playbooks → CX',      estado: 'ok',   nota: 'Full Update — bug europe-west1' },
-  { file: 'act/push_examples.py',         tipo: 'push script', funcion: 'Deploy Examples → CX',       estado: 'ok',   nota: '' },
-  { file: 'act/push_tools.py',            tipo: 'push script', funcion: 'Deploy Tools → CX',          estado: 'ok',   nota: '' },
-  { file: 'act/push_intents.py',          tipo: 'push script', funcion: 'Deploy Intents → CX',        estado: 'ok',   nota: '' },
-  { file: 'act/push_entity_types.py',     tipo: 'push script', funcion: 'Deploy Entity Types → CX',   estado: 'ok',   nota: '' },
-  { file: 'act/push_webhooks.py',         tipo: 'push script', funcion: 'Deploy Webhooks → CX',       estado: 'ok',   nota: '' },
-  { file: 'act/push_generators.py',       tipo: 'push script', funcion: 'Deploy Generators → CX',     estado: 'ok',   nota: '' },
-  { file: 'act/push_flows.py',            tipo: 'push script', funcion: 'Deploy Flows → CX',          estado: 'ok',   nota: '' },
-  { file: 'act/push_pages.py',            tipo: 'push script', funcion: 'Deploy Pages → CX',          estado: 'ok',   nota: '' },
-  { file: 'act/push_agent_config.py',     tipo: 'push script', funcion: 'Deploy Agent Config → CX',   estado: 'ok',   nota: '' },
-  { file: 'act/push_environments.py',     tipo: 'push script', funcion: 'Deploy Environments → CX',   estado: 'ok',   nota: '' },
-  { file: 'act/push_versions.py',         tipo: 'push script', funcion: 'Deploy Versions → CX',       estado: 'ok',   nota: 'LRO polling, rotate_versions_if_full' },
-  { file: 'act/pull_*.py (12)',           tipo: 'pull scripts', funcion: 'Sync inversa CX → local',   estado: 'ok',   nota: 'Espejo de los push' },
-  { file: 'act/diff.py',                  tipo: 'utilidad',    funcion: 'Diff de recursos por campo',  estado: 'ok',   nota: 'Mantener sin cambios' },
-  { file: 'act/deploy.py',               tipo: 'orquestador', funcion: 'Orquestador actual (5 pasos)', estado: 'warn', nota: 'Bug orden snapshot — reemplazar por orchestrator.py' },
-  { file: 'act/validate_api.py',          tipo: 'validación',  funcion: 'Conectividad API (9 checks)', estado: 'ok',   nota: '9/9 PASS en producción' },
-  { file: 'act/validate_api_v2.py',       tipo: 'validación',  funcion: 'Tests edge cases API',        estado: 'del',  nota: 'Auth incorrecto, hallazgos ya incorporados' },
-  { file: 'act/audit_examples.py',        tipo: 'auditoría',   funcion: 'Auditoría de examples',       estado: 'del',  nota: 'Sin uso activo' },
-  { file: 'act/scripts/orchestrator/orchestrator.py',                       tipo: 'orquestador', funcion: 'Nuevo orquestador (8 pasos)', estado: 'new',  nota: 'Crear en Fase 3' },
-  { file: 'act/scripts/utils/diff_pipeline.py',                            tipo: 'utilidad',    funcion: 'Diff 3 dimensiones',          estado: 'new',  nota: 'Crear en Fase 2' },
-  { file: 'act/scripts/utils/generate_cx_petal_artefacts_inventory.py',   tipo: 'utilidad',    funcion: 'Genera inventory.json',       estado: 'new',  nota: 'Crear en Fase 4' },
-  { file: 'docs/panels/act_cx_petal_artefacts_inventory.html',            tipo: 'panel',       funcion: 'Vista completa inventario',   estado: 'new',  nota: 'Crear en Fase 5' },
-  { file: 'docs/data/act_cx_petal_artefacts_inventory.json',              tipo: 'datos',       funcion: 'Estado del sistema (generado)', estado: 'new', nota: 'Crear en Fase 4' },
-  { file: '.github/workflows/*.yml',      tipo: 'ACT CI/CD',   funcion: 'Pipeline automatizado',       estado: 'new',  nota: 'Crear en Fase 8' },
+  { file: 'act/push_playbooks.py',        tipo: 'push script', funcion: 'Deploy Playbooks → CX',      estado: 'ok',   nota: 'Full Update — bug europe-west1',
+    descripcion: 'Sube los playbooks del YAML local al agente Petal en Dialogflow CX',
+    mecanismo: 'LIST remoto → diff (solo needs_update) → GET objeto completo → modifica campos → PATCH sin updateMask. updateMask omitido como workaround del bug en europe-west1.' },
+  { file: 'act/push_examples.py',         tipo: 'push script', funcion: 'Deploy Examples → CX',       estado: 'ok',   nota: '',
+    descripcion: 'Sube los examples al agente Petal en Dialogflow CX',
+    mecanismo: 'LIST remoto → match por UUID (id) con fallback a displayName → diff → POST si nuevo, PATCH parcial con updateMask si hay cambios.' },
+  { file: 'act/push_tools.py',            tipo: 'push script', funcion: 'Deploy Tools → CX',          estado: 'ok',   nota: '',
+    descripcion: 'Sube las herramientas (tools) al agente Petal en Dialogflow CX',
+    mecanismo: 'LIST remoto → diff → PATCH parcial con updateMask si hay cambios, POST si es nuevo. Sin Full Update — updateMask estándar.' },
+  { file: 'act/push_intents.py',          tipo: 'push script', funcion: 'Deploy Intents → CX',        estado: 'ok',   nota: '',
+    descripcion: 'Sube los intents al agente Petal en Dialogflow CX',
+    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
+  { file: 'act/push_entity_types.py',     tipo: 'push script', funcion: 'Deploy Entity Types → CX',   estado: 'ok',   nota: '',
+    descripcion: 'Sube los tipos de entidad al agente Petal en Dialogflow CX',
+    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
+  { file: 'act/push_webhooks.py',         tipo: 'push script', funcion: 'Deploy Webhooks → CX',       estado: 'ok',   nota: '',
+    descripcion: 'Sube los webhooks al agente Petal en Dialogflow CX',
+    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
+  { file: 'act/push_generators.py',       tipo: 'push script', funcion: 'Deploy Generators → CX',     estado: 'ok',   nota: '',
+    descripcion: 'Sube los generadores al agente Petal en Dialogflow CX',
+    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
+  { file: 'act/push_flows.py',            tipo: 'push script', funcion: 'Deploy Flows → CX',          estado: 'ok',   nota: '',
+    descripcion: 'Sube los flujos de conversación al agente Petal en Dialogflow CX',
+    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
+  { file: 'act/push_pages.py',            tipo: 'push script', funcion: 'Deploy Pages → CX',          estado: 'ok',   nota: '',
+    descripcion: 'Sube las páginas de los flujos al agente Petal en Dialogflow CX',
+    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
+  { file: 'act/push_agent_config.py',     tipo: 'push script', funcion: 'Deploy Agent Config → CX',   estado: 'ok',   nota: '',
+    descripcion: 'Sube la configuración general del agente Petal a Dialogflow CX',
+    mecanismo: 'GET → diff → PATCH parcial con updateMask. Sin LIST: recurso único identificado por agent_id. Único push_*.py que no hace LIST primero.' },
+  { file: 'act/push_environments.py',     tipo: 'push script', funcion: 'Deploy Environments → CX',   estado: 'ok',   nota: '',
+    descripcion: 'Sube los environments (staging, producción) al agente Petal en Dialogflow CX',
+    mecanismo: 'LIST remoto → diff → PATCH parcial con updateMask si hay cambios, POST si es nuevo. Patrón estándar.' },
+  { file: 'act/push_versions.py',         tipo: 'push script', funcion: 'Deploy Versions → CX',       estado: 'ok',   nota: 'LRO polling, rotate_versions_if_full',
+    descripcion: 'Crea una nueva versión del agente y elimina las más antiguas si hay demasiadas',
+    mecanismo: 'POST /versions (snapshot inmutable) + GET/LIST. LRO polling hasta done=true. Rotación automática si flow ≥ 20 versions: borra la más antigua antes de crear.' },
+  { file: 'act/pull_*.py (12)',           tipo: 'pull scripts', funcion: 'Sync inversa CX → local',   estado: 'ok',   nota: 'Espejo de los push',
+    descripcion: 'Descarga todos los recursos del agente desde Dialogflow CX a archivos YAML locales',
+    mecanismo: 'GET/LIST de CX → escribe YAMLs locales. Stripea campos read-only para que el round-trip con push reporte unchanged. Nunca POST/PATCH/DELETE.' },
+  { file: 'act/diff.py',                  tipo: 'utilidad',    funcion: 'Diff de recursos por campo',  estado: 'ok',   nota: 'Fase 3 lo envuelve: diff_pipeline.py añade visión de 3 dimensiones sobre él',
+    descripcion: 'Compara lo que tenemos en local con lo que hay en CX y detecta qué ha cambiado',
+    mecanismo: 'Función pura: recibe local+remoto (dicts) → DiffResult(needs_update, update_mask, patch_payload). Recursiva por campos; listas como bloque; ignore_fields con prefix-match.' },
+  { file: 'act/deploy.py',               tipo: 'orquestador', funcion: 'Orquestador actual (5 pasos)', estado: 'warn', nota: 'Fase 4 — reescrito en act/scripts/deploy.py con 8 pasos correctos',
+    descripcion: 'Lanza el despliegue completo del agente, paso a paso',
+    mecanismo: 'Lee git diff → detecta cambios en definitions/ → ejecuta push_*.py en orden topológico (5 pasos) → si se pide snapshot: POST versión → actualiza staging.' },
+  { file: 'act/validate_api.py',          tipo: 'validación',  funcion: 'Conectividad API (9 checks)', estado: 'ok',   nota: '9/9 PASS en producción',
+    descripcion: 'Comprueba que la conexión con la API de Dialogflow CX funciona correctamente',
+    mecanismo: 'Crea Example DUMMY → ejecuta 9 pruebas sobre él (PATCH, DELETE, paginación, rate limit, retry, diff, concurrencia) → limpia via atexit. Sin side effects permanentes.' },
+  { file: 'act/validate_api_v2.py',       tipo: 'validación',  funcion: 'Tests edge cases API',        estado: 'del',  nota: 'Fase 2 — Auth incorrecto; hallazgos consolidados en validate_api.py',
+    descripcion: 'Versión experimental del validador — usa credenciales incorrectas',
+    mecanismo: 'Extiende v1 con 4 tests adicionales (10-13): PATCH+updateMask, displayName duplicado, tamaño máximo, paginación profunda. Usa google.auth (auth incorrecto para este entorno).' },
+  { file: 'act/audit_examples.py',        tipo: 'auditoría',   funcion: 'Auditoría de examples',       estado: 'del',  nota: 'Fase 2 — Sin uso activo; hallazgos incorporados al inventario',
+    descripcion: 'Analiza los examples del agente buscando inconsistencias de nomenclatura',
+    mecanismo: 'LIST de todos los Examples de 6 Playbooks → identifica operationId legacy "petaldatatool" vs "consultarDatos". Read-only, genera reporte de migración.' },
+  { file: 'act/scripts/deploy.py',                                           tipo: 'orquestador', funcion: 'Nuevo deploy — pipeline completo (8 pasos)', estado: 'new',  nota: 'Crear en Fase 4 — reescritura de act/deploy.py',
+    descripcion: 'Orquesta el despliegue completo del agente, paso a paso, con validaciones y gates',
+    mecanismo: 'Reescritura de deploy.py: LIST→diff→push×12→snapshot(POST→PATCH→DELETE)→QA gate→prod' },
+  { file: 'act/scripts/utils/diff_pipeline.py',                            tipo: 'utilidad',    funcion: 'Diff 3 dimensiones',          estado: 'new',  nota: 'Crear en Fase 2',
+    descripcion: 'Comparará cambios en 3 dimensiones: respecto a git, respecto a CX, y tabla completa',
+    mecanismo: 'Por crear en Fase 3. Diff en 3 dimensiones: --git (vs rama), --cx (vs API CX en vivo), --all (tabla completa). Envuelve diff.py añadiendo visión de pipeline.' },
+  { file: 'act/scripts/utils/generate_cx_petal_artefacts_inventory.py',   tipo: 'utilidad',    funcion: 'Genera inventory.json',       estado: 'new',  nota: 'Crear en Fase 4',
+    descripcion: 'Generará un inventario completo del estado actual del agente consultando la API de CX',
+    mecanismo: 'Por crear en Fase 5. Consulta la API CX → genera act_cx_petal_artefacts_inventory.json con estado de los 12 tipos de artefactos.' },
+  { file: 'docs/panels/act_cx_petal_artefacts_inventory.html',            tipo: 'panel',       funcion: 'Vista completa inventario',   estado: 'new',  nota: 'Crear en Fase 5',
+    descripcion: 'Panel web que mostrará el inventario de artefactos del agente con filtros interactivos',
+    mecanismo: 'Por crear en Fase 6. Consume act_cx_petal_artefacts_inventory.json y renderiza estado del sistema con filtros interactivos.' },
+  { file: 'docs/data/act_cx_petal_artefacts_inventory.json',              tipo: 'datos',       funcion: 'Estado del sistema (generado)', estado: 'new', nota: 'Crear en Fase 4',
+    descripcion: 'Archivo de datos generado automáticamente con el estado actual de los 12 tipos de recursos del agente',
+    mecanismo: 'Por crear en Fase 5. Generado por generate_cx_petal_artefacts_inventory.py. No commitear (en .gitignore).' },
+  { file: '.github/workflows/*.yml',      tipo: 'ACT CI/CD',   funcion: 'Pipeline automatizado',       estado: 'new',  nota: 'Crear en Fase 8',
+    descripcion: 'Pipelines de CI/CD que automatizarán el despliegue desde GitHub hasta Dialogflow CX',
+    mecanismo: 'Por crear en Fase 9. deploy.yml usa orchestrator.py. CI/CD con WIF (sin SA keys); concurrency: 1 para evitar deploys simultáneos.' },
 ];
 
 const BADGE = { ok: ['badge-ok','✓ funciona'], warn: ['badge-warn','⚠ reemplazar'], del: ['badge-del','✗ eliminar'], new: ['badge-new','◯ nuevo'] };
@@ -1142,6 +1337,8 @@ function renderStatusTable() {
       <td><code>${fileHtml}</code></td>
       <td>${c.tipo}</td>
       <td>${c.funcion}</td>
+      <td style="font-size:11px">${c.descripcion||''}</td>
+      <td style="font-size:11px;color:var(--text-3);font-family:monospace">${c.mecanismo||''}</td>
       <td><span class="badge ${cls}">${label}</span></td>
       <td style="color:var(--text-3);font-size:11px">${c.nota}</td>
     </tr>`;
@@ -1149,7 +1346,7 @@ function renderStatusTable() {
   return `<div style="overflow-x:auto">
     <table class="st-table" aria-label="Tabla de estado de componentes del repo">
       <thead><tr>
-        <th style="min-width:160px;max-width:220px">Archivo</th><th style="min-width:80px">Tipo</th><th style="min-width:140px">Función</th><th style="min-width:90px">Estado</th><th style="min-width:120px">Observación</th>
+        <th style="min-width:160px;max-width:220px">Archivo</th><th style="min-width:80px">Tipo</th><th style="min-width:140px">Función</th><th style="min-width:160px">Descripción</th><th style="min-width:160px">Mecanismo</th><th style="min-width:90px">Estado</th><th style="min-width:120px">Observación</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -1214,6 +1411,29 @@ function generateMarkdown(phase) {
   if (phase.llm.outputs && phase.llm.outputs.length) {
     md += `## Outputs esperados\n\n`;
     phase.llm.outputs.forEach(o => { md += `- \`${o.path}\` — ${o.desc}\n`; });
+    md += '\n';
+  }
+
+  if (phase.llm.operaciones && phase.llm.operaciones.length) {
+    md += `## Operaciones\n\n`;
+    md += `| Tipo | Archivo | Destino | Nota |\n|------|---------|---------|------|\n`;
+    phase.llm.operaciones.forEach(op => {
+      if (op.items) {
+        if (op.tipo === 'crear') {
+          // CREAR group: list string paths in the archivo column
+          md += `| ${op.tipo.toUpperCase()} | ${op.items.map(f => `\`${f}\``).join(', ')} | — | |\n`;
+        } else {
+          // Group with sub-items: header row + indented sub-rows
+          const destLabel = op.destino ? `→ \`${op.destino}\`` : op.tipo.toUpperCase();
+          md += `| ${op.tipo.toUpperCase()} | **${destLabel}** | | |\n`;
+          op.items.forEach(item => {
+            md += `| | ↳ \`${item.archivo}\` | — | ${item.nota || ''} |\n`;
+          });
+        }
+      } else {
+        md += `| ${op.tipo.toUpperCase()} | \`${op.archivo}\` | ${op.destino ? `\`${op.destino}\`` : '—'} | ${op.nota || ''} |\n`;
+      }
+    });
     md += '\n';
   }
 
