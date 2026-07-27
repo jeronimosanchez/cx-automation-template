@@ -1,0 +1,407 @@
+<title>act_deploy — Deploy Petal 1.0</title>
+<style>
+:root {
+  --bg:#0d1117;--bg-2:#161b22;--bg-3:#21262d;--border:#30363d;
+  --text:#e6edf3;--text-2:#8b949e;--text-3:#656d76;
+  --accent:#3b82f6;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:14px}
+
+/* TOP BAR */
+.topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.topbar-agent{font-weight:700;font-size:15px}
+.topbar-sep{color:var(--border);font-size:18px}
+.topbar-env{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em}
+.topbar-commit{font-size:12px;color:var(--text-3);font-family:monospace}
+.topbar-meta{color:var(--text-3);font-size:12px;margin-left:auto;display:flex;align-items:center;gap:12px}
+.btn{padding:6px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-gate{background:var(--gate);color:#000}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.btn-ghost{background:var(--bg-3);color:var(--text-2);border:1px solid var(--border)}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
+.sidebar-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:0 16px 12px}
+.step-item{display:flex;align-items:flex-start;gap:12px;padding:9px 16px;cursor:pointer;border-left:2px solid transparent;transition:background .1s;position:relative}
+.step-item:hover{background:var(--bg-3)}
+.step-item.active{background:rgba(59,130,246,.08);border-left-color:var(--accent)}
+.step-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;transition:background .2s}
+.s-done .step-badge{background:var(--success);color:#000}
+.s-active .step-badge{background:var(--accent);color:#fff}
+.s-gate .step-badge{background:var(--gate);color:#000}
+.s-error .step-badge{background:var(--error);color:#fff}
+.s-pending .step-badge{background:var(--bg-3);color:var(--text-3);border:1px solid var(--border)}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:13px;font-weight:500;line-height:1.3}
+.s-pending .step-name{color:var(--text-3)}
+.s-active .step-name,.s-gate .step-name{color:var(--text)}
+.step-status-text{font-size:11px;margin-top:2px}
+.s-done .step-status-text{color:#4ade80}
+.s-active .step-status-text{color:#93c5fd}
+.s-gate .step-status-text{color:#fbbf24}
+.s-pending .step-status-text{color:var(--text-3)}
+.step-connector{width:1px;height:6px;background:var(--border);margin-left:27px}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:28px 32px}
+.step-view{display:none;max-width:720px}
+.step-view.visible{display:block}
+.phase-eyebrow{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.phase-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.phase-sub{font-size:14px;color:var(--text-2);margin-bottom:24px;line-height:1.5}
+
+/* GATE BLOCK */
+.gate-block{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:20px 24px;margin-bottom:20px}
+.gate-title{font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.gate-block p{color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px}
+.action-bar{display:flex;gap:10px;margin-top:4px}
+
+/* DIFF */
+.diff-wrap{overflow-x:auto;margin-bottom:20px}
+.diff-table{width:100%;border-collapse:collapse;font-size:13px}
+.diff-table th{text-align:left;padding:6px 12px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.diff-table td{padding:8px 12px;border-bottom:1px solid var(--bg-3);font-variant-numeric:tabular-nums}
+.diff-table tr:last-child td{border-bottom:none}
+.diff-table code{font-size:12px;color:var(--text-2);font-family:monospace}
+.pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.pill-mod{background:rgba(59,130,246,.15);color:#60a5fa}
+.pill-new{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-del{background:rgba(239,68,68,.15);color:#f87171}
+.pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-skip{background:var(--bg-3);color:var(--text-3)}
+
+/* OUTPUT */
+.output-block{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8;overflow-x:auto}
+.output-block .ok{color:#4ade80}
+.output-block .info{color:#60a5fa}
+.output-block .warn{color:#fbbf24}
+.output-block .dim{color:var(--text-3)}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.stat-label{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.stat-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* PROGRESS */
+.progress-wrap{margin-bottom:20px}
+.progress-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bg-3)}
+.progress-item:last-child{border-bottom:none}
+.progress-icon{width:18px;text-align:center;font-size:13px;flex-shrink:0}
+.progress-name{flex:1;font-size:13px;color:var(--text)}
+.progress-status{font-size:12px;color:var(--text-3)}
+.progress-status.ok{color:#4ade80}
+.progress-status.skip{color:var(--text-3)}
+
+/* DONE BANNER */
+.done-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:20px}
+.done-banner p{font-size:13px;color:#4ade80;font-weight:500}
+
+/* SECTION LABEL */
+.slabel{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+</style>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="topbar-agent">Petal 1.0</span>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-env">STAGING</span>
+  <span class="topbar-commit">main · fb867ab</span>
+  <div class="topbar-meta">
+    <span>Último deploy: hace 3 días</span>
+    <button class="btn btn-ghost" onclick="resetDeploy()">↺ Nuevo deploy</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- STEP 1: Inventario CX -->
+    <div class="step-view" id="view-1">
+      <div class="phase-eyebrow">Paso 1 de 8</div>
+      <div class="phase-title">Inventario CX</div>
+      <div class="phase-sub">Snapshot del estado actual del agente Petal en Dialogflow CX.</div>
+      <div class="done-banner"><span>✓</span><p>Inventario generado — 2026-07-28 · 09:41 UTC</p></div>
+      <div class="slabel">Resumen del snapshot</div>
+      <div class="cards-grid">
+        <div class="stat-card"><div class="stat-label">Playbooks</div><div class="stat-value">5</div></div>
+        <div class="stat-card"><div class="stat-label">Examples</div><div class="stat-value">18</div></div>
+        <div class="stat-card"><div class="stat-label">Tools</div><div class="stat-value">3</div></div>
+        <div class="stat-card"><div class="stat-label">Intents</div><div class="stat-value">12</div></div>
+        <div class="stat-card"><div class="stat-label">Entity Types</div><div class="stat-value">4</div></div>
+        <div class="stat-card"><div class="stat-label">Webhooks</div><div class="stat-value">1</div></div>
+        <div class="stat-card"><div class="stat-label">Generators</div><div class="stat-value">2</div></div>
+        <div class="stat-card"><div class="stat-label">Flows</div><div class="stat-value">2</div></div>
+        <div class="stat-card"><div class="stat-label">Pages</div><div class="stat-value">6</div></div>
+        <div class="stat-card"><div class="stat-label">Agent Config</div><div class="stat-value">1</div></div>
+        <div class="stat-card"><div class="stat-label">Environments</div><div class="stat-value">2</div></div>
+        <div class="stat-card"><div class="stat-label">Versions</div><div class="stat-value">5</div></div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Diff -->
+    <div class="step-view" id="view-2">
+      <div class="phase-eyebrow">Paso 2 de 8</div>
+      <div class="phase-title">Diff local vs CX</div>
+      <div class="phase-sub">Comparación entre las definiciones locales y el estado actual del agente en CX.</div>
+      <div class="done-banner"><span>✓</span><p>3 recursos con cambios detectados</p></div>
+      <div class="slabel">Cambios detectados</div>
+      <div class="diff-wrap">
+        <table class="diff-table">
+          <thead><tr><th>Tipo</th><th>Recurso</th><th>Cambio</th><th>Detalle</th></tr></thead>
+          <tbody>
+            <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">MODIFICADO</span></td><td style="color:var(--text-2);font-size:12px">instruction.steps — 2 líneas cambiadas</td></tr>
+            <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">MODIFICADO</span></td><td style="color:var(--text-2);font-size:12px">instruction.steps — 1 línea cambiada</td></tr>
+            <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><span class="pill pill-new">NUEVO</span></td><td style="color:var(--text-2);font-size:12px">No existe en CX</td></tr>
+            <tr><td>Tools</td><td><code>consultar_inventario</code></td><td><span class="pill pill-skip">SIN CAMBIOS</span></td><td style="color:var(--text-3);font-size:12px">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STEP 3: Gate confirmar -->
+    <div class="step-view" id="view-3">
+      <div class="phase-eyebrow">Paso 3 de 8 — Gate humano</div>
+      <div class="phase-title">Confirmar deploy</div>
+      <div class="phase-sub">Revisa los cambios detectados antes de desplegar. Este es el único punto de no retorno.</div>
+      <div class="gate-block">
+        <div class="gate-title">✋ Acción requerida</div>
+        <p>Se van a desplegar <strong style="color:var(--text)">3 recursos</strong> — 2 playbooks modificados y 1 example nuevo. Los recursos sin cambios no se tocan.</p>
+        <div class="action-bar">
+          <button class="btn btn-gate" onclick="advance(3)">Confirmar deploy →</button>
+          <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
+        </div>
+      </div>
+      <div class="slabel">Resumen de lo que se va a desplegar</div>
+      <div class="diff-wrap">
+        <table class="diff-table">
+          <thead><tr><th>Tipo</th><th>Recurso</th><th>Operación</th></tr></thead>
+          <tbody>
+            <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">PATCH (Full Update)</span></td></tr>
+            <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">PATCH (Full Update)</span></td></tr>
+            <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><span class="pill pill-new">POST</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STEP 4: Push recursos -->
+    <div class="step-view" id="view-4">
+      <div class="phase-eyebrow">Paso 4 de 8</div>
+      <div class="phase-title">Push recursos</div>
+      <div class="phase-sub">Desplegando solo los recursos que cambiaron.</div>
+      <div class="done-banner"><span>✓</span><p>3 recursos desplegados correctamente</p></div>
+      <div class="progress-wrap">
+        <div class="progress-item"><span class="progress-icon">✓</span><span class="progress-name">Playbooks (2 modificados)</span><span class="progress-status ok">PATCH · Full Update</span></div>
+        <div class="progress-item"><span class="progress-icon">✓</span><span class="progress-name">Examples (1 nuevo)</span><span class="progress-status ok">POST</span></div>
+        <div class="progress-item"><span class="progress-icon">—</span><span class="progress-name">Tools, Intents, Entity Types...</span><span class="progress-status skip">sin cambios</span></div>
+      </div>
+      <div class="output-block">
+<span class="ok">✓</span> PATCH playbooks/Compra <span class="dim">→ 200 OK</span>
+<span class="ok">✓</span> PATCH playbooks/Orquestador <span class="dim">→ 200 OK</span>
+<span class="ok">✓</span> POST examples/compra_rosas_001 <span class="dim">→ 201 Created</span>
+<span class="dim">— Tools · Intents · Entity Types · Webhooks · Generators · Flows · Pages · Agent Config · Environments · Versions → sin cambios, no enviados</span></div>
+    </div>
+
+    <!-- STEP 5: Crear versión -->
+    <div class="step-view" id="view-5">
+      <div class="phase-eyebrow">Paso 5 de 8</div>
+      <div class="phase-title">Crear versión</div>
+      <div class="phase-sub">POST /versions — snapshot del estado actual del agente en CX.</div>
+      <div class="done-banner"><span>✓</span><p>Versión creada: v6 · 2026-07-28_0942</p></div>
+      <div class="output-block">
+<span class="info">POST</span> /agents/petal-1.0/flows/Default/versions
+<span class="dim">displayName: "2026-07-28_0942"</span>
+<span class="ok">✓</span> 200 OK <span class="dim">→ operationId: op-abc123</span></div>
+    </div>
+
+    <!-- STEP 6: LRO polling -->
+    <div class="step-view" id="view-6">
+      <div class="phase-eyebrow">Paso 6 de 8</div>
+      <div class="phase-title">Esperar versión</div>
+      <div class="phase-sub">Polling hasta que la versión esté lista en CX (done: true).</div>
+      <div class="done-banner"><span>✓</span><p>Versión lista — done: true · 18 s</p></div>
+      <div class="output-block">
+<span class="dim">GET /operations/op-abc123</span>
+<span class="dim">[0s]  done: false</span>
+<span class="dim">[5s]  done: false</span>
+<span class="dim">[10s] done: false</span>
+<span class="dim">[18s] done: <span class="ok">true</span></span>
+<span class="ok">✓</span> Versión 2026-07-28_0942 disponible</div>
+    </div>
+
+    <!-- STEP 7: Actualizar staging -->
+    <div class="step-view" id="view-7">
+      <div class="phase-eyebrow">Paso 7 de 8</div>
+      <div class="phase-title">Actualizar staging</div>
+      <div class="phase-sub">PATCH environment staging → apunta a la nueva versión.</div>
+      <div class="done-banner"><span>✓</span><p>Staging apunta a v6 · 2026-07-28_0942</p></div>
+      <div class="output-block">
+<span class="info">PATCH</span> /environments/staging
+<span class="dim">versionConfigs: [{ version: "v6" }]</span>
+<span class="ok">✓</span> 200 OK <span class="dim">→ staging actualizado</span>
+<span class="dim">Versión antigua (v5) sigue activa en producción</span></div>
+    </div>
+
+    <!-- STEP 8: Gate QA + prod -->
+    <div class="step-view" id="view-8">
+      <div class="phase-eyebrow">Paso 8 de 8 — Gate humano</div>
+      <div class="phase-title">Gate QA + producción</div>
+      <div class="phase-sub">Valida el agente en staging antes de promover a producción.</div>
+      <div class="gate-block">
+        <div class="gate-title">✋ Validación en staging requerida</div>
+        <p>El agente está en staging con la nueva versión (v6). Pruébalo en Dialogflow CX y confirma que todo funciona antes de promover a producción.</p>
+        <div class="action-bar">
+          <button class="btn btn-gate" onclick="advance(8)">Promover a producción →</button>
+          <button class="btn btn-danger" onclick="rollback()">Rollback a v5</button>
+        </div>
+      </div>
+      <div class="slabel">Estado actual de entornos</div>
+      <div class="output-block">
+<span class="info">staging</span>    → v6 · 2026-07-28_0942  <span class="ok">← nuevo</span>
+<span class="warn">producción</span> → v5 · 2026-07-25_1134  ← actual</div>
+    </div>
+
+    <!-- STEP DONE -->
+    <div class="step-view" id="view-done">
+      <div class="phase-eyebrow">Deploy completado</div>
+      <div class="phase-title">✓ Petal 1.0 en producción</div>
+      <div class="phase-sub">Todos los cambios están desplegados y verificados.</div>
+      <div class="done-banner"><span>🌸</span><p>Deploy completado · 2026-07-28 · 09:45 UTC · v6 en producción</p></div>
+      <div class="output-block">
+<span class="ok">✓</span> producción → v6 · 2026-07-28_0942
+<span class="dim">v5 eliminada</span>
+<span class="dim">─────────────────────────────</span>
+<span class="dim">3 recursos desplegados · 9 sin cambios</span>
+<span class="dim">Duración total: 4 min 12 s</span></div>
+      <div style="margin-top:12px"><button class="btn btn-ghost" onclick="resetDeploy()">↺ Nuevo deploy</button></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const STEPS = [
+  {id:1, name:'Inventario CX',        sub:'Snapshot del estado actual',     gate:false},
+  {id:2, name:'Diff local vs CX',     sub:'3 cambios detectados',           gate:false},
+  {id:3, name:'Confirmar deploy',      sub:'Gate — acción requerida',        gate:true},
+  {id:4, name:'Push recursos',         sub:'3 recursos',                     gate:false},
+  {id:5, name:'Crear versión',         sub:'v6 · 2026-07-28_0942',          gate:false},
+  {id:6, name:'Esperar versión (LRO)', sub:'done: true · 18s',              gate:false},
+  {id:7, name:'Actualizar staging',    sub:'staging → v6',                  gate:false},
+  {id:8, name:'Gate QA + producción', sub:'Gate — validar en staging',      gate:true},
+];
+
+// start state: steps 1 & 2 done, step 3 is current gate
+let stepStates = ['done','done','gate','pending','pending','pending','pending','pending'];
+let current = 3;
+let viewingStep = 3;
+
+function stateClass(state) {
+  return {done:'s-done',gate:'s-gate',active:'s-active',pending:'s-pending',error:'s-error'}[state] || 's-pending';
+}
+function stateText(state, step) {
+  if(state==='done') return 'Completado';
+  if(state==='gate') return 'Esperando confirmación';
+  if(state==='active') return 'En progreso...';
+  if(state==='pending') return 'Pendiente';
+  return '';
+}
+function badgeContent(state, n) {
+  if(state==='done') return '✓';
+  if(state==='gate') return '!';
+  if(state==='active') return '●';
+  return n;
+}
+
+function renderSidebar() {
+  const sb = document.getElementById('sidebar');
+  let html = '<div class="sidebar-label">Pipeline de deploy</div>';
+  STEPS.forEach((s,i) => {
+    const state = stepStates[i];
+    const sc = stateClass(state);
+    const active = viewingStep === s.id ? ' active' : '';
+    html += `<div class="step-item ${sc}${active}" onclick="viewStep(${s.id})">
+      <div class="step-badge">${badgeContent(state, s.id)}</div>
+      <div class="step-info">
+        <div class="step-name">${s.name}</div>
+        <div class="step-status-text">${stateText(state, s)}</div>
+      </div>
+    </div>`;
+    if(i < STEPS.length-1) html += '<div class="step-connector"></div>';
+  });
+  sb.innerHTML = html;
+}
+
+function viewStep(id) {
+  viewingStep = id;
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  const v = document.getElementById('view-'+id);
+  if(v) v.classList.add('visible');
+  renderSidebar();
+}
+
+function advance(fromStep) {
+  const idx = fromStep - 1;
+  stepStates[idx] = 'done';
+  if(fromStep === 8) {
+    // deploy done
+    viewingStep = 'done';
+    document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+    document.getElementById('view-done').classList.add('visible');
+    renderSidebar();
+    return;
+  }
+  const nextIdx = idx + 1;
+  if(nextIdx < STEPS.length) {
+    stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
+    // auto-advance non-gate steps after short delay
+    if(!STEPS[nextIdx].gate) {
+      // mark remaining as done up to next gate or end
+      setTimeout(() => completeAuto(nextIdx), 600);
+    }
+    current = STEPS[nextIdx].id;
+    viewStep(current);
+  }
+}
+
+function completeAuto(idx) {
+  stepStates[idx] = 'done';
+  const nextIdx = idx + 1;
+  if(nextIdx < STEPS.length) {
+    stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
+    current = STEPS[nextIdx].id;
+    viewStep(current);
+    if(!STEPS[nextIdx].gate) setTimeout(() => completeAuto(nextIdx), 800);
+  }
+  renderSidebar();
+}
+
+function cancelDeploy() {
+  if(confirm('¿Cancelar el deploy? No se habrá desplegado nada.')) resetDeploy();
+}
+function rollback() {
+  alert('Rollback: staging volvería a apuntar a v5. Funcionalidad completa en la versión final.');
+}
+function resetDeploy() {
+  stepStates = ['done','done','gate','pending','pending','pending','pending','pending'];
+  current = 3; viewingStep = 3;
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  viewStep(3);
+}
+
+// init
+viewStep(3);
+renderSidebar();
+</script>
