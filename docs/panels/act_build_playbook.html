@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACT Build Playbook</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --accent-indigo: #6366f1;
+    --accent-emerald: #10b981;
+    --accent-amber: #f59e0b;
+
+    --bg: #ffffff;
+    --bg-2: #f6f8fa;
+    --bg-3: #eaeef2;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --text-2: #57606a;
+    --text-3: #5c6872;
+
+    --nav-bg: #0d1117;
+    --nav-border: #21262d;
+
+    --llm-bg: #eff6ff;
+    --llm-border: #bfdbfe;
+    --llm-header: #1d4ed8;
+    --val-bg: #fffbeb;
+    --val-border: #fde68a;
+    --val-header: #92400e;
+    --ctx-bg: #f0fdf4;
+    --ctx-border: #bbf7d0;
+    --ctx-header: #166534;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --bg-2: #161b22; --bg-3: #21262d; --border: #30363d;
+      --text: #e6edf3; --text-2: #8b949e; --text-3: #6e7681;
+      --llm-bg: #0f172a; --llm-border: #1e3a5f; --llm-header: #93c5fd;
+      --val-bg: #1c1400; --val-border: #78350f; --val-header: #fcd34d;
+      --ctx-bg: #052e16; --ctx-border: #14532d; --ctx-header: #86efac;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --bg-2: #f6f8fa; --bg-3: #eaeef2; --border: #d0d7de;
+    --text: #1f2328; --text-2: #57606a; --text-3: #5c6872;
+    --llm-bg: #eff6ff; --llm-border: #bfdbfe; --llm-header: #1d4ed8;
+    --val-bg: #fffbeb; --val-border: #fde68a; --val-header: #92400e;
+    --ctx-bg: #f0fdf4; --ctx-border: #bbf7d0; --ctx-header: #166534;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --bg-2: #161b22; --bg-3: #21262d; --border: #30363d;
+    --text: #e6edf3; --text-2: #8b949e; --text-3: #6e7681;
+    --llm-bg: #0f172a; --llm-border: #1e3a5f; --llm-header: #93c5fd;
+    --val-bg: #1c1400; --val-border: #78350f; --val-header: #fcd34d;
+    --ctx-bg: #052e16; --ctx-border: #14532d; --ctx-header: #86efac;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--nav-border);
+    flex-shrink: 0;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .topbar-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0 10px;
+    border-bottom: 1px solid var(--nav-border);
+  }
+  .topbar-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #e6edf3;
+  }
+  .topbar-sub {
+    font-size: 11px;
+    color: #8b949e;
+  }
+  .topbar-progress-wrap {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar-progress-bar {
+    width: 120px;
+    height: 3px;
+    background: #21262d;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .topbar-progress-fill {
+    height: 100%;
+    background: var(--accent-emerald);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .topbar-progress-label {
+    font-size: 11px;
+    color: #8b949e;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── PHASE TABS ── */
+  .phase-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .phase-tabs::-webkit-scrollbar { display: none; }
+
+  .phase-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+    min-width: 100px;
+    max-width: 130px;
+    transition: background 0.12s, border-color 0.12s;
+    position: relative;
+  }
+  .phase-tab:hover { background: #161b22; border-color: #30363d; }
+  .phase-tab.active {
+    background: #1f2937;
+    border-color: var(--accent-indigo);
+  }
+  .phase-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 2px;
+    background: var(--accent-indigo);
+    border-radius: 1px;
+  }
+
+  .tab-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+  .tab-num {
+    font-size: 13px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: #8b949e;   /* dark non-active: gris visible ~5:1 sobre #0d1117 */
+  }
+  .phase-tab.active .tab-num { color: #e6edf3; } /* dark active: blanco ~14:1 sobre #1f2937 */
+  /* Pastillas sólidas — fondo + texto blanco. Ratios WCAG 2.0 AA (#fff sobre fondo):
+     .tag-py  #2563eb ~5.9:1 ✓ | .tag-html #c2410c ~4.6:1 ✓ | .tag-ci #7c3aed ~4.7:1 ✓
+     .tag-audit #4b5563 ~7.2:1 ✓ | .tag-goal #047857 ~5.5:1 ✓                         */
+  .tab-tag {
+    margin-left: auto;
+    font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.03em;
+  }
+  .tag-py    { background: #2563eb; }
+  .tag-html  { background: #c2410c; }
+  .tag-ci    { background: #7c3aed; }
+  .tag-audit { background: #4b5563; }
+  .tag-goal  { background: #047857; }
+
+  .tab-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: #8b949e;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+  .phase-tab.active .tab-name { color: #e6edf3; }
+  .phase-tab.done-tab .tab-name { color: #7d8590; } /* #7d8590 on #0d1117 ≈ 5.1:1 */
+
+  /* ── LIGHT MODE — tab cards presencia visual + contraste ── */
+  @media (prefers-color-scheme: light) {
+    .tab-num { color: #4b5563; } /* light non-active: ~7.7:1 sobre #f6f8fa ✓ */
+    .phase-tab { background: #f6f8fa; border-color: #d0d7de; }
+    .phase-tab:hover { background: #eaeef2; border-color: #d0d7de; }
+    .phase-tab.active { background: #1f2937; border-color: var(--accent-indigo); }
+    .phase-tab.active .tab-num { color: #e6edf3; } /* #1f2328 on #1f2937 = 1.08:1 ✗ → #e6edf3 on #1f2937 = 12.42:1 ✓ */
+    .tab-name { color: #4b5563; }          /* ~7.7:1 sobre #f6f8fa ✓ */
+    .phase-tab.active .tab-name { color: #e6edf3; }
+    .phase-tab.done-tab .tab-name { color: #6b7280; }
+  }
+  :root[data-theme="light"] .tab-num { color: #4b5563; } /* light non-active: ~7.7:1 sobre #f6f8fa ✓ */
+  :root[data-theme="light"] .phase-tab { background: #f6f8fa; border-color: #d0d7de; }
+  :root[data-theme="light"] .phase-tab:hover { background: #eaeef2; border-color: #d0d7de; }
+  :root[data-theme="light"] .phase-tab.active { background: #1f2937; border-color: var(--accent-indigo); }
+  :root[data-theme="light"] .phase-tab.active .tab-num { color: #e6edf3; } /* idem — 12.42:1 ✓ */
+  :root[data-theme="light"] .tab-name { color: #4b5563; }
+  :root[data-theme="light"] .phase-tab.active .tab-name { color: #e6edf3; }
+  :root[data-theme="light"] .phase-tab.done-tab .tab-name { color: #6b7280; }
+
+  /* ── CONTENT ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+  .content::-webkit-scrollbar { width: 6px; }
+  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .content-inner {
+    max-width: 820px;
+    padding: 28px 32px;
+    margin: 0 auto;
+  }
+
+  .phase-header {
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 5px;
+  }
+  .phase-title { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .phase-subtitle { font-size: 13px; color: var(--text-2); margin-top: 4px; }
+
+  /* ── BLOCKS ── */
+  .block { border-radius: 6px; border: 1px solid; overflow: hidden; margin-bottom: 14px; }
+  .block-header {
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    cursor: pointer; user-select: none;
+  }
+  .block-header .bh-toggle { margin-left: auto; font-size: 10px; opacity: 0.6; transition: transform 0.2s; }
+  .block-header.collapsed .bh-toggle { transform: rotate(-90deg); }
+
+  .block.ctx { border-color: var(--ctx-border); }
+  .block.ctx .block-header { background: var(--ctx-bg); color: var(--ctx-header); }
+  .block.llm { border-color: var(--llm-border); }
+  .block.llm .block-header { background: var(--llm-bg); color: var(--llm-header); }
+  .block.val { border-color: var(--val-border); }
+  .block.val .block-header { background: var(--val-bg); color: var(--val-header); }
+
+  .block-body { padding: 20px; background: var(--bg); }
+  .block-body.hidden { display: none; }
+
+  /* LLM content */
+  .llm-section { margin-bottom: 18px; }
+  .llm-section:last-child { margin-bottom: 0; }
+  .llm-section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 8px;
+  }
+  .llm-section p { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+
+  .llm-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .llm-list li { font-size: 13px; color: var(--text-2); padding-left: 14px; position: relative; line-height: 1.5; }
+  .llm-list li::before { content: '·'; position: absolute; left: 0; color: var(--text-3); font-weight: 700; }
+  .llm-list.steps { counter-reset: steps; }
+  .llm-list.steps li { padding-left: 22px; }
+  .llm-list.steps li::before { counter-increment: steps; content: counter(steps) '.'; font-size: 11px; font-weight: 600; color: var(--text-3); top: 1px; }
+
+  /* Context grid */
+  .ctx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ctx-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 5px; padding: 12px 14px; }
+  .ctx-card-title { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+  .ctx-card p { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+  .ctx-card ul { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+  .ctx-card ul li { font-size: 12px; color: var(--text-2); padding-left: 10px; position: relative; }
+  .ctx-card ul li::before { content: '·'; position: absolute; left: 0; color: var(--text-3); }
+
+  code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px; background: var(--bg-3); padding: 1px 5px; border-radius: 3px; }
+
+  .code-block {
+    background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 12px; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px; color: var(--text); line-height: 1.6;
+    overflow-x: auto; margin-top: 8px; white-space: pre;
+  }
+
+  .output-path {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 4px; margin-bottom: 8px;
+  }
+  .output-path:last-child { margin-bottom: 0; }
+  .op-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .op-path { font-family: 'SF Mono', monospace; font-size: 12px; color: var(--accent-indigo); font-weight: 500; }
+  .op-desc { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  .template-block { background: var(--bg-2); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .template-label { padding: 6px 12px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border); background: var(--bg-3); }
+
+  /* Checklist */
+  .checklist-group { margin-bottom: 18px; }
+  .checklist-group:last-child { margin-bottom: 0; }
+  .checklist-group-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-3); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+  .checklist-group-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .checklist { display: flex; flex-direction: column; gap: 7px; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px;
+    border-radius: 4px; border: 1px solid var(--border); background: var(--bg-2);
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  }
+  .check-item:hover { border-color: var(--accent-amber); }
+  .check-item.checked { border-color: var(--accent-emerald); background: rgba(16,185,129,0.05); }
+  .check-box {
+    width: 15px; height: 15px; border-radius: 3px; border: 1.5px solid var(--border);
+    flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: transparent; transition: all 0.15s;
+  }
+  .check-item.checked .check-box { background: var(--accent-emerald); border-color: var(--accent-emerald); color: #fff; }
+  .check-text { font-size: 13px; color: var(--text-2); line-height: 1.5; flex: 1; }
+  .check-item.checked .check-text { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--accent-emerald); }
+
+  /* Decisions */
+  .decisions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .decision-item { padding: 12px 14px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-2); }
+  .decision-q { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+  .decision-opts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .decision-opt {
+    padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); cursor: pointer; color: var(--text-2);
+    background: var(--bg); transition: all 0.15s;
+  }
+  .decision-opt:hover { border-color: var(--accent-indigo); color: var(--accent-indigo); }
+  .decision-opt.selected { background: var(--accent-indigo); border-color: var(--accent-indigo); color: #fff; }
+
+  .notes-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; margin-top: 18px; }
+  .notes-area {
+    width: 100%; min-height: 68px; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;
+    line-height: 1.5; resize: vertical; margin-bottom: 14px; transition: border-color 0.15s;
+  }
+  .notes-area:focus { outline: 2px solid var(--accent-indigo); outline-offset: 0; border-color: var(--accent-indigo); }
+  .notes-area::placeholder { color: var(--text-3); }
+
+  .validate-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px;
+    border-radius: 5px; border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+    font-family: inherit; background: var(--accent-indigo); color: #fff;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .validate-btn:hover { background: #5254cc; }
+  .validate-btn:active { transform: scale(0.98); }
+  .validate-btn.validated { background: var(--accent-emerald); cursor: default; }
+  .validate-btn.validated:hover { background: var(--accent-emerald); }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 50vh; color: var(--text-3); text-align: center;
+  }
+  .empty-state .es-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.35; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── REF BLOCKS ── */
+  .block.ref { border-color: #30363d; }
+  .block.ref .block-header { background: #161b22; color: #8b949e; }
+  :root[data-theme="light"] .block.ref { border-color: var(--border); }
+  :root[data-theme="light"] .block.ref .block-header { background: var(--bg-2); color: var(--text-2); }
+  /* ── MD BLOCK ── */
+  .block.md { border-color: #30363d; }
+  .block.md .block-header { background: #161b22; color: #8b949e; }
+  :root[data-theme="light"] .block.md { border-color: var(--border); }
+  :root[data-theme="light"] .block.md .block-header { background: var(--bg-2); color: var(--text-2); }
+  @media (prefers-color-scheme: light) {
+    .block.md { border-color: var(--border); }
+    .block.md .block-header { background: var(--bg-2); color: var(--text-2); }
+  }
+  .md-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .md-toolbar-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+    border-radius: 4px; border: 1px solid var(--border); cursor: pointer;
+    font-size: 11px; font-weight: 600; font-family: inherit;
+    background: var(--bg-2); color: var(--text-2); transition: all 0.15s;
+  }
+  .copy-btn:hover { border-color: var(--accent-indigo); color: var(--accent-indigo); }
+  .copy-btn.copied { background: var(--accent-emerald); border-color: var(--accent-emerald); color: #fff; }
+  .md-preview {
+    background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px;
+    padding: 14px 16px; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px; color: var(--text-2); line-height: 1.7;
+    overflow-x: auto; white-space: pre; max-height: 400px; overflow-y: auto;
+  }
+  .md-files { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .md-file-chip {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    border-radius: 4px; background: var(--bg-2); border: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .md-file-chip code { font-size: 11px; color: var(--accent-indigo); }
+  .md-file-chip span { color: var(--text-3); font-size: 11px; }
+
+  /* ── STATUS TABLE ── */
+  .ref-block { margin-bottom: 24px; }
+  .ref-title { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .ref-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .st-table { width: 100%; border-collapse: collapse; font-size: 12px; overflow-x: auto; display: block; }
+  .st-table th { text-align: left; padding: 7px 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); border-bottom: 2px solid var(--border); white-space: nowrap; }
+  .st-table td { padding: 7px 10px; color: var(--text-2); border-bottom: 1px solid var(--border); vertical-align: top; }
+  .st-table td:first-child { word-break: break-word; white-space: normal; min-width: 160px; max-width: 220px; }
+  .st-table tr:last-child td { border-bottom: none; }
+  .st-table tr:hover td { background: var(--bg-2); }
+  .st-table code { font-size: 10.5px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px;
+    border-radius: 10px; font-size: 10px; font-weight: 600; white-space: nowrap;
+  }
+  .badge-ok { background: rgba(16,185,129,0.12); color: #059669; }
+  .badge-warn { background: rgba(245,158,11,0.12); color: #d97706; }
+  .badge-del { background: rgba(239,68,68,0.12); color: #dc2626; }
+  .badge-new { background: rgba(99,102,241,0.12); color: var(--accent-indigo); }
+
+  /* ── TREE VIEW ── */
+  .tree-view {
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px;
+    line-height: 1.8; background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: 4px; padding: 14px 16px; overflow-x: auto; white-space: pre;
+    color: var(--text-2);
+  }
+  .tree-new { color: var(--accent-indigo); font-weight: 600; }
+  .tree-comment { color: var(--text-3); }
+
+  /* ── BUTTON RESETS (phase-tab, block-header convert to <button>) ── */
+  .phase-tab {
+    appearance: none;
+    font-family: inherit;
+    text-align: left;
+  }
+  .block-header {
+    appearance: none;
+    font-family: inherit;
+    width: 100%;
+    text-align: left;
+  }
+  .check-item {
+    font-family: inherit;
+    text-align: left;
+    width: 100%;
+    background: var(--bg-2);
+  }
+  .decision-opt {
+    appearance: none;
+    font-family: inherit;
+  }
+
+  /* ── WCAG 2.0 AA — light theme contrast fixes ─────────────────────────────
+     Scope: only @media (prefers-color-scheme: light) and [data-theme="light"].
+     Dark theme values are untouched.
+     Rationale for each value is documented in the change report.
+  ── */
+  @media (prefers-color-scheme: light) {
+    /* Badges — 10px text on tinted bg, needs 4.5:1 */
+    .badge-ok   { color: #047857; }   /* was #059669 (~3.4:1) → now ~4.9:1 */
+    .badge-warn { color: #92400e; }   /* was #d97706 (~2.9:1) → now ~6.4:1 */
+    .badge-del  { color: #b91c1c; }   /* was #dc2626 (~4.1:1) → now ~5.5:1 */
+    .badge-new  { color: #4338ca; }   /* was #6366f1 (~3.8:1) → now ~6.8:1 */
+
+    /* Accent-indigo as text color — #6366f1 on light bgs fails 4.5:1 */
+    .tree-new          { color: #4338ca; } /* was #6366f1 (~3.8:1 on bg-3) → ~6.8:1 */
+    .op-path           { color: #4338ca; } /* was #6366f1 (~4.2:1 on bg-2) → ~7.4:1 */
+    .md-file-chip code { color: #4338ca; } /* was #6366f1 (~4.2:1 on bg-2) → ~7.4:1 */
+    .decision-opt:hover          { color: #4338ca; border-color: #4338ca; }
+    .decision-opt.selected       { background: #4338ca; border-color: #4338ca; }
+    .copy-btn:hover              { color: #4338ca; border-color: #4338ca; }
+
+    /* Validate button — white text on #6366f1 = 4.47:1, fails */
+    .validate-btn                { background: #4f46e5; } /* white on #4f46e5 = 6.3:1 */
+    .validate-btn:hover          { background: #4338ca; }
+    /* Validated state — white on #10b981 (emerald) = 2.5:1, fails */
+    .validate-btn.validated      { background: #047857; } /* white on #047857 = 5.5:1 */
+    .validate-btn.validated:hover{ background: #047857; }
+
+    /* Check-box checked state — white ✓ on #10b981 = 2.5:1 */
+    .check-item.checked .check-box { background: #047857; border-color: #047857; }
+
+    /* Check-box border (unchecked) — UI component needs 3:1 on adjacent bg */
+    .check-box { border-color: #767e86; } /* was #d0d7de (~1.4:1 on bg-2) → ~3.8:1 */
+  }
+
+  :root[data-theme="light"] .badge-ok   { color: #047857; }
+  :root[data-theme="light"] .badge-warn { color: #92400e; }
+  :root[data-theme="light"] .badge-del  { color: #b91c1c; }
+  :root[data-theme="light"] .badge-new  { color: #4338ca; }
+  :root[data-theme="light"] .tree-new          { color: #4338ca; }
+  :root[data-theme="light"] .op-path           { color: #4338ca; }
+  :root[data-theme="light"] .md-file-chip code { color: #4338ca; }
+  :root[data-theme="light"] .decision-opt:hover          { color: #4338ca; border-color: #4338ca; }
+  :root[data-theme="light"] .decision-opt.selected       { background: #4338ca; border-color: #4338ca; }
+  :root[data-theme="light"] .copy-btn:hover              { color: #4338ca; border-color: #4338ca; }
+  :root[data-theme="light"] .validate-btn                { background: #4f46e5; }
+  :root[data-theme="light"] .validate-btn:hover          { background: #4338ca; }
+  :root[data-theme="light"] .validate-btn.validated      { background: #047857; }
+  :root[data-theme="light"] .validate-btn.validated:hover{ background: #047857; }
+  :root[data-theme="light"] .check-item.checked .check-box { background: #047857; border-color: #047857; }
+  :root[data-theme="light"] .check-box { border-color: #767e86; }
+
+  /* ── FOCUS VISIBLE — outline clar en todos los focusables ── */
+  :focus-visible {
+    outline: 2px solid var(--accent-indigo);
+    outline-offset: 2px;
+  }
+  /* Para elementos donde el outline choca con el borde propio */
+  .check-item:focus-visible,
+  .decision-opt:focus-visible {
+    outline-offset: 0;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-header">
+    <div class="topbar-title">ACT Build Playbook</div>
+    <div class="topbar-sub">cx-automation-template</div>
+    <div class="topbar-progress-wrap" aria-label="Progreso general">
+      <div class="topbar-progress-bar"
+           role="progressbar"
+           aria-valuenow="0" aria-valuemin="0" aria-valuemax="9"
+           aria-labelledby="progressLabel">
+        <div class="topbar-progress-fill" id="progressFill"></div>
+      </div>
+      <div class="topbar-progress-label" id="progressLabel" aria-live="polite">0 / 9 fases</div>
+    </div>
+  </div>
+  <nav class="phase-tabs" id="phaseTabs" role="tablist" aria-label="Fases del playbook"></nav>
+</header>
+
+<main class="content">
+  <div class="content-inner" id="contentInner" aria-live="polite" aria-atomic="false">
+    <div class="empty-state">
+      <div class="es-icon" aria-hidden="true">🏗️</div>
+      <p>Selecciona una fase para comenzar</p>
+    </div>
+  </div>
+</main>
+
+<script>
+const PHASES = [
+  {
+    id: 0,
+    title: 'Objetivo del proyecto',
+    subtitle: 'Por qué existe ACT y qué construimos',
+    tag: 'goal',
+    tagLabel: 'GOAL',
+    special: 'goal',
+    goal: {
+      que: 'Construir el pipeline de deploy automático (ACT) que sincroniza los artefactos de Petal — el agente conversacional de Dialogflow CX — desde el repositorio Git hasta producción, con trazabilidad completa y QA manual y obligatorio.',
+      necesidad: 'Hoy el deploy es manual: un desarrollador ejecuta scripts sueltos, sin orden garantizado, sin snapshot antes de cambios, sin QA automático y sin registro en GitHub. Un error en producción no tiene rollback limpio.',
+      output: 'Pipeline completo operativo: Rama → Commit local → Push GitHub → CX Draft → Snapshot/Staging → QA manual → Producción. 12 recursos CX cubiertos. Deploy idempotente, trazable y reversible.',
+      scope: [
+        'Agente: Petal (floristería online en español)',
+        'Plataforma: Dialogflow CX, región europe-west1',
+        'El sistema ACT puede desplegar y modificar 12 tipos de recursos CX: Playbooks, Examples, Tools, Intents, Entity Types, Webhooks, Generators, Flows, Pages, Agent Config, Environments, Versions',
+        'CI/CD: GitHub Actions con WIF (sin SA keys)',
+        'Repo: cx-automation-template'
+      ],
+      constraints: [
+        'Auth: gcloud auth print-access-token — genera el token de acceso temporal para cada llamada a la API. Nunca google.auth.default(), da problemas en este entorno.',
+        'Headers obligatorios en toda llamada: Authorization: Bearer &lt;token&gt; · Content-Type: application/json · x-goog-user-project: &lt;GCP_PROJECT&gt;. Sin alguno de estos, la API rechaza la petición.',
+        'Idempotencia: LIST → diff → PATCH/POST solo lo que cambió — nunca recrear recursos existentes. Así el deploy es seguro de relanzar sin efectos secundarios.',
+        'Playbooks: Full Update sin updateMask — al modificar un playbook, mandar el objeto completo aunque solo haya cambiado una línea. Bug confirmado del backend de Dialogflow CX en europe-west1.',
+        'Orden del snapshot: POST versión → PATCH environment → DELETE versión antigua. Si borras primero, CX rechaza el borrado porque el environment aún referencia esa versión.',
+        'LRO polling obligatorio en POST /versions: la API responde 200 OK inmediatamente pero la versión sigue procesando. Hay que consultar GET /operations/{id} hasta done:true antes de continuar.',
+        'displayName obligatorio en POST /versions — sin él la API devuelve 200 pero la operación falla silenciosamente con code:3. Incluirlo siempre.',
+        'WIF exclusivamente en CI/CD — la autenticación de GitHub Actions a GCP es vía Workload Identity Federation. Nunca SA keys (credenciales estáticas).',
+        'concurrency: 1 en workflows de GitHub Actions — garantiza que solo corre un deploy a la vez. Evita que dos deploys simultáneos se pisen sobre el mismo agente CX.',
+        'Gates de validación humana: Opus ejecuta cada fase, muestra qué produjo y espera confirmación de Jero antes de avanzar. Jero valida en el HTML marcando la fase como completada.'
+      ],
+      fases: [
+        { n: 1, nombre: 'Auditoría inicial', desc: 'Estado actual del repo y decisiones de estructura' },
+        { n: 2, nombre: 'Rama de trabajo', desc: 'Crear rama feature/act-pipeline' },
+        { n: 3, nombre: 'Diff pipeline', desc: 'diff_pipeline.py — 3 dimensiones de diff' },
+        { n: 4, nombre: 'Orquestador', desc: 'orchestrator.py — 8 pasos con gates' },
+        { n: 5, nombre: 'Inventario', desc: 'generate_cx_petal_artefacts_inventory.py' },
+        { n: 6, nombre: 'Panel visual', desc: 'act_cx_petal_artefacts_inventory.html' },
+        { n: 7, nombre: 'act_deploy.html', desc: 'Panel de control y ejecución de deploy asistido por LLM' },
+        { n: 8, nombre: 'QA pipeline', desc: 'Smoke tests pre-deploy' },
+        { n: 9, nombre: 'ACT CI/CD', desc: 'deploy.yml — GitHub Actions completo' }
+      ]
+    }
+  },
+  {
+    id: 1,
+    title: "Auditoría inicial",
+    subtitle: "Contexto del punto de partida — lee antes de construir",
+    tag: "audit", tagLabel: "Auditoría",
+    special: "auditoria",
+    context: {
+      sistema: { title: "Qué es ACT", body: "Línea de automatización CD que gestiona el despliegue de artefactos al agente conversacional Petal en Dialogflow CX. Forma parte del sistema de 4 líneas: ACT · GEN · QAP · RES." },
+      agente: { title: "Agente Petal", body: "Floristería online en español sobre Dialogflow CX (europe-west1). Arquitectura LLM-pure basada en Playbooks, sin NLU clásico." },
+      recursos: { title: "El sistema ACT puede desplegar y modificar estos 12 tipos de recursos CX", items: ["Playbooks", "Examples", "Tools", "Agent Config", "Flows", "Pages", "Intents", "Entity Types", "Webhooks", "Generators", "Environments", "Versions"] },
+      leyenda: "Leyenda: ✓ funciona — mantener · ⚠ reemplazar — bug o deuda · ✗ eliminar — sin uso activo · ◯ nuevo — por crear"
+    },
+    llm: {
+      objetivo: "Fase de contexto — lee la tabla de estado y el árbol canónico del repo. No ejecutes nada. La construcción empieza en la Fase 2.",
+      leer: [],
+      outputs: [],
+      templates: {
+        auditoria: `| Archivo | Tipo | Función | Estado | Observación |
+|---------|------|---------|--------|-------------|
+| act/push_playbooks.py | push script | Deploy Playbooks → CX | ✓ funciona | Full Update (bug europe-west1) |
+| act/validate_api_v2.py | validación | Tests edge cases API | ✗ eliminar | Auth incorrecto, hallazgos incorporados |
+...`,
+        estructura: `cx-automation-template/
+├── act/
+│   └── scripts/
+│       ├── push/                                         ← NUEVO: 12 push_*.py agrupados
+│       │   ├── push_playbooks.py
+│       │   ├── push_examples.py
+│       │   └── ... (10 más)
+│       ├── pull/                                         ← NUEVO: 12 pull_*.py agrupados
+│       │   ├── pull_playbooks.py
+│       │   └── ... (11 más)
+│       ├── utils/                                        ← NUEVO: utilidades compartidas
+│       │   ├── diff.py
+│       │   ├── validate_api.py
+│       │   ├── diff_pipeline.py                          ← NUEVO: diff 3 dimensiones
+│       │   └── generate_cx_petal_artefacts_inventory.py ← NUEVO: genera inventory.json
+│       ├── orchestrator/                                 ← NUEVO
+│       │   └── orchestrator.py                          ← NUEVO: reemplaza deploy.py
+│       └── tests/
+│           ├── conftest.py
+│           ├── test_diff.py
+│           ├── test_push_*.py (×12)
+│           └── test_pull_*.py (×12)
+├── definitions/                  ← fuente de verdad YAMLs (12 tipos)
+├── docs/
+│   ├── data/
+│   │   └── act_cx_petal_artefacts_inventory.json        ← NUEVO (generado)
+│   └── panels/
+│       ├── act_build_playbook.html
+│       ├── act_cx_petal_artefacts_inventory.html        ← NUEVO: vista completa
+│       ├── act_orchestrator.html
+│       ├── act_deploy.html
+│       └── qap_skills.html
+└── .github/workflows/            ← NUEVO: CI/CD`
+      },
+      pasos: []
+    },
+    val: {
+      grupos: [{
+        title: 'Confirmación de lectura',
+        items: [
+          'He leído la tabla de estado de componentes',
+          'He leído el árbol canónico target',
+          'Entiendo qué archivos se eliminan, cuáles se reemplazan y cuáles son nuevos'
+        ]
+      }],
+      decisions: []
+    }
+  },
+  { id: 2, title: "Push / Pull scripts", subtitle: "Reorganización completa de act/ en la estructura target", tag: "py", tagLabel: ".py",
+    llm: {
+      objetivo: "Reorganizar TODOS los scripts Python de act/ en la estructura target de act/scripts/. No solo push y pull — también utilidades, tests y eliminar los marcados como ✗. Al terminar, act/ raíz solo debe contener la carpeta scripts/.",
+      leer: [
+        "Inventario completo actual en act/: 12 push_*.py, 12 pull_*.py, diff.py, validate_api.py, deploy.py, validate_api_v2.py, audit_examples.py + act/tests/ (28 archivos)",
+        "CLAUDE.md §3 — constraints no negociables (auth, headers, Full Update)",
+        "docs/pipeline_nuevo.md — estructura target"
+      ],
+      pasos: [
+        "Crear directorios: act/scripts/push/ · act/scripts/pull/ · act/scripts/utils/ · act/scripts/orchestrator/ · act/scripts/tests/",
+        "Mover los 12 push_*.py → act/scripts/push/",
+        "Mover los 12 pull_*.py → act/scripts/pull/",
+        "Mover diff.py → act/scripts/utils/diff.py",
+        "Mover validate_api.py → act/scripts/utils/validate_api.py",
+        "Mover act/tests/ completo → act/scripts/tests/ (conftest.py, __init__.py, test_diff.py, 24 test_push/pull_*.py)",
+        "Eliminar deploy.py — será orchestrator.py en Fase 4",
+        "Eliminar validate_api_v2.py — auth incorrecto, hallazgos ya incorporados",
+        "Eliminar audit_examples.py — sin uso activo",
+        "Actualizar imports relativos en cada script movido si los hay",
+        "Verificar que ningún script usa google.auth.default() — solo gcloud auth print-access-token",
+        "Verificar que push_playbooks.py usa Full Update (GET completo → modificar → PATCH sin updateMask)",
+        "Correr pytest act/scripts/tests/ -q → 100% PASS antes de cerrar la fase"
+      ],
+      outputs: []
+    },
+    val: { grupos: [{ title: "Verificación", items: [
+      "act/ raíz contiene solo scripts/ — sin .py sueltos",
+      "act/scripts/push/ tiene 12 push_*.py",
+      "act/scripts/pull/ tiene 12 pull_*.py",
+      "act/scripts/utils/ tiene diff.py y validate_api.py",
+      "act/scripts/tests/ tiene conftest.py + __init__.py + test_diff.py + 24 test_*.py",
+      "deploy.py, validate_api_v2.py, audit_examples.py eliminados",
+      "pytest act/scripts/tests/ -q → 100% PASS",
+      "Ningún script usa google.auth.default()",
+      "push_playbooks.py usa Full Update sin updateMask"
+    ] }], decisions: [] } },
+  { id: 3, title: "diff_pipeline.py", subtitle: "Visibilidad de cambios en 3 dimensiones", tag: "py", tagLabel: ".py", llm: { objetivo: "Mantener diff.py y crear diff_pipeline.py con tres modos.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--git coincide con git status", "--cx detecta cambios reales", "--all produce tabla ASCII"] }], decisions: [] } },
+  { id: 4, title: "Orquestador", subtitle: "Pipeline de 8 pasos — reemplaza deploy.py", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear orchestrator.py con el flujo completo.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--dry-run sin errores", "Orden snapshot: POST→PATCH→DELETE", "deploy.py eliminado"] }], decisions: [] } },
+  { id: 5, title: "Inventario .py", subtitle: "generate_cx_petal_artefacts_inventory.py → act_cx_petal_artefacts_inventory.json", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear act/scripts/utils/generate_cx_petal_artefacts_inventory.py que produce docs/data/act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["act_cx_petal_artefacts_inventory.json válido", "12 tipos de artefactos", "en .gitignore"] }], decisions: [] } },
+  { id: 6, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Vista completa del estado del sistema", tag: "html", tagLabel: ".html", llm: { objetivo: "Crear docs/panels/act_cx_petal_artefacts_inventory.html que consume act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Sin errores de consola", "Filtros funcionan", "Estado coincide con --cx"] }], decisions: [] } },
+  { id: 7, title: "act_deploy.html", subtitle: "Panel de commits — 8 pasos del pipeline", tag: "html", tagLabel: ".html", llm: { objetivo: "Actualizar act_deploy.html para consumir act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Paso 1 desde act_cx_petal_artefacts_inventory.json", "8 pasos en orden", "Estado en localStorage"] }], decisions: [] } },
+  { id: 8, title: "validate_pipeline", subtitle: "Smoke test pre-deploy de extremo a extremo", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear validate_pipeline.py con smoke test completo.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Todos PASS", "Environments coherentes", "Exit code 0"] }], decisions: [] } },
+  { id: 9, title: "ACT CI/CD", subtitle: "CI/CD completo — .github/workflows/", tag: "ci", tagLabel: "ACT CI/CD", llm: { objetivo: "Crear deploy.yml, staging.yml y production.yml.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Tres .yml sin errores", "deploy.yml se dispara en push", "production.yml requiere aprobación"] }], decisions: [] } }
+];
+
+const KEY = 'act_playbook_v1';
+function loadState() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
+function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
+function getPS(s, id) { return s[id] || { status: 'pending', notes: '', checked: [], decisions: {} }; }
+
+let currentPhaseId = null;
+let state = loadState();
+
+function computeStatus(id) {
+  const ps = getPS(state, id);
+  if (ps.status === 'done') return 'done';
+  if ((ps.checked || []).some(Boolean)) return 'active-s';
+  return 'pending';
+}
+
+function updateProgress() {
+  const trackable = PHASES.filter(p => p.special !== 'goal');
+  const done = trackable.filter(p => (state[p.id] || {}).status === 'done').length;
+  document.getElementById('progressFill').style.width = Math.round(done / trackable.length * 100) + '%';
+  document.getElementById('progressLabel').textContent = `${done} / ${trackable.length} fases`;
+  const bar = document.querySelector('.topbar-progress-bar');
+  if (bar) { bar.setAttribute('aria-valuenow', done); bar.setAttribute('aria-valuemax', trackable.length); }
+}
+
+function renderTabs() {
+  const nav = document.getElementById('phaseTabs');
+  nav.innerHTML = '';
+  PHASES.forEach(p => {
+    const status = computeStatus(p.id);
+    const isActive = p.id === currentPhaseId;
+    const tab = document.createElement('button');
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    tab.setAttribute('aria-controls', 'contentInner');
+    tab.setAttribute('aria-label', p.special === 'goal' ? `Objetivo del proyecto` : `Fase ${p.id}: ${p.title} — estado: ${status === 'done' ? 'completada' : status === 'active-s' ? 'en progreso' : 'pendiente'}`);
+    tab.className = 'phase-tab' + (isActive ? ' active' : '') + (status === 'done' ? ' done-tab' : '');
+    const isGoal = p.special === 'goal';
+    tab.innerHTML = `
+      <div class="tab-top">
+        <span class="tab-num" aria-hidden="true">${isGoal ? '★' : p.id}</span>
+        <span class="tab-tag tag-${p.tag}" aria-hidden="true">${p.tagLabel}</span>
+      </div>
+      <div class="tab-name">${p.title}</div>`;
+    tab.addEventListener('click', () => loadPhase(p.id));
+    nav.appendChild(tab);
+  });
+  updateProgress();
+}
+
+function toggleBlock(id) {
+  const body = document.getElementById('bb-' + id);
+  const hdr = document.getElementById('bh-' + id);
+  if (!body) return;
+  const hidden = body.classList.toggle('hidden');
+  hdr.classList.toggle('collapsed', hidden);
+  hdr.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+}
+
+function makeBlock(type, icon, label, id, bodyHtml, startOpen) {
+  return `<div class="block ${type}">
+    <button class="block-header${startOpen ? '' : ' collapsed'}" id="bh-${id}"
+            onclick="toggleBlock('${id}')"
+            aria-expanded="${startOpen ? 'true' : 'false'}"
+            aria-controls="bb-${id}">
+      <span aria-hidden="true">${icon}</span><span>${label}</span>
+      <span class="bh-toggle" aria-hidden="true">▾</span>
+    </button>
+    <div class="block-body${startOpen ? '' : ' hidden'}" id="bb-${id}" role="region" aria-labelledby="bh-${id}">${bodyHtml}</div>
+  </div>`;
+}
+
+function renderList(items, ordered) {
+  return `<ul class="llm-list${ordered ? ' steps' : ''}">${items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+}
+
+function renderGoalPhase(p, ps) {
+  const g = p.goal;
+
+  const ctxHtml = `
+    <div class="llm-section">
+      <div class="llm-section-title">Qué construimos</div>
+      <p>${g.que}</p>
+    </div>
+    <div class="llm-section">
+      <div class="llm-section-title">Por qué existe ACT</div>
+      <p>${g.necesidad}</p>
+    </div>`;
+
+  const llmHtml = `
+    <div class="llm-section">
+      <div class="llm-section-title">Output esperado</div>
+      <p>${g.output}</p>
+    </div>
+    <div class="llm-section">
+      <div class="llm-section-title">Scope</div>
+      ${renderList(g.scope, false)}
+    </div>`;
+
+  const constraintsHtml = `
+    <div class="llm-section">
+      <div class="llm-section-title">Constraints no negociables</div>
+      ${renderList(g.constraints, false)}
+    </div>`;
+
+  const fasesRows = g.fases.map(f => `<tr>
+    <td style="font-variant-numeric:tabular-nums;font-weight:600;color:var(--text)">${f.n}</td>
+    <td style="font-weight:500;color:var(--text)">${f.nombre}</td>
+    <td style="color:var(--text-2)">${f.desc}</td>
+  </tr>`).join('');
+
+  const refHtml = `<p style="font-size:12px; color:var(--text-2); margin-bottom:12px;">
+    Las siguientes 9 fases construyen el sistema completo: el panel de ejecución de deploy (act_deploy.html), los artefactos que lo sustentan — scripts Python, inventario de recursos CX y panel de estado — y los pipelines de integración continua que lo automatizan (GitHub Actions CI/CD).
+  </p><div style="overflow-x:auto">
+    <table class="st-table" aria-label="Mapa de fases del pipeline ACT">
+      <thead><tr>
+        <th style="width:40px">#</th><th>Fase</th><th>Descripción</th>
+      </tr></thead>
+      <tbody>${fasesRows}</tbody>
+    </table>
+  </div>`;
+
+  const isDone = ps.status === 'done';
+  const goalValHtml = `
+    <label class="notes-label" for="notesArea-0">Notas</label>
+    <textarea class="notes-area" id="notesArea-0" placeholder="Observaciones sobre el objetivo, decisiones de alcance...">${ps.notes||''}</textarea>
+    <button class="validate-btn${isDone?' validated':''}" id="validateBtn-0" onclick="validatePhase(0)"
+            aria-label="${isDone?'Objetivo ya confirmado':'Marcar objetivo del proyecto como validado'}">
+      <span aria-hidden="true">✓</span> ${isDone?'Objetivo confirmado':'Confirmar objetivo del proyecto'}
+    </button>`;
+
+  return makeBlock('ctx', '🎯', 'Qué construimos — contexto del proyecto', 'goal-ctx', ctxHtml, true)
+    + makeBlock('llm', '📦', 'Output esperado y scope', 'goal-llm', llmHtml, true)
+    + makeBlock('val', '⚠️', 'Constraints no negociables', 'goal-constraints', constraintsHtml, true)
+    + makeBlock('ref', '🗺️', 'Mapa de fases — 9 fases en total', 'goal-ref', refHtml, true)
+    + makeBlock('val', '✋', 'Validación — confirmar objetivo del proyecto', 'goal-val', goalValHtml, true)
+    + renderMdBlock(p);
+}
+
+function renderPhase0(p, ps) {
+  const c = p.context;
+  const ctxHtml = `
+  <p style="font-size:13px;color:var(--ctx-header);font-weight:600;margin-bottom:14px">${p.llm.objetivo}</p>
+  <div class="ctx-grid">
+    <div class="ctx-card"><div class="ctx-card-title">${c.sistema.title}</div><p>${c.sistema.body}</p></div>
+    <div class="ctx-card"><div class="ctx-card-title">${c.agente.title}</div><p>${c.agente.body}</p></div>
+    <div class="ctx-card"><div class="ctx-card-title">${c.recursos.title}</div><ul>${c.recursos.items.map(i=>`<li>${i}</li>`).join('')}</ul></div>
+  </div>`;
+
+  const outputsHtml = p.llm.outputs.map(o => `<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path}</div><div class="op-desc">${o.desc}</div></div></div>`).join('');
+
+  const llmHtml = `
+    <div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>
+    <div class="llm-section"><div class="llm-section-title">Qué leer antes de empezar</div>${renderList(p.llm.leer, false)}</div>
+    <div class="llm-section"><div class="llm-section-title">Outputs — crear exactamente estos archivos</div>${outputsHtml}</div>
+    <div class="llm-section"><div class="llm-section-title">Template — fase0_auditoria.md</div>
+      <div class="template-block"><div class="template-label">Estructura esperada</div><div class="code-block">${p.llm.templates.auditoria.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>
+    </div>
+    <div class="llm-section"><div class="llm-section-title">Template — fase0_estructura_target.md</div>
+      <div class="template-block"><div class="template-label">Árbol de carpetas target</div><div class="code-block">${p.llm.templates.estructura.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>
+    </div>
+    <div class="llm-section"><div class="llm-section-title">Pasos de ejecución</div>${renderList(p.llm.pasos, true)}</div>`;
+
+  let checkIdx = 0;
+  let gruposHtml = p.val.grupos.map(g => {
+    const items = g.items.map(item => {
+      const i = checkIdx++;
+      const checked = (ps.checked||[])[i] === true;
+      return `<div class="check-item${checked?' checked':''}"
+                   role="checkbox"
+                   aria-checked="${checked}"
+                   tabindex="0"
+                   onclick="toggleCheck(${p.id},${i},this)">
+        <div class="check-box" aria-hidden="true">${checked?'✓':''}</div><div class="check-text">${item}</div></div>`;
+    }).join('');
+    return `<div class="checklist-group"><div class="checklist-group-title">${g.title}</div><div class="checklist" role="group" aria-label="${g.title}">${items}</div></div>`;
+  }).join('');
+
+  const decisionsHtml = `<div class="checklist-group-title" style="margin-top:18px">Decisiones pendientes</div>
+    <div class="decisions">${p.val.decisions.map((d,di) => `<div class="decision-item">
+      <div class="decision-q" id="dq-${p.id}-${di}"><span aria-hidden="true">❓</span> ${d.q}</div>
+      <div class="decision-opts" role="group" aria-labelledby="dq-${p.id}-${di}">${d.opts.map((opt,oi) => {
+        const sel = ((ps.decisions||{})[di]) === oi;
+        return `<button class="decision-opt${sel?' selected':''}" aria-pressed="${sel}" onclick="selectDecision(${p.id},${di},${oi},this)">${opt}</button>`;
+      }).join('')}</div></div>`).join('')}</div>`;
+
+  const isDone = ps.status === 'done';
+  const valHtml = gruposHtml + decisionsHtml + `
+    <label class="notes-label" for="notesArea-${p.id}">Notas</label>
+    <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Observaciones, decisiones, problemas...">${ps.notes||''}</textarea>
+    <button class="validate-btn${isDone?' validated':''}" id="validateBtn" onclick="validatePhase(${p.id})"
+            aria-label="${isDone?'Fase ya validada':'Marcar fase como validada'}">
+      <span aria-hidden="true">✓</span> ${isDone?'Fase validada':'Marcar como validada'}</button>`;
+
+  const TARGET_TREE = `cx-automation-template/
+├── act/
+│   └── scripts/
+│       ├── push/                                                  ← NUEVO: 12 push_*.py agrupados
+│       │   ├── push_playbooks.py
+│       │   ├── push_examples.py
+│       │   ├── push_tools.py
+│       │   ├── push_intents.py
+│       │   ├── push_entity_types.py
+│       │   ├── push_webhooks.py
+│       │   ├── push_generators.py
+│       │   ├── push_flows.py
+│       │   ├── push_pages.py
+│       │   ├── push_agent_config.py
+│       │   ├── push_environments.py
+│       │   └── push_versions.py
+│       ├── pull/                                                  ← NUEVO: 12 pull_*.py agrupados
+│       │   ├── pull_playbooks.py
+│       │   └── ... (×11 mirror de push)
+│       ├── utils/                                                 ← NUEVO: utilidades compartidas
+│       │   ├── diff.py
+│       │   ├── validate_api.py
+│       │   ├── diff_pipeline.py                                   ← NUEVO
+│       │   └── generate_cx_petal_artefacts_inventory.py          ← NUEVO
+│       ├── orchestrator/                                          ← NUEVO
+│       │   └── orchestrator.py                                   ← NUEVO
+│       └── tests/
+│           ├── conftest.py
+│           ├── test_diff.py
+│           ├── test_push_*.py (×12)
+│           └── test_pull_*.py (×12)
+├── definitions/                  ← YAMLs fuente de verdad (no tocar)
+│   ├── agent.yaml
+│   ├── _legacy_placeholders/
+│   ├── playbooks/ (×9 yaml)
+│   ├── examples/ (checkout/ compra/ petal_cx_orchestrator/ registro_task/)
+│   ├── tools/, flows/, versions/, intents/
+│   ├── entity_types/, webhooks/, generators/, pages/, environments/
+│   └── intents_taxonomy.yaml
+├── qap/
+│   ├── test_qa_playbooks.py
+│   ├── tc_1_0.yaml + tc_1_1.yaml
+│   └── ... (scripts utilidad)
+├── reports/                      ← generados, no commitear
+├── docs/
+│   ├── panels/                   ← HTML panels interactivos
+│   │   ├── act_build_playbook.html
+│   │   ├── act_cx_petal_artefacts_inventory.html                 ← NUEVO
+│   │   ├── act_orchestrator.html
+│   │   ├── act_deploy.html
+│   │   └── qap_skills.html
+│   └── data/
+│       └── act_cx_petal_artefacts_inventory.json                 ← NUEVO (generado)
+├── research/
+│   ├── cx-dialogflow/
+│   ├── conversational-design/
+│   └── claude-anthropic/
+└── .github/
+    └── workflows/                ← CI/CD (obligatorio en raíz por GitHub)
+        ├── deploy.yml            ← NUEVO: usa orchestrator.py
+        └── qa.yml`;
+
+  return makeBlock('ctx','📋','Contexto del sistema — leer antes de empezar','ctx'+p.id,ctxHtml,true)
+    + makeBlock('ref','📊','Estado actual de componentes del repo','ref-status-'+p.id,`<p style="font-size:12px;color:var(--text-2);margin-bottom:12px">${c.leyenda}</p>`+renderStatusTable(),true)
+    + makeBlock('ref','🗂️','Estructura target del repo ACT','ref-tree-'+p.id,renderTreeView(TARGET_TREE),true)
+    + makeBlock('val','✋','Validación humana — gate de Jero','val'+p.id,valHtml,true)
+    + renderMdBlock(p);
+}
+
+function renderGenericPhase(p, ps) {
+  const llmHtml = `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>
+    <p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:12px">Contenido en construcción — se completa fase por fase en conversación.</p>`;
+
+  let checkIdx = 0;
+  const gruposHtml = p.val.grupos.map(g => {
+    const items = g.items.map(item => {
+      const i = checkIdx++;
+      const checked = (ps.checked||[])[i] === true;
+      return `<div class="check-item${checked?' checked':''}"
+                   role="checkbox"
+                   aria-checked="${checked}"
+                   tabindex="0"
+                   onclick="toggleCheck(${p.id},${i},this)">
+        <div class="check-box" aria-hidden="true">${checked?'✓':''}</div><div class="check-text">${item}</div></div>`;
+    }).join('');
+    return `<div class="checklist-group"><div class="checklist-group-title">${g.title}</div><div class="checklist" role="group" aria-label="${g.title}">${items}</div></div>`;
+  }).join('');
+
+  const isDone = ps.status === 'done';
+  const valHtml = gruposHtml + `
+    <label class="notes-label" for="notesArea-${p.id}">Notas</label>
+    <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Observaciones...">${ps.notes||''}</textarea>
+    <button class="validate-btn${isDone?' validated':''}" id="validateBtn" onclick="validatePhase(${p.id})"
+            aria-label="${isDone?'Fase ya validada':'Marcar fase como validada'}">
+      <span aria-hidden="true">✓</span> ${isDone?'Fase validada':'Marcar como validada'}</button>`;
+
+  return makeBlock('llm','🤖','Para el LLM — instrucciones de construcción','llm'+p.id,llmHtml,true)
+    + makeBlock('val','✋','Validación humana — gate de Jero','val'+p.id,valHtml,true)
+    + renderMdBlock(p);
+}
+
+function loadPhase(id) {
+  currentPhaseId = id;
+  const p = PHASES.find(x => x.id === id);
+  const ps = getPS(state, id);
+  const inner = document.getElementById('contentInner');
+
+  let bodyHtml;
+  if (p.special === 'goal') {
+    bodyHtml = renderGoalPhase(p, ps);
+  } else if (p.special === 'auditoria') {
+    bodyHtml = renderPhase0(p, ps);
+  } else {
+    bodyHtml = renderGenericPhase(p, ps);
+  }
+
+  const eyebrow = p.special === 'goal'
+    ? 'Fase 0 — Objetivo'
+    : `Fase ${p.id} de ${PHASES.filter(x => x.special !== 'goal').length}`;
+
+  inner.innerHTML = `
+    <div class="phase-header">
+      <div class="phase-eyebrow">${eyebrow}</div>
+      <div class="phase-title">${p.title}</div>
+      <div class="phase-subtitle">${p.subtitle}</div>
+    </div>
+    ${bodyHtml}`;
+
+  const notesEl = document.getElementById('notesArea-' + id);
+  if (notesEl) {
+    notesEl.addEventListener('input', e => {
+      if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
+      state[id].notes = e.target.value;
+      saveState(state);
+    });
+  }
+  renderTabs();
+}
+
+function toggleCheck(phaseId, index, el) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  const ps = state[phaseId];
+  if (!ps.checked) ps.checked = [];
+  ps.checked[index] = !ps.checked[index];
+  saveState(state);
+  el.classList.toggle('checked', ps.checked[index]);
+  el.setAttribute('aria-checked', ps.checked[index] ? 'true' : 'false');
+  el.querySelector('.check-box').textContent = ps.checked[index] ? '✓' : '';
+  renderTabs();
+}
+
+function selectDecision(phaseId, decIdx, optIdx, el) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].decisions) state[phaseId].decisions = {};
+  state[phaseId].decisions[decIdx] = optIdx;
+  saveState(state);
+  el.closest('.decision-opts').querySelectorAll('.decision-opt').forEach(o => {
+    o.classList.remove('selected');
+    o.setAttribute('aria-pressed', 'false');
+  });
+  el.classList.add('selected');
+  el.setAttribute('aria-pressed', 'true');
+}
+
+function validatePhase(id) {
+  const btn = document.getElementById('validateBtn-' + id) || document.getElementById('validateBtn');
+  if (!btn || btn.classList.contains('validated')) return;
+  if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
+  state[id].status = 'done';
+  saveState(state);
+  btn.classList.add('validated');
+  const isGoal = id === 0;
+  btn.innerHTML = `<span aria-hidden="true">✓</span> ${isGoal ? 'Objetivo confirmado' : 'Fase validada'}`;
+  btn.setAttribute('aria-label', isGoal ? 'Objetivo ya confirmado' : 'Fase ya validada');
+  renderTabs();
+}
+
+/* ── Status table data para Fase 0 ── */
+const REPO_COMPONENTS = [
+  { file: 'act/push_playbooks.py',        tipo: 'push script', funcion: 'Deploy Playbooks → CX',      estado: 'ok',   nota: 'Full Update — bug europe-west1' },
+  { file: 'act/push_examples.py',         tipo: 'push script', funcion: 'Deploy Examples → CX',       estado: 'ok',   nota: '' },
+  { file: 'act/push_tools.py',            tipo: 'push script', funcion: 'Deploy Tools → CX',          estado: 'ok',   nota: '' },
+  { file: 'act/push_intents.py',          tipo: 'push script', funcion: 'Deploy Intents → CX',        estado: 'ok',   nota: '' },
+  { file: 'act/push_entity_types.py',     tipo: 'push script', funcion: 'Deploy Entity Types → CX',   estado: 'ok',   nota: '' },
+  { file: 'act/push_webhooks.py',         tipo: 'push script', funcion: 'Deploy Webhooks → CX',       estado: 'ok',   nota: '' },
+  { file: 'act/push_generators.py',       tipo: 'push script', funcion: 'Deploy Generators → CX',     estado: 'ok',   nota: '' },
+  { file: 'act/push_flows.py',            tipo: 'push script', funcion: 'Deploy Flows → CX',          estado: 'ok',   nota: '' },
+  { file: 'act/push_pages.py',            tipo: 'push script', funcion: 'Deploy Pages → CX',          estado: 'ok',   nota: '' },
+  { file: 'act/push_agent_config.py',     tipo: 'push script', funcion: 'Deploy Agent Config → CX',   estado: 'ok',   nota: '' },
+  { file: 'act/push_environments.py',     tipo: 'push script', funcion: 'Deploy Environments → CX',   estado: 'ok',   nota: '' },
+  { file: 'act/push_versions.py',         tipo: 'push script', funcion: 'Deploy Versions → CX',       estado: 'ok',   nota: 'LRO polling, rotate_versions_if_full' },
+  { file: 'act/pull_*.py (12)',           tipo: 'pull scripts', funcion: 'Sync inversa CX → local',   estado: 'ok',   nota: 'Espejo de los push' },
+  { file: 'act/diff.py',                  tipo: 'utilidad',    funcion: 'Diff de recursos por campo',  estado: 'ok',   nota: 'Mantener sin cambios' },
+  { file: 'act/deploy.py',               tipo: 'orquestador', funcion: 'Orquestador actual (5 pasos)', estado: 'warn', nota: 'Bug orden snapshot — reemplazar por orchestrator.py' },
+  { file: 'act/validate_api.py',          tipo: 'validación',  funcion: 'Conectividad API (9 checks)', estado: 'ok',   nota: '9/9 PASS en producción' },
+  { file: 'act/validate_api_v2.py',       tipo: 'validación',  funcion: 'Tests edge cases API',        estado: 'del',  nota: 'Auth incorrecto, hallazgos ya incorporados' },
+  { file: 'act/audit_examples.py',        tipo: 'auditoría',   funcion: 'Auditoría de examples',       estado: 'del',  nota: 'Sin uso activo' },
+  { file: 'act/scripts/orchestrator/orchestrator.py',                       tipo: 'orquestador', funcion: 'Nuevo orquestador (8 pasos)', estado: 'new',  nota: 'Crear en Fase 3' },
+  { file: 'act/scripts/utils/diff_pipeline.py',                            tipo: 'utilidad',    funcion: 'Diff 3 dimensiones',          estado: 'new',  nota: 'Crear en Fase 2' },
+  { file: 'act/scripts/utils/generate_cx_petal_artefacts_inventory.py',   tipo: 'utilidad',    funcion: 'Genera inventory.json',       estado: 'new',  nota: 'Crear en Fase 4' },
+  { file: 'docs/panels/act_cx_petal_artefacts_inventory.html',            tipo: 'panel',       funcion: 'Vista completa inventario',   estado: 'new',  nota: 'Crear en Fase 5' },
+  { file: 'docs/data/act_cx_petal_artefacts_inventory.json',              tipo: 'datos',       funcion: 'Estado del sistema (generado)', estado: 'new', nota: 'Crear en Fase 4' },
+  { file: '.github/workflows/*.yml',      tipo: 'ACT CI/CD',   funcion: 'Pipeline automatizado',       estado: 'new',  nota: 'Crear en Fase 8' },
+];
+
+const BADGE = { ok: ['badge-ok','✓ funciona'], warn: ['badge-warn','⚠ reemplazar'], del: ['badge-del','✗ eliminar'], new: ['badge-new','◯ nuevo'] };
+
+function renderStatusTable() {
+  const rows = REPO_COMPONENTS.map(c => {
+    const [cls, label] = BADGE[c.estado];
+    const fileHtml = c.file.replace(/\//g, '/<wbr>');
+    return `<tr>
+      <td><code>${fileHtml}</code></td>
+      <td>${c.tipo}</td>
+      <td>${c.funcion}</td>
+      <td><span class="badge ${cls}">${label}</span></td>
+      <td style="color:var(--text-3);font-size:11px">${c.nota}</td>
+    </tr>`;
+  }).join('');
+  return `<div style="overflow-x:auto">
+    <table class="st-table" aria-label="Tabla de estado de componentes del repo">
+      <thead><tr>
+        <th style="min-width:160px;max-width:220px">Archivo</th><th style="min-width:80px">Tipo</th><th style="min-width:140px">Función</th><th style="min-width:90px">Estado</th><th style="min-width:120px">Observación</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderTreeView(text) {
+  const lines = text.split('\n').map(line => {
+    const esc = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (esc.includes('← NUEVO') || esc.includes('← NUEVO:') || esc.includes('NUEVO')) {
+      return esc.replace(/(← NUEVO[^<]*)/g, '<span class="tree-new">$1</span>');
+    }
+    if (esc.includes('←')) {
+      return esc.replace(/(←[^<]*)/g, '<span class="tree-comment">$1</span>');
+    }
+    return esc;
+  }).join('\n');
+  return `<div class="tree-view" role="img" aria-label="Árbol de estructura target del worktree">${lines}</div>`;
+}
+
+function generateMarkdown(phase) {
+  const stripHtml = s => s.replace(/<[^>]+>/g, '');
+
+  if (phase.special === 'goal') {
+    const g = phase.goal;
+    let md = `# ${phase.title}\n\n> ${phase.subtitle}\n\n`;
+    md += `## Qué construimos\n\n${g.que}\n\n`;
+    md += `## Por qué existe ACT\n\n${g.necesidad}\n\n`;
+    md += `## Output esperado\n\n${g.output}\n\n`;
+    md += `## Scope\n\n`;
+    g.scope.forEach(s => { md += `- ${s}\n`; });
+    md += '\n';
+    md += `## Constraints no negociables\n\n`;
+    g.constraints.forEach(c => { md += `- ${c}\n`; });
+    md += '\n';
+    md += `## Mapa de fases\n\n`;
+    md += `| # | Fase | Descripción |\n|---|------|-------------|\n`;
+    g.fases.forEach(f => { md += `| ${f.n} | ${f.nombre} | ${f.desc} |\n`; });
+    return md.trim();
+  }
+
+  let md = `# Fase ${phase.id} — ${phase.title}\n\n`;
+  md += `> ${phase.subtitle}\n\n`;
+
+  if (phase.special === 'auditoria') {
+    const c = phase.context;
+    md += `## Contexto del sistema\n\n`;
+    md += `**${c.sistema.title}:** ${c.sistema.body}\n\n`;
+    md += `**${c.agente.title}:** ${c.agente.body}\n\n`;
+    md += `**${c.recursos.title}:** ${c.recursos.items.join(', ')}\n\n`;
+    md += `## Leyenda de estado\n\n${c.leyenda}\n\n`;
+  }
+
+  md += `## Objetivo\n\n${stripHtml(phase.llm.objetivo)}\n\n`;
+
+  if (phase.llm.leer && phase.llm.leer.length) {
+    md += `## Qué leer antes de empezar\n\n`;
+    phase.llm.leer.forEach(l => { md += `- ${stripHtml(l)}\n`; });
+    md += '\n';
+  }
+
+  if (phase.llm.outputs && phase.llm.outputs.length) {
+    md += `## Outputs esperados\n\n`;
+    phase.llm.outputs.forEach(o => { md += `- \`${o.path}\` — ${o.desc}\n`; });
+    md += '\n';
+  }
+
+  if (phase.llm.pasos && phase.llm.pasos.length) {
+    md += `## Pasos de ejecución\n\n`;
+    phase.llm.pasos.forEach((p, i) => { md += `${i+1}. ${stripHtml(p)}\n`; });
+    md += '\n';
+  }
+
+  if (phase.llm.templates) {
+    md += `## Templates\n\n### fase0_auditoria.md\n\`\`\`\n${phase.llm.templates.auditoria}\n\`\`\`\n\n`;
+    md += `### fase0_estructura_target.md\n\`\`\`\n${phase.llm.templates.estructura}\n\`\`\`\n\n`;
+  }
+
+  md += `## Criterios de validación\n\n`;
+  phase.val.grupos.forEach(g => {
+    md += `### ${g.title}\n`;
+    g.items.forEach(item => { md += `- [ ] ${item}\n`; });
+    md += '\n';
+  });
+
+  return md.trim();
+}
+
+function copyMarkdown(phaseId) {
+  const phase = PHASES.find(p => p.id === phaseId);
+  const md = generateMarkdown(phase);
+  navigator.clipboard.writeText(md).then(() => {
+    const btn = document.getElementById('copyBtn-' + phaseId);
+    if (!btn) return;
+    btn.classList.add('copied');
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copiar'; }, 2000);
+  });
+}
+
+function renderMdBlock(phase) {
+  const md = generateMarkdown(phase);
+  const escaped = md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const outputs = (phase.llm && phase.llm.outputs) || [];
+  const outputChips = outputs.map(o =>
+    `<div class="md-file-chip"><span aria-hidden="true">📄</span><code>${o.path}</code><span>— ${o.desc}</span></div>`
+  ).join('');
+
+  const label = phase.special === 'goal'
+    ? 'Brief .md — Objetivo del proyecto'
+    : `Brief .md — Fase ${phase.id}`;
+
+  const bodyHtml = `
+    <div class="md-toolbar">
+      <span class="md-toolbar-label">Brief ejecutable para Claude Code</span>
+      <button class="copy-btn" id="copyBtn-${phase.id}" onclick="copyMarkdown(${phase.id})" aria-label="Copiar brief en markdown al portapapeles">Copiar</button>
+    </div>
+    <div class="md-preview" role="textbox" aria-readonly="true" aria-label="Contenido del brief en markdown" aria-multiline="true">${escaped}</div>
+    ${outputChips ? `<div class="md-files">${outputChips}</div>` : ''}`;
+
+  return makeBlock('md', '📋', label, 'md'+phase.id, bodyHtml, false);
+}
+
+/* ── Teclado: Enter/Space activan role="checkbox" ── */
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = document.activeElement;
+  if (!el) return;
+  if (el.getAttribute('role') === 'checkbox') {
+    e.preventDefault();
+    el.click();
+  }
+});
+
+loadPhase(1);
+</script>
+</body>
+</html>
