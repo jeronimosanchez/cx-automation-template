@@ -7,6 +7,7 @@
   --accent:#3b82f6;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:14px}
 
 /* TOP BAR */
@@ -240,15 +241,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-eyebrow">Paso 2 de 8</div>
       <div class="phase-title">Push a GitHub staging</div>
       <div class="phase-sub">Sube los commits locales a la rama <strong>staging de GitHub</strong> antes de calcular el diff con CX.</div>
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 20px;margin-bottom:20px" id="step2-checks"></div>
-      <div id="push-done" style="display:none">
-        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
-          <span style="color:#4ade80;font-weight:600;font-size:13px">Push completado &#10003;</span>
-        </div>
-        <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
+
+      <!-- Status header — actualiza en los 3 estados -->
+      <div id="push-status" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px 8px 0 0;border-bottom:none">
+        <div id="push-status-icon" style="width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--error)">✗</div>
+        <div>
+          <div id="push-status-label" style="font-size:13px;font-weight:600;color:var(--text)">Commits pendientes de push</div>
+          <div id="push-status-detail" style="font-size:11px;color:var(--text-3);margin-top:1px">origin/staging está 2 commits por detrás</div>
         </div>
       </div>
+
+      <!-- Lista de commits — siempre visible -->
+      <div id="push-commit-list" style="border:1px solid var(--border);border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:16px"></div>
+
+      <!-- Log — aparece durante el push, debajo de la lista -->
+      <div id="push-log" style="display:none;margin-bottom:16px">
+        <div class="output-block" id="push-log-block" style="min-height:60px"></div>
+      </div>
+
+      <!-- Acción — botón push o continuar -->
+      <div id="push-action"></div>
     </div>
 
     <!-- STEP 3: Diff GitHub vs CX -->
@@ -302,18 +314,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Confirmar deploy &rarr;</button>
-          <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy(false)">Cancelar</button>
         </div>
       </div>
       <div id="deploy-log" style="display:none;margin-top:4px">
         <div class="output-block" id="deploy-log-block" style="min-height:80px"></div>
       </div>
+
+      <!-- Deploy OK -->
       <div id="deploy-done" style="display:none">
         <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
           <span style="color:#4ade80;font-weight:600;font-size:13px">Deploy completado &#10003;</span>
         </div>
         <div class="action-bar">
           <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Deploy PARCIAL (fallo) -->
+      <div id="deploy-fail" style="display:none">
+        <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:16px 20px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Deploy parcial &mdash; fallo en el recurso 3</div>
+          <div id="deploy-fail-summary" style="font-size:13px;color:var(--text-2);line-height:1.8;margin-bottom:14px"></div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">El draft del agente en CX tiene cambios aplicados a medias. Elige c&oacute;mo continuar:</div>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="retryFailed()">Reintentar fallidos &rarr;</button>
+            <button class="btn btn-danger" onclick="revertDraft()">Revertir draft</button>
+          </div>
         </div>
       </div>
     </div>
@@ -326,7 +353,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="gate-block" id="snap-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p>Se crear&aacute; un snapshot nuevo del agente en CX staging. El snapshot anterior (<strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong>) se conserva para poder hacer rollback si los tests fallan.</p>
-        <p style="margin-top:0;margin-bottom:16px">CX conserva un m&aacute;ximo de 5 versiones por entorno. Si ya hay 5, la m&aacute;s antigua se eliminar&aacute; autom&aacute;ticamente al crear &eacute;sta.</p>
+        <p style="margin-top:0;margin-bottom:16px">CX conserva un m&aacute;ximo de <strong style="color:var(--text)">5 versiones del agente</strong>. Si ya hay 5, la m&aacute;s antigua se eliminar&aacute; autom&aacute;ticamente al crear &eacute;sta.</p>
         <div style="margin-bottom:20px">
           <div class="slabel" style="margin-bottom:8px">Nombre del snapshot</div>
           <input type="text" id="snapshot-name" class="snapshot-input" value="">
@@ -334,7 +361,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-snapshot-confirm" onclick="confirmSnapshot()">Crear snapshot &rarr;</button>
-          <button class="btn btn-ghost" onclick="cancelDeploy()">Cancelar</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
         </div>
       </div>
       <div id="snap-log" style="display:none;margin-top:4px">
@@ -367,8 +394,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, el sistema revertir&aacute; el entorno staging de CX al estado anterior.</p>
         <div class="slabel" style="margin-bottom:8px">Qu&eacute; va a ocurrir</div>
         <div style="margin-bottom:16px">
-          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar al snapshot anterior</div></div>
-          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde el snapshot anterior</div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar a <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
           <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
         </div>
         <div class="slabel" style="margin-bottom:6px">Qu&eacute; hacer despu&eacute;s</div>
@@ -381,8 +408,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="rollback-log" style="display:none;margin-top:20px">
         <div class="output-block" id="rollback-log-block" style="min-height:80px"></div>
       </div>
-      <div id="rollback-done-banner" style="display:none;margin-top:16px;align-items:center;gap:12px;padding:14px 18px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px">
-        <p style="font-size:13px;color:#f87171;font-weight:500;margin:0">Deploy cancelado &mdash; staging restaurado al estado anterior</p>
+      <div id="rollback-done-banner" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px">
+        <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Deploy abortado</div>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Staging restaurado al estado anterior. Los pasos siguientes quedan fuera de juego.</p>
+        <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
       </div>
     </div>
 
@@ -411,15 +440,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-8">
       <div class="phase-eyebrow">Paso 8 de 8 &mdash; Gate humano</div>
       <div class="phase-title">Aprobar subida a producci&oacute;n</div>
-      <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se crear&aacute; un nuevo snapshot de producci&oacute;n y quedar&aacute; activo para los usuarios.</div>
-      <div class="gate-block">
+      <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se ejecutan dos acciones en orden.</div>
+
+      <!-- Gate -->
+      <div class="gate-block" id="prod-gate">
         <div class="gate-title">&#9995; Confirmar deploy a producci&oacute;n</div>
         <div style="margin-bottom:20px">
           <div class="action-result">
             <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">1</div>
             <div class="action-result-body">
               <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
-              <div class="action-result-desc">El c&oacute;digo que pas&oacute; los tests queda registrado en main de GitHub.</div>
+              <div class="action-result-desc">El c&oacute;digo validado queda registrado en main. Si hay conflictos, el merge se aborta y el paso te lo indica.</div>
             </div>
           </div>
           <div class="action-result">
@@ -431,8 +462,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           </div>
         </div>
         <div class="action-bar">
-          <button class="btn btn-gate" onclick="advanceToDone()">Promover a producci&oacute;n &rarr;</button>
-          <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
+          <button class="btn btn-gate" onclick="confirmProduction()">Promover a producci&oacute;n &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
+        </div>
+      </div>
+
+      <!-- Visor -->
+      <div id="prod-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="prod-log-block" style="min-height:80px"></div>
+      </div>
+
+      <!-- Conflicto de merge -->
+      <div id="prod-conflict" style="display:none;margin-top:16px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:16px 20px">
+        <div style="font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Conflicto de merge</div>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Git no puede hacer el merge autom&aacute;ticamente. Hay cambios en <code style="font-size:12px">main</code> que entran en conflicto con <code style="font-size:12px">staging</code>. Debes resolverlo en GitHub antes de continuar.</p>
+        <div class="action-bar">
+          <a href="https://github.com/jeronimosanchez/cx-automation-template/compare/main...staging" target="_blank" class="btn btn-gate" style="text-decoration:none">&#8599; Resolver conflicto en GitHub</a>
+          <button class="btn btn-ghost" onclick="abortProduction()">Abortar</button>
         </div>
       </div>
     </div>
@@ -488,9 +534,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 // --- DATOS DINÁMICOS (hardcoded en prototipo) ---
-const DIFF_COUNT = 3;      // dinámico: vendrá del diff API
-const DEPLOY_COUNT = 3;    // dinámico: recursos modificados
-const TEST_COUNT = 42;     // dinámico: número de tests en la suite
+const DIFF_COUNT = 3;           // dinámico: vendrá del diff API
+const DEPLOY_COUNT = 4;         // dinámico: recursos modificados
+const TEST_COUNT = 42;          // dinámico: número de tests en la suite
+const DEPLOY_SIMULATE_FAIL     = false; // true = simular fallo en el 3er recurso
+const PRODUCTION_SIMULATE_CONFLICT = false; // true = simular conflicto de merge
 
 // Resultados de los checks de deploy.py (en producción vendrán del script)
 const CHECK_RESULTS = {
@@ -575,37 +623,18 @@ function resetInventoryUI() {
 
 function renderStep2Checks() {
   const r = CHECK_RESULTS.push;
-  const container = document.getElementById('step2-checks');
 
-  if (r.ok) {
-    container.innerHTML = `<div class="check-row">
-      <div class="check-icon" style="color:var(--success)">✓</div>
-      <div>
-        <div class="check-label">Push hecho a GitHub staging</div>
-        <div class="check-detail">origin/staging al día con HEAD</div>
-      </div>
-    </div>`;
-    document.getElementById('push-done').style.display = 'block';
-    return;
-  }
-
-  // Estado: commits pendientes de push
+  // Commit list — siempre la misma
   const commitRows = r.pending.map((c, i) => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;${i < r.pending.length - 1 ? 'border-bottom:1px solid var(--bg-3);' : ''}">
       <span style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-3);flex-shrink:0">${c.hash}</span>
       <span style="font-size:13px;color:var(--text-2)">${c.msg}</span>
     </div>`).join('');
+  document.getElementById('push-commit-list').innerHTML = commitRows;
 
-  container.innerHTML = `
-    <div class="check-row" style="margin-bottom:14px">
-      <div class="check-icon" style="color:var(--error)">✗</div>
-      <div>
-        <div class="check-label">Commits pendientes de push a GitHub staging</div>
-        <div class="check-detail err">origin/staging está ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} por detrás</div>
-      </div>
-    </div>
-    <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:16px">${commitRows}</div>
-    <button class="btn btn-primary" onclick="executePush()">Ejecutar push &mdash; ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} &rarr;</button>`;
+  // Estado pending — botón de acción
+  document.getElementById('push-action').innerHTML =
+    `<button class="btn btn-primary" onclick="executePush()">Ejecutar push &mdash; ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} &rarr;</button>`;
 }
 
 function updatePushBtn() {
@@ -636,10 +665,55 @@ function toggleSelectAll() {
 }
 
 function executePush() {
-  const checked = document.querySelectorAll('.commit-check:checked');
-  if (!checked.length) return;
-  CHECK_RESULTS.push.ok = true;
-  renderStep2Checks();
+  const r = CHECK_RESULTS.push;
+  setRunning(true);
+
+  // Estado: en progreso
+  document.getElementById('push-status-icon').innerHTML = '<div style="width:14px;height:14px;border:2px solid #60a5fa;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>';
+  document.getElementById('push-status-label').textContent = 'Enviando commits a origin/staging...';
+  document.getElementById('push-status-detail').textContent = '';
+  document.getElementById('push-action').innerHTML = '';
+
+  const pushLines = [
+    {cls:'ok',  text:'✓ Conectando con origin/staging...'},
+    ...r.pending.map(c => ({cls:'ok', text:`✓ ${c.hash}  ${c.msg}`})),
+    {cls:'ok',  text:`✓ Push completado — ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} en origin/staging`},
+  ];
+
+  const logWrap = document.getElementById('push-log');
+  const logBlock = document.getElementById('push-log-block');
+  logWrap.style.display = 'block';
+  logBlock.innerHTML = '';
+
+  let i = 0;
+  function showLine() {
+    if (i >= pushLines.length) {
+      setTimeout(() => {
+        // Estado: completado
+        document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
+        document.getElementById('push-status-label').textContent = `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`;
+        document.getElementById('push-status-detail').textContent = 'origin/staging al día con HEAD';
+        document.getElementById('push-status-detail').style.color = 'var(--text-3)';
+        // Atenuar log
+        logWrap.style.opacity = '0.6';
+        // CTA
+        document.getElementById('push-action').innerHTML =
+          '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
+        CHECK_RESULTS.push.ok = true;
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    const line = pushLines[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
 }
 
 function pushAll() {
@@ -653,38 +727,137 @@ function renderStep3Diff() {
 }
 
 // --- DEPLOY SIMULATION ---
+const DEPLOY_RESOURCES = [
+  {label:'Playbook · Compra · PATCH (Full Update)',         ok: true,  okText:'OK',                            cls:'ok'},
+  {label:'Playbook · Orquestador · PATCH (Full Update)',    ok: true,  okText:'OK',                            cls:'ok'},
+  {label:'Example · compra_rosas_001 · POST',               ok: false, errText:'ERROR 400: campo "steps" no válido', cls:'del'},
+  {label:'Example · compra_tulipanes_002 · DELETE',         ok: true,  okText:'OK',                            cls:'del'},
+];
+
 function confirmDeploy() {
   setRunning(true);
   document.getElementById('deploy-gate').style.display = 'none';
   document.getElementById('deploy-log').style.display = 'block';
 
-  const DEPLOY_LINES = [
-    {cls:'ok',  text:'✓ Playbook · Compra · PATCH (Full Update) → OK'},
-    {cls:'ok',  text:'✓ Playbook · Orquestador · PATCH (Full Update) → OK'},
-    {cls:'ok',  text:'✓ Example · compra_rosas_001 · POST → OK'},
-    {cls:'del', text:'✓ Example · compra_tulipanes_002 · DELETE → OK'},
-    {cls:'ok',  text:'✓ Deploy completado — 4 recursos en 3.1s'},
-  ];
+  const failAt = DEPLOY_SIMULATE_FAIL
+    ? DEPLOY_RESOURCES.findIndex(r => !r.ok)
+    : -1; // -1 = todos OK
 
   const logBlock = document.getElementById('deploy-log-block');
   logBlock.innerHTML = '';
   let i = 0;
+
   function showLine() {
-    if(i >= DEPLOY_LINES.length) {
+    if (i >= DEPLOY_RESOURCES.length) {
+      // Todas procesadas
+      setTimeout(() => {
+        if (failAt === -1) {
+          appendLogLine(logBlock, 'ok', `✓ Deploy completado — ${DEPLOY_RESOURCES.length} recursos en 3.1s`);
+          setTimeout(() => {
+            document.getElementById('deploy-done').style.display = 'block';
+            setRunning(false);
+          }, 300);
+        } else {
+          const ok  = DEPLOY_RESOURCES.filter((r, idx) => idx < failAt).length;
+          const skipped = DEPLOY_RESOURCES.filter((r, idx) => idx > failAt).length;
+          document.getElementById('deploy-fail-summary').innerHTML =
+            `<span style="color:#4ade80">✓ ${ok} aplicado${ok !== 1 ? 's' : ''}</span> &nbsp;·&nbsp; ` +
+            `<span style="color:#f87171">✗ 1 fallido</span> &nbsp;·&nbsp; ` +
+            `<span style="color:var(--text-3)">${skipped} no intentado${skipped !== 1 ? 's' : ''}</span>`;
+          document.getElementById('deploy-fail').style.display = 'block';
+          setRunning(false);
+        }
+      }, 300);
+      return;
+    }
+
+    const res = DEPLOY_RESOURCES[i];
+
+    if (failAt !== -1 && i === failAt) {
+      appendLogLine(logBlock, 'del', `✗ ${res.label} → ${res.errText}`);
+      i++;
+      setTimeout(() => {
+        // Añadir restantes como "no intentado"
+        for (let j = i; j < DEPLOY_RESOURCES.length; j++) {
+          appendLogLine(logBlock, 'dim', `— ${DEPLOY_RESOURCES[j].label} → no intentado`);
+        }
+        i = DEPLOY_RESOURCES.length;
+        setTimeout(showLine, 200);
+      }, 400);
+      return;
+    }
+
+    const text = res.cls === 'del'
+      ? `✓ ${res.label} → ${res.okText}`
+      : `✓ ${res.label} → ${res.okText}`;
+    appendLogLine(logBlock, res.cls === 'del' ? 'del' : 'ok', text);
+    i++;
+    setTimeout(showLine, 400);
+  }
+
+  showLine();
+}
+
+function appendLogLine(block, cls, text) {
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = text;
+  block.appendChild(span);
+  block.appendChild(document.createTextNode('\n'));
+}
+
+function retryFailed() {
+  // En producción: reintenta solo los recursos fallidos
+  document.getElementById('deploy-fail').style.display = 'none';
+  document.getElementById('deploy-log').style.display = 'block';
+  const logBlock = document.getElementById('deploy-log-block');
+  logBlock.innerHTML = '';
+  setRunning(true);
+  const retryLines = [
+    {cls:'ok',  text:'↻ Reintentando Example · compra_rosas_001 · POST...'},
+    {cls:'ok',  text:'✓ Example · compra_rosas_001 · POST → OK'},
+    {cls:'ok',  text:'✓ Deploy completado — todos los recursos aplicados'},
+  ];
+  let i = 0;
+  function showLine() {
+    if (i >= retryLines.length) {
       setTimeout(() => {
         document.getElementById('deploy-done').style.display = 'block';
         setRunning(false);
       }, 300);
       return;
     }
-    const line = DEPLOY_LINES[i];
-    const span = document.createElement('span');
-    span.className = line.cls;
-    span.textContent = line.text;
-    logBlock.appendChild(span);
-    logBlock.appendChild(document.createTextNode('\n'));
+    appendLogLine(logBlock, retryLines[i].cls, retryLines[i].text);
     i++;
-    setTimeout(showLine, 400);
+    setTimeout(showLine, 500);
+  }
+  showLine();
+}
+
+function revertDraft() {
+  if (!confirm('¿Revertir el draft de CX al estado anterior al deploy?')) return;
+  document.getElementById('deploy-fail').style.display = 'none';
+  const logBlock = document.getElementById('deploy-log-block');
+  setRunning(true);
+  const revertLines = [
+    {cls:'warn', text:'↻ Revirtiendo draft del agente en CX...'},
+    {cls:'ok',   text:'✓ Draft restaurado al estado anterior'},
+    {cls:'ok',   text:'✓ Ningún cambio activo en CX — puedes corregir y volver a hacer deploy'},
+  ];
+  let i = 0;
+  function showLine() {
+    if (i >= revertLines.length) {
+      setTimeout(() => {
+        document.getElementById('deploy-gate').style.display = 'block';
+        document.getElementById('deploy-log').style.display = 'none';
+        logBlock.innerHTML = '';
+        setRunning(false);
+      }, 600);
+      return;
+    }
+    appendLogLine(logBlock, revertLines[i].cls, revertLines[i].text);
+    i++;
+    setTimeout(showLine, 500);
   }
   showLine();
 }
@@ -778,6 +951,61 @@ function toggleSyncCheck() {
   const checked = document.getElementById('check-sync-local').checked;
   const title = document.getElementById('done-sync-title');
   title.style.color = checked ? 'var(--success)' : 'var(--text-2)';
+}
+
+function confirmProduction() {
+  setRunning(true);
+  document.getElementById('prod-gate').style.display = 'none';
+  document.getElementById('prod-log').style.display = 'block';
+  const logBlock = document.getElementById('prod-log-block');
+  logBlock.innerHTML = '';
+
+  const mergeLines = [
+    {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
+    {cls:'ok',   text:'✓ Fast-forward merge completado'},
+    {cls:'ok',   text:'✓ main actualizado — ' + (snapshotName || '2026-07-29_1045')},
+  ];
+  const conflictLines = [
+    {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
+    {cls:'del',  text:'✗ CONFLICT: merge conflict en definitions/playbooks/compra.yaml'},
+    {cls:'warn', text:'  Merge abortado — main no ha sido modificado'},
+  ];
+  const snapLines = [
+    {cls:'ok',   text:'✓ Creando snapshot de producción...'},
+    {cls:'ok',   text:'✓ LRO polling — esperando confirmación de CX...'},
+    {cls:'ok',   text:'✓ Snapshot "' + (snapshotName || '2026-07-29_1045') + '" creado en producción'},
+    {cls:'ok',   text:'✓ Entorno producción apuntando a la versión nueva'},
+  ];
+
+  const lines = PRODUCTION_SIMULATE_CONFLICT ? conflictLines : [...mergeLines, ...snapLines];
+  const failAt = PRODUCTION_SIMULATE_CONFLICT ? conflictLines.length : -1;
+
+  let i = 0;
+  function showLine() {
+    if (i >= lines.length) {
+      setTimeout(() => {
+        if (PRODUCTION_SIMULATE_CONFLICT) {
+          document.getElementById('prod-conflict').style.display = 'block';
+          setRunning(false);
+        } else {
+          advanceToDone();
+        }
+      }, 300);
+      return;
+    }
+    appendLogLine(logBlock, lines[i].cls, lines[i].text);
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function abortProduction() {
+  document.getElementById('prod-conflict').style.display = 'none';
+  document.getElementById('prod-log').style.display = 'none';
+  document.getElementById('prod-log-block').innerHTML = '';
+  document.getElementById('prod-gate').style.display = 'block';
+  setRunning(false);
 }
 
 function advanceToDone() {
@@ -880,7 +1108,7 @@ const ROLLBACK_LINES = [
 
 function rollbackFromStep7() {
   viewStep(6);
-  setTimeout(() => rollbackStaging(), 100);
+  setTimeout(() => showRollbackConfirm(), 100);
 }
 
 function rollbackStaging() {
@@ -896,7 +1124,12 @@ function rollbackStaging() {
     if (i >= ROLLBACK_LINES.length) {
       setTimeout(() => {
         const banner = document.getElementById('rollback-done-banner');
-        banner.style.display = 'flex';
+        banner.style.display = 'block';
+        // Marcar paso 6 como error, pasos 7-8 fuera de juego
+        stepStates[5] = 'error';
+        stepStates[6] = 'pending';
+        stepStates[7] = 'pending';
+        renderSidebar();
         setRunning(false);
       }, 300);
       return;
@@ -914,8 +1147,11 @@ function rollbackStaging() {
 }
 
 // --- CANCEL / RESET ---
-function cancelDeploy() {
-  if(confirm('El draft de CX ya tiene los cambios del deploy. Cancelar no los deshace — para revertirlos usa el rollback desde el paso de validación de tests.\n\n¿Cerrar el panel igualmente?')) resetDeploy();
+function cancelDeploy(afterDeploy) {
+  const msg = afterDeploy
+    ? 'El draft de CX ya tiene los cambios del deploy. Cancelar no los deshace — para revertirlos usa el rollback desde el paso de validación de tests.\n\n¿Cerrar el panel igualmente?'
+    : 'CX no ha sido modificado todavía. ¿Cancelar el deploy?';
+  if(confirm(msg)) resetDeploy();
 }
 function resetDeploy() {
   setRunning(false);
@@ -932,8 +1168,13 @@ function resetDeploy() {
   document.getElementById('rollback-log-block').innerHTML = '';
   document.getElementById('rollback-done-banner').style.display = 'none';
   document.getElementById('test-action-bar').style.display = 'flex';
-  // Resetear push-done
-  document.getElementById('push-done').style.display = 'none';
+  // Resetear push
+  document.getElementById('push-log').style.display = 'none';
+  document.getElementById('push-log').style.opacity = '1';
+  document.getElementById('push-log-block').innerHTML = '';
+  document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:14px">✗</span>';
+  document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
+  document.getElementById('push-status-detail').textContent = 'origin/staging está 2 commits por detrás';
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
   // Restaurar topbar
   const badge = document.getElementById('topbar-env');
