@@ -497,6 +497,13 @@ let stepStates = ['active','pending','pending','pending','pending','pending','pe
 let current = 1;
 let viewingStep = 1;
 let snapshotName = '';
+let isRunning = false;
+
+function setRunning(val) {
+  isRunning = val;
+  document.getElementById('sidebar').style.opacity = val ? '0.4' : '1';
+  document.getElementById('sidebar').style.pointerEvents = val ? 'none' : '';
+}
 
 // --- INVENTORY SIMULATION ---
 const INV_LINES = [
@@ -509,6 +516,7 @@ const INV_LINES = [
 ];
 
 function startInventory() {
+  setRunning(true);
   document.getElementById('inv-start').style.display = 'none';
   document.getElementById('inv-log').style.display = 'block';
   const logBlock = document.getElementById('inv-log-block');
@@ -518,6 +526,7 @@ function startInventory() {
     if(i >= INV_LINES.length) {
       setTimeout(() => {
         document.getElementById('inv-done').style.display = 'block';
+        setRunning(false);
       }, 300);
       return;
     }
@@ -672,6 +681,7 @@ function confirmSnapshot() {
   setSnapshotName(name);
 
   // Ocultar gate, mostrar log
+  setRunning(true);
   document.getElementById('snap-gate').style.display = 'none';
   document.getElementById('snap-log').style.display = 'block';
 
@@ -689,6 +699,7 @@ function confirmSnapshot() {
     if(i >= SNAP_LINES.length) {
       setTimeout(() => {
         document.getElementById('snap-done').style.display = 'block';
+        setRunning(false);
       }, 300);
       return;
     }
@@ -733,6 +744,7 @@ function rollbackFromStep6() {
 }
 
 function rollbackStaging() {
+  setRunning(true);
   document.getElementById('rollback-confirm').style.display = 'none';
   document.getElementById('test-action-bar').style.display = 'none';
   const logWrap = document.getElementById('rollback-log');
@@ -745,6 +757,7 @@ function rollbackStaging() {
       setTimeout(() => {
         const banner = document.getElementById('rollback-done-banner');
         banner.style.display = 'flex';
+        setRunning(false);
       }, 300);
       return;
     }
@@ -765,6 +778,7 @@ function cancelDeploy() {
   if(confirm('¿Cancelar el deploy? CX no ha sido modificado.')) resetDeploy();
 }
 function resetDeploy() {
+  setRunning(false);
   stepStates = ['active','pending','pending','pending','pending','pending','pending'];
   current = 1; viewingStep = 1;
   snapshotName = '';
