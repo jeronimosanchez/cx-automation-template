@@ -114,6 +114,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .snapshot-input:focus{border-color:var(--gate)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 
+/* CHECK ROWS (Paso 2) */
+.check-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
+.check-row:last-child{border-bottom:none}
+.check-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;margin-top:1px}
+.check-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.check-detail{font-size:12px;color:var(--text-3);font-family:'SF Mono',Menlo,monospace}
+.check-detail.err{color:#f87171}
+.check-error-hint{font-size:12px;color:#f87171;margin-top:6px;line-height:1.5}
+
 /* INFO NOTE */
 .info-note{font-size:12px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-top:12px;line-height:1.6}
 
@@ -232,17 +241,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-title">Diff GitHub vs CX</div>
       <div class="phase-sub">Compara la rama <strong>staging de GitHub</strong> contra el entorno <strong>staging de CX</strong>. Aseg&uacute;rate de que tus cambios est&aacute;n en GitHub antes de ver el resultado.</div>
 
-      <!-- Checkboxes (visibles al entrar al paso) -->
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;font-size:13px;color:var(--text-2)">
-          <input type="checkbox" id="check-commit" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" onchange="updateStep2()">
-          Cambios commiteados en la rama staging local
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2)">
-          <input type="checkbox" id="check-push" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" onchange="updateStep2()">
-          Push hecho a la rama staging de GitHub
-        </label>
-      </div>
+      <!-- Checks automáticos (resultado de deploy.py) -->
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 20px;margin-bottom:20px" id="step2-checks"></div>
 
       <!-- Tabla de diff + Continuar (ocultos hasta marcar ambos checks; solo si DIFF_COUNT > 0) -->
       <div id="diff-table-section" style="display:none">
@@ -489,6 +489,14 @@ const DIFF_COUNT = 3;      // dinámico: vendrá del diff API
 const DEPLOY_COUNT = 3;    // dinámico: recursos modificados
 const TEST_COUNT = 42;     // dinámico: número de tests en la suite
 
+// Resultados de los checks de deploy.py (en producción vendrán del script)
+const CHECK_RESULTS = {
+  commit: { ok: true,  detail: 'HEAD: 98fcbdd · "fix: deploy panel mejoras"' },
+  push:   { ok: true,  detail: 'origin/staging al día con HEAD' },
+  // Ejemplo de fallo:
+  // push: { ok: false, detail: 'origin/staging está 2 commits por detrás', hint: 'Ejecuta git push origin staging antes de continuar.' },
+};
+
 const STEPS = [
   {id:1, name:'Inventario CX',        sub:'Snapshot + diff de cambios',     gate:false},
   {id:2, name:'Diff GitHub vs CX',    sub:'Gate — confirmar cambios',       gate:true},
@@ -556,18 +564,30 @@ function resetInventoryUI() {
   document.getElementById('inv-log-block').innerHTML = '';
 }
 
-function updateStep2() {
-  const bothChecked = document.getElementById('check-commit').checked && document.getElementById('check-push').checked;
+function renderStep2Checks() {
+  const checks = [
+    { label: 'Cambios commiteados en staging local', ...CHECK_RESULTS.commit },
+    { label: 'Push hecho a GitHub staging',          ...CHECK_RESULTS.push },
+  ];
+  const allOk = checks.every(c => c.ok);
+  let html = '';
+  checks.forEach(c => {
+    html += `<div class="check-row">
+      <div class="check-icon" style="color:${c.ok ? 'var(--success)' : 'var(--error)'}">${c.ok ? '✓' : '✗'}</div>
+      <div>
+        <div class="check-label">${c.label}</div>
+        <div class="check-detail${c.ok ? '' : ' err'}">${c.detail}</div>
+        ${!c.ok && c.hint ? `<div class="check-error-hint">${c.hint}</div>` : ''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('step2-checks').innerHTML = html;
+
   const tableSection = document.getElementById('diff-table-section');
   const bannerNoChanges = document.getElementById('diff-banner-no-changes');
-  if (bothChecked) {
-    if (DIFF_COUNT > 0) {
-      tableSection.style.display = 'block';
-      bannerNoChanges.style.display = 'none';
-    } else {
-      tableSection.style.display = 'none';
-      bannerNoChanges.style.display = 'block';
-    }
+  if (allOk) {
+    if (DIFF_COUNT > 0) { tableSection.style.display = 'block'; bannerNoChanges.style.display = 'none'; }
+    else                { tableSection.style.display = 'none';  bannerNoChanges.style.display = 'block'; }
   } else {
     tableSection.style.display = 'none';
     bannerNoChanges.style.display = 'none';
@@ -632,6 +652,7 @@ function viewStep(id) {
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   const v = document.getElementById('view-'+id);
   if(v) v.classList.add('visible');
+  if(id === 2) renderStep2Checks();
   renderSidebar();
 }
 
@@ -799,9 +820,7 @@ function resetDeploy() {
   document.getElementById('rollback-log-block').innerHTML = '';
   document.getElementById('rollback-done-banner').style.display = 'none';
   document.getElementById('test-action-bar').style.display = 'flex';
-  // Resetear checkboxes y secciones del paso 2
-  document.getElementById('check-commit').checked = false;
-  document.getElementById('check-push').checked = false;
+  // Resetear secciones del paso 2
   document.getElementById('diff-table-section').style.display = 'none';
   document.getElementById('diff-banner-no-changes').style.display = 'none';
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
