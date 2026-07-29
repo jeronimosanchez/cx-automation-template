@@ -173,6 +173,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-eyebrow">Paso 2 de 7</div>
       <div class="phase-title">Diff GitHub vs CX</div>
       <div class="phase-sub">Comparaci&oacute;n entre las definiciones en GitHub (rama staging) y el snapshot desplegado en el entorno staging de CX. Solo se muestran los recursos con cambios.</div>
+      <div class="gate-block" style="margin-bottom:16px">
+        <div class="gate-title">&#9989; Verifica antes de continuar</div>
+        <p style="margin-bottom:12px">El sistema lee las definiciones desde GitHub. Si tus cambios no est&aacute;n pusheados, el diff no los incluir&aacute;.</p>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;font-size:13px;color:var(--text-2)">
+          <input type="checkbox" id="check-commit" style="width:16px;height:16px;accent-color:var(--gate);cursor:pointer">
+          Cambios commiteados en local
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2)">
+          <input type="checkbox" id="check-push" style="width:16px;height:16px;accent-color:var(--gate);cursor:pointer">
+          Push a GitHub (rama staging) hecho
+        </label>
+      </div>
       <div class="done-banner"><span>&#10003;</span><p><span id="diff-count-banner">3</span> recursos con cambios detectados</p></div>
       <div class="slabel">Cambios detectados</div>
       <div class="diff-wrap">
@@ -196,7 +208,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados y 1 example nuevo. Los recursos sin cambios no se tocan.</p>
         <div class="action-bar">
-          <button class="btn btn-gate" onclick="advance(3)">Confirmar deploy &rarr;</button>
+          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="advance(3)">Confirmar deploy &rarr;</button>
           <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
         </div>
       </div>
@@ -301,9 +313,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-7">
       <div class="phase-eyebrow">Paso 7 de 7 &mdash; Gate humano</div>
       <div class="phase-title">Aprobar subida a producci&oacute;n</div>
-      <div class="phase-sub">Si confirmas, estos pasos se ejecutan autom&aacute;ticamente y son irreversibles.</div>
+      <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se desplegar&aacute;n autom&aacute;ticamente en producci&oacute;n &mdash; esta acci&oacute;n es irreversible.</div>
       <div class="gate-block">
-        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <div class="gate-title">&#9995; Confirmar deploy a producci&oacute;n</div>
         <div style="margin-bottom:20px">
           <div class="action-result">
             <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">1</div>
@@ -338,7 +350,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-done">
       <div class="phase-eyebrow">Deploy completado</div>
       <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
-      <div class="phase-sub">Todos los cambios est&aacute;n desplegados y verificados.</div>
+      <div class="phase-sub">Desplegado en producci&oacute;n &middot; verificado en staging.</div>
       <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; 2026-07-28 &middot; 09:45 UTC &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
 
       <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
@@ -407,6 +419,7 @@ let viewingStep = 3;
 let snapshotName = '';
 
 // --- SNAPSHOT NAME AUTO-GENERATE ---
+
 function generateSnapshotName() {
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
