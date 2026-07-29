@@ -77,6 +77,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pill-del{background:rgba(239,68,68,.15);color:#f87171}
 .pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
 .pill-skip{background:var(--bg-3);color:var(--text-3)}
+.pill-err{background:rgba(239,68,68,.15);color:#f87171}
+.pill-dim{background:var(--bg-3);color:var(--text-3)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bg-3)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)}
 
 /* OUTPUT */
 .output-block{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8;overflow-x:auto;white-space:pre}
@@ -282,10 +286,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             </tbody>
           </table>
         </div>
-        <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-new">POST</span> Recurso nuevo &mdash; se crea en CX</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-mod">PATCH</span> Recurso modificado &mdash; se actualiza en CX</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-del">DELETE</span> Recurso eliminado localmente &mdash; se borra de CX</div>
+        <div class="legend" style="margin-bottom:20px">
+          <span class="legend-item"><span class="pill pill-new">POST</span> Nuevo en CX</span>
+          <span class="legend-item"><span class="pill pill-mod">PATCH</span> Modificado en CX</span>
+          <span class="legend-item"><span class="pill pill-del">DELETE</span> Eliminado de CX</span>
         </div>
         <div class="action-bar">
           <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
@@ -306,7 +310,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 4: Confirmar deploy -->
     <div class="step-view" id="view-4">
-      <div class="phase-eyebrow">Paso 4 de 8 &mdash; Gate humano</div>
+      <div class="phase-eyebrow">Paso 4 de 8</div>
       <div class="phase-title">Confirmar deploy</div>
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
       <div class="gate-block" id="deploy-gate">
@@ -319,6 +323,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div id="deploy-log" style="display:none;margin-top:4px">
         <div class="output-block" id="deploy-log-block" style="min-height:80px"></div>
+        <div class="legend">
+          <span class="legend-item"><span class="pill pill-ok">OK</span> Aplicado</span>
+          <span class="legend-item"><span class="pill pill-skip">SKIP</span> Sin cambios</span>
+          <span class="legend-item"><span class="pill pill-err">ERROR</span> Fallo en API</span>
+          <span class="legend-item"><span class="pill pill-dim">—</span> No intentado</span>
+        </div>
       </div>
 
       <!-- Deploy OK -->
@@ -347,7 +357,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 5: Snapshot del agente -->
     <div class="step-view" id="view-5">
-      <div class="phase-eyebrow">Paso 5 de 8 &mdash; Gate humano</div>
+      <div class="phase-eyebrow">Paso 5 de 8</div>
       <div class="phase-title">Snapshot del agente</div>
       <div class="phase-sub">CX guarda un snapshot nuevo del agente en el entorno staging. La versi&oacute;n anterior se conserva para rollback si los tests fallan.</div>
       <div class="gate-block" id="snap-gate">
@@ -379,7 +389,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 6: Validación de tests -->
     <div class="step-view" id="view-6">
-      <div class="phase-eyebrow">Paso 6 de 8 &mdash; Gate humano</div>
+      <div class="phase-eyebrow">Paso 6 de 8</div>
       <div class="phase-title">Validaci&oacute;n de tests</div>
       <div class="phase-sub">Confirma que has ejecutado la suite de tests QA y que todos los casos han pasado correctamente en el entorno staging.</div>
       <div class="gate-block">
@@ -417,7 +427,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 7: Gate QA — staging -->
     <div class="step-view" id="view-7">
-      <div class="phase-eyebrow">Paso 7 de 8 &mdash; Gate humano</div>
+      <div class="phase-eyebrow">Paso 7 de 8</div>
       <div class="phase-title">Gate QA &mdash; staging</div>
       <div class="phase-sub">Valida el agente manualmente en el entorno staging de CX antes de promover a producci&oacute;n.</div>
       <div class="gate-block">
@@ -438,7 +448,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 8: Aprobar subida a producción -->
     <div class="step-view" id="view-8">
-      <div class="phase-eyebrow">Paso 8 de 8 &mdash; Gate humano</div>
+      <div class="phase-eyebrow">Paso 8 de 8</div>
       <div class="phase-title">Aprobar subida a producci&oacute;n</div>
       <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se ejecutan dos acciones en orden.</div>
 
@@ -730,7 +740,7 @@ function renderStep3Diff() {
 const DEPLOY_RESOURCES = [
   {label:'Playbook · Compra · PATCH (Full Update)',         ok: true,  okText:'OK',                            cls:'ok'},
   {label:'Playbook · Orquestador · PATCH (Full Update)',    ok: true,  okText:'OK',                            cls:'ok'},
-  {label:'Example · compra_rosas_001 · POST',               ok: false, errText:'ERROR 400: campo "steps" no válido', cls:'del'},
+  {label:'Example · compra_rosas_001 · POST',               ok: false, okText:'OK', errText:'ERROR 400: campo "steps" no válido', cls:'del'},
   {label:'Example · compra_tulipanes_002 · DELETE',         ok: true,  okText:'OK',                            cls:'del'},
 ];
 
