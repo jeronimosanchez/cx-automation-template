@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CX Petal — Inventario de Artefactos</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --accent-indigo: #6366f1;
+    --accent-emerald: #10b981;
+    --accent-amber: #f59e0b;
+    --accent-sky: #0ea5e9;
+    --accent-violet: #8b5cf6;
+
+    --bg: #ffffff;
+    --bg-2: #f6f8fa;
+    --bg-3: #eaeef2;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --text-2: #57606a;
+    --text-3: #5c6872;
+
+    --nav-bg: #0d1117;
+    --nav-border: #21262d;
+
+    /* Semantic tags */
+    --tag-utterance-bg: rgba(14,165,233,0.10);
+    --tag-utterance-fg: #0369a1;
+    --tag-utterance-border: rgba(14,165,233,0.30);
+    --tag-task-bg: rgba(99,102,241,0.10);
+    --tag-task-fg: #4338ca;
+    --tag-task-border: rgba(99,102,241,0.30);
+    --tag-param-bg: rgba(16,185,129,0.10);
+    --tag-param-fg: #047857;
+    --tag-param-border: rgba(16,185,129,0.30);
+    --tag-http-bg: rgba(245,158,11,0.10);
+    --tag-http-fg: #92400e;
+    --tag-http-border: rgba(245,158,11,0.30);
+    --tag-llm-bg: rgba(139,92,246,0.10);
+    --tag-llm-fg: #6d28d9;
+    --tag-llm-border: rgba(139,92,246,0.30);
+    --tag-ok-bg: rgba(16,185,129,0.10);
+    --tag-ok-fg: #047857;
+    --tag-ok-border: rgba(16,185,129,0.30);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --bg-2: #161b22; --bg-3: #21262d;
+      --border: #30363d; --text: #e6edf3; --text-2: #8b949e; --text-3: #6e7681;
+      --tag-utterance-fg: #38bdf8;
+      --tag-task-fg: #818cf8;
+      --tag-param-fg: #34d399;
+      --tag-http-fg: #fcd34d;
+      --tag-llm-fg: #c4b5fd;
+      --tag-ok-fg: #34d399;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --bg-2: #f6f8fa; --bg-3: #eaeef2;
+    --border: #d0d7de; --text: #1f2328; --text-2: #57606a; --text-3: #5c6872;
+    --tag-utterance-fg: #0369a1;
+    --tag-task-fg: #4338ca;
+    --tag-param-fg: #047857;
+    --tag-http-fg: #92400e;
+    --tag-llm-fg: #6d28d9;
+    --tag-ok-fg: #047857;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --bg-2: #161b22; --bg-3: #21262d;
+    --border: #30363d; --text: #e6edf3; --text-2: #8b949e; --text-3: #6e7681;
+    --tag-utterance-fg: #38bdf8;
+    --tag-task-fg: #818cf8;
+    --tag-param-fg: #34d399;
+    --tag-http-fg: #fcd34d;
+    --tag-llm-fg: #c4b5fd;
+    --tag-ok-fg: #34d399;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--nav-border);
+    flex-shrink: 0;
+    padding: 0 24px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar-brand {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #e6edf3;
+    flex-shrink: 0;
+  }
+  .topbar-sep { color: #30363d; }
+  .topbar-label {
+    font-size: 12px;
+    color: #8b949e;
+  }
+  .topbar-label strong { color: #e6edf3; font-weight: 600; }
+  .topbar-time {
+    font-size: 11px;
+    color: #6e7681;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .topbar-refresh {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border-radius: 5px;
+    border: 1px solid #30363d;
+    background: transparent;
+    color: #8b949e;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+  }
+  .topbar-refresh:hover { border-color: #818cf8; color: #818cf8; }
+  .topbar-refresh:disabled { opacity: 0.5; cursor: default; }
+
+  /* ── LAYOUT ── */
+  .layout {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── RESOURCE GRID ── */
+  .resource-grid-wrap {
+    flex-shrink: 0;
+    padding: 16px 24px 14px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .resource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+
+  .resource-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    text-align: left;
+    font-family: inherit;
+    appearance: none;
+  }
+  .resource-card:hover { border-color: var(--accent-indigo); }
+  .resource-card.selected {
+    border-color: var(--accent-indigo);
+    background: rgba(99,102,241,0.06);
+    box-shadow: 0 0 0 2px rgba(99,102,241,0.14);
+  }
+  .resource-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .rc-icon { font-size: 15px; line-height: 1; }
+  .rc-count {
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    line-height: 1;
+  }
+  .rc-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-2);
+    letter-spacing: 0.01em;
+  }
+  .resource-card.selected .rc-label { color: var(--tag-task-fg); }
+
+  /* ── DETAIL ── */
+  .detail-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .detail-header {
+    flex-shrink: 0;
+    padding: 11px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+  }
+  .detail-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .detail-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10.5px;
+    font-weight: 600;
+    background: var(--tag-task-bg);
+    color: var(--tag-task-fg);
+    border: 1px solid var(--tag-task-border);
+  }
+  .detail-hint {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .detail-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px 28px;
+  }
+  .detail-body::-webkit-scrollbar { width: 5px; }
+  .detail-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── TAGS ── */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tag-utterance {
+    background: var(--tag-utterance-bg);
+    color: var(--tag-utterance-fg);
+    border: 1px solid var(--tag-utterance-border);
+  }
+  .tag-task {
+    background: var(--tag-task-bg);
+    color: var(--tag-task-fg);
+    border: 1px solid var(--tag-task-border);
+  }
+  .tag-param {
+    background: var(--tag-param-bg);
+    color: var(--tag-param-fg);
+    border: 1px solid var(--tag-param-border);
+  }
+  .tag-http {
+    background: var(--tag-http-bg);
+    color: var(--tag-http-fg);
+    border: 1px solid var(--tag-http-border);
+  }
+  .tag-llm {
+    background: var(--tag-llm-bg);
+    color: var(--tag-llm-fg);
+    border: 1px solid var(--tag-llm-border);
+  }
+  .tag-ok {
+    background: var(--tag-ok-bg);
+    color: var(--tag-ok-fg);
+    border: 1px solid var(--tag-ok-border);
+  }
+  .tag-neutral {
+    background: var(--bg-3);
+    color: var(--text-3);
+    border: 1px solid var(--border);
+  }
+
+  /* ── EXPANDABLE ROW ── */
+  .exp-row {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .exp-row:last-child { margin-bottom: 0; }
+  .exp-row-hdr {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 13px;
+    cursor: pointer;
+    background: var(--bg-2);
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.12s;
+  }
+  .exp-row-hdr:hover { background: var(--bg-3); }
+  .exp-row-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .exp-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .exp-toggle {
+    font-size: 9px;
+    color: var(--text-3);
+    transition: transform 0.18s;
+    width: 12px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .exp-row.open .exp-toggle { transform: rotate(90deg); }
+  .exp-row-body {
+    display: none;
+    padding: 13px 14px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+  .exp-row.open .exp-row-body { display: block; }
+
+  /* ── SUB-SECTION ── */
+  .sub-section { margin-top: 12px; }
+  .sub-section:first-child { margin-top: 0; }
+  .sub-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sub-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── CHIPS ── */
+  .chip-list { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    color: var(--text-2);
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* ── ORDERED TASK LIST ── */
+  .task-list {
+    list-style: none;
+    counter-reset: task-ctr;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .task-list li {
+    counter-increment: task-ctr;
+    font-size: 12.5px;
+    color: var(--text-2);
+    padding-left: 20px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .task-list li::before {
+    content: counter(task-ctr) '.';
+    position: absolute;
+    left: 0;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-3);
+    top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── TABLE ── */
+  .inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .inv-table th {
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    background: var(--bg-2);
+  }
+  .inv-table td {
+    padding: 8px 10px;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .inv-table td.td-primary {
+    font-weight: 500;
+    color: var(--text);
+  }
+  .inv-table tr:last-child td { border-bottom: none; }
+  .inv-table tr:hover td { background: var(--bg-2); }
+  code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 10.5px;
+    background: var(--bg-3);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ── GROUP HEADER (examples / pages) ── */
+  .group-hdr {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 8px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .group-hdr:first-child { margin-top: 0; }
+  .group-hdr::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .group-pb-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-2);
+    background: var(--bg-2);
+    padding: 2px 9px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    font-style: italic;
+    padding: 8px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    line-height: 1.5;
+  }
+
+  /* ── EMPTY ── */
+  .empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    color: var(--text-3);
+    font-size: 13px;
+  }
+
+  /* ── FOCUS ── */
+  :focus-visible {
+    outline: 2px solid var(--accent-indigo);
+    outline-offset: 2px;
+  }
+  .resource-card:focus-visible { outline-offset: 0; }
+  .exp-row-hdr:focus-visible { outline-offset: -2px; }
+</style>
+</head>
+<body>
+
+<!-- ── TOP BAR ── -->
+<header class="topbar">
+  <div class="topbar-brand">ACT</div>
+  <div class="topbar-sep">·</div>
+  <div class="topbar-label">Inventario CX — <strong id="agentName">—</strong></div>
+  <div class="topbar-time" id="snapshotTime" aria-live="polite">Cargando…</div>
+  <button class="topbar-refresh" id="refreshBtn" onclick="handleRefresh()" aria-label="Actualizar snapshot del agente">
+    ↻ Actualizar snapshot
+  </button>
+</header>
+
+<div class="layout">
+
+  <!-- ── RESOURCE GRID ── -->
+  <div class="resource-grid-wrap">
+    <div class="resource-grid" id="resourceGrid" role="list" aria-label="Tipos de recursos CX"></div>
+  </div>
+
+  <!-- ── DETAIL PANEL ── -->
+  <section class="detail-panel" aria-label="Detalle del tipo de recurso seleccionado">
+    <div class="detail-header">
+      <div class="detail-title">
+        <span id="detailIcon" aria-hidden="true">📖</span>
+        <span id="detailName">Playbooks</span>
+        <span class="detail-pill" id="detailCount">0</span>
+      </div>
+      <div class="detail-hint" id="detailHint"></div>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </section>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// DATOS DE EJEMPLO (estático — el script Python cx_inventory.py generará el JSON real)
+// ─────────────────────────────────────────────────────────────────────────────
+const SNAPSHOT = {
+  generated_at: "2026-07-28T07:12:34Z",
+  agent: "Petal 1.0",
+  totals: {
+    playbooks: 5, examples: 14, tools: 3, intents: 9,
+    entity_types: 5, webhooks: 2, generators: 2, flows: 3,
+    pages: 11, agent_config: 1, environments: 2, versions: 4
+  },
+  resources: {
+    playbooks: [
+      {
+        displayName: "Orquestador",
+        utterances: ["hola", "buenas", "quiero flores", "necesito ayuda", "qué pueden ofrecerme", "buenas tardes"],
+        tasks: [
+          "Detectar la intención inicial del usuario",
+          "Clasificar si se trata de compra, consulta de catálogo, seguimiento de pedido u otro flujo",
+          "Enrutar al playbook correspondiente según la intención detectada",
+          "Mantener el contexto de conversación entre cambios de intención"
+        ]
+      },
+      {
+        displayName: "Compra de flores",
+        utterances: [
+          "quiero comprar un ramo", "necesito flores para mañana",
+          "¿cuánto cuesta un ramo de rosas?", "quiero pedir flores para un cumpleaños",
+          "me gustaría hacer un pedido", "¿tienen rosas rojas?"
+        ],
+        tasks: [
+          "Detectar el tipo de producto y ocasión deseada",
+          "Consultar disponibilidad en el inventario (tool: get_inventory)",
+          "Presentar opciones disponibles con precio",
+          "Capturar dirección y fecha de entrega",
+          "Calcular coste total incluyendo envío",
+          "Confirmar resumen del pedido con el usuario",
+          "Procesar el pago (tool: process_payment)",
+          "Confirmar el número de pedido generado"
+        ]
+      },
+      {
+        displayName: "Catálogo y consultas",
+        utterances: [
+          "¿qué flores tienen?", "muéstrame el catálogo",
+          "¿tienen flores de temporada?", "¿cuáles son las más baratas?",
+          "¿qué me recomiendas para una boda?"
+        ],
+        tasks: [
+          "Mostrar el catálogo de productos disponibles",
+          "Filtrar por tipo de flor, precio u ocasión según la preferencia",
+          "Mostrar detalles del producto seleccionado",
+          "Ofrecer la posibilidad de pasar al flujo de compra"
+        ]
+      },
+      {
+        displayName: "Seguimiento de pedido",
+        utterances: [
+          "¿dónde está mi pedido?", "cuándo llega mi compra",
+          "estado de mi pedido", "quiero saber si ha salido", "tracking de mi envío"
+        ],
+        tasks: [
+          "Solicitar el número de pedido o email de contacto",
+          "Consultar el estado en el sistema (tool: get_order_status)",
+          "Mostrar fecha estimada de entrega y estado de envío",
+          "Ofrecer opciones si el pedido tiene alguna incidencia"
+        ]
+      },
+      {
+        displayName: "Cambios y cancelaciones",
+        utterances: [
+          "quiero cancelar mi pedido", "necesito cambiar la fecha de entrega",
+          "me equivoqué de dirección", "¿puedo devolver el pedido?",
+          "cambiar la dirección de envío"
+        ],
+        tasks: [
+          "Identificar el pedido afectado",
+          "Verificar si el pedido está en estado modificable",
+          "Gestionar el cambio solicitado (fecha, dirección o cancelación)",
+          "Confirmar los cambios aplicados al usuario",
+          "Iniciar el proceso de devolución si corresponde"
+        ]
+      }
+    ],
+    examples: [
+      { displayName: "Saludo y detección de intención — compra directa", playbook: "Orquestador", turns: 4, summary: "Usuario saluda y expresa directamente que quiere comprar." },
+      { displayName: "Saludo ambiguo con redirección a catálogo", playbook: "Orquestador", turns: 5, summary: "Usuario saluda sin intención clara; el agente pregunta y enruta al catálogo." },
+      { displayName: "Cambio de intención mid-conversación", playbook: "Orquestador", turns: 7, summary: "Usuario comienza consultando el catálogo y cambia a compra." },
+      { displayName: "Compra ramo de rosas — flujo completo", playbook: "Compra de flores", turns: 12, summary: "Ramo de 12 rosas rojas, entrega al día siguiente, pago con tarjeta." },
+      { displayName: "Compra con producto agotado y sustitución", playbook: "Compra de flores", turns: 9, summary: "Producto inicial agotado; el agente sugiere alternativa y el usuario acepta." },
+      { displayName: "Compra para regalo con mensaje personalizado", playbook: "Compra de flores", turns: 11, summary: "Usuario pide incluir tarjeta con mensaje; el agente gestiona el campo." },
+      { displayName: "Compra interrumpida por duda de precio de envío", playbook: "Compra de flores", turns: 8, summary: "Usuario pregunta por el coste de envío antes de confirmar." },
+      { displayName: "Consulta de catálogo por ocasión — boda", playbook: "Catálogo y consultas", turns: 6, summary: "Usuario pregunta qué flores van bien para una boda." },
+      { displayName: "Filtro por precio máximo", playbook: "Catálogo y consultas", turns: 5, summary: "Usuario pide opciones por debajo de 30 €." },
+      { displayName: "Consulta de estado — pedido en tránsito", playbook: "Seguimiento de pedido", turns: 4, summary: "Pedido #1234 en camino, entrega estimada en 2 h." },
+      { displayName: "Pedido retrasado — gestión de incidencia", playbook: "Seguimiento de pedido", turns: 7, summary: "Retraso detectado; el agente notifica y ofrece compensación." },
+      { displayName: "Cancelación antes de preparación", playbook: "Cambios y cancelaciones", turns: 5, summary: "Pedido #5678 en estado pendiente; cancelación exitosa." },
+      { displayName: "Cambio de dirección de entrega", playbook: "Cambios y cancelaciones", turns: 6, summary: "Usuario actualiza dirección; el agente confirma y actualiza el sistema." },
+      { displayName: "Cancelación denegada — pedido ya preparado", playbook: "Cambios y cancelaciones", turns: 6, summary: "Pedido en preparación; el agente explica que ya no es posible cancelar." }
+    ],
+    tools: [
+      {
+        displayName: "get_inventory", type: "HTTP",
+        endpoint: "https://petal-sheet-api.run.app/inventory",
+        parameters: [{ name: "product_id", type: "str" }, { name: "zone", type: "str" }, { name: "delivery_date", type: "str" }],
+        description: "Consulta disponibilidad y precio de un producto en el inventario de Petal."
+      },
+      {
+        displayName: "get_order_status", type: "HTTP",
+        endpoint: "https://petal-sheet-api.run.app/orders/{order_id}",
+        parameters: [{ name: "order_id", type: "str" }, { name: "email", type: "str (opcional)" }],
+        description: "Devuelve el estado de un pedido: pendiente, en preparación, enviado o entregado."
+      },
+      {
+        displayName: "process_payment", type: "HTTP",
+        endpoint: "https://petal-sheet-api.run.app/checkout",
+        parameters: [{ name: "order_id", type: "str" }, { name: "amount", type: "float" }, { name: "payment_method", type: "str" }],
+        description: "Procesa el pago de un pedido confirmado y devuelve el número de confirmación."
+      }
+    ],
+    intents: [
+      { displayName: "order.create", trainingPhrases: ["quiero comprar flores", "hacer un pedido", "pedir un ramo"], parameters: ["product_type", "delivery_date"] },
+      { displayName: "order.cancel", trainingPhrases: ["cancelar mi pedido", "quiero anular", "no quiero el pedido"], parameters: ["order_id"] },
+      { displayName: "order.status", trainingPhrases: ["dónde está mi pedido", "estado de mi compra", "tracking"], parameters: ["order_id", "email"] },
+      { displayName: "order.change_date", trainingPhrases: ["cambiar la fecha de entrega", "retrasar el pedido"], parameters: ["order_id", "new_date"] },
+      { displayName: "order.change_address", trainingPhrases: ["cambiar la dirección", "actualizar la dirección de envío"], parameters: ["order_id", "new_address"] },
+      { displayName: "catalog.browse", trainingPhrases: ["qué flores tienen", "ver el catálogo", "mostrar productos"], parameters: [] },
+      { displayName: "catalog.product_detail", trainingPhrases: ["cuánto cuestan las rosas", "detalles del ramo", "más info sobre este producto"], parameters: ["product_id"] },
+      { displayName: "sys.greeting", trainingPhrases: ["hola", "buenas", "buenos días", "hey"], parameters: [] },
+      { displayName: "sys.fallback", trainingPhrases: [], parameters: [] }
+    ],
+    entity_types: [
+      { displayName: "flower_type", kind: "Mapa", entries: ["rosa → rosa, roses, rosas rojas, rosa blanca", "tulipán → tulipán, tulipanes", "girasol → girasol, girasoles", "orquídea → orquídea, orquídeas", "clavel → clavel, claveles", "margarita → margarita, margaritas"], count: 6 },
+      { displayName: "occasion", kind: "Mapa", entries: ["cumpleaños → cumpleaños, aniversario de nacimiento", "boda → boda, casamiento, enlace", "aniversario → aniversario, pareja", "condolencias → pésame, condolencias, funeral", "san valentín → san valentín, día de los enamorados"], count: 5 },
+      { displayName: "bouquet_size", kind: "Mapa", entries: ["pequeño → pequeño, básico, económico (≤15 €)", "mediano → mediano, estándar (15–30 €)", "grande → grande, especial (30–60 €)", "premium → premium, lujo (>60 €)"], count: 4 },
+      { displayName: "delivery_zone", kind: "Lista", entries: ["Madrid Centro", "Madrid Norte", "Madrid Sur", "Barcelona Centro", "Valencia"], count: 5 },
+      { displayName: "payment_method", kind: "Mapa", entries: ["tarjeta → tarjeta, visa, mastercard, crédito, débito", "bizum → bizum", "transferencia → transferencia bancaria"], count: 3 }
+    ],
+    webhooks: [
+      {
+        displayName: "petal-sheet-api",
+        url: "https://petal-sheet-api-xxx-ew.a.run.app",
+        timeout: "30 s", auth: "API Key (X-API-Key)",
+        triggers: ["get_inventory", "get_order_status", "process_payment"]
+      },
+      {
+        displayName: "petal-notifications",
+        url: "https://petal-notify-xxx-ew.a.run.app",
+        timeout: "10 s", auth: "API Key (X-API-Key)",
+        triggers: ["order.confirmed", "order.shipped"]
+      }
+    ],
+    generators: [
+      {
+        displayName: "response_generator", model: "text-bison@002",
+        description: "Genera respuestas contextuales al usuario. Adapta el tono según la fase del flujo: exploración, confirmación o cierre.",
+        promptHint: "Eres Petal, el asistente de una floristería online en español. Tu tono es cálido y cercano. Responde siempre en español..."
+      },
+      {
+        displayName: "catalog_formatter", model: "text-bison@002",
+        description: "Formatea la respuesta de inventario en lenguaje natural. Presenta opciones de forma atractiva y comparativa.",
+        promptHint: "Dado el siguiente JSON de productos disponibles, preséntalo de forma clara y concisa en no más de 3 opciones..."
+      }
+    ],
+    flows: [
+      { displayName: "Default Start Flow", pages: 4, startPage: "Start", description: "Flujo principal de entrada. Gestiona el saludo inicial y enruta al playbook correspondiente." },
+      { displayName: "Flujo de Compra", pages: 5, startPage: "Selección de producto", description: "Gestiona el proceso completo: selección, confirmación, pago y cierre." },
+      { displayName: "Flujo Post-compra", pages: 2, startPage: "Estado del pedido", description: "Cubre seguimiento, cambios y cancelaciones de pedidos ya realizados." }
+    ],
+    pages: [
+      { displayName: "Start", flow: "Default Start Flow", routes: 3, entryFulfillment: "Saludo inicial y detección de intención" },
+      { displayName: "Disambiguation", flow: "Default Start Flow", routes: 4, entryFulfillment: "Pregunta de clarificación cuando la intención no es clara" },
+      { displayName: "Handoff al Playbook", flow: "Default Start Flow", routes: 1, entryFulfillment: "Transición al playbook detectado" },
+      { displayName: "Fallback global", flow: "Default Start Flow", routes: 2, entryFulfillment: "Respuesta de fallback y reintento de comprensión" },
+      { displayName: "Selección de producto", flow: "Flujo de Compra", routes: 3, entryFulfillment: "Muestra catálogo y opciones disponibles" },
+      { displayName: "Carrito y detalles", flow: "Flujo de Compra", routes: 2, entryFulfillment: "Captura fecha de entrega, dirección y personalización" },
+      { displayName: "Confirmación del pedido", flow: "Flujo de Compra", routes: 2, entryFulfillment: "Muestra resumen completo del pedido para aprobación" },
+      { displayName: "Pago", flow: "Flujo de Compra", routes: 3, entryFulfillment: "Solicita método de pago y procesa el cobro" },
+      { displayName: "Pedido confirmado", flow: "Flujo de Compra", routes: 1, entryFulfillment: "Confirma el número de pedido y el resumen final" },
+      { displayName: "Estado del pedido", flow: "Flujo Post-compra", routes: 3, entryFulfillment: "Muestra estado actual y fecha estimada de entrega" },
+      { displayName: "Cambios y cancelaciones", flow: "Flujo Post-compra", routes: 4, entryFulfillment: "Gestiona cambios de dirección, fecha o cancelación" }
+    ],
+    agent_config: [
+      { displayName: "Petal 1.0", defaultLanguage: "es", timeZone: "Europe/Madrid", region: "europe-west1", enableStackdriverLogging: true, enableSpellCorrection: false }
+    ],
+    environments: [
+      {
+        displayName: "Draft",
+        flowVersions: { "Default Start Flow": "v-20260728-001", "Flujo de Compra": "v-20260728-001", "Flujo Post-compra": "v-20260728-001" },
+        webHookEnvs: {},
+        updatedAt: "2026-07-28T07:12:34Z"
+      },
+      {
+        displayName: "Production",
+        flowVersions: { "Default Start Flow": "v-20260726-003", "Flujo de Compra": "v-20260726-003", "Flujo Post-compra": "v-20260726-003" },
+        webHookEnvs: { "petal-sheet-api": "prod" },
+        updatedAt: "2026-07-26T18:45:00Z"
+      }
+    ],
+    versions: [
+      { displayName: "v2026-07-28-01 — Hotfix orquestador", flow: "All flows", status: "READY", createdAt: "2026-07-28T07:12:34Z", description: "Corrección en el enrutamiento de intenciones ambiguas del orquestador." },
+      { displayName: "v2026-07-26-03 — Release Petal 1.0.3", flow: "All flows", status: "READY", createdAt: "2026-07-26T18:45:00Z", description: "Mejora del flujo de compra: gestión de productos agotados con sustitución automática." },
+      { displayName: "v2026-07-24-02 — Fix payment webhook", flow: "Flujo de Compra", status: "READY", createdAt: "2026-07-24T14:30:00Z", description: "Corrección del timeout en el webhook de proceso de pago." },
+      { displayName: "v2026-07-22-01 — Catálogo multiproducto", flow: "Flujo de Compra", status: "READY", createdAt: "2026-07-22T10:00:00Z", description: "Soporte para pedidos con múltiples productos en un solo flujo de compra." }
+    ]
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// METADATA POR TIPO
+// ─────────────────────────────────────────────────────────────────────────────
+const TYPES = [
+  { key: 'playbooks',    label: 'Playbooks',     icon: '📖', hint: 'Clic en una fila para ver Utterances y Tasks' },
+  { key: 'examples',     label: 'Examples',      icon: '💬', hint: 'Agrupados por el playbook al que pertenecen' },
+  { key: 'tools',        label: 'Tools',         icon: '🔧', hint: 'Tipo de herramienta, endpoint y parámetros de entrada' },
+  { key: 'intents',      label: 'Intents',       icon: '🎯', hint: 'Frases de entrenamiento y parámetros extraídos por intent' },
+  { key: 'entity_types', label: 'Entity Types',  icon: '🏷',  hint: 'Entradas, sinónimos y tipo de entidad (mapa / lista)' },
+  { key: 'webhooks',     label: 'Webhooks',      icon: '🔗', hint: 'Endpoint, autenticación y tools que los invocan' },
+  { key: 'generators',   label: 'Generators',    icon: '✨', hint: 'Modelo LLM, propósito y prompt de arranque' },
+  { key: 'flows',        label: 'Flows',         icon: '🌊', hint: 'Página inicial y número de páginas por flow' },
+  { key: 'pages',        label: 'Pages',         icon: '📄', hint: 'Agrupadas por flow — entry fulfillment y rutas de salida' },
+  { key: 'agent_config', label: 'Agent Config',  icon: '⚙️', hint: 'Configuración global del agente CX' },
+  { key: 'environments', label: 'Environments',  icon: '🌐', hint: 'Versiones activas por flow en cada environment' },
+  { key: 'versions',     label: 'Versions',      icon: '🔖', hint: 'Historial de versiones del agente — más reciente primero' }
+];
+
+let selectedType = 'playbooks';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+function init() {
+  document.getElementById('agentName').textContent = SNAPSHOT.agent;
+  const t = new Date(SNAPSHOT.generated_at);
+  const diffH = Math.round((Date.now() - t) / 3_600_000);
+  document.getElementById('snapshotTime').textContent =
+    diffH < 1 ? 'Snapshot: hace menos de 1 h'
+    : diffH < 24 ? `Snapshot: hace ${diffH} h`
+    : `Snapshot: ${SNAPSHOT.generated_at.slice(0, 10)}`;
+
+  renderGrid();
+  renderDetail('playbooks');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GRID
+// ─────────────────────────────────────────────────────────────────────────────
+function renderGrid() {
+  const grid = document.getElementById('resourceGrid');
+  grid.innerHTML = '';
+  TYPES.forEach(rt => {
+    const count = SNAPSHOT.totals[rt.key] ?? 0;
+    const btn = document.createElement('button');
+    btn.className = 'resource-card' + (rt.key === selectedType ? ' selected' : '');
+    btn.setAttribute('role', 'listitem');
+    btn.setAttribute('aria-pressed', rt.key === selectedType ? 'true' : 'false');
+    btn.setAttribute('aria-label', `${rt.label}: ${count} recursos`);
+    btn.innerHTML = `
+      <div class="resource-card-top">
+        <span class="rc-icon" aria-hidden="true">${rt.icon}</span>
+        <span class="rc-count">${count}</span>
+      </div>
+      <div class="rc-label">${rt.label}</div>`;
+    btn.addEventListener('click', () => {
+      selectedType = rt.key;
+      renderGrid();
+      renderDetail(rt.key);
+    });
+    grid.appendChild(btn);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DETAIL DISPATCHER
+// ─────────────────────────────────────────────────────────────────────────────
+function renderDetail(typeKey) {
+  const rt = TYPES.find(r => r.key === typeKey);
+  const resources = SNAPSHOT.resources[typeKey] || [];
+
+  document.getElementById('detailIcon').textContent = rt.icon;
+  document.getElementById('detailName').textContent = rt.label;
+  document.getElementById('detailCount').textContent = resources.length;
+  document.getElementById('detailHint').textContent = rt.hint;
+
+  const body = document.getElementById('detailBody');
+  const dispatchers = {
+    playbooks:    renderPlaybooks,
+    examples:     renderExamples,
+    tools:        renderTools,
+    intents:      renderIntents,
+    entity_types: renderEntityTypes,
+    webhooks:     renderWebhooks,
+    generators:   renderGenerators,
+    flows:        renderFlows,
+    pages:        renderPages,
+    agent_config: renderAgentConfig,
+    environments: renderEnvironments,
+    versions:     renderVersions
+  };
+  body.innerHTML = (dispatchers[typeKey] || (() => '<div class="empty">Sin datos.</div>'))(resources);
+
+  // Bind expand toggles
+  body.querySelectorAll('.exp-row-hdr').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.exp-row');
+      row.classList.toggle('open');
+      btn.setAttribute('aria-expanded', row.classList.contains('open') ? 'true' : 'false');
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDERERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderPlaybooks(resources) {
+  return resources.map((pb, i) => `
+    <div class="exp-row" id="pbr-${i}">
+      <button class="exp-row-hdr" aria-expanded="false" aria-controls="pb-body-${i}">
+        <span class="rc-icon" aria-hidden="true">📖</span>
+        <span class="exp-row-name">${pb.displayName}</span>
+        <div class="exp-row-meta">
+          <span class="tag tag-utterance">${pb.utterances.length} utterances</span>
+          <span class="tag tag-task">${pb.tasks.length} tasks</span>
+        </div>
+        <span class="exp-toggle" aria-hidden="true">▶</span>
+      </button>
+      <div class="exp-row-body" id="pb-body-${i}">
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-utterance">Utterances</span>
+            Ejemplos de entrada del usuario
+          </div>
+          <div class="chip-list">
+            ${pb.utterances.map(u => `<span class="chip">"${esc(u)}"</span>`).join('')}
+          </div>
+        </div>
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-task">Tasks</span>
+            Tareas que ejecuta el playbook
+          </div>
+          <ol class="task-list">
+            ${pb.tasks.map(t => `<li>${esc(t)}</li>`).join('')}
+          </ol>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderExamples(resources) {
+  // Agrupar por playbook
+  const groups = {};
+  const order = [];
+  resources.forEach(ex => {
+    if (!groups[ex.playbook]) { groups[ex.playbook] = []; order.push(ex.playbook); }
+    groups[ex.playbook].push(ex);
+  });
+
+  return order.map(pbName => {
+    const items = groups[pbName];
+    const rows = items.map(ex => `
+      <tr>
+        <td class="td-primary">${esc(ex.displayName)}</td>
+        <td style="text-align:center;font-variant-numeric:tabular-nums">${ex.turns}</td>
+        <td style="font-size:11.5px;color:var(--text-3)">${esc(ex.summary)}</td>
+      </tr>`).join('');
+    return `
+      <div class="group-hdr">
+        <span>${items.length} example${items.length !== 1 ? 's' : ''}</span>
+        <span class="group-pb-badge">📖 ${esc(pbName)}</span>
+      </div>
+      <div style="overflow-x:auto;margin-bottom:4px">
+        <table class="inv-table">
+          <thead><tr>
+            <th>Nombre del example</th>
+            <th style="width:65px;text-align:center">Turnos</th>
+            <th>Descripción</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+}
+
+function renderTools(resources) {
+  return resources.map((tool, i) => `
+    <div class="exp-row" id="tool-${i}">
+      <button class="exp-row-hdr" aria-expanded="false" aria-controls="tool-body-${i}">
+        <span class="rc-icon" aria-hidden="true">🔧</span>
+        <span class="exp-row-name">${esc(tool.displayName)}</span>
+        <div class="exp-row-meta">
+          <span class="tag tag-http">${tool.type}</span>
+          <span class="tag tag-param">${tool.parameters.length} params</span>
+        </div>
+        <span class="exp-toggle" aria-hidden="true">▶</span>
+      </button>
+      <div class="exp-row-body" id="tool-body-${i}">
+        <div class="sub-section">
+          <div class="sub-label">Endpoint</div>
+          <div class="code-block" style="font-style:normal;color:var(--text-2)">${esc(tool.endpoint)}</div>
+        </div>
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-param">Parámetros de entrada</span>
+          </div>
+          <div class="chip-list">
+            ${tool.parameters.map(p => `<span class="tag tag-param" style="font-size:11px;padding:3px 8px"><code style="background:none;padding:0;font-size:inherit;color:inherit">${esc(p.name)}</code><span style="opacity:0.7"> : ${esc(p.type)}</span></span>`).join('')}
+          </div>
+        </div>
+        <div class="sub-section">
+          <div class="sub-label">Descripción</div>
+          <p style="font-size:12.5px;color:var(--text-2)">${esc(tool.description)}</p>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderIntents(resources) {
+  return resources.map((intent, i) => {
+    const isSys = intent.displayName.startsWith('sys.');
+    const hasDetail = intent.trainingPhrases.length > 0 || intent.parameters.length > 0;
+    return `
+    <div class="exp-row" id="intent-${i}">
+      <button class="exp-row-hdr" aria-expanded="false" aria-controls="intent-body-${i}">
+        <span class="rc-icon" aria-hidden="true">🎯</span>
+        <span class="exp-row-name">${esc(intent.displayName)}</span>
+        <div class="exp-row-meta">
+          ${isSys ? '<span class="tag tag-neutral">sys</span>' : ''}
+          ${intent.trainingPhrases.length > 0 ? `<span class="tag tag-utterance">${intent.trainingPhrases.length} frases</span>` : ''}
+          ${intent.parameters.length > 0 ? `<span class="tag tag-param">${intent.parameters.length} param${intent.parameters.length !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+        <span class="exp-toggle" aria-hidden="true">▶</span>
+      </button>
+      <div class="exp-row-body" id="intent-body-${i}">
+        ${intent.trainingPhrases.length > 0 ? `
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-utterance">Frases de entrenamiento</span>
+          </div>
+          <div class="chip-list">
+            ${intent.trainingPhrases.map(p => `<span class="chip">"${esc(p)}"</span>`).join('')}
+          </div>
+        </div>` : ''}
+        ${intent.parameters.length > 0 ? `
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-param">Parámetros extraídos</span>
+          </div>
+          <div class="chip-list">
+            ${intent.parameters.map(p => `<span class="tag tag-param" style="font-size:11px;padding:3px 8px">${esc(p)}</span>`).join('')}
+          </div>
+        </div>` : ''}
+        ${!hasDetail ? '<p style="font-size:12px;color:var(--text-3)">Intent de sistema — sin frases de entrenamiento propias.</p>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderEntityTypes(resources) {
+  return resources.map((et, i) => `
+    <div class="exp-row" id="et-${i}">
+      <button class="exp-row-hdr" aria-expanded="false" aria-controls="et-body-${i}">
+        <span class="rc-icon" aria-hidden="true">🏷</span>
+        <span class="exp-row-name">${esc(et.displayName)}</span>
+        <div class="exp-row-meta">
+          <span class="tag tag-param">${esc(et.kind)}</span>
+          <span class="tag tag-neutral">${et.count} entidad${et.count !== 1 ? 'es' : ''}</span>
+        </div>
+        <span class="exp-toggle" aria-hidden="true">▶</span>
+      </button>
+      <div class="exp-row-body" id="et-body-${i}">
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-param">Entradas y sinónimos</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            ${et.entries.map(entry => {
+              const [key, ...rest] = entry.split('→');
+              return `<div style="font-size:12px;color:var(--text-2);padding:5px 9px;background:var(--bg-2);border-radius:4px;border:1px solid var(--border);display:flex;gap:6px;align-items:baseline">
+                <span style="font-weight:600;color:var(--text);flex-shrink:0">${esc(key.trim())}</span>
+                ${rest.length ? `<span style="color:var(--text-3)">→</span> <span>${esc(rest.join('→').trim())}</span>` : ''}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderWebhooks(resources) {
+  return resources.map((wh, i) => `
+    <div class="exp-row" id="wh-${i}">
+      <button class="exp-row-hdr" aria-expanded="false" aria-controls="wh-body-${i}">
+        <span class="rc-icon" aria-hidden="true">🔗</span>
+        <span class="exp-row-name">${esc(wh.displayName)}</span>
+        <div class="exp-row-meta">
+          <span class="tag tag-utterance">${esc(wh.auth.split(' ')[0])}</span>
+          <span class="tag tag-neutral">timeout ${esc(wh.timeout)}</span>
+        </div>
+        <span class="exp-toggle" aria-hidden="true">▶</span>
+      </button>
+      <div class="exp-row-body" id="wh-body-${i}">
+        <div class="sub-section">
+          <div class="sub-label">Endpoint</div>
+          <div class="code-block" style="font-style:normal;color:var(--text-2)">${esc(wh.url)}</div>
+        </div>
+        <div class="sub-section">
+          <div class="sub-label">Autenticación</div>
+          <span class="tag tag-utterance">${esc(wh.auth)}</span>
+        </div>
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-task">Invocado por</span>
+          </div>
+          <div class="chip-list">
+            ${wh.triggers.map(t => `<span class="tag tag-task">${esc(t)}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderGenerators(resources) {
+  return resources.map((gen, i) => `
+    <div class="exp-row" id="gen-${i}">
+      <button class="exp-row-hdr" aria-expanded="false" aria-controls="gen-body-${i}">
+        <span class="rc-icon" aria-hidden="true">✨</span>
+        <span class="exp-row-name">${esc(gen.displayName)}</span>
+        <div class="exp-row-meta">
+          <span class="tag tag-llm">LLM · ${esc(gen.model)}</span>
+        </div>
+        <span class="exp-toggle" aria-hidden="true">▶</span>
+      </button>
+      <div class="exp-row-body" id="gen-body-${i}">
+        <div class="sub-section">
+          <div class="sub-label">Propósito</div>
+          <p style="font-size:12.5px;color:var(--text-2)">${esc(gen.description)}</p>
+        </div>
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-llm">Prompt de arranque</span>
+          </div>
+          <div class="code-block">${esc(gen.promptHint)}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderFlows(resources) {
+  return `<div style="overflow-x:auto">
+    <table class="inv-table">
+      <thead><tr>
+        <th>Flow</th>
+        <th>Página inicial</th>
+        <th style="width:70px;text-align:center">Páginas</th>
+        <th>Descripción</th>
+      </tr></thead>
+      <tbody>
+        ${resources.map(f => `<tr>
+          <td class="td-primary"><span style="font-size:14px">🌊</span> ${esc(f.displayName)}</td>
+          <td><code>${esc(f.startPage)}</code></td>
+          <td style="text-align:center;font-variant-numeric:tabular-nums">${f.pages}</td>
+          <td style="font-size:11.5px;color:var(--text-3)">${esc(f.description)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderPages(resources) {
+  // Agrupar por flow
+  const groups = {};
+  const order = [];
+  resources.forEach(pg => {
+    if (!groups[pg.flow]) { groups[pg.flow] = []; order.push(pg.flow); }
+    groups[pg.flow].push(pg);
+  });
+
+  return order.map(flowName => {
+    const items = groups[flowName];
+    const rows = items.map(pg => `
+      <tr>
+        <td class="td-primary">${esc(pg.displayName)}</td>
+        <td style="font-size:11.5px;color:var(--text-3)">${esc(pg.entryFulfillment)}</td>
+        <td style="text-align:center;font-variant-numeric:tabular-nums">${pg.routes}</td>
+      </tr>`).join('');
+    return `
+      <div class="group-hdr">
+        <span>${items.length} página${items.length !== 1 ? 's' : ''}</span>
+        <span class="group-pb-badge">🌊 ${esc(flowName)}</span>
+      </div>
+      <div style="overflow-x:auto;margin-bottom:4px">
+        <table class="inv-table">
+          <thead><tr>
+            <th>Página</th>
+            <th>Entry fulfillment</th>
+            <th style="width:60px;text-align:center">Rutas</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+}
+
+function renderAgentConfig(resources) {
+  const cfg = resources[0];
+  if (!cfg) return '<div class="empty">Sin configuración disponible.</div>';
+  const rows = [
+    ['Nombre del agente', cfg.displayName],
+    ['Idioma por defecto', cfg.defaultLanguage],
+    ['Zona horaria', cfg.timeZone],
+    ['Región', cfg.region],
+    ['Stackdriver Logging', cfg.enableStackdriverLogging ? '✓ Activado' : '✗ Desactivado'],
+    ['Spell Correction', cfg.enableSpellCorrection ? '✓ Activado' : '✗ Desactivado']
+  ];
+  return `<div style="overflow-x:auto;max-width:480px">
+    <table class="inv-table">
+      <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+      <tbody>${rows.map(([k, v]) => `<tr><td class="td-primary">${k}</td><td>${esc(String(v))}</td></tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderEnvironments(resources) {
+  return resources.map((env, i) => `
+    <div class="exp-row" id="env-${i}">
+      <button class="exp-row-hdr" aria-expanded="false" aria-controls="env-body-${i}">
+        <span class="rc-icon" aria-hidden="true">🌐</span>
+        <span class="exp-row-name">${esc(env.displayName)}</span>
+        <div class="exp-row-meta">
+          <span class="tag tag-neutral">${relTime(env.updatedAt)}</span>
+          ${Object.keys(env.webHookEnvs).length > 0 ? `<span class="tag tag-task">${Object.keys(env.webHookEnvs).length} webhook env</span>` : ''}
+        </div>
+        <span class="exp-toggle" aria-hidden="true">▶</span>
+      </button>
+      <div class="exp-row-body" id="env-body-${i}">
+        <div class="sub-section">
+          <div class="sub-label">Versiones activas por flow</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            ${Object.entries(env.flowVersions).map(([flow, ver]) => `
+              <div style="font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:8px;padding:5px 9px;background:var(--bg-2);border-radius:4px;border:1px solid var(--border)">
+                <span style="font-weight:500;color:var(--text)">${esc(flow)}</span>
+                <code style="margin-left:auto;font-size:10px">${esc(ver)}</code>
+              </div>`).join('')}
+          </div>
+        </div>
+        ${Object.keys(env.webHookEnvs).length > 0 ? `
+        <div class="sub-section">
+          <div class="sub-label">
+            <span class="tag tag-task">Variables de entorno webhook</span>
+          </div>
+          <div class="chip-list">
+            ${Object.entries(env.webHookEnvs).map(([k, v]) => `<span class="tag tag-task">${esc(k)}: ${esc(v)}</span>`).join('')}
+          </div>
+        </div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderVersions(resources) {
+  return `<div style="overflow-x:auto">
+    <table class="inv-table">
+      <thead><tr>
+        <th>Versión</th>
+        <th>Flow</th>
+        <th>Estado</th>
+        <th style="white-space:nowrap">Fecha</th>
+        <th>Descripción</th>
+      </tr></thead>
+      <tbody>
+        ${resources.map(v => `<tr>
+          <td class="td-primary" style="font-size:11.5px">${esc(v.displayName)}</td>
+          <td style="font-size:11px"><code>${esc(v.flow)}</code></td>
+          <td><span class="tag tag-ok">✓ ${esc(v.status)}</span></td>
+          <td style="white-space:nowrap;font-variant-numeric:tabular-nums;font-size:11.5px">${v.createdAt.slice(0, 10)}</td>
+          <td style="font-size:11.5px;color:var(--text-3)">${esc(v.description)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function relTime(isoStr) {
+  const diffH = Math.round((Date.now() - new Date(isoStr)) / 3_600_000);
+  const diffD = Math.round(diffH / 24);
+  if (diffH < 1) return 'hace < 1 h';
+  if (diffH < 24) return `hace ${diffH} h`;
+  return `hace ${diffD} d`;
+}
+
+function handleRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  btn.textContent = '↻ Actualizando…';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.innerHTML = '↻ Actualizar snapshot';
+    btn.disabled = false;
+  }, 1500);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
