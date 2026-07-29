@@ -1,8 +1,9 @@
+<meta charset="utf-8">
 <title>act_deploy — Deploy Petal 1.0</title>
 <style>
 :root {
-  --bg:#0d1117;--bg-2:#161b22;--bg-3:#21262d;--border:#30363d;
-  --text:#e6edf3;--text-2:#8b949e;--text-3:#656d76;
+  --bg:#0d1117;--bg-2:#1a2030;--bg-3:#252d3a;--border:#3d4755;
+  --text:#f0f6fc;--text-2:#b0bac6;--text-3:#8b95a1;
   --accent:#3b82f6;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -12,7 +13,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
 .topbar-agent{font-weight:700;font-size:15px}
 .topbar-sep{color:var(--border);font-size:18px}
-.topbar-env{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em}
+.topbar-env{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;transition:background .3s,color .3s,border-color .3s}
 .topbar-commit{font-size:12px;color:var(--text-3);font-family:monospace}
 .topbar-meta{color:var(--text-3);font-size:12px;margin-left:auto;display:flex;align-items:center;gap:12px}
 .btn{padding:6px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
@@ -77,11 +78,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pill-skip{background:var(--bg-3);color:var(--text-3)}
 
 /* OUTPUT */
-.output-block{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8;overflow-x:auto}
+.output-block{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8;overflow-x:auto;white-space:pre}
 .output-block .ok{color:#4ade80}
 .output-block .info{color:#60a5fa}
 .output-block .warn{color:#fbbf24}
 .output-block .dim{color:var(--text-3)}
+.output-block .del{color:#f87171}
 
 /* CARDS GRID */
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
@@ -106,17 +108,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* SECTION LABEL */
 .slabel{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+
+/* SNAPSHOT GATE (Paso 4) */
+.snapshot-input{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'SF Mono',Menlo,monospace;width:100%;outline:none;transition:border-color .15s}
+.snapshot-input:focus{border-color:var(--gate)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* INFO NOTE */
+.info-note{font-size:12px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-top:12px;line-height:1.6}
+
+/* ACTION RESULT ROWS */
+.action-result{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
+.action-result:last-child{border-bottom:none}
+.action-result-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;margin-top:1px}
+.action-result-body{flex:1}
+.action-result-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.action-result-desc{font-size:12px;color:var(--text-2);line-height:1.55}
 </style>
 
 <!-- TOP BAR -->
 <div class="topbar">
   <span class="topbar-agent">Petal 1.0</span>
   <span class="topbar-sep">|</span>
-  <span class="topbar-env">STAGING</span>
-  <span class="topbar-commit">main · fb867ab</span>
+  <span class="topbar-env" id="topbar-env">STAGING</span>
+  <span class="topbar-commit">main &middot; fb867ab</span>
   <div class="topbar-meta">
-    <span>Último deploy: hace 3 días</span>
-    <button class="btn btn-ghost" onclick="resetDeploy()">↺ Nuevo deploy</button>
+    <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
+    <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
   </div>
 </div>
 
@@ -129,10 +147,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 1: Inventario CX -->
     <div class="step-view" id="view-1">
-      <div class="phase-eyebrow">Paso 1 de 8</div>
+      <div class="phase-eyebrow">Paso 1 de 7</div>
       <div class="phase-title">Inventario CX</div>
       <div class="phase-sub">Snapshot del estado actual del agente Petal en Dialogflow CX.</div>
-      <div class="done-banner"><span>✓</span><p>Inventario generado — 2026-07-28 · 09:41 UTC</p></div>
+      <div class="done-banner"><span>&#10003;</span><p>Inventario generado &mdash; 2026-07-28 &middot; 09:41 UTC</p></div>
       <div class="slabel">Resumen del snapshot</div>
       <div class="cards-grid">
         <div class="stat-card"><div class="stat-label">Playbooks</div><div class="stat-value">5</div></div>
@@ -152,19 +170,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 2: Diff -->
     <div class="step-view" id="view-2">
-      <div class="phase-eyebrow">Paso 2 de 8</div>
-      <div class="phase-title">Diff local vs CX</div>
-      <div class="phase-sub">Comparación entre las definiciones locales y el estado actual del agente en CX.</div>
-      <div class="done-banner"><span>✓</span><p>3 recursos con cambios detectados</p></div>
+      <div class="phase-eyebrow">Paso 2 de 7</div>
+      <div class="phase-title">Diff GitHub vs CX</div>
+      <div class="phase-sub">Comparaci&oacute;n entre las definiciones en GitHub (rama staging) y el snapshot desplegado en el entorno staging de CX.</div>
+      <div class="done-banner"><span>&#10003;</span><p><span id="diff-count-banner">3</span> recursos con cambios detectados</p></div>
       <div class="slabel">Cambios detectados</div>
       <div class="diff-wrap">
         <table class="diff-table">
           <thead><tr><th>Tipo</th><th>Recurso</th><th>Cambio</th><th>Detalle</th></tr></thead>
           <tbody>
-            <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">MODIFICADO</span></td><td style="color:var(--text-2);font-size:12px">instruction.steps — 2 líneas cambiadas</td></tr>
-            <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">MODIFICADO</span></td><td style="color:var(--text-2);font-size:12px">instruction.steps — 1 línea cambiada</td></tr>
+            <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">MODIFICADO</span></td><td style="color:var(--text-2);font-size:12px">instruction.steps &mdash; 2 l&iacute;neas cambiadas</td></tr>
+            <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">MODIFICADO</span></td><td style="color:var(--text-2);font-size:12px">instruction.steps &mdash; 1 l&iacute;nea cambiada</td></tr>
             <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><span class="pill pill-new">NUEVO</span></td><td style="color:var(--text-2);font-size:12px">No existe en CX</td></tr>
-            <tr><td>Tools</td><td><code>consultar_inventario</code></td><td><span class="pill pill-skip">SIN CAMBIOS</span></td><td style="color:var(--text-3);font-size:12px">—</td></tr>
+            <tr><td>Tools</td><td><code>consultar_inventario</code></td><td><span class="pill pill-skip">SIN CAMBIOS</span></td><td style="color:var(--text-3);font-size:12px">&mdash;</td></tr>
           </tbody>
         </table>
       </div>
@@ -172,21 +190,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 3: Gate confirmar -->
     <div class="step-view" id="view-3">
-      <div class="phase-eyebrow">Paso 3 de 8 — Gate humano</div>
+      <div class="phase-eyebrow">Paso 3 de 7 &mdash; Gate humano</div>
       <div class="phase-title">Confirmar deploy</div>
-      <div class="phase-sub">Revisa los cambios detectados antes de desplegar. Este es el único punto de no retorno.</div>
+      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente quedar&aacute; actualizado con los cambios. Para ejecutar los tests completa los pasos siguientes: crear un snapshot y asignarlo al entorno staging.</div>
       <div class="gate-block">
-        <div class="gate-title">✋ Acción requerida</div>
-        <p>Se van a desplegar <strong style="color:var(--text)">3 recursos</strong> — 2 playbooks modificados y 1 example nuevo. Los recursos sin cambios no se tocan.</p>
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados y 1 example nuevo. Los recursos sin cambios no se tocan.</p>
         <div class="action-bar">
-          <button class="btn btn-gate" onclick="advance(3)">Confirmar deploy →</button>
+          <button class="btn btn-gate" onclick="advance(3)">Confirmar deploy &rarr;</button>
           <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
         </div>
       </div>
       <div class="slabel">Resumen de lo que se va a desplegar</div>
       <div class="diff-wrap">
         <table class="diff-table">
-          <thead><tr><th>Tipo</th><th>Recurso</th><th>Operación</th></tr></thead>
+          <thead><tr><th>Tipo</th><th>Recurso</th><th>Operaci&oacute;n</th></tr></thead>
           <tbody>
             <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">PATCH (Full Update)</span></td></tr>
             <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">PATCH (Full Update)</span></td></tr>
@@ -196,122 +214,216 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- STEP 4: Push recursos -->
+    <!-- STEP 4: Snapshot del agente -->
     <div class="step-view" id="view-4">
-      <div class="phase-eyebrow">Paso 4 de 8</div>
-      <div class="phase-title">Push recursos</div>
-      <div class="phase-sub">Desplegando solo los recursos que cambiaron.</div>
-      <div class="done-banner"><span>✓</span><p>3 recursos desplegados correctamente</p></div>
-      <div class="progress-wrap">
-        <div class="progress-item"><span class="progress-icon">✓</span><span class="progress-name">Playbooks (2 modificados)</span><span class="progress-status ok">PATCH · Full Update</span></div>
-        <div class="progress-item"><span class="progress-icon">✓</span><span class="progress-name">Examples (1 nuevo)</span><span class="progress-status ok">POST</span></div>
-        <div class="progress-item"><span class="progress-icon">—</span><span class="progress-name">Tools, Intents, Entity Types...</span><span class="progress-status skip">sin cambios</span></div>
-      </div>
-      <div class="output-block">
-<span class="ok">✓</span> PATCH playbooks/Compra <span class="dim">→ 200 OK</span>
-<span class="ok">✓</span> PATCH playbooks/Orquestador <span class="dim">→ 200 OK</span>
-<span class="ok">✓</span> POST examples/compra_rosas_001 <span class="dim">→ 201 Created</span>
-<span class="dim">— Tools · Intents · Entity Types · Webhooks · Generators · Flows · Pages · Agent Config · Environments · Versions → sin cambios, no enviados</span></div>
-    </div>
-
-    <!-- STEP 5: Crear versión -->
-    <div class="step-view" id="view-5">
-      <div class="phase-eyebrow">Paso 5 de 8</div>
-      <div class="phase-title">Crear versión</div>
-      <div class="phase-sub">POST /versions — snapshot del estado actual del agente en CX.</div>
-      <div class="done-banner"><span>✓</span><p>Versión creada: v6 · 2026-07-28_0942</p></div>
-      <div class="output-block">
-<span class="info">POST</span> /agents/petal-1.0/flows/Default/versions
-<span class="dim">displayName: "2026-07-28_0942"</span>
-<span class="ok">✓</span> 200 OK <span class="dim">→ operationId: op-abc123</span></div>
-    </div>
-
-    <!-- STEP 6: LRO polling -->
-    <div class="step-view" id="view-6">
-      <div class="phase-eyebrow">Paso 6 de 8</div>
-      <div class="phase-title">Esperar versión</div>
-      <div class="phase-sub">Polling hasta que la versión esté lista en CX (done: true).</div>
-      <div class="done-banner"><span>✓</span><p>Versión lista — done: true · 18 s</p></div>
-      <div class="output-block">
-<span class="dim">GET /operations/op-abc123</span>
-<span class="dim">[0s]  done: false</span>
-<span class="dim">[5s]  done: false</span>
-<span class="dim">[10s] done: false</span>
-<span class="dim">[18s] done: <span class="ok">true</span></span>
-<span class="ok">✓</span> Versión 2026-07-28_0942 disponible</div>
-    </div>
-
-    <!-- STEP 7: Actualizar staging -->
-    <div class="step-view" id="view-7">
-      <div class="phase-eyebrow">Paso 7 de 8</div>
-      <div class="phase-title">Actualizar staging</div>
-      <div class="phase-sub">PATCH environment staging → apunta a la nueva versión.</div>
-      <div class="done-banner"><span>✓</span><p>Staging apunta a v6 · 2026-07-28_0942</p></div>
-      <div class="output-block">
-<span class="info">PATCH</span> /environments/staging
-<span class="dim">versionConfigs: [{ version: "v6" }]</span>
-<span class="ok">✓</span> 200 OK <span class="dim">→ staging actualizado</span>
-<span class="dim">Versión antigua (v5) sigue activa en producción</span></div>
-    </div>
-
-    <!-- STEP 8: Gate QA + prod -->
-    <div class="step-view" id="view-8">
-      <div class="phase-eyebrow">Paso 8 de 8 — Gate humano</div>
-      <div class="phase-title">Gate QA + producción</div>
-      <div class="phase-sub">Valida el agente en staging antes de promover a producción.</div>
+      <div class="phase-eyebrow">Paso 4 de 7 &mdash; Gate humano</div>
+      <div class="phase-title">Snapshot del agente</div>
+      <div class="phase-sub">CX guarda un snapshot nuevo del agente en el entorno staging. Los tests del siguiente paso se ejecutar&aacute;n sobre esta versi&oacute;n. La versi&oacute;n anterior de staging se conserva para poder hacer rollback si los tests fallan.</div>
       <div class="gate-block">
-        <div class="gate-title">✋ Validación en staging requerida</div>
-        <p>El agente está en staging con la nueva versión (v6). Pruébalo en Dialogflow CX y confirma que todo funciona antes de promover a producción.</p>
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p>Asigna un nombre al snapshot y confirma para crear la versi&oacute;n en CX. El nombre se usar&aacute; como <code style="font-size:12px;color:var(--text)">displayName</code> en la API.</p>
+        <div style="margin-bottom:20px">
+          <div class="slabel" style="margin-bottom:8px">Nombre del snapshot</div>
+          <input type="text" id="snapshot-name" class="snapshot-input" value="">
+        </div>
         <div class="action-bar">
-          <button class="btn btn-gate" onclick="advance(8)">Promover a producción →</button>
-          <button class="btn btn-danger" onclick="rollback()">Rollback a v5</button>
+          <button class="btn btn-gate" id="btn-snapshot-confirm" onclick="confirmSnapshot()">Crear snapshot &rarr;</button>
+          <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
+        </div>
+        <div class="info-note">&#9432;&nbsp; La creaci&oacute;n del snapshot en CX es as&iacute;ncrona (POST /versions). En la versi&oacute;n din&aacute;mica el sistema esperar&aacute; la confirmaci&oacute;n de la operaci&oacute;n (LRO polling) antes de avanzar al paso siguiente.</div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Validación de tests -->
+    <div class="step-view" id="view-5">
+      <div class="phase-eyebrow">Paso 5 de 7 &mdash; Gate humano</div>
+      <div class="phase-title">Validaci&oacute;n de tests</div>
+      <div class="phase-sub">Ejecuta la suite de tests QA sobre el entorno staging de CX y confirma el resultado aqu&iacute;.</div>
+      <div class="output-block" style="margin-bottom:20px"><span class="info">Suite</span>     qap/tests/petal_tests.yaml
+<span class="dim">Tests</span>     <span id="test-count">—</span>  <span class="dim">&#8592; din&aacute;mico</span>
+<span class="dim">Entorno</span>   staging &rarr; <span class="snapshot-name-ref">—</span></div>
+      <div class="gate-block">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <div class="action-bar">
+          <button class="btn btn-gate" onclick="advance(5)">Tests superados &rarr;</button>
+          <button class="btn btn-danger" onclick="showRollbackConfirm()">Tests fallidos</button>
+        </div>
+      </div>
+      <!-- ROLLBACK CONFIRM BLOCK -->
+      <div id="rollback-confirm" style="display:none;margin-top:20px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:20px 24px">
+        <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tests fallidos &mdash; rollback de staging</div>
+        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, el sistema revertir&aacute; el entorno staging de CX al estado anterior.</p>
+        <div class="slabel" style="margin-bottom:8px">Qu&eacute; va a ocurrir</div>
+        <div style="margin-bottom:16px">
+          <div class="progress-item">
+            <div class="progress-icon" style="color:#f87171">&#8594;</div>
+            <div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar al snapshot anterior</div>
+          </div>
+          <div class="progress-item">
+            <div class="progress-icon" style="color:#f87171">&#8594;</div>
+            <div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde el snapshot anterior</div>
+          </div>
+          <div class="progress-item">
+            <div class="progress-icon" style="color:var(--text-3)">&#8594;</div>
+            <div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div>
+          </div>
+        </div>
+        <div class="slabel" style="margin-bottom:6px">Qu&eacute; hacer despu&eacute;s</div>
+        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Vuelve a tu rama de trabajo, corrige los problemas y haz un nuevo deploy cuando est&eacute; listo.</p>
+        <div class="action-bar">
+          <button class="btn btn-danger" onclick="rollbackStaging()">Confirmar rollback</button>
+          <button class="btn btn-ghost" onclick="hideRollbackConfirm()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6: Gate QA — validar en staging (ANTES de producción) -->
+    <div class="step-view" id="view-6">
+      <div class="phase-eyebrow">Paso 6 de 7 &mdash; Gate humano</div>
+      <div class="phase-title">Gate QA &mdash; staging</div>
+      <div class="phase-sub">Valida el agente manualmente en el entorno staging de CX antes de promover a producci&oacute;n.</div>
+      <div class="gate-block">
+        <div class="gate-title">&#9995; Validaci&oacute;n manual requerida</div>
+        <p>El agente est&aacute; en staging con la nueva versi&oacute;n (<span class="snapshot-name-ref">—</span>). Pr&uacute;ebalo en Dialogflow CX y confirma que todo funciona antes de promover a producci&oacute;n.</p>
+        <div style="margin-bottom:16px">
+          <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" onclick="advance(6)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
+          <button class="btn btn-danger" onclick="rollbackStaging()">Rollback a staging anterior</button>
         </div>
       </div>
       <div class="slabel">Estado actual de entornos</div>
-      <div class="output-block">
-<span class="info">staging</span>    → v6 · 2026-07-28_0942  <span class="ok">← nuevo</span>
-<span class="warn">producción</span> → v5 · 2026-07-25_1134  ← actual</div>
+      <div class="output-block"><span class="info">staging</span>    &rarr; <span class="snapshot-name-ref">—</span>  <span class="ok">&#8592; nuevo</span>
+<span class="warn">producci&oacute;n</span> &rarr; v5 &middot; 2026-07-25_1134  &#8592; actual</div>
+    </div>
+
+    <!-- STEP 7: Aprobar subida a producción -->
+    <div class="step-view" id="view-7">
+      <div class="phase-eyebrow">Paso 7 de 7 &mdash; Gate humano</div>
+      <div class="phase-title">Aprobar subida a producci&oacute;n</div>
+      <div class="phase-sub">Si confirmas, estos pasos se ejecutan autom&aacute;ticamente y son irreversibles.</div>
+      <div class="gate-block">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <div style="margin-bottom:20px">
+          <div class="action-result">
+            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">1</div>
+            <div class="action-result-body">
+              <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
+              <div class="action-result-desc">El c&oacute;digo que pas&oacute; los tests queda registrado en main. Main pasa a ser la fuente de verdad de lo que est&aacute; en producci&oacute;n.</div>
+            </div>
+          </div>
+          <div class="action-result">
+            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">2</div>
+            <div class="action-result-body">
+              <div class="action-result-title">Snapshot nuevo en el entorno producci&oacute;n de CX</div>
+              <div class="action-result-desc">Se crea una versi&oacute;n nueva del agente (consume un slot del pool de 20) y se asigna al entorno de producci&oacute;n. Los usuarios ya ven los cambios.</div>
+            </div>
+          </div>
+          <div class="action-result">
+            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">3</div>
+            <div class="action-result-body">
+              <div class="action-result-title">Tag en git</div>
+              <div class="action-result-desc">Se marca el commit exacto que lleg&oacute; a producci&oacute;n (v1.x.x). Punto de referencia para futuros rollbacks desde git.</div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" onclick="advanceToDone()">Promover a producci&oacute;n &rarr;</button>
+          <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
+        </div>
+      </div>
     </div>
 
     <!-- STEP DONE -->
     <div class="step-view" id="view-done">
       <div class="phase-eyebrow">Deploy completado</div>
-      <div class="phase-title">✓ Petal 1.0 en producción</div>
-      <div class="phase-sub">Todos los cambios están desplegados y verificados.</div>
-      <div class="done-banner"><span>🌸</span><p>Deploy completado · 2026-07-28 · 09:45 UTC · v6 en producción</p></div>
-      <div class="output-block">
-<span class="ok">✓</span> producción → v6 · 2026-07-28_0942
-<span class="dim">v5 eliminada</span>
-<span class="dim">─────────────────────────────</span>
-<span class="dim">3 recursos desplegados · 9 sin cambios</span>
-<span class="dim">Duración total: 4 min 12 s</span></div>
-      <div style="margin-top:12px"><button class="btn btn-ghost" onclick="resetDeploy()">↺ Nuevo deploy</button></div>
+      <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
+      <div class="phase-sub">Todos los cambios est&aacute;n desplegados y verificados.</div>
+      <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; 2026-07-28 &middot; 09:45 UTC &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
+
+      <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
+      <div style="margin-bottom:20px">
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
+            <div class="action-result-desc">fb867ab &rarr; <span id="done-merge-sha">a1b2c3d</span> &middot; rama staging eliminada</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Snapshot nuevo en producci&oacute;n de CX</div>
+            <div class="action-result-desc"><span class="snapshot-name-ref">—</span> &middot; asignado al entorno producci&oacute;n</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Tag en git</div>
+            <div class="action-result-desc">v1.6.0 &middot; <span id="done-tag-sha">a1b2c3d</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slabel">Estado final de entornos</div>
+      <div class="output-block"><span class="ok">&#10003;</span> staging    &rarr; <span class="snapshot-name-ref">—</span>
+<span class="ok">&#10003;</span> producci&oacute;n &rarr; <span class="snapshot-name-ref">—</span>  <span class="info">&#8592; nuevo</span></div>
+
+      <div class="slabel" style="margin-top:20px">Rotaci&oacute;n de versiones</div>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:12px">Se conservan las &uacute;ltimas 5 versiones de producci&oacute;n. Las versiones m&aacute;s antiguas se eliminan autom&aacute;ticamente.</p>
+      <div class="output-block"><span class="ok">&#10003;</span> <span class="snapshot-name-ref">—</span>  <span class="info">&#8592; nueva (producci&oacute;n)</span>
+<span class="ok">&#10003;</span> v5 &middot; 2026-07-25_1134
+<span class="ok">&#10003;</span> v4 &middot; 2026-07-20_0811
+<span class="ok">&#10003;</span> v3 &middot; 2026-07-15_1423
+<span class="ok">&#10003;</span> v2 &middot; 2026-07-10_0930
+<span class="dim">&nbsp; v1 &middot; 2026-07-01_1200  </span><span class="del">&#8594; eliminada</span></div>
+      <div style="margin-top:12px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
     </div>
 
   </main>
 </div>
 
 <script>
+// --- DATOS DINÁMICOS (hardcoded en prototipo) ---
+const DIFF_COUNT = 3;      // dinámico: vendrá del diff API
+const DEPLOY_COUNT = 3;    // dinámico: recursos modificados
+const TEST_COUNT = 42;     // dinámico: número de tests en la suite
+
 const STEPS = [
-  {id:1, name:'Inventario CX',        sub:'Snapshot del estado actual',     gate:false},
-  {id:2, name:'Diff local vs CX',     sub:'3 cambios detectados',           gate:false},
-  {id:3, name:'Confirmar deploy',      sub:'Gate — acción requerida',        gate:true},
-  {id:4, name:'Push recursos',         sub:'3 recursos',                     gate:false},
-  {id:5, name:'Crear versión',         sub:'v6 · 2026-07-28_0942',          gate:false},
-  {id:6, name:'Esperar versión (LRO)', sub:'done: true · 18s',              gate:false},
-  {id:7, name:'Actualizar staging',    sub:'staging → v6',                  gate:false},
-  {id:8, name:'Gate QA + producción', sub:'Gate — validar en staging',      gate:true},
+  {id:1, name:'Inventario CX',              sub:'Snapshot del estado actual',     gate:false},
+  {id:2, name:'Diff GitHub vs CX',          sub:DIFF_COUNT + ' cambios detectados', gate:false},
+  {id:3, name:'Confirmar deploy',            sub:'Gate — acción requerida',       gate:true},
+  {id:4, name:'Snapshot del agente',        sub:'Gate — crear snapshot',          gate:true},
+  {id:5, name:'Validación de tests',   sub:'Gate — confirmar resultado',    gate:true},
+  {id:6, name:'Gate QA — staging',     sub:'Gate — validar manualmente',    gate:true},
+  {id:7, name:'Aprobar producción',    sub:'Gate — acción irreversible', gate:true},
 ];
 
 // start state: steps 1 & 2 done, step 3 is current gate
-let stepStates = ['done','done','gate','pending','pending','pending','pending','pending'];
+let stepStates = ['done','done','gate','pending','pending','pending','pending'];
 let current = 3;
 let viewingStep = 3;
+let snapshotName = '';
 
+// --- SNAPSHOT NAME AUTO-GENERATE ---
+function generateSnapshotName() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
+}
+
+function setSnapshotName(name) {
+  snapshotName = name;
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = name);
+}
+
+// --- SIDEBAR RENDER ---
 function stateClass(state) {
   return {done:'s-done',gate:'s-gate',active:'s-active',pending:'s-pending',error:'s-error'}[state] || 's-pending';
 }
-function stateText(state, step) {
+function stateText(state) {
   if(state==='done') return 'Completado';
   if(state==='gate') return 'Esperando confirmación';
   if(state==='active') return 'En progreso...';
@@ -336,7 +448,7 @@ function renderSidebar() {
       <div class="step-badge">${badgeContent(state, s.id)}</div>
       <div class="step-info">
         <div class="step-name">${s.name}</div>
-        <div class="step-status-text">${stateText(state, s)}</div>
+        <div class="step-status-text">${stateText(state)}</div>
       </div>
     </div>`;
     if(i < STEPS.length-1) html += '<div class="step-connector"></div>';
@@ -344,6 +456,7 @@ function renderSidebar() {
   sb.innerHTML = html;
 }
 
+// --- NAVIGATION ---
 function viewStep(id) {
   viewingStep = id;
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
@@ -355,25 +468,31 @@ function viewStep(id) {
 function advance(fromStep) {
   const idx = fromStep - 1;
   stepStates[idx] = 'done';
-  if(fromStep === 8) {
-    // deploy done
-    viewingStep = 'done';
-    document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
-    document.getElementById('view-done').classList.add('visible');
-    renderSidebar();
-    return;
-  }
   const nextIdx = idx + 1;
   if(nextIdx < STEPS.length) {
     stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
-    // auto-advance non-gate steps after short delay
     if(!STEPS[nextIdx].gate) {
-      // mark remaining as done up to next gate or end
       setTimeout(() => completeAuto(nextIdx), 600);
     }
     current = STEPS[nextIdx].id;
     viewStep(current);
   }
+}
+
+function advanceToDone() {
+  stepStates[6] = 'done';
+  viewingStep = 'done';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-done').classList.add('visible');
+  // Actualizar topbar a PRODUCCIÓN
+  const badge = document.getElementById('topbar-env');
+  badge.textContent = 'PRODUCCIÓN';
+  badge.style.background = 'rgba(34,197,94,.15)';
+  badge.style.color = '#4ade80';
+  badge.style.borderColor = 'rgba(34,197,94,.3)';
+  // Actualizar último deploy
+  document.getElementById('last-deploy-time').textContent = 'ahora mismo';
+  renderSidebar();
 }
 
 function completeAuto(idx) {
@@ -388,20 +507,52 @@ function completeAuto(idx) {
   renderSidebar();
 }
 
-function cancelDeploy() {
-  if(confirm('¿Cancelar el deploy? No se habrá desplegado nada.')) resetDeploy();
+// --- SNAPSHOT ---
+function confirmSnapshot() {
+  const inputVal = document.getElementById('snapshot-name').value.trim();
+  setSnapshotName(inputVal || generateSnapshotName());
+  // Actualizar test-count con dato estático
+  document.getElementById('test-count').textContent = TEST_COUNT;
+  advance(4);
 }
-function rollback() {
-  alert('Rollback: staging volvería a apuntar a v5. Funcionalidad completa en la versión final.');
+
+// --- ROLLBACK ---
+function showRollbackConfirm() {
+  document.getElementById('rollback-confirm').style.display = 'block';
+}
+function hideRollbackConfirm() {
+  document.getElementById('rollback-confirm').style.display = 'none';
+}
+function rollbackStaging() {
+  if(confirm('¿Confirmar rollback de staging? El entorno staging de CX volverá al snapshot anterior y el draft se restaurará.')) {
+    resetDeploy();
+  }
+}
+
+// --- CANCEL / RESET ---
+function cancelDeploy() {
+  if(confirm('¿Cancelar el deploy? CX no ha sido modificado.')) resetDeploy();
 }
 function resetDeploy() {
-  stepStates = ['done','done','gate','pending','pending','pending','pending','pending'];
+  stepStates = ['done','done','gate','pending','pending','pending','pending'];
   current = 3; viewingStep = 3;
+  snapshotName = '';
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
+  // Restaurar topbar
+  const badge = document.getElementById('topbar-env');
+  badge.textContent = 'STAGING';
+  badge.style.background = 'rgba(59,130,246,.15)';
+  badge.style.color = '#60a5fa';
+  badge.style.borderColor = 'rgba(59,130,246,.3)';
+  document.getElementById('last-deploy-time').textContent = 'hace 3 días';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   viewStep(3);
 }
 
-// init
+// --- INIT ---
+document.getElementById('diff-count-banner').textContent = DIFF_COUNT;
+document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
+document.getElementById('snapshot-name').value = generateSnapshotName();
 viewStep(3);
 renderSidebar();
 </script>
