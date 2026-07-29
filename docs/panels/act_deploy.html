@@ -149,22 +149,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-1">
       <div class="phase-eyebrow">Paso 1 de 7</div>
       <div class="phase-title">Inventario CX</div>
-      <div class="phase-sub">Snapshot del estado actual del agente Petal en Dialogflow CX.</div>
-      <div class="done-banner"><span>&#10003;</span><p>Inventario generado &mdash; 2026-07-28 &middot; 09:41 UTC</p></div>
-      <div class="slabel">Resumen del snapshot</div>
-      <div class="cards-grid">
-        <div class="stat-card"><div class="stat-label">Playbooks</div><div class="stat-value">5</div></div>
-        <div class="stat-card"><div class="stat-label">Examples</div><div class="stat-value">18</div></div>
-        <div class="stat-card"><div class="stat-label">Tools</div><div class="stat-value">3</div></div>
-        <div class="stat-card"><div class="stat-label">Intents</div><div class="stat-value">12</div></div>
-        <div class="stat-card"><div class="stat-label">Entity Types</div><div class="stat-value">4</div></div>
-        <div class="stat-card"><div class="stat-label">Webhooks</div><div class="stat-value">1</div></div>
-        <div class="stat-card"><div class="stat-label">Generators</div><div class="stat-value">2</div></div>
-        <div class="stat-card"><div class="stat-label">Flows</div><div class="stat-value">2</div></div>
-        <div class="stat-card"><div class="stat-label">Pages</div><div class="stat-value">6</div></div>
-        <div class="stat-card"><div class="stat-label">Agent Config</div><div class="stat-value">1</div></div>
-        <div class="stat-card"><div class="stat-label">Environments</div><div class="stat-value">2</div></div>
-        <div class="stat-card"><div class="stat-label">Versions</div><div class="stat-value">5</div></div>
+      <div class="phase-sub">Lee el estado actual del agente directamente desde la API de Dialogflow CX.</div>
+
+      <!-- Estado inicial: botón para iniciar -->
+      <div id="inv-start">
+        <button class="btn btn-primary" onclick="startInventory()">Iniciar inventario &rarr;</button>
+      </div>
+
+      <!-- Log animado (oculto hasta pulsar) -->
+      <div id="inv-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="inv-log-block" style="min-height:80px"></div>
+      </div>
+
+      <!-- Estado completado (oculto hasta finalizar) -->
+      <div id="inv-done" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
+          <span style="color:#4ade80;font-weight:600;font-size:13px">Inventario completado &#10003;</span>
+        </div>
+        <button class="btn btn-primary" onclick="goToStep2()">Ver diff &rarr;</button>
       </div>
     </div>
 
@@ -196,6 +198,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><span class="pill pill-new">NUEVO</span></td><td style="color:var(--text-2);font-size:12px">No existe en CX</td></tr>
           </tbody>
         </table>
+      </div>
+      <div class="action-bar" style="margin-top:4px">
+        <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
       </div>
     </div>
 
@@ -249,10 +254,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-5">
       <div class="phase-eyebrow">Paso 5 de 7 &mdash; Gate humano</div>
       <div class="phase-title">Validaci&oacute;n de tests</div>
-      <div class="phase-sub">Ejecuta la suite de tests QA sobre el entorno staging de CX y confirma el resultado aqu&iacute;.</div>
-      <div class="output-block" style="margin-bottom:20px"><span class="info">Suite</span>     qap/tests/petal_tests.yaml
-<span class="dim">Tests</span>     <span id="test-count">—</span>  <span class="dim">&#8592; din&aacute;mico</span>
-<span class="dim">Entorno</span>   staging &rarr; <span class="snapshot-name-ref">—</span></div>
+      <div class="phase-sub">Confirma que has ejecutado la suite de tests QA y que todos los casos han pasado correctamente en el entorno staging.</div>
       <div class="gate-block">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <div class="action-bar">
@@ -412,11 +414,61 @@ const STEPS = [
   {id:7, name:'Aprobar producción',    sub:'Gate — acción irreversible', gate:true},
 ];
 
-// start state: steps 1 & 2 done, step 3 is current gate
-let stepStates = ['done','done','gate','pending','pending','pending','pending'];
-let current = 3;
-let viewingStep = 3;
+// start state: step 1 active, rest pending
+let stepStates = ['active','pending','pending','pending','pending','pending','pending'];
+let current = 1;
+let viewingStep = 1;
 let snapshotName = '';
+
+// --- INVENTORY SIMULATION ---
+const INV_LINES = [
+  {cls:'ok', text:'✓ Conectando con Dialogflow CX...'},
+  {cls:'ok', text:'✓ Leyendo playbooks (4)'},
+  {cls:'ok', text:'✓ Leyendo examples (11)'},
+  {cls:'ok', text:'✓ Leyendo tools (2)'},
+  {cls:'ok', text:'✓ Leyendo flows (1)'},
+  {cls:'ok', text:'✓ Inventario completo — 18 recursos en 2.3s'},
+];
+
+function startInventory() {
+  document.getElementById('inv-start').style.display = 'none';
+  document.getElementById('inv-log').style.display = 'block';
+  const logBlock = document.getElementById('inv-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if(i >= INV_LINES.length) {
+      setTimeout(() => {
+        document.getElementById('inv-done').style.display = 'block';
+      }, 300);
+      return;
+    }
+    const line = INV_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function goToStep2() {
+  stepStates[0] = 'done';
+  stepStates[1] = 'active';
+  current = 2;
+  viewStep(2);
+  renderSidebar();
+}
+
+function resetInventoryUI() {
+  document.getElementById('inv-start').style.display = 'block';
+  document.getElementById('inv-log').style.display = 'none';
+  document.getElementById('inv-done').style.display = 'none';
+  document.getElementById('inv-log-block').innerHTML = '';
+}
 
 // --- SNAPSHOT NAME AUTO-GENERATE ---
 
@@ -546,9 +598,10 @@ function cancelDeploy() {
   if(confirm('¿Cancelar el deploy? CX no ha sido modificado.')) resetDeploy();
 }
 function resetDeploy() {
-  stepStates = ['done','done','gate','pending','pending','pending','pending'];
-  current = 3; viewingStep = 3;
+  stepStates = ['active','pending','pending','pending','pending','pending','pending'];
+  current = 1; viewingStep = 1;
   snapshotName = '';
+  resetInventoryUI();
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
   // Restaurar topbar
   const badge = document.getElementById('topbar-env');
@@ -558,13 +611,13 @@ function resetDeploy() {
   badge.style.borderColor = 'rgba(59,130,246,.3)';
   document.getElementById('last-deploy-time').textContent = 'hace 3 días';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
-  viewStep(3);
+  viewStep(1);
 }
 
 // --- INIT ---
 document.getElementById('diff-count-banner').textContent = DIFF_COUNT;
 document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
 document.getElementById('snapshot-name').value = generateSnapshotName();
-viewStep(3);
+viewStep(1);
 renderSidebar();
 </script>
