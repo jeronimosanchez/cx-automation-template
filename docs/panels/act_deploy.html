@@ -162,7 +162,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 1: Inventario CX -->
     <div class="step-view" id="view-1">
-      <div class="phase-eyebrow">Paso 1 de 7</div>
+      <div class="phase-eyebrow">Paso 1 de 8</div>
       <div class="phase-title">Inventario CX</div>
       <div class="phase-sub">Lee el estado actual del agente desde la API de Dialogflow CX.</div>
 
@@ -325,7 +325,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="output-block" id="deploy-log-block" style="min-height:80px"></div>
         <div class="legend">
           <span class="legend-item"><span class="pill pill-ok">OK</span> Aplicado</span>
-          <span class="legend-item"><span class="pill pill-skip">SKIP</span> Sin cambios</span>
           <span class="legend-item"><span class="pill pill-err">ERROR</span> Fallo en API</span>
           <span class="legend-item"><span class="pill pill-dim">—</span> No intentado</span>
         </div>
@@ -442,7 +441,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
       </div>
       <div class="slabel">Estado actual de entornos</div>
-      <div class="output-block"><span class="info">staging</span>    &rarr; <span class="snapshot-name-ref">—</span>  <span class="ok">&#8592; nuevo</span>
+      <div class="output-block"><span class="dim">draft     </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="dim">&#8592; fuente del snapshot</span>
+<span class="info">staging   </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="ok">&#8592; nuevo</span>
 <span class="warn">producci&oacute;n</span> &rarr; v5 &middot; 2026-07-25_1134  &#8592; actual</div>
     </div>
 
@@ -547,7 +547,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const DIFF_COUNT = 3;           // dinámico: vendrá del diff API
 const DEPLOY_COUNT = 4;         // dinámico: recursos modificados
 const TEST_COUNT = 42;          // dinámico: número de tests en la suite
-const DEPLOY_SIMULATE_FAIL     = false; // true = simular fallo en el 3er recurso
+const PUSH_SIMULATE_FAIL           = false; // true = simular push rechazado (non-fast-forward)
+const DEPLOY_SIMULATE_FAIL         = false; // true = simular fallo en el 3er recurso
 const PRODUCTION_SIMULATE_CONFLICT = false; // true = simular conflicto de merge
 
 // Resultados de los checks de deploy.py (en producción vendrán del script)
@@ -642,47 +643,75 @@ function renderStep2Checks() {
     </div>`).join('');
   document.getElementById('push-commit-list').innerHTML = commitRows;
 
-  // Estado pending — botón de acción
-  document.getElementById('push-action').innerHTML =
-    `<button class="btn btn-primary" onclick="executePush()">Ejecutar push &mdash; ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} &rarr;</button>`;
-}
-
-function updatePushBtn() {
-  const all = document.querySelectorAll('.commit-check');
-  const checked = document.querySelectorAll('.commit-check:checked');
-  const any = checked.length > 0;
-  const allSelected = checked.length === all.length;
-
-  const btn = document.getElementById('btn-execute-push');
-  if (btn) {
-    btn.disabled = !any;
-    btn.style.opacity = any ? '1' : '0.4';
-    btn.style.cursor = any ? 'pointer' : 'not-allowed';
-  }
-
-  const master = document.getElementById('check-select-all');
-  if (master) {
-    master.checked = allSelected;
-    master.indeterminate = any && !allSelected;
+  if (r.ok) {
+    // Estado completado — restaurar cabecera y CTA correctos
+    document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
+    document.getElementById('push-status-label').textContent = r.pending.length > 0
+      ? `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`
+      : 'origin/staging ya está al día con HEAD';
+    document.getElementById('push-status-detail').textContent = r.pending.length > 0
+      ? 'origin/staging al día con HEAD'
+      : 'Nada que pushear — continúa al diff';
+    if (r.pending.length > 0) {
+      document.getElementById('push-log').style.display = 'block';
+      document.getElementById('push-log').style.opacity = '0.6';
+    }
+    document.getElementById('push-action').innerHTML =
+      '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
+  } else {
+    // Estado pending — botón de acción
+    document.getElementById('push-action').innerHTML =
+      `<button class="btn btn-primary" onclick="executePush()">Ejecutar push &mdash; ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} &rarr;</button>`;
   }
 }
 
-function toggleSelectAll() {
-  const master = document.getElementById('check-select-all');
-  const all = document.querySelectorAll('.commit-check');
-  all.forEach(c => c.checked = master.checked);
-  updatePushBtn();
-}
 
 function executePush() {
   const r = CHECK_RESULTS.push;
   setRunning(true);
 
-  // Estado: en progreso
   document.getElementById('push-status-icon').innerHTML = '<div style="width:14px;height:14px;border:2px solid #60a5fa;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>';
   document.getElementById('push-status-label').textContent = 'Enviando commits a origin/staging...';
   document.getElementById('push-status-detail').textContent = '';
   document.getElementById('push-action').innerHTML = '';
+
+  const logWrap = document.getElementById('push-log');
+  const logBlock = document.getElementById('push-log-block');
+  logWrap.style.display = 'block';
+  logBlock.innerHTML = '';
+
+  if (PUSH_SIMULATE_FAIL) {
+    const failLines = [
+      {cls:'ok',  text:'✓ Conectando con origin/staging...'},
+      {cls:'del', text:'✗ remote: error: push rejected (non-fast-forward)'},
+      {cls:'del', text:'✗ Updates were rejected because the remote contains work'},
+      {cls:'dim', text:'  you do not have locally. Pull before pushing.'},
+    ];
+    let i = 0;
+    function showFailLine() {
+      if (i >= failLines.length) {
+        setTimeout(() => {
+          document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:16px">✗</span>';
+          document.getElementById('push-status-label').textContent = 'Push rechazado — remoto adelantado';
+          document.getElementById('push-status-detail').textContent = 'origin/staging tiene commits que no tienes en local';
+          document.getElementById('push-action').innerHTML = `
+            <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">Para resolver, ejecuta en tu terminal y vuelve a intentar:</div>
+            <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:12px">
+              <code style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace">git pull --rebase origin staging</code>
+              <button onclick="navigator.clipboard.writeText('git pull --rebase origin staging').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copiar',1500)})" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+            </div>
+            <button class="btn btn-ghost" onclick="retryPush()">Reintentar push</button>`;
+          setRunning(false);
+        }, 300);
+        return;
+      }
+      appendLogLine(logBlock, failLines[i].cls, failLines[i].text);
+      i++;
+      setTimeout(showFailLine, 400);
+    }
+    showFailLine();
+    return;
+  }
 
   const pushLines = [
     {cls:'ok',  text:'✓ Conectando con origin/staging...'},
@@ -690,23 +719,15 @@ function executePush() {
     {cls:'ok',  text:`✓ Push completado — ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} en origin/staging`},
   ];
 
-  const logWrap = document.getElementById('push-log');
-  const logBlock = document.getElementById('push-log-block');
-  logWrap.style.display = 'block';
-  logBlock.innerHTML = '';
-
   let i = 0;
   function showLine() {
     if (i >= pushLines.length) {
       setTimeout(() => {
-        // Estado: completado
         document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
         document.getElementById('push-status-label').textContent = `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`;
         document.getElementById('push-status-detail').textContent = 'origin/staging al día con HEAD';
         document.getElementById('push-status-detail').style.color = 'var(--text-3)';
-        // Atenuar log
         logWrap.style.opacity = '0.6';
-        // CTA
         document.getElementById('push-action').innerHTML =
           '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
         CHECK_RESULTS.push.ok = true;
@@ -726,10 +747,16 @@ function executePush() {
   showLine();
 }
 
-function pushAll() {
-  CHECK_RESULTS.push.ok = true;
+function retryPush() {
+  const r = CHECK_RESULTS.push;
+  document.getElementById('push-log').style.display = 'none';
+  document.getElementById('push-log-block').innerHTML = '';
+  document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:14px">✗</span>';
+  document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
+  document.getElementById('push-status-detail').textContent = `origin/staging está ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} por detrás`;
   renderStep2Checks();
 }
+
 
 function renderStep3Diff() {
   document.getElementById('diff-has-changes').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
@@ -924,9 +951,26 @@ function renderSidebar() {
         <div class="step-status-text">${stateText(state)}</div>
       </div>
     </div>`;
-    if(i < STEPS.length-1) html += '<div class="step-connector"></div>';
+    html += '<div class="step-connector"></div>';
   });
+  if (stepStates[7] === 'done') {
+    const active = viewingStep === 'done' ? ' active' : '';
+    html += `<div class="step-item s-done${active}" onclick="viewDone()">
+      <div class="step-badge">★</div>
+      <div class="step-info">
+        <div class="step-name">Resumen</div>
+        <div class="step-status-text">Deploy completado</div>
+      </div>
+    </div>`;
+  }
   sb.innerHTML = html;
+}
+
+function viewDone() {
+  viewingStep = 'done';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-done').classList.add('visible');
+  renderSidebar();
 }
 
 // --- NAVIGATION ---
