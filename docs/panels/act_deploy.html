@@ -509,12 +509,13 @@ const TEST_COUNT = 42;     // dinámico: número de tests en la suite
 // Resultados de los checks de deploy.py (en producción vendrán del script)
 const CHECK_RESULTS = {
   push: {
-    ok: true,
-    detail: 'origin/staging al día con HEAD',
-    pending: [],
-    // Ejemplo de fallo:
-    // ok: false,
-    // pending: ['98fcbdd · fix: deploy panel mejoras', 'a3b1c2d · feat: añadir example compra_rosas'],
+    ok: false,
+    pending: [
+      { hash: '98fcbdd', msg: 'fix: deploy panel mejoras' },
+      { hash: 'a3b1c2d', msg: 'feat: añadir example compra_rosas_001' },
+    ],
+    // Estado OK (sin pendientes):
+    // ok: true, pending: []
   },
 };
 
@@ -587,26 +588,57 @@ function resetInventoryUI() {
 
 function renderStep2Checks() {
   const r = CHECK_RESULTS.push;
-  let html = `<div class="check-row">
-    <div class="check-icon" style="color:${r.ok ? 'var(--success)' : 'var(--error)'}">${r.ok ? '✓' : '✗'}</div>
-    <div>
-      <div class="check-label">Push hecho a GitHub staging</div>
-      <div class="check-detail${r.ok ? '' : ' err'}">${r.ok ? r.detail : 'Commits pendientes de push a GitHub staging'}</div>
-      ${!r.ok && r.pending && r.pending.length ? `<div style="margin-top:6px;padding:8px 12px;background:var(--bg-3);border-radius:6px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8">${r.pending.map(p => `<div>· ${p}</div>`).join('')}</div>` : ''}
-      ${!r.ok ? `<div class="check-error-hint">Ejecuta <code style="font-size:11px;background:var(--bg-3);padding:1px 5px;border-radius:3px">git push origin staging</code> antes de continuar</div>` : ''}
-    </div>
-  </div>`;
-  document.getElementById('step2-checks').innerHTML = html;
+  const container = document.getElementById('step2-checks');
 
-  const tableSection = document.getElementById('diff-table-section');
-  const bannerNoChanges = document.getElementById('diff-banner-no-changes');
   if (r.ok) {
-    if (DIFF_COUNT > 0) { tableSection.style.display = 'block'; bannerNoChanges.style.display = 'none'; }
-    else                { tableSection.style.display = 'none';  bannerNoChanges.style.display = 'block'; }
-  } else {
-    tableSection.style.display = 'none';
-    bannerNoChanges.style.display = 'none';
+    container.innerHTML = `<div class="check-row">
+      <div class="check-icon" style="color:var(--success)">✓</div>
+      <div>
+        <div class="check-label">Push hecho a GitHub staging</div>
+        <div class="check-detail">origin/staging al día con HEAD</div>
+      </div>
+    </div>`;
+    document.getElementById('diff-table-section').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
+    document.getElementById('diff-banner-no-changes').style.display = DIFF_COUNT > 0 ? 'none' : 'block';
+    return;
   }
+
+  // Estado: commits pendientes de push
+  const commitRows = r.pending.map((c, i) => `
+    <label style="display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer;border-bottom:1px solid var(--bg-3)">
+      <input type="checkbox" class="commit-check" data-idx="${i}" checked style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer">
+      <span style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-3)">${c.hash}</span>
+      <span style="font-size:13px;color:var(--text-2)">${c.msg}</span>
+    </label>`).join('');
+
+  container.innerHTML = `
+    <div class="check-row" style="margin-bottom:12px">
+      <div class="check-icon" style="color:var(--error)">✗</div>
+      <div>
+        <div class="check-label">Commits pendientes de push a GitHub staging</div>
+        <div class="check-detail err">origin/staging está ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} por detrás</div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">${commitRows}</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="pushSelected()">Push seleccionados &rarr;</button>
+      <button class="btn btn-ghost" onclick="pushAll()">Push todos</button>
+    </div>`;
+
+  document.getElementById('diff-table-section').style.display = 'none';
+  document.getElementById('diff-banner-no-changes').style.display = 'none';
+}
+
+function pushSelected() {
+  const checked = document.querySelectorAll('.commit-check:checked');
+  if (!checked.length) return;
+  CHECK_RESULTS.push.ok = true;
+  renderStep2Checks();
+}
+
+function pushAll() {
+  CHECK_RESULTS.push.ok = true;
+  renderStep2Checks();
 }
 
 // --- DEPLOY SIMULATION ---
