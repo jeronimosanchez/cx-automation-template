@@ -73,7 +73,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em}
 .pill-mod{background:rgba(59,130,246,.15);color:#60a5fa}
 .pill-new{background:rgba(34,197,94,.15);color:#4ade80}
-.pill-del{background:rgba(239,68,68,.15);color:#f87171}
 .pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
 .pill-skip{background:var(--bg-3);color:var(--text-3)}
 
@@ -125,9 +124,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .action-result-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
 .action-result-desc{font-size:12px;color:var(--text-2);line-height:1.55}
 
-/* CHECKLIST REMINDER */
-.checklist-reminder{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px}
-.checklist-reminder p{font-size:13px;color:var(--text-2);line-height:1.5;margin-bottom:12px}
 </style>
 
 <!-- TOP BAR -->
@@ -176,62 +172,50 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="stat-card">
             <div class="stat-label">Playbooks</div>
             <div class="stat-value">4</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Examples</div>
             <div class="stat-value">11</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Tools</div>
             <div class="stat-value">2</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Flows</div>
             <div class="stat-value">1</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Pages</div>
             <div class="stat-value">6</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Intents</div>
             <div class="stat-value">8</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Entity Types</div>
             <div class="stat-value">3</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Webhooks</div>
             <div class="stat-value">1</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Generators</div>
             <div class="stat-value">2</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Agent Config</div>
             <div class="stat-value">1</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Environments</div>
             <div class="stat-value">2</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Versions</div>
             <div class="stat-value">5</div>
-            <div class="stat-sub">recursos descargados</div>
           </div>
         </div>
 
@@ -397,7 +381,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="action-bar">
           <button class="btn btn-gate" onclick="advance(6)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
-          <button class="btn btn-danger" onclick="rollbackStaging()">Rollback a staging anterior</button>
+          <button class="btn btn-danger" onclick="rollbackFromStep6()">Rollback a staging anterior</button>
         </div>
       </div>
       <div class="slabel">Estado actual de entornos</div>
@@ -742,6 +726,11 @@ const ROLLBACK_LINES = [
   { cls: 'ok', text: '✓ Draft del agente en CX restaurado' },
   { cls: 'ok', text: '✓ Rollback completado' },
 ];
+
+function rollbackFromStep6() {
+  viewStep(5);
+  setTimeout(() => rollbackStaging(), 100);
+}
 
 function rollbackStaging() {
   document.getElementById('rollback-confirm').style.display = 'none';
