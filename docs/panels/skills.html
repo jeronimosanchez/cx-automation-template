@@ -6,7 +6,7 @@
     --border: #dde0e8;
     --text: #111827;
     --text-2: #4b5563;
-    --text-3: #9ca3af;
+    --text-3: #6b7280;
     --accent: #1d6fa4;
     --cmd-bg: #eef3f8;
     --cmd-text: #1d6fa4;
@@ -15,6 +15,7 @@
     --badge-project-bg: #fef3e2;
     --badge-project-text: #8a5a0a;
     --th-bg: #f0f2f6;
+    --focus: #1d6fa4;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -24,7 +25,7 @@
       --border: #252d3a;
       --text: #e2e8f0;
       --text-2: #94a3b8;
-      --text-3: #4b5563;
+      --text-3: #94a3b8;
       --accent: #60a5d4;
       --cmd-bg: #1a2535;
       --cmd-text: #60a5d4;
@@ -33,25 +34,26 @@
       --badge-project-bg: #251a08;
       --badge-project-text: #f59e3a;
       --th-bg: #131820;
+      --focus: #60a5d4;
     }
   }
 
   :root[data-theme="light"] {
-    --bg: #f5f6f9; --surface: #ffffff; --border: #dde0e8; --text: #111827;
-    --text-2: #4b5563; --text-3: #9ca3af; --accent: #1d6fa4;
-    --cmd-bg: #eef3f8; --cmd-text: #1d6fa4;
+    --bg: #f5f6f9; --surface: #ffffff; --border: #dde0e8;
+    --text: #111827; --text-2: #4b5563; --text-3: #6b7280;
+    --accent: #1d6fa4; --cmd-bg: #eef3f8; --cmd-text: #1d6fa4;
     --badge-global-bg: #e8f5e2; --badge-global-text: #2d6a1f;
     --badge-project-bg: #fef3e2; --badge-project-text: #8a5a0a;
-    --th-bg: #f0f2f6;
+    --th-bg: #f0f2f6; --focus: #1d6fa4;
   }
 
   :root[data-theme="dark"] {
-    --bg: #0d1117; --surface: #161b24; --border: #252d3a; --text: #e2e8f0;
-    --text-2: #94a3b8; --text-3: #4b5563; --accent: #60a5d4;
-    --cmd-bg: #1a2535; --cmd-text: #60a5d4;
+    --bg: #0d1117; --surface: #161b24; --border: #252d3a;
+    --text: #e2e8f0; --text-2: #94a3b8; --text-3: #94a3b8;
+    --accent: #60a5d4; --cmd-bg: #1a2535; --cmd-text: #60a5d4;
     --badge-global-bg: #162413; --badge-global-text: #6bcf4f;
     --badge-project-bg: #251a08; --badge-project-text: #f59e3a;
-    --th-bg: #131820;
+    --th-bg: #131820; --focus: #60a5d4;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -63,8 +65,14 @@
     font-size: 13px;
     line-height: 1.6;
     padding: 40px 28px 80px;
-    max-width: 980px;
+    max-width: 1100px;
     margin: 0 auto;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+    border-radius: 2px;
   }
 
   header {
@@ -77,7 +85,7 @@
   }
 
   .eyebrow {
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-3);
@@ -92,7 +100,7 @@
   }
 
   .meta-right {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-3);
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -106,12 +114,20 @@
     font-size: 12px;
   }
 
+  caption {
+    caption-side: bottom;
+    font-size: 11px;
+    color: var(--text-3);
+    text-align: left;
+    padding: 8px 14px 0;
+  }
+
   thead th {
     background: var(--th-bg);
     color: var(--text-3);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: 8px 14px;
     border-top: 1px solid var(--border);
@@ -120,18 +136,21 @@
     white-space: nowrap;
   }
 
-  tbody tr {
-    border-bottom: 1px solid var(--border);
-  }
-
+  tbody tr { border-bottom: 1px solid var(--border); }
   tbody tr:last-child { border-bottom: none; }
-
   tbody tr:hover { background: var(--th-bg); }
 
   td {
     padding: 13px 14px;
     vertical-align: top;
   }
+
+  /* Column widths via col group */
+  col.col-cmd      { width: 130px; }
+  col.col-scope    { width: 110px; }
+  col.col-desc     { width: 500px; }
+  col.col-path     { width: 190px; }
+  col.col-date     { width: 90px; }
 
   .cmd {
     display: inline-block;
@@ -148,104 +167,112 @@
 
   .badge {
     display: inline-block;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 500;
     padding: 2px 7px;
     border-radius: 3px;
     white-space: nowrap;
   }
 
-  .badge.global {
-    background: var(--badge-global-bg);
-    color: var(--badge-global-text);
-  }
-
-  .badge.project {
-    background: var(--badge-project-bg);
-    color: var(--badge-project-text);
-  }
+  .badge.global  { background: var(--badge-global-bg);  color: var(--badge-global-text); }
+  .badge.project { background: var(--badge-project-bg); color: var(--badge-project-text); }
 
   .desc {
     color: var(--text-2);
-    max-width: 340px;
     line-height: 1.55;
   }
 
   .path {
     font-family: 'Menlo', 'Monaco', monospace;
-    font-size: 10.5px;
+    font-size: 11px;
     color: var(--text-3);
     white-space: nowrap;
   }
 
   .dates {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-3);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     line-height: 1.8;
   }
 
-  .dates span { display: block; }
-  .dates .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .dates .label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-3);
+  }
 </style>
 
 <header>
   <div>
-    <div class="eyebrow">Claude Code</div>
+    <p class="eyebrow" aria-label="Categoría: Claude Code">Claude Code</p>
     <h1>Skills Registry</h1>
   </div>
-  <div class="meta-right">
+  <p class="meta-right" aria-label="4 skills, actualizado el 26 de julio de 2026">
     4 skills<br>
     actualizado 2026-07-26
-  </div>
+  </p>
 </header>
 
-<div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th>Comando</th>
-        <th>Scope</th>
-        <th>Descripción</th>
-        <th>Ubicación</th>
-        <th>Creada</th>
-        <th>Modificada</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><span class="cmd">/back</span></td>
-        <td><span class="badge global">Global</span></td>
-        <td class="desc">Lanza cualquier instrucción como subagente en segundo plano. Declara acciones con gate antes de ejecutar, pide confirmación y para si aparece algo no declarado durante la ejecución.</td>
-        <td class="path">~/.claude/skills/back/</td>
-        <td class="dates"><span class="label">creada</span><span>2026-07-26</span></td>
-        <td class="dates"><span class="label">modificada</span><span>2026-07-26</span></td>
-      </tr>
-      <tr>
-        <td><span class="cmd">/qa-tc-analyzer</span></td>
-        <td><span class="badge project">cx-automation</span></td>
-        <td class="desc">Analiza FAILs de QA con 9 capas de causa raíz. Arquitectura en dos fases — subagentes TC en paralelo (fase 1) + subagente de patrones con contexto limpio (fase 2). Escalable a 50+ TCs. Coste ~0€.</td>
-        <td class="path">.claude/skills/qa-tc-analyzer/</td>
-        <td class="dates"><span class="label">creada</span><span>2026-05-24</span></td>
-        <td class="dates"><span class="label">modificada</span><span>2026-07-04</span></td>
-      </tr>
-      <tr>
-        <td><span class="cmd">/qa-fix</span></td>
-        <td><span class="badge project">cx-automation</span></td>
-        <td class="desc">Aplica una solución propuesta por <span class="cmd" style="font-size:11px">/qa-tc-analyzer</span> a un TC. Crea branch, edita el artefacto (Playbook / Test / Tool), commit + PR + merge, espera deploy a CX y valida con rerun. Pre-requisito: análisis previo del TC. ~3 min.</td>
-        <td class="path">.claude/skills/qa-fix/</td>
-        <td class="dates"><span class="label">creada</span><span>2026-05-21</span></td>
-        <td class="dates"><span class="label">modificada</span><span>2026-06-19</span></td>
-      </tr>
-      <tr>
-        <td><span class="cmd">/qa-revert</span></td>
-        <td><span class="badge project">cx-automation</span></td>
-        <td class="desc">Revierte el último fix de un TC para volver al estado roto. Útil para demos. Crea PR de revert, mergea, espera deploy y confirma con rerun que el TC vuelve a FAIL. ~2 min.</td>
-        <td class="path">.claude/skills/qa-revert/</td>
-        <td class="dates"><span class="label">creada</span><span>2026-05-21</span></td>
-        <td class="dates"><span class="label">modificada</span><span>2026-06-19</span></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+<main>
+  <div class="table-wrap" role="region" aria-label="Tabla de skills">
+    <table aria-describedby="table-caption">
+      <colgroup>
+        <col class="col-cmd">
+        <col class="col-scope">
+        <col class="col-desc">
+        <col class="col-path">
+        <col class="col-date">
+        <col class="col-date">
+      </colgroup>
+      <caption id="table-caption">Skills creadas para Claude Code — globales y por proyecto.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Comando</th>
+          <th scope="col">Scope</th>
+          <th scope="col">Descripción</th>
+          <th scope="col">Ubicación</th>
+          <th scope="col">Creada</th>
+          <th scope="col">Modificada</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code class="cmd">/back</code></td>
+          <td><span class="badge global">Global</span></td>
+          <td class="desc">Lanza cualquier instrucción como subagente en segundo plano. Declara acciones con gate antes de ejecutar, pide confirmación y para si aparece algo no declarado durante la ejecución.</td>
+          <td class="path">~/.claude/skills/back/</td>
+          <td class="dates"><span class="label">creada</span>2026-07-26</td>
+          <td class="dates"><span class="label">modificada</span>2026-07-26</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">/qa-tc-analyzer</code></td>
+          <td><span class="badge project">cx-automation</span></td>
+          <td class="desc">Analiza FAILs de QA con 9 capas de causa raíz. Arquitectura en dos fases — subagentes TC en paralelo (fase 1) + subagente de patrones con contexto limpio (fase 2). Escalable a 50+ TCs. Coste ~0€.</td>
+          <td class="path">.claude/skills/qa-tc-analyzer/</td>
+          <td class="dates"><span class="label">creada</span>2026-05-24</td>
+          <td class="dates"><span class="label">modificada</span>2026-07-04</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">/qa-fix</code></td>
+          <td><span class="badge project">cx-automation</span></td>
+          <td class="desc">Aplica una solución propuesta por <code class="cmd" style="font-size:11px">/qa-tc-analyzer</code> a un TC. Crea branch, edita el artefacto (Playbook / Test / Tool), commit + PR + merge, espera deploy a CX y valida con rerun. Pre-requisito: análisis previo del TC. ~3 min.</td>
+          <td class="path">.claude/skills/qa-fix/</td>
+          <td class="dates"><span class="label">creada</span>2026-05-21</td>
+          <td class="dates"><span class="label">modificada</span>2026-06-19</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">/qa-revert</code></td>
+          <td><span class="badge project">cx-automation</span></td>
+          <td class="desc">Revierte el último fix de un TC para volver al estado roto. Útil para demos. Crea PR de revert, mergea, espera deploy y confirma con rerun que el TC vuelve a FAIL. ~2 min.</td>
+          <td class="path">.claude/skills/qa-revert/</td>
+          <td class="dates"><span class="label">creada</span>2026-05-21</td>
+          <td class="dates"><span class="label">modificada</span>2026-06-19</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
