@@ -124,6 +124,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .action-result-body{flex:1}
 .action-result-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
 .action-result-desc{font-size:12px;color:var(--text-2);line-height:1.55}
+
+/* CHECKLIST REMINDER */
+.checklist-reminder{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px}
+.checklist-reminder p{font-size:13px;color:var(--text-2);line-height:1.5;margin-bottom:12px}
 </style>
 
 <!-- TOP BAR -->
@@ -149,7 +153,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-1">
       <div class="phase-eyebrow">Paso 1 de 7</div>
       <div class="phase-title">Inventario CX</div>
-      <div class="phase-sub">Lee el estado actual del agente directamente desde la API de Dialogflow CX.</div>
+      <div class="phase-sub">Lee el estado actual del agente directamente desde la API de Dialogflow CX y lo compara con las definiciones en GitHub.</div>
 
       <!-- Estado inicial: botón para iniciar -->
       <div id="inv-start">
@@ -161,63 +165,88 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="output-block" id="inv-log-block" style="min-height:80px"></div>
       </div>
 
-      <!-- Estado completado (oculto hasta finalizar) -->
+      <!-- Estado completado con inventario (oculto hasta finalizar) -->
       <div id="inv-done" style="display:none">
         <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
           <span style="color:#4ade80;font-weight:600;font-size:13px">Inventario completado &#10003;</span>
         </div>
-        <button class="btn btn-primary" onclick="goToStep2()">Ver diff &rarr;</button>
-      </div>
-    </div>
 
-    <!-- STEP 2: Diff -->
-    <div class="step-view" id="view-2">
-      <div class="phase-eyebrow">Paso 2 de 7</div>
-      <div class="phase-title">Diff GitHub vs CX</div>
-      <div class="phase-sub">Comparaci&oacute;n entre las definiciones en GitHub (rama staging) y el snapshot desplegado en el entorno staging de CX. Solo se muestran los recursos con cambios.</div>
-      <div class="gate-block" style="margin-bottom:16px">
-        <div class="gate-title">&#9989; Verifica antes de continuar</div>
-        <p style="margin-bottom:12px">El sistema lee las definiciones desde GitHub. Si tus cambios no est&aacute;n pusheados, el diff no los incluir&aacute;.</p>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;font-size:13px;color:var(--text-2)">
-          <input type="checkbox" id="check-commit" style="width:16px;height:16px;accent-color:var(--gate);cursor:pointer">
-          Cambios commiteados en local
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2)">
-          <input type="checkbox" id="check-push" style="width:16px;height:16px;accent-color:var(--gate);cursor:pointer">
-          Push a GitHub (rama staging) hecho
-        </label>
-      </div>
-      <div class="done-banner"><span>&#10003;</span><p><span id="diff-count-banner">3</span> recursos con cambios detectados</p></div>
-      <div class="slabel">Cambios detectados</div>
-      <div class="diff-wrap">
-        <table class="diff-table">
-          <thead><tr><th>Tipo</th><th>Recurso</th><th>Cambio</th><th>Detalle</th></tr></thead>
-          <tbody>
-            <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">MODIFICADO</span></td><td style="color:var(--text-2);font-size:12px">instruction.steps &mdash; 2 l&iacute;neas cambiadas</td></tr>
-            <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">MODIFICADO</span></td><td style="color:var(--text-2);font-size:12px">instruction.steps &mdash; 1 l&iacute;nea cambiada</td></tr>
-            <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><span class="pill pill-new">NUEVO</span></td><td style="color:var(--text-2);font-size:12px">No existe en CX</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="action-bar" style="margin-top:4px">
-        <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
-      </div>
-    </div>
+        <!-- Cuadrícula de 12 tipos de recursos -->
+        <div class="cards-grid" style="margin-bottom:24px">
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Playbooks</div>
+            <div class="stat-value">4</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Examples</div>
+            <div class="stat-value">11</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Tools</div>
+            <div class="stat-value">2</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Flows</div>
+            <div class="stat-value">1</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Pages</div>
+            <div class="stat-value">6</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Intents</div>
+            <div class="stat-value">8</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Entity Types</div>
+            <div class="stat-value">3</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Webhooks</div>
+            <div class="stat-value">1</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Generators</div>
+            <div class="stat-value">2</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Agent Config</div>
+            <div class="stat-value">1</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Environments</div>
+            <div class="stat-value">2</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div class="stat-label">Versions</div>
+            <div class="stat-value">5</div>
+            <div class="stat-sub">recursos descargados</div>
+          </div>
+        </div>
 
-    <!-- STEP 3: Gate confirmar -->
-    <div class="step-view" id="view-3">
-      <div class="phase-eyebrow">Paso 3 de 7 &mdash; Gate humano</div>
-      <div class="phase-title">Confirmar deploy</div>
-      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente quedar&aacute; actualizado con los cambios. Para ejecutar los tests completa los pasos siguientes: crear un snapshot y asignarlo al entorno staging.</div>
-      <div class="gate-block">
-        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
-        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados y 1 example nuevo. Los recursos sin cambios no se tocan.</p>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="advance(3)">Confirmar deploy &rarr;</button>
-          <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
+          <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
         </div>
       </div>
-      <div class="slabel">Resumen de lo que se va a desplegar</div>
+    </div>
+
+    <!-- STEP 2: Diff GitHub vs CX -->
+    <div class="step-view" id="view-2">
+      <div class="phase-eyebrow">Paso 2 de 7 &mdash; Gate humano ligero</div>
+      <div class="phase-title">Diff GitHub vs CX</div>
+      <div class="phase-sub">Comparaci&oacute;n entre las definiciones en GitHub (rama staging) y el snapshot desplegado en el entorno staging de CX. Solo se muestran los recursos con cambios.</div>
+
       <div class="diff-wrap">
         <table class="diff-table">
           <thead><tr><th>Tipo</th><th>Recurso</th><th>Operaci&oacute;n</th></tr></thead>
@@ -228,14 +257,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           </tbody>
         </table>
       </div>
+
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;font-size:13px;color:var(--text-2)">
+          <input type="checkbox" id="check-commit" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" onchange="updateContinueBtn()">
+          Cambios commiteados en local
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2)">
+          <input type="checkbox" id="check-push" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" onchange="updateContinueBtn()">
+          Push a GitHub (rama staging) hecho
+        </label>
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-primary" id="btn-continue-diff" onclick="advance(2)" disabled>Continuar &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Gate confirmar -->
+    <div class="step-view" id="view-3">
+      <div class="phase-eyebrow">Paso 3 de 7 &mdash; Gate humano</div>
+      <div class="phase-title">Confirmar deploy</div>
+      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios. Para ejecutar los tests deber&aacute;s completar la fase de creaci&oacute;n de snapshot.</div>
+      <div class="gate-block">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados y 1 example nuevo. Los recursos sin cambios no se tocan.</p>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="advance(3)">Confirmar deploy &rarr;</button>
+          <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
+        </div>
+      </div>
     </div>
 
     <!-- STEP 4: Snapshot del agente -->
     <div class="step-view" id="view-4">
       <div class="phase-eyebrow">Paso 4 de 7 &mdash; Gate humano</div>
       <div class="phase-title">Snapshot del agente</div>
-      <div class="phase-sub">CX guarda un snapshot nuevo del agente en el entorno staging. Los tests del siguiente paso se ejecutar&aacute;n sobre esta versi&oacute;n. La versi&oacute;n anterior de staging se conserva para poder hacer rollback si los tests fallan.</div>
-      <div class="gate-block">
+      <div class="phase-sub">CX guarda un snapshot nuevo del agente en el entorno staging. Los tests del siguiente paso se ejecutar&aacute;n sobre esta versi&oacute;n. La versi&oacute;n anterior en staging se conserva para poder hacer rollback si los tests fallan.</div>
+
+      <!-- Gate inicial: input + botón -->
+      <div class="gate-block" id="snap-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p>Asigna un nombre al snapshot y confirma para crear la versi&oacute;n en CX. El nombre se usar&aacute; como <code style="font-size:12px;color:var(--text)">displayName</code> en la API.</p>
         <div style="margin-bottom:20px">
@@ -246,7 +306,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button class="btn btn-gate" id="btn-snapshot-confirm" onclick="confirmSnapshot()">Crear snapshot &rarr;</button>
           <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
         </div>
-        <div class="info-note">&#9432;&nbsp; La creaci&oacute;n del snapshot en CX es as&iacute;ncrona (POST /versions). En la versi&oacute;n din&aacute;mica el sistema esperar&aacute; la confirmaci&oacute;n de la operaci&oacute;n (LRO polling) antes de avanzar al paso siguiente.</div>
+      </div>
+
+      <!-- Log animado (oculto hasta pulsar) -->
+      <div id="snap-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
+      </div>
+
+      <!-- Estado completado (oculto hasta finalizar animación) -->
+      <div id="snap-done" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
+          <span style="color:#4ade80;font-weight:600;font-size:13px">Snapshot completado &#10003;</span>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
+        </div>
       </div>
     </div>
 
@@ -288,6 +362,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button class="btn btn-ghost" onclick="hideRollbackConfirm()">Cancelar</button>
         </div>
       </div>
+      <!-- ROLLBACK LOG BLOCK -->
+      <div id="rollback-log" style="display:none;margin-top:20px">
+        <div class="output-block" id="rollback-log-block" style="min-height:80px"></div>
+      </div>
+      <!-- ROLLBACK DONE BANNER -->
+      <div id="rollback-done-banner" style="display:none;margin-top:16px;display:none;align-items:center;gap:12px;padding:14px 18px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px">
+        <p style="font-size:13px;color:#f87171;font-weight:500;margin:0">Deploy cancelado &mdash; staging restaurado al estado anterior</p>
+      </div>
     </div>
 
     <!-- STEP 6: Gate QA — validar en staging (ANTES de producción) -->
@@ -315,7 +397,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-7">
       <div class="phase-eyebrow">Paso 7 de 7 &mdash; Gate humano</div>
       <div class="phase-title">Aprobar subida a producci&oacute;n</div>
-      <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se desplegar&aacute;n autom&aacute;ticamente en producci&oacute;n &mdash; esta acci&oacute;n es irreversible.</div>
+      <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se crear&aacute; un nuevo snapshot de producci&oacute;n y quedar&aacute; activo para los usuarios.</div>
       <div class="gate-block">
         <div class="gate-title">&#9995; Confirmar deploy a producci&oacute;n</div>
         <div style="margin-bottom:20px">
@@ -405,13 +487,13 @@ const DEPLOY_COUNT = 3;    // dinámico: recursos modificados
 const TEST_COUNT = 42;     // dinámico: número de tests en la suite
 
 const STEPS = [
-  {id:1, name:'Inventario CX',              sub:'Snapshot del estado actual',     gate:false},
-  {id:2, name:'Diff GitHub vs CX',          sub:DIFF_COUNT + ' cambios detectados', gate:false},
-  {id:3, name:'Confirmar deploy',            sub:'Gate — acción requerida',       gate:true},
-  {id:4, name:'Snapshot del agente',        sub:'Gate — crear snapshot',          gate:true},
-  {id:5, name:'Validación de tests',   sub:'Gate — confirmar resultado',    gate:true},
-  {id:6, name:'Gate QA — staging',     sub:'Gate — validar manualmente',    gate:true},
-  {id:7, name:'Aprobar producción',    sub:'Gate — acción irreversible', gate:true},
+  {id:1, name:'Inventario CX',        sub:'Snapshot + diff de cambios',     gate:false},
+  {id:2, name:'Diff GitHub vs CX',    sub:'Gate — confirmar cambios',       gate:true},
+  {id:3, name:'Confirmar deploy',     sub:'Gate — acción requerida',        gate:true},
+  {id:4, name:'Snapshot del agente',  sub:'Gate — crear snapshot',          gate:true},
+  {id:5, name:'Validación de tests',  sub:'Gate — confirmar resultado',     gate:true},
+  {id:6, name:'Gate QA — staging',    sub:'Gate — validar manualmente',     gate:true},
+  {id:7, name:'Aprobar producción',   sub:'Gate — acción irreversible',     gate:true},
 ];
 
 // start state: step 1 active, rest pending
@@ -455,19 +537,16 @@ function startInventory() {
   showLine();
 }
 
-function goToStep2() {
-  stepStates[0] = 'done';
-  stepStates[1] = 'active';
-  current = 2;
-  viewStep(2);
-  renderSidebar();
-}
-
 function resetInventoryUI() {
   document.getElementById('inv-start').style.display = 'block';
   document.getElementById('inv-log').style.display = 'none';
   document.getElementById('inv-done').style.display = 'none';
   document.getElementById('inv-log-block').innerHTML = '';
+}
+
+function updateContinueBtn() {
+  const bothChecked = document.getElementById('check-commit').checked && document.getElementById('check-push').checked;
+  document.getElementById('btn-continue-diff').disabled = !bothChecked;
 }
 
 // --- SNAPSHOT NAME AUTO-GENERATE ---
@@ -574,10 +653,48 @@ function completeAuto(idx) {
 // --- SNAPSHOT ---
 function confirmSnapshot() {
   const inputVal = document.getElementById('snapshot-name').value.trim();
-  setSnapshotName(inputVal || generateSnapshotName());
-  // Actualizar test-count con dato estático
-  document.getElementById('test-count').textContent = TEST_COUNT;
-  advance(4);
+  const name = inputVal || generateSnapshotName();
+  setSnapshotName(name);
+
+  // Ocultar gate, mostrar log
+  document.getElementById('snap-gate').style.display = 'none';
+  document.getElementById('snap-log').style.display = 'block';
+
+  const SNAP_LINES = [
+    {cls:'ok', text:'✓ Enviando POST /versions...'},
+    {cls:'ok', text:'✓ Operación iniciada — LRO polling...'},
+    {cls:'ok', text:'✓ Esperando confirmación de CX...'},
+    {cls:'ok', text:'✓ Snapshot "' + name + '" creado correctamente'},
+  ];
+
+  const logBlock = document.getElementById('snap-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if(i >= SNAP_LINES.length) {
+      setTimeout(() => {
+        document.getElementById('snap-done').style.display = 'block';
+      }, 300);
+      return;
+    }
+    const line = SNAP_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function resetSnapshotUI() {
+  document.getElementById('snap-gate').style.display = 'block';
+  document.getElementById('snap-log').style.display = 'none';
+  document.getElementById('snap-done').style.display = 'none';
+  document.getElementById('snap-log-block').innerHTML = '';
+  document.getElementById('snapshot-name').value = generateSnapshotName();
 }
 
 // --- ROLLBACK ---
@@ -587,10 +704,39 @@ function showRollbackConfirm() {
 function hideRollbackConfirm() {
   document.getElementById('rollback-confirm').style.display = 'none';
 }
+const ROLLBACK_LINES = [
+  { cls: 'ok', text: '✓ Iniciando rollback de staging...' },
+  { cls: 'ok', text: '✓ Revirtiendo entorno staging...' },
+  { cls: 'ok', text: '✓ Restaurando snapshot anterior...' },
+  { cls: 'ok', text: '✓ Draft del agente en CX restaurado' },
+  { cls: 'ok', text: '✓ Rollback completado' },
+];
+
 function rollbackStaging() {
-  if(confirm('¿Confirmar rollback de staging? El entorno staging de CX volverá al snapshot anterior y el draft se restaurará.')) {
-    resetDeploy();
+  document.getElementById('rollback-confirm').style.display = 'none';
+  const logWrap = document.getElementById('rollback-log');
+  const logBlock = document.getElementById('rollback-log-block');
+  logWrap.style.display = 'block';
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if (i >= ROLLBACK_LINES.length) {
+      setTimeout(() => {
+        const banner = document.getElementById('rollback-done-banner');
+        banner.style.display = 'flex';
+      }, 300);
+      return;
+    }
+    const line = ROLLBACK_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
   }
+  showLine();
 }
 
 // --- CANCEL / RESET ---
@@ -602,6 +748,16 @@ function resetDeploy() {
   current = 1; viewingStep = 1;
   snapshotName = '';
   resetInventoryUI();
+  resetSnapshotUI();
+  // Resetear estado de rollback
+  document.getElementById('rollback-confirm').style.display = 'none';
+  document.getElementById('rollback-log').style.display = 'none';
+  document.getElementById('rollback-log-block').innerHTML = '';
+  document.getElementById('rollback-done-banner').style.display = 'none';
+  // Resetear checkboxes y botón del paso 2
+  document.getElementById('check-commit').checked = false;
+  document.getElementById('check-push').checked = false;
+  document.getElementById('btn-continue-diff').disabled = true;
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
   // Restaurar topbar
   const badge = document.getElementById('topbar-env');
@@ -615,7 +771,6 @@ function resetDeploy() {
 }
 
 // --- INIT ---
-document.getElementById('diff-count-banner').textContent = DIFF_COUNT;
 document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
 document.getElementById('snapshot-name').value = generateSnapshotName();
 viewStep(1);
