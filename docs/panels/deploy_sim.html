@@ -418,6 +418,27 @@ body {
   font-size: 12px;
   color: var(--t-muted);
 }
+.file-entry { border-bottom: 1px solid var(--border); }
+.file-entry:last-child { border-bottom: none; }
+.file-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+}
+.file-entry-zero {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  opacity: 0.38;
+}
+.file-chev {
+  margin-left: auto;
+  color: var(--t-muted);
+  font-size: 10px;
+  font-family: system-ui, sans-serif;
+}
 .artifact-chevron {
   font-size: 13px;
   color: var(--t-muted);
@@ -510,54 +531,126 @@ const steps = {
 <div class="card">
   <div class="card-label-row">
     <span class="card-label">Cambios locales desde el último commit</span>
-    <span class="card-count">Total: 22 archivos</span>
+    <span class="card-count">Total: 44 archivos</span>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-routines')" style="cursor:pointer">
       <span class="artifact-type">Routines</span>
       <span style="display:flex;align-items:center;gap:6px">
-        <span class="card-count">2 archivos</span>
+        <span class="card-count">5 cambios · 4 archivos</span>
         <span class="artifact-chevron collapsed" id="chev-art-routines">▾</span>
       </span>
     </div>
-    <div id="art-routines" style="display:none">
-      <div class="card-row-head" style="margin-top:8px">
+    <div id="art-routines" style="display:none;padding-top:6px">
+
+      <div class="file-entry">
+        <div class="file-entry-head" onclick="toggleFile('fe-orc')" style="cursor:pointer">
+          <span class="card-icon">📄</span>
+          <span class="card-file">petal_cx_orchestrator.yaml</span>
+          <span class="card-badge badge-local">modificado</span>
+          <span class="file-chev" id="fchev-fe-orc">▸</span>
+        </div>
+        <div id="fe-orc" style="display:none">
+          <div class="change-item">
+            <div class="change-num">1</div>
+            <div class="change-body">
+              <div class="change-loc">línea 42</div>
+              <div class="diff-before"><span class="diff-marker">−</span> "G1 INFO NEGOCIO"</div>
+              <div class="diff-after"><span class="diff-marker">+</span> "INFO NEGOCIO"</div>
+              <div class="change-explain">Elimina el prefijo G1 del grupo de routing del orquestador.</div>
+            </div>
+          </div>
+          <div class="change-item">
+            <div class="change-num">2</div>
+            <div class="change-body">
+              <div class="change-loc">línea 78</div>
+              <div class="diff-before"><span class="diff-marker">−</span> bloque ZG-3 completo</div>
+              <div class="diff-after"><span class="diff-marker">+</span> (eliminado)</div>
+              <div class="change-explain">Borra la etiqueta ZG-3, obsoleta tras el refactor del orquestador.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="file-entry file-entry-zero">
         <span class="card-icon">📄</span>
-        <span class="card-file">petal_cx_orchestrator.yaml</span>
-        <span class="card-badge badge-local">modificado</span>
+        <span class="card-file">compra.yaml</span>
       </div>
-      <div class="change-item">
-        <div class="change-num">1</div>
-        <div class="change-body">
-          <div class="change-loc">línea 42</div>
-          <div class="diff-before"><span class="diff-marker">−</span> "G1 INFO NEGOCIO"</div>
-          <div class="diff-after"><span class="diff-marker">+</span> "INFO NEGOCIO"</div>
-          <div class="change-explain">Elimina el prefijo G1 del grupo de routing del orquestador.</div>
-        </div>
-      </div>
-      <div class="change-item">
-        <div class="change-num">2</div>
-        <div class="change-body">
-          <div class="change-loc">línea 78</div>
-          <div class="diff-before"><span class="diff-marker">−</span> bloque ZG-3 completo</div>
-          <div class="diff-after"><span class="diff-marker">+</span> (eliminado)</div>
-          <div class="change-explain">Borra la etiqueta ZG-3, obsoleta tras el refactor del orquestador.</div>
-        </div>
-      </div>
-      <div class="card-row-head" style="margin-top:10px">
+
+      <div class="file-entry file-entry-zero">
         <span class="card-icon">📄</span>
-        <span class="card-file">handoff_routine.yaml</span>
-        <span class="card-badge badge-ok">nuevo</span>
+        <span class="card-file">checkout.yaml</span>
       </div>
-      <div class="change-item">
-        <div class="change-num">1</div>
-        <div class="change-body">
-          <div class="change-loc">archivo nuevo</div>
-          <div class="diff-after"><span class="diff-marker">+</span> displayName: "Handoff a agente humano"</div>
-          <div class="change-explain">Nueva routine para escalar conversaciones a soporte humano.</div>
+
+      <div class="file-entry file-entry-zero">
+        <span class="card-icon">📄</span>
+        <span class="card-file">gestion_deuda.yaml</span>
+      </div>
+
+      <div class="file-entry file-entry-zero">
+        <span class="card-icon">📄</span>
+        <span class="card-file">handoff.yaml</span>
+      </div>
+
+      <div class="file-entry">
+        <div class="file-entry-head" onclick="toggleFile('fe-handoff-new')" style="cursor:pointer">
+          <span class="card-icon">📄</span>
+          <span class="card-file">handoff_routine.yaml</span>
+          <span class="card-badge badge-ok">nuevo</span>
+          <span class="file-chev" id="fchev-fe-handoff-new">▸</span>
+        </div>
+        <div id="fe-handoff-new" style="display:none">
+          <div class="change-item">
+            <div class="change-num">1</div>
+            <div class="change-body">
+              <div class="change-loc">campo: displayName</div>
+              <div class="diff-after"><span class="diff-marker">+</span> "Handoff a agente humano"</div>
+              <div class="change-explain">Nueva routine para escalar conversaciones a soporte humano.</div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <div class="file-entry">
+        <div class="file-entry-head" onclick="toggleFile('fe-saludo-del')" style="cursor:pointer">
+          <span class="card-icon">📄</span>
+          <span class="card-file">saludo_bienvenida_legacy.yaml</span>
+          <span class="card-badge badge-deleted">borrado</span>
+          <span class="file-chev" id="fchev-fe-saludo-del">▸</span>
+        </div>
+        <div id="fe-saludo-del" style="display:none">
+          <div class="change-item">
+            <div class="change-num">1</div>
+            <div class="change-body">
+              <div class="change-loc">campo: displayName</div>
+              <div class="diff-before"><span class="diff-marker">−</span> "Saludo de bienvenida (legacy)"</div>
+              <div class="change-explain">Routine eliminada — el saludo se gestiona desde el playbook principal del orquestador.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="file-entry">
+        <div class="file-entry-head" onclick="toggleFile('fe-catalogo-ren')" style="cursor:pointer">
+          <span class="card-icon">📄</span>
+          <span class="card-file">consulta_catalogo_routine.yaml</span>
+          <span class="card-badge badge-renamed">renombrado</span>
+          <span class="file-chev" id="fchev-fe-catalogo-ren">▸</span>
+        </div>
+        <div id="fe-catalogo-ren" style="display:none">
+          <div class="change-item">
+            <div class="change-num">1</div>
+            <div class="change-body">
+              <div class="change-loc">campo: displayName</div>
+              <div class="diff-before"><span class="diff-marker">−</span> "Consulta catálogo"</div>
+              <div class="diff-after"><span class="diff-marker">+</span> "Explorar catálogo"</div>
+              <div class="change-explain">Nombre más preciso — refleja que el usuario navega el catálogo, no solo consulta un dato puntual.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -565,154 +658,371 @@ const steps = {
     <div class="artifact-head" onclick="toggleArtifact('art-tasks')" style="cursor:pointer">
       <span class="artifact-type">Tasks</span>
       <span style="display:flex;align-items:center;gap:6px">
-        <span class="card-count">2 archivos</span>
+        <span class="card-count">4 cambios · 4 archivos</span>
         <span class="artifact-chevron collapsed" id="chev-art-tasks">▾</span>
       </span>
     </div>
-    <div id="art-tasks" style="display:none">
-      <div class="card-row-head" style="margin-top:8px">
+    <div id="art-tasks" style="display:none;padding-top:6px">
+
+      <div class="file-entry file-entry-zero">
         <span class="card-icon">📄</span>
-        <span class="card-file">email_validation_task.yaml</span>
-        <span class="card-badge badge-deleted">borrado</span>
+        <span class="card-file">calculo_entrega_task.yaml</span>
       </div>
-      <div class="change-item">
-        <div class="change-num">1</div>
-        <div class="change-body">
-          <div class="change-loc">archivo eliminado</div>
-          <div class="diff-before"><span class="diff-marker">−</span> displayName: "Validación de email"</div>
-          <div class="change-explain">Task obsoleta — la validación de email se delega al webhook del backend.</div>
+
+      <div class="file-entry">
+        <div class="file-entry-head" onclick="toggleFile('ft-task-email')" style="cursor:pointer">
+          <span class="card-icon">📄</span>
+          <span class="card-file">email_validation_task.yaml</span>
+          <span class="card-badge badge-deleted">borrado</span>
+          <span class="file-chev" id="fchev-ft-task-email">▸</span>
+        </div>
+        <div id="ft-task-email" style="display:none">
+          <div class="change-item">
+            <div class="change-num">1</div>
+            <div class="change-body">
+              <div class="change-loc">archivo eliminado</div>
+              <div class="diff-before"><span class="diff-marker">−</span> displayName: "Validación de email"</div>
+              <div class="change-explain">Task obsoleta — la validación de email se delega al webhook del backend.</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card-row-head" style="margin-top:10px">
-        <span class="card-icon">📄</span>
-        <span class="card-file">registro_task.yaml</span>
-        <span class="card-badge badge-renamed">renombrado</span>
-      </div>
-      <div class="change-item">
-        <div class="change-num">1</div>
-        <div class="change-body">
-          <div class="change-loc">displayName</div>
-          <div class="diff-before"><span class="diff-marker">−</span> "Registro de usuario"</div>
-          <div class="diff-after"><span class="diff-marker">+</span> "Registro de cliente"</div>
-          <div class="change-explain">Alinea la nomenclatura con el dominio de negocio — "cliente" es el término correcto.</div>
+
+      <div class="file-entry">
+        <div class="file-entry-head" onclick="toggleFile('ft-task-id')" style="cursor:pointer">
+          <span class="card-icon">📄</span>
+          <span class="card-file">identificacion_task.yaml</span>
+          <span class="card-badge badge-local">modificado</span>
+          <span class="file-chev" id="fchev-ft-task-id">▸</span>
+        </div>
+        <div id="ft-task-id" style="display:none">
+          <div class="change-item">
+            <div class="change-num">1</div>
+            <div class="change-body">
+              <div class="change-loc">línea 19</div>
+              <div class="diff-before"><span class="diff-marker">−</span> step: "Pregunta el nombre del cliente"</div>
+              <div class="diff-after"><span class="diff-marker">+</span> step: "Pregunta el nombre o número de pedido"</div>
+              <div class="change-explain">Amplía la identificación — el cliente puede identificarse con el número de pedido además del nombre.</div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <div class="file-entry">
+        <div class="file-entry-head" onclick="toggleFile('ft-task-reg')" style="cursor:pointer">
+          <span class="card-icon">📄</span>
+          <span class="card-file">registro_task.yaml</span>
+          <span class="card-badge badge-renamed">renombrado</span>
+          <span class="file-chev" id="fchev-ft-task-reg">▸</span>
+        </div>
+        <div id="ft-task-reg" style="display:none">
+          <div class="change-item">
+            <div class="change-num">1</div>
+            <div class="change-body">
+              <div class="change-loc">displayName</div>
+              <div class="diff-before"><span class="diff-marker">−</span> "Registro de usuario"</div>
+              <div class="diff-after"><span class="diff-marker">+</span> "Registro de cliente"</div>
+              <div class="change-explain">Alinea la nomenclatura con el dominio de negocio — "cliente" es el término correcto.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="file-entry">
+        <div class="file-entry-head" onclick="toggleFile('ft-task-proj')" style="cursor:pointer">
+          <span class="card-icon">📄</span>
+          <span class="card-file">proyeccion_stock_task.yaml</span>
+          <span class="card-badge badge-ok">nuevo</span>
+          <span class="file-chev" id="fchev-ft-task-proj">▸</span>
+        </div>
+        <div id="ft-task-proj" style="display:none">
+          <div class="change-item">
+            <div class="change-num">1</div>
+            <div class="change-body">
+              <div class="change-loc">archivo nuevo</div>
+              <div class="diff-after"><span class="diff-marker">+</span> displayName: "Consultar proyección de stock"</div>
+              <div class="change-explain">Nueva task para consultar disponibilidad futura de flores antes de confirmar un pedido.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-examples')" style="cursor:pointer">
       <span class="artifact-type">Examples</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-examples">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span class="card-count">4 cambios · 4 archivos</span>
+        <span class="artifact-chevron collapsed" id="chev-art-examples">▾</span>
+      </span>
     </div>
-    <div id="art-examples" style="display:none">
-      <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">compra_ex_confirmacion.yaml</span><span class="card-badge badge-local">modificado</span></div>
-      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 34</div><div class="diff-before"><span class="diff-marker">−</span> output: "Tu pedido de rosas por 45€ está confirmado"</div><div class="diff-after"><span class="diff-marker">+</span> output: "Tu pedido de rosas está confirmado"</div><div class="change-explain">Elimina el precio del mensaje de confirmación — lo muestra el backend.</div></div></div>
-      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">handoff_ex_escalar.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
-      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> input: "quiero hablar con una persona"</div><div class="change-explain">Nuevo example para cubrir el caso de escalado a agente humano.</div></div></div>
+    <div id="art-examples" style="display:none;padding-top:6px">
+
+      <!-- Routine: Orquestador -->
+      <div style="margin-bottom:6px">
+        <div style="font-size:11px;color:var(--t-sec);font-family:system-ui,sans-serif;font-weight:600;letter-spacing:0.03em;padding:6px 0 4px 10px;border-left:2px solid var(--border);margin-bottom:2px">→ Routine: Orquestador</div>
+        <div style="padding-left:12px;border-left:2px solid var(--border);margin-left:1px">
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex06_compra_directa_solemne_lirios_velatorio.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex09_solicitud_agente.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex10_g6_historial_pide_email.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex11_g7_registro_post-task_compra.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex12_saludo_con_compra_no_es_saludo.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex2_email_no_encontrado_registro_task.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex5_ubicacin_tienda_pre-email_g1.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex5b_g1_horario_apertura_business.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex_compra_directa_sin_producto_novia.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex_inicio_sesion_ambiguo.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex_inicio_sesion_fuera_scope.yaml</span></div>
+          <div class="file-entry">
+            <div class="file-entry-head" onclick="toggleFile('fe-ex-idmail')" style="cursor:pointer">
+              <span class="card-icon">📄</span>
+              <span class="card-file">ex_identificacion_email.yaml</span>
+              <span class="card-badge badge-ok">nuevo</span>
+              <span class="file-chev" id="fchev-fe-ex-idmail">▸</span>
+            </div>
+            <div id="fe-ex-idmail" style="display:none">
+              <div class="change-item">
+                <div class="change-num">1</div>
+                <div class="change-body">
+                  <div class="change-loc">campo: input</div>
+                  <div class="diff-after"><span class="diff-marker">+</span> "mi correo es juan@flores.com"</div>
+                  <div class="change-explain">Nuevo example que cubre el caso de identificación cuando el usuario facilita solo el email.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Routine: Compra -->
+      <div style="margin-bottom:6px">
+        <div style="font-size:11px;color:var(--t-sec);font-family:system-ui,sans-serif;font-weight:600;letter-spacing:0.03em;padding:6px 0 4px 10px;border-left:2px solid var(--border);margin-bottom:2px">→ Routine: Compra</div>
+        <div style="padding-left:12px;border-left:2px solid var(--border);margin-left:1px">
+          <div class="file-entry">
+            <div class="file-entry-head" onclick="toggleFile('fe-ex-exa')" style="cursor:pointer">
+              <span class="card-icon">📄</span>
+              <span class="card-file">exa_v9_ramo_rosas_rojas_elige_tamao_confirma.yaml</span>
+              <span class="card-badge badge-local">modificado</span>
+              <span class="file-chev" id="fchev-fe-ex-exa">▸</span>
+            </div>
+            <div id="fe-ex-exa" style="display:none">
+              <div class="change-item">
+                <div class="change-num">1</div>
+                <div class="change-body">
+                  <div class="change-loc">línea 34</div>
+                  <div class="diff-before"><span class="diff-marker">−</span> output: "Tu pedido de rosas por 45€ está confirmado"</div>
+                  <div class="diff-after"><span class="diff-marker">+</span> output: "Tu pedido de rosas está confirmado"</div>
+                  <div class="change-explain">Elimina el precio del mensaje de confirmación — lo muestra el backend.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">exb_v15_funeral_tipoproducto_con_filtros.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">exc_v9_consulta_precio_tulipanes_no_compra.yaml</span></div>
+          <div class="file-entry">
+            <div class="file-entry-head" onclick="toggleFile('fe-ex-exd')" style="cursor:pointer">
+              <span class="card-icon">📄</span>
+              <span class="card-file">exd_v13_exploracin_genrica_inventario.yaml</span>
+              <span class="card-badge badge-deleted">borrado</span>
+              <span class="file-chev" id="fchev-fe-ex-exd">▸</span>
+            </div>
+            <div id="fe-ex-exd" style="display:none">
+              <div class="change-item">
+                <div class="change-num">1</div>
+                <div class="change-body">
+                  <div class="change-loc">campo: input</div>
+                  <div class="diff-before"><span class="diff-marker">−</span> "¿qué flores tenéis?"</div>
+                  <div class="change-explain">Example antiguo sin parámetros de salida — reemplazado por una versión con outputActionParameters.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">exf_v15_g3_boda_pregunta_abierta_rechaza_alternativas.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">exg_v15_refinamiento_progresivo_filtros_acumulados.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">exh_v16_g5_genrico_paso_1.5_contexto_refinamiento.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">exi_v1_fallback_rosas_azules_tono_calido.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">exj_v1_flor_mas_ocasion_tt28.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">exk_v1_saludo_inicial_ramo.yaml</span></div>
+        </div>
+      </div>
+
+      <!-- Task: Registro -->
+      <div style="margin-bottom:6px">
+        <div style="font-size:11px;color:var(--t-sec);font-family:system-ui,sans-serif;font-weight:600;letter-spacing:0.03em;padding:6px 0 4px 10px;border-left:2px solid var(--border);margin-bottom:2px">→ Task: Registro</div>
+        <div style="padding-left:12px;border-left:2px solid var(--border);margin-left:1px">
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex_reg_01_particular_con_bajo_captura_planta_slot_filling_letra.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex_reg_02_datos_multiples_en_un_turno.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex_reg_03_empresa_con_cif.yaml</span></div>
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">registro_completo.yaml</span></div>
+        </div>
+      </div>
+
+      <!-- Routine: Checkout -->
+      <div>
+        <div style="font-size:11px;color:var(--t-sec);font-family:system-ui,sans-serif;font-weight:600;letter-spacing:0.03em;padding:6px 0 4px 10px;border-left:2px solid var(--border);margin-bottom:2px">→ Routine: Checkout</div>
+        <div style="padding-left:12px;border-left:2px solid var(--border);margin-left:1px">
+          <div class="file-entry file-entry-zero"><span class="card-icon">📄</span><span class="card-file">ex_checkout_email_recovery_input_no_email_f1_calidez.yaml</span></div>
+          <div class="file-entry">
+            <div class="file-entry-head" onclick="toggleFile('fe-ex-chk')" style="cursor:pointer">
+              <span class="card-icon">📄</span>
+              <span class="card-file">nombre_checkout_ex01_paso_0_completo_registro_task_validar_pedido.yaml</span>
+              <span class="card-badge badge-renamed">renombrado</span>
+              <span class="file-chev" id="fchev-fe-ex-chk">▸</span>
+            </div>
+            <div id="fe-ex-chk" style="display:none">
+              <div class="change-item">
+                <div class="change-num">1</div>
+                <div class="change-body">
+                  <div class="change-loc">campo: displayName</div>
+                  <div class="diff-before"><span class="diff-marker">−</span> "Compra multiproducto"</div>
+                  <div class="diff-after"><span class="diff-marker">+</span> "Compra con varios productos"</div>
+                  <div class="change-explain">Nombre más legible para el equipo — evita la ambigüedad del término técnico "multiproducto".</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-tools')" style="cursor:pointer">
       <span class="artifact-type">Tools</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-tools">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">4 archivos</span><span class="artifact-chevron collapsed" id="chev-art-tools">▾</span></span>
     </div>
     <div id="art-tools" style="display:none">
-      <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">consultar_stock_legacy.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
-      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> endpoint: "/api/v1/stock-legacy"</div><div class="change-explain">Tool legacy reemplazada por consultar_inventario con endpoint v2.</div></div></div>
-      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">calcular_entrega.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
-      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">displayName</div><div class="diff-before"><span class="diff-marker">−</span> "Calcular entrega"</div><div class="diff-after"><span class="diff-marker">+</span> "Calcular fecha de entrega"</div><div class="change-explain">Nombre más descriptivo para alinear con la documentación de la API.</div></div></div>
+      <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">petaldatatool_openapi.yaml</span><span class="card-badge badge-local">modificado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 5 · info.version</div><div class="diff-before"><span class="diff-marker">−</span> version: "3.11.0"</div><div class="diff-after"><span class="diff-marker">+</span> version: "3.12.0"</div><div class="change-explain">Bump de versión tras añadir recurso=proyeccion al enum.</div></div></div>
+      <div class="change-item"><div class="change-num">2</div><div class="change-body"><div class="change-loc">línea 18 · recurso enum</div><div class="diff-before"><span class="diff-marker">−</span> enum: [perfil, registro, inventario, business, agent_copy, validar_pedido, pedidos]</div><div class="diff-after"><span class="diff-marker">+</span> enum: [perfil, registro, inventario, business, agent_copy, validar_pedido, pedidos, proyeccion]</div><div class="change-explain">Añade recurso=proyeccion para consultar stock previsto por semana — base del backend de proyección de inventario.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">petalnotifytool.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> displayName: PetalNotifyTool</div><div class="change-explain">Nueva tool para disparar la notificación de confirmación de pedido por email — desacopla la lógica de notificación de PetalDataTool.</div></div></div>
+      <div class="change-item"><div class="change-num">2</div><div class="change-body"><div class="change-loc">archivo nuevo · server</div><div class="diff-after"><span class="diff-marker">+</span> url: https://petal-sheet-api-v11-mccjwz6qsa-ew.a.run.app/notify</div><div class="change-explain">Reutiliza el mismo Cloud Run — endpoint /notify manejará el envío de confirmaciones sin tocar el flujo principal de /exec.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">petaldatatool_v10_openapi.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> url: https://petal-sheet-api-mccjwz6qsa-ew.a.run.app</div><div class="change-explain">Spec OpenAPI del backend v1.0 — endpoint desactivado. La revisión confirma que ningún playbook lo referencia ya.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">petaldatatool.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 1 · displayName</div><div class="diff-before"><span class="diff-marker">−</span> displayName: PetalDataTool</div><div class="diff-after"><span class="diff-marker">+</span> displayName: PetalAPI</div><div class="change-explain">Alinea el nombre con la convención del resto del portfolio — el sufijo "Tool" es redundante en el contexto de la sección Tools de CX.</div></div></div>
     </div>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-flows')" style="cursor:pointer">
       <span class="artifact-type">Flows</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-flows">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="font-family:system-ui,sans-serif;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(167,139,250,0.12);color:var(--purple)">WIP</span><span class="card-count">4 archivos</span><span class="artifact-chevron collapsed" id="chev-art-flows">▾</span></span>
     </div>
     <div id="art-flows" style="display:none">
       <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">Default Start Flow.yaml</span><span class="card-badge badge-local">modificado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 5</div><div class="diff-before"><span class="diff-marker">−</span> description: "Flujo principal"</div><div class="diff-after"><span class="diff-marker">+</span> description: "Flujo principal Petal 1.1"</div><div class="change-explain">Actualiza descripción para reflejar la versión del agente.</div></div></div>
       <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">Soporte Flow.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> displayName: "Soporte y reclamaciones"</div><div class="change-explain">Nuevo flow para gestionar reclamaciones post-compra, separado del flujo principal.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">Catalogo Legacy Flow.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> displayName: "Catálogo (legacy)"</div><div class="change-explain">Flow antiguo de catálogo eliminado — su lógica se ha absorbido en el Default Start Flow con routing por intent.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">Compra Flow.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">displayName</div><div class="diff-before"><span class="diff-marker">−</span> "Flujo de Compra"</div><div class="diff-after"><span class="diff-marker">+</span> "Compra"</div><div class="change-explain">Simplifica el nombre — elimina el prefijo redundante "Flujo de" para consistencia con el resto de flows.</div></div></div>
     </div>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-pages')" style="cursor:pointer">
       <span class="artifact-type">Pages</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-pages">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="font-family:system-ui,sans-serif;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(167,139,250,0.12);color:var(--purple)">WIP</span><span class="card-count">4 archivos</span><span class="artifact-chevron collapsed" id="chev-art-pages">▾</span></span>
     </div>
     <div id="art-pages" style="display:none">
       <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">Confirmar Pedido Legacy.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> displayName: "Confirmar Pedido Legacy"</div><div class="change-explain">Page obsoleta tras unificar el checkout — reemplazada por Confirmar Pedido.</div></div></div>
       <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">Inicio.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">displayName</div><div class="diff-before"><span class="diff-marker">−</span> "Inicio"</div><div class="diff-after"><span class="diff-marker">+</span> "Bienvenida"</div><div class="change-explain">Nombre más descriptivo del propósito de la página de entrada.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">Seleccionar Flores.yaml</span><span class="card-badge badge-local">modificado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 27</div><div class="diff-before"><span class="diff-marker">−</span> entryFulfillment: "¿Qué flores quieres?"</div><div class="diff-after"><span class="diff-marker">+</span> entryFulfillment: "¿Qué flores o plantas te interesan?"</div><div class="change-explain">Amplía la pregunta de entrada para incluir plantas — el catálogo de Petal cubre también plantas de interior.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">Reclamacion.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> displayName: "Gestionar reclamación"</div><div class="change-explain">Nueva page del flow de Soporte — recoge el motivo de la reclamación y llama al webhook de incidencias.</div></div></div>
     </div>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-intents')" style="cursor:pointer">
       <span class="artifact-type">Intents</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-intents">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="font-family:system-ui,sans-serif;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(167,139,250,0.12);color:var(--purple)">WIP</span><span class="card-count">4 archivos</span><span class="artifact-chevron collapsed" id="chev-art-intents">▾</span></span>
     </div>
     <div id="art-intents" style="display:none">
       <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">comprar.yaml</span><span class="card-badge badge-local">modificado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 18</div><div class="diff-before"><span class="diff-marker">−</span> (sin frase)</div><div class="diff-after"><span class="diff-marker">+</span> "me gustaría encargar flores"</div><div class="change-explain">Añade variante de entrenamiento para mejorar detección del intent de compra.</div></div></div>
       <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">reclamar_pedido.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> trainingPhrases: ["tengo un problema con mi pedido"]</div><div class="change-explain">Nuevo intent para detectar reclamaciones post-compra.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">consultar_flores.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> trainingPhrases: ["¿qué flores tenéis?", "ver flores"]</div><div class="change-explain">Intent reemplazado por ver_catalogo.yaml — cubre flores, plantas y arreglos con mejor cobertura semántica.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">confirmar.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">displayName</div><div class="diff-before"><span class="diff-marker">−</span> "Confirmación"</div><div class="diff-after"><span class="diff-marker">+</span> "Confirmar pedido"</div><div class="change-explain">Nombre más específico — diferencia este intent del de confirmación de dirección de entrega.</div></div></div>
     </div>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-entities')" style="cursor:pointer">
       <span class="artifact-type">Entity Types</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-entities">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="font-family:system-ui,sans-serif;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(167,139,250,0.12);color:var(--purple)">WIP</span><span class="card-count">4 archivos</span><span class="artifact-chevron collapsed" id="chev-art-entities">▾</span></span>
     </div>
     <div id="art-entities" style="display:none">
       <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">ocasion_legacy.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> displayName: "Ocasión (legacy)"</div><div class="change-explain">Entity type obsoleta — reemplazada por ocasion_v2.yaml con mejor cobertura.</div></div></div>
       <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">color_flor.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">displayName</div><div class="diff-before"><span class="diff-marker">−</span> "Color de flor"</div><div class="diff-after"><span class="diff-marker">+</span> "Color"</div><div class="change-explain">Simplifica el nombre del entity type — aplica también a colores de packaging.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">tipo_flor.yaml</span><span class="card-badge badge-local">modificado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 31</div><div class="diff-before"><span class="diff-marker">−</span> (sin entrada)</div><div class="diff-after"><span class="diff-marker">+</span> entity: "clavel", synonyms: ["claveles", "clavel rojo"]</div><div class="change-explain">Añade el clavel al catálogo — era el único tipo de flor no cubierto en el entity type.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">forma_entrega.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> entities: ["domicilio", "recogida en tienda", "punto de entrega"]</div><div class="change-explain">Nuevo entity type para capturar el modo de entrega elegido por el cliente durante el checkout.</div></div></div>
     </div>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-webhooks')" style="cursor:pointer">
       <span class="artifact-type">Webhooks</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-webhooks">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="font-family:system-ui,sans-serif;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(167,139,250,0.12);color:var(--purple)">WIP</span><span class="card-count">4 archivos</span><span class="artifact-chevron collapsed" id="chev-art-webhooks">▾</span></span>
     </div>
     <div id="art-webhooks" style="display:none">
       <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">petal_backend.yaml</span><span class="card-badge badge-local">modificado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 4</div><div class="diff-before"><span class="diff-marker">−</span> url: "https://petal-api-v1.run.app"</div><div class="diff-after"><span class="diff-marker">+</span> url: "https://petal-api.run.app"</div><div class="change-explain">Actualiza URL al dominio estable sin sufijo de versión.</div></div></div>
       <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">notificaciones_webhook.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> url: "https://petal-api.run.app/notify"</div><div class="change-explain">Nuevo webhook para enviar notificaciones de estado del pedido al cliente.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">inventario_legacy_webhook.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> url: "https://petal-api-v1.run.app/stock-legacy"</div><div class="change-explain">Webhook legacy del inventario eliminado — sustituido por el endpoint v2 en petal_backend.yaml.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">pagos_webhook.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">displayName</div><div class="diff-before"><span class="diff-marker">−</span> "Pagos"</div><div class="diff-after"><span class="diff-marker">+</span> "Procesador de pagos"</div><div class="change-explain">Nombre más preciso — diferencia este webhook del de notificaciones de pago al cliente.</div></div></div>
     </div>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-generators')" style="cursor:pointer">
       <span class="artifact-type">Generators</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-generators">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="font-family:system-ui,sans-serif;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(167,139,250,0.12);color:var(--purple)">WIP</span><span class="card-count">4 archivos</span><span class="artifact-chevron collapsed" id="chev-art-generators">▾</span></span>
     </div>
     <div id="art-generators" style="display:none">
       <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">respuesta_generica.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> displayName: "Respuesta genérica"</div><div class="change-explain">Generator genérico eliminado — cada caso tiene ahora su propio generator específico.</div></div></div>
       <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">confirmacion_pedido.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">displayName</div><div class="diff-before"><span class="diff-marker">−</span> "Confirmación de pedido"</div><div class="diff-after"><span class="diff-marker">+</span> "Resumen de pedido confirmado"</div><div class="change-explain">Nombre más preciso — diferencia el resumen de la acción de confirmar.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">descripcion_flor.yaml</span><span class="card-badge badge-local">modificado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 8</div><div class="diff-before"><span class="diff-marker">−</span> prompt: "Describe la flor brevemente."</div><div class="diff-after"><span class="diff-marker">+</span> prompt: "Describe la flor en 2 frases: aspecto visual y ocasión ideal."</div><div class="change-explain">Prompt más estructurado — reduce variabilidad en las respuestas y alinea con el tono Petal.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">recomendacion_ramo.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> displayName: "Recomendar ramo por ocasión"</div><div class="change-explain">Nuevo generator que sugiere combinaciones de flores según la ocasión y el presupuesto indicados por el cliente.</div></div></div>
     </div>
   </div>
 
   <div class="artifact-row has-changes">
     <div class="artifact-head" onclick="toggleArtifact('art-agent')" style="cursor:pointer">
       <span class="artifact-type">Agent Config</span>
-      <span style="display:flex;align-items:center;gap:6px"><span class="card-count">2 archivos</span><span class="artifact-chevron collapsed" id="chev-art-agent">▾</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="font-family:system-ui,sans-serif;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(167,139,250,0.12);color:var(--purple)">WIP</span><span class="card-count">4 archivos</span><span class="artifact-chevron collapsed" id="chev-art-agent">▾</span></span>
     </div>
     <div id="art-agent" style="display:none">
       <div class="card-row-head" style="margin-top:8px"><span class="card-icon">📄</span><span class="card-file">agent.yaml</span><span class="card-badge badge-local">modificado</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">línea 3</div><div class="diff-before"><span class="diff-marker">−</span> description: "Agente Petal"</div><div class="diff-after"><span class="diff-marker">+</span> description: "Agente Petal 1.1 — floristería online"</div><div class="change-explain">Actualiza la descripción del agente a la versión 1.1.</div></div></div>
       <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">agent_speech.yaml</span><span class="card-badge badge-ok">nuevo</span></div>
       <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo nuevo</div><div class="diff-after"><span class="diff-marker">+</span> speechSettings: { enableSpeechAdaptation: true }</div><div class="change-explain">Nueva config de voz para habilitar adaptación de speech recognition.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">agent_legacy_params.yaml</span><span class="card-badge badge-deleted">borrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">archivo eliminado</div><div class="diff-before"><span class="diff-marker">−</span> advancedSettings: { legacyActionDiscriminator: true }</div><div class="change-explain">Config legacy eliminada — el discriminador antiguo era incompatible con el routing de Petal 1.1.</div></div></div>
+      <div class="card-row-head" style="margin-top:10px"><span class="card-icon">📄</span><span class="card-file">agent_nlu.yaml</span><span class="card-badge badge-renamed">renombrado</span></div>
+      <div class="change-item"><div class="change-num">1</div><div class="change-body"><div class="change-loc">displayName</div><div class="diff-before"><span class="diff-marker">−</span> "Config NLU"</div><div class="diff-after"><span class="diff-marker">+</span> "Configuración NLU"</div><div class="change-explain">Nombre completo sin abreviatura — consistente con el resto de archivos de configuración del agente.</div></div></div>
     </div>
   </div>
 </div>
@@ -900,6 +1210,15 @@ const steps = {
       `<div class="btn-row"><button class="btn" onclick="go(0)">reiniciar</button></div>`);
   }
 };
+
+function toggleFile(id) {
+  const body = document.getElementById(id);
+  const chev = document.getElementById('fchev-' + id);
+  if (!body) return;
+  const hidden = body.style.display === 'none';
+  body.style.display = hidden ? '' : 'none';
+  if (chev) chev.textContent = hidden ? '▾' : '▸';
+}
 
 function toggleArtifact(id) {
   const body = document.getElementById(id);
