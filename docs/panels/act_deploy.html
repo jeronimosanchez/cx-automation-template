@@ -280,13 +280,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-3">
       <div class="phase-eyebrow">Paso 3 de 7 &mdash; Gate humano</div>
       <div class="phase-title">Confirmar deploy</div>
-      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios. Para ejecutar los tests deber&aacute;s completar la fase de creaci&oacute;n de snapshot.</div>
-      <div class="gate-block">
+      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
+
+      <!-- Gate inicial -->
+      <div class="gate-block" id="deploy-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
-        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados y 1 example nuevo. Los recursos sin cambios no se tocan.</p>
+        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="advance(3)">Confirmar deploy &rarr;</button>
+          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Confirmar deploy &rarr;</button>
           <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
+        </div>
+      </div>
+
+      <!-- Log animado -->
+      <div id="deploy-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="deploy-log-block" style="min-height:80px"></div>
+      </div>
+
+      <!-- Estado completado -->
+      <div id="deploy-done" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
+          <span style="color:#4ade80;font-weight:600;font-size:13px">Deploy completado &#10003;</span>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
         </div>
       </div>
     </div>
@@ -592,6 +609,50 @@ function renderStep2Checks() {
   }
 }
 
+// --- DEPLOY SIMULATION ---
+function confirmDeploy() {
+  setRunning(true);
+  document.getElementById('deploy-gate').style.display = 'none';
+  document.getElementById('deploy-log').style.display = 'block';
+
+  const DEPLOY_LINES = [
+    {cls:'ok',  text:'✓ Playbook · Compra · PATCH (Full Update) → OK'},
+    {cls:'ok',  text:'✓ Playbook · Orquestador · PATCH (Full Update) → OK'},
+    {cls:'ok',  text:'✓ Example · compra_rosas_001 · POST → OK'},
+    {cls:'del', text:'✓ Example · compra_tulipanes_002 · DELETE → OK'},
+    {cls:'ok',  text:'✓ Deploy completado — 4 recursos en 3.1s'},
+  ];
+
+  const logBlock = document.getElementById('deploy-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if(i >= DEPLOY_LINES.length) {
+      setTimeout(() => {
+        document.getElementById('deploy-done').style.display = 'block';
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    const line = DEPLOY_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function resetDeployStep3() {
+  document.getElementById('deploy-gate').style.display = 'block';
+  document.getElementById('deploy-log').style.display = 'none';
+  document.getElementById('deploy-done').style.display = 'none';
+  document.getElementById('deploy-log-block').innerHTML = '';
+}
+
 // --- SNAPSHOT NAME AUTO-GENERATE ---
 
 function generateSnapshotName() {
@@ -811,6 +872,7 @@ function resetDeploy() {
   current = 1; viewingStep = 1;
   snapshotName = '';
   resetInventoryUI();
+  resetDeployStep3();
   resetSnapshotUI();
   // Resetear estado de rollback
   document.getElementById('rollback-confirm').style.display = 'none';
