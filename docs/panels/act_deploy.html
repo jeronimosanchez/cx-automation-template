@@ -235,17 +235,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- STEP 2: Diff GitHub vs CX -->
+    <!-- STEP 2: Push a GitHub staging -->
     <div class="step-view" id="view-2">
-      <div class="phase-eyebrow">Paso 2 de 7</div>
-      <div class="phase-title">Diff GitHub vs CX</div>
-      <div class="phase-sub">Compara la rama <strong>staging de GitHub</strong> contra el entorno <strong>staging de CX</strong>. Aseg&uacute;rate de que tus cambios est&aacute;n en GitHub antes de ver el resultado.</div>
-
-      <!-- Checks automáticos (resultado de deploy.py) -->
+      <div class="phase-eyebrow">Paso 2 de 8</div>
+      <div class="phase-title">Push a GitHub staging</div>
+      <div class="phase-sub">Sube los commits locales a la rama <strong>staging de GitHub</strong> antes de calcular el diff con CX.</div>
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 20px;margin-bottom:20px" id="step2-checks"></div>
+      <div id="push-done" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
+          <span style="color:#4ade80;font-weight:600;font-size:13px">Push completado &#10003;</span>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
 
-      <!-- Tabla de diff + Continuar (ocultos hasta marcar ambos checks; solo si DIFF_COUNT > 0) -->
-      <div id="diff-table-section" style="display:none">
+    <!-- STEP 3: Diff GitHub vs CX -->
+    <div class="step-view" id="view-3">
+      <div class="phase-eyebrow">Paso 3 de 8</div>
+      <div class="phase-title">Diff GitHub vs CX</div>
+      <div class="phase-sub">Compara la rama <strong>staging de GitHub</strong> contra el entorno <strong>staging de CX</strong>.</div>
+
+      <!-- Con cambios -->
+      <div id="diff-has-changes" style="display:none">
         <div class="diff-wrap">
           <table class="diff-table">
             <thead><tr><th>Tipo</th><th>Recurso</th><th>Operaci&oacute;n</th></tr></thead>
@@ -257,32 +270,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             </tbody>
           </table>
         </div>
-        <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-new">POST</span> Recurso nuevo — se crea en CX</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-mod">PATCH</span> Recurso modificado — se actualiza en CX</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-del">DELETE</span> Recurso eliminado localmente — se borra de CX</div>
+        <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-new">POST</span> Recurso nuevo &mdash; se crea en CX</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-mod">PATCH</span> Recurso modificado &mdash; se actualiza en CX</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-del">DELETE</span> Recurso eliminado localmente &mdash; se borra de CX</div>
         </div>
         <div class="action-bar">
-          <button class="btn btn-primary" id="btn-continue-diff" onclick="advance(2)">Continuar &rarr;</button>
+          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
         </div>
       </div>
 
-      <!-- Banner sin cambios (oculto hasta marcar ambos checks; solo si DIFF_COUNT === 0) -->
-      <div id="diff-banner-no-changes" style="display:none;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:14px 18px;margin-bottom:20px">
-        <p style="color:#60a5fa;font-size:13px">No hay cambios detectados &mdash; el agente en CX staging ya est&aacute; actualizado.</p>
-        <div class="action-bar" style="margin-top:12px">
+      <!-- Sin cambios -->
+      <div id="diff-no-changes" style="display:none">
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:18px 20px;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">Sin cambios detectados</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">El agente en CX staging ya est&aacute; al d&iacute;a con la rama staging de GitHub. No hay nada que desplegar.</p>
+        </div>
+        <div class="action-bar">
           <button class="btn btn-ghost" onclick="resetDeploy()">Cerrar</button>
         </div>
       </div>
     </div>
 
-    <!-- STEP 3: Gate confirmar -->
-    <div class="step-view" id="view-3">
-      <div class="phase-eyebrow">Paso 3 de 7 &mdash; Gate humano</div>
+    <!-- STEP 4: Confirmar deploy -->
+    <div class="step-view" id="view-4">
+      <div class="phase-eyebrow">Paso 4 de 8 &mdash; Gate humano</div>
       <div class="phase-title">Confirmar deploy</div>
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
-
-      <!-- Gate inicial -->
       <div class="gate-block" id="deploy-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
@@ -291,52 +305,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
         </div>
       </div>
-
-      <!-- Log animado -->
       <div id="deploy-log" style="display:none;margin-top:4px">
         <div class="output-block" id="deploy-log-block" style="min-height:80px"></div>
       </div>
-
-      <!-- Estado completado -->
       <div id="deploy-done" style="display:none">
         <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
           <span style="color:#4ade80;font-weight:600;font-size:13px">Deploy completado &#10003;</span>
-        </div>
-        <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 4: Snapshot del agente -->
-    <div class="step-view" id="view-4">
-      <div class="phase-eyebrow">Paso 4 de 7 &mdash; Gate humano</div>
-      <div class="phase-title">Snapshot del agente</div>
-      <div class="phase-sub">CX guarda un snapshot nuevo del agente en el entorno staging. En el siguiente paso confirmar&aacute;s que los tests QA han pasado correctamente. La versi&oacute;n anterior en staging se conserva para poder hacer rollback si los tests fallan.</div>
-
-      <!-- Gate inicial: input + botón -->
-      <div class="gate-block" id="snap-gate">
-        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
-        <p>Asigna un nombre al snapshot y confirma para crear la versi&oacute;n en CX. El nombre se usar&aacute; como <code style="font-size:12px;color:var(--text)">displayName</code> en la API.</p>
-        <div style="margin-bottom:20px">
-          <div class="slabel" style="margin-bottom:8px">Nombre del snapshot</div>
-          <input type="text" id="snapshot-name" class="snapshot-input" value="">
-        </div>
-        <div class="action-bar">
-          <button class="btn btn-gate" id="btn-snapshot-confirm" onclick="confirmSnapshot()">Crear snapshot &rarr;</button>
-          <button class="btn btn-danger" onclick="cancelDeploy()">Cancelar</button>
-        </div>
-      </div>
-
-      <!-- Log animado (oculto hasta pulsar) -->
-      <div id="snap-log" style="display:none;margin-top:4px">
-        <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
-      </div>
-
-      <!-- Estado completado (oculto hasta finalizar animación) -->
-      <div id="snap-done" style="display:none">
-        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
-          <span style="color:#4ade80;font-weight:600;font-size:13px">Snapshot completado &#10003;</span>
         </div>
         <div class="action-bar">
           <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
@@ -344,36 +318,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- STEP 5: Validación de tests -->
+    <!-- STEP 5: Snapshot del agente -->
     <div class="step-view" id="view-5">
-      <div class="phase-eyebrow">Paso 5 de 7 &mdash; Gate humano</div>
+      <div class="phase-eyebrow">Paso 5 de 8 &mdash; Gate humano</div>
+      <div class="phase-title">Snapshot del agente</div>
+      <div class="phase-sub">CX guarda un snapshot nuevo del agente en el entorno staging. La versi&oacute;n anterior se conserva para rollback si los tests fallan.</div>
+      <div class="gate-block" id="snap-gate">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p>Se crear&aacute; un snapshot nuevo del agente en CX staging. El snapshot anterior (<strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong>) se conserva para poder hacer rollback si los tests fallan.</p>
+        <p style="margin-top:0;margin-bottom:16px">CX conserva un m&aacute;ximo de 5 versiones por entorno. Si ya hay 5, la m&aacute;s antigua se eliminar&aacute; autom&aacute;ticamente al crear &eacute;sta.</p>
+        <div style="margin-bottom:20px">
+          <div class="slabel" style="margin-bottom:8px">Nombre del snapshot</div>
+          <input type="text" id="snapshot-name" class="snapshot-input" value="">
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, d&iacute;gitos, guiones y guiones bajos. M&aacute;x. 64 caracteres. Vac&iacute;o = nombre autom&aacute;tico con fecha y hora.</div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-snapshot-confirm" onclick="confirmSnapshot()">Crear snapshot &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy()">Cancelar</button>
+        </div>
+      </div>
+      <div id="snap-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
+      </div>
+      <div id="snap-done" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
+          <span style="color:#4ade80;font-weight:600;font-size:13px">Snapshot completado &#10003;</span>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(5)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6: Validación de tests -->
+    <div class="step-view" id="view-6">
+      <div class="phase-eyebrow">Paso 6 de 8 &mdash; Gate humano</div>
       <div class="phase-title">Validaci&oacute;n de tests</div>
       <div class="phase-sub">Confirma que has ejecutado la suite de tests QA y que todos los casos han pasado correctamente en el entorno staging.</div>
       <div class="gate-block">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <div class="action-bar" id="test-action-bar">
-          <button class="btn btn-gate" onclick="advance(5)">Tests superados &rarr;</button>
+          <button class="btn btn-gate" onclick="advance(6)">Tests superados &rarr;</button>
           <button class="btn btn-danger" onclick="showRollbackConfirm()">Tests fallidos</button>
         </div>
       </div>
-      <!-- ROLLBACK CONFIRM BLOCK -->
       <div id="rollback-confirm" style="display:none;margin-top:20px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:20px 24px">
         <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tests fallidos &mdash; rollback de staging</div>
         <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, el sistema revertir&aacute; el entorno staging de CX al estado anterior.</p>
         <div class="slabel" style="margin-bottom:8px">Qu&eacute; va a ocurrir</div>
         <div style="margin-bottom:16px">
-          <div class="progress-item">
-            <div class="progress-icon" style="color:#f87171">&#8594;</div>
-            <div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar al snapshot anterior</div>
-          </div>
-          <div class="progress-item">
-            <div class="progress-icon" style="color:#f87171">&#8594;</div>
-            <div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde el snapshot anterior</div>
-          </div>
-          <div class="progress-item">
-            <div class="progress-icon" style="color:var(--text-3)">&#8594;</div>
-            <div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div>
-          </div>
+          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar al snapshot anterior</div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde el snapshot anterior</div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
         </div>
         <div class="slabel" style="margin-bottom:6px">Qu&eacute; hacer despu&eacute;s</div>
         <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Vuelve a tu rama de trabajo, corrige los problemas y haz un nuevo deploy cuando est&eacute; listo.</p>
@@ -382,19 +378,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button class="btn btn-ghost" onclick="hideRollbackConfirm()">Cancelar</button>
         </div>
       </div>
-      <!-- ROLLBACK LOG BLOCK -->
       <div id="rollback-log" style="display:none;margin-top:20px">
         <div class="output-block" id="rollback-log-block" style="min-height:80px"></div>
       </div>
-      <!-- ROLLBACK DONE BANNER -->
-      <div id="rollback-done-banner" style="display:none;margin-top:16px;display:none;align-items:center;gap:12px;padding:14px 18px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px">
+      <div id="rollback-done-banner" style="display:none;margin-top:16px;align-items:center;gap:12px;padding:14px 18px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px">
         <p style="font-size:13px;color:#f87171;font-weight:500;margin:0">Deploy cancelado &mdash; staging restaurado al estado anterior</p>
       </div>
     </div>
 
-    <!-- STEP 6: Gate QA — validar en staging (ANTES de producción) -->
-    <div class="step-view" id="view-6">
-      <div class="phase-eyebrow">Paso 6 de 7 &mdash; Gate humano</div>
+    <!-- STEP 7: Gate QA — staging -->
+    <div class="step-view" id="view-7">
+      <div class="phase-eyebrow">Paso 7 de 8 &mdash; Gate humano</div>
       <div class="phase-title">Gate QA &mdash; staging</div>
       <div class="phase-sub">Valida el agente manualmente en el entorno staging de CX antes de promover a producci&oacute;n.</div>
       <div class="gate-block">
@@ -404,8 +398,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
         </div>
         <div class="action-bar">
-          <button class="btn btn-gate" onclick="advance(6)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
-          <button class="btn btn-danger" onclick="rollbackFromStep6()">Rollback a staging anterior</button>
+          <button class="btn btn-gate" onclick="advance(7)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
+          <button class="btn btn-danger" onclick="rollbackFromStep7()">Rollback a staging anterior</button>
         </div>
       </div>
       <div class="slabel">Estado actual de entornos</div>
@@ -413,9 +407,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <span class="warn">producci&oacute;n</span> &rarr; v5 &middot; 2026-07-25_1134  &#8592; actual</div>
     </div>
 
-    <!-- STEP 7: Aprobar subida a producción -->
-    <div class="step-view" id="view-7">
-      <div class="phase-eyebrow">Paso 7 de 7 &mdash; Gate humano</div>
+    <!-- STEP 8: Aprobar subida a producción -->
+    <div class="step-view" id="view-8">
+      <div class="phase-eyebrow">Paso 8 de 8 &mdash; Gate humano</div>
       <div class="phase-title">Aprobar subida a producci&oacute;n</div>
       <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se crear&aacute; un nuevo snapshot de producci&oacute;n y quedar&aacute; activo para los usuarios.</div>
       <div class="gate-block">
@@ -425,7 +419,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">1</div>
             <div class="action-result-body">
               <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
-              <div class="action-result-desc">El c&oacute;digo que pas&oacute; los tests queda registrado en main de GitHub. Main pasa a ser la fuente de verdad de lo que est&aacute; en producci&oacute;n.</div>
+              <div class="action-result-desc">El c&oacute;digo que pas&oacute; los tests queda registrado en main de GitHub.</div>
             </div>
           </div>
           <div class="action-result">
@@ -486,15 +480,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="output-block"><span class="ok">&#10003;</span> staging    &rarr; <span class="snapshot-name-ref">—</span>
 <span class="ok">&#10003;</span> producci&oacute;n &rarr; <span class="snapshot-name-ref">—</span>  <span class="info">&#8592; nuevo</span></div>
 
-      <div class="slabel" style="margin-top:20px">Rotaci&oacute;n de versiones</div>
-      <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:12px">Se conservan las &uacute;ltimas 5 versiones de producci&oacute;n. Las versiones m&aacute;s antiguas se eliminan autom&aacute;ticamente.</p>
-      <div class="output-block"><span class="ok">&#10003;</span> <span class="snapshot-name-ref">—</span>  <span class="info">&#8592; nueva (producci&oacute;n)</span>
-<span class="ok">&#10003;</span> v5 &middot; 2026-07-25_1134
-<span class="ok">&#10003;</span> v4 &middot; 2026-07-20_0811
-<span class="ok">&#10003;</span> v3 &middot; 2026-07-15_1423
-<span class="ok">&#10003;</span> v2 &middot; 2026-07-10_0930
-<span class="dim">&nbsp; v1 &middot; 2026-07-01_1200  </span><span class="del">&#8594; eliminada</span></div>
-      <div style="margin-top:12px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
+      <div style="margin-top:4px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
     </div>
 
   </main>
@@ -520,17 +506,18 @@ const CHECK_RESULTS = {
 };
 
 const STEPS = [
-  {id:1, name:'Inventario CX',        sub:'Snapshot + diff de cambios',     gate:false},
-  {id:2, name:'Diff GitHub vs CX',    sub:'Gate — confirmar cambios',       gate:true},
-  {id:3, name:'Confirmar deploy',     sub:'Gate — acción requerida',        gate:true},
-  {id:4, name:'Snapshot del agente',  sub:'Gate — crear snapshot',          gate:true},
-  {id:5, name:'Validación de tests',  sub:'Gate — confirmar resultado',     gate:true},
-  {id:6, name:'Gate QA — staging',    sub:'Gate — validar manualmente',     gate:true},
-  {id:7, name:'Aprobar producción',   sub:'Gate — acción irreversible',     gate:true},
+  {id:1, name:'Inventario CX',           sub:'',  gate:false},
+  {id:2, name:'Push a GitHub staging',   sub:'',  gate:true},
+  {id:3, name:'Diff GitHub vs CX',       sub:'',  gate:true},
+  {id:4, name:'Confirmar deploy',        sub:'',  gate:true},
+  {id:5, name:'Snapshot del agente',     sub:'',  gate:true},
+  {id:6, name:'Validación de tests',     sub:'',  gate:true},
+  {id:7, name:'Gate QA — staging',       sub:'',  gate:true},
+  {id:8, name:'Aprobar producción',      sub:'',  gate:true},
 ];
 
 // start state: step 1 active, rest pending
-let stepStates = ['active','pending','pending','pending','pending','pending','pending'];
+let stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
 let current = 1;
 let viewingStep = 1;
 let snapshotName = '';
@@ -598,38 +585,57 @@ function renderStep2Checks() {
         <div class="check-detail">origin/staging al día con HEAD</div>
       </div>
     </div>`;
-    document.getElementById('diff-table-section').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
-    document.getElementById('diff-banner-no-changes').style.display = DIFF_COUNT > 0 ? 'none' : 'block';
+    document.getElementById('push-done').style.display = 'block';
     return;
   }
 
   // Estado: commits pendientes de push
   const commitRows = r.pending.map((c, i) => `
-    <label style="display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer;border-bottom:1px solid var(--bg-3)">
-      <input type="checkbox" class="commit-check" data-idx="${i}" checked style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer">
-      <span style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-3)">${c.hash}</span>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;${i < r.pending.length - 1 ? 'border-bottom:1px solid var(--bg-3);' : ''}">
+      <span style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-3);flex-shrink:0">${c.hash}</span>
       <span style="font-size:13px;color:var(--text-2)">${c.msg}</span>
-    </label>`).join('');
+    </div>`).join('');
 
   container.innerHTML = `
-    <div class="check-row" style="margin-bottom:12px">
+    <div class="check-row" style="margin-bottom:14px">
       <div class="check-icon" style="color:var(--error)">✗</div>
       <div>
         <div class="check-label">Commits pendientes de push a GitHub staging</div>
         <div class="check-detail err">origin/staging está ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} por detrás</div>
       </div>
     </div>
-    <div style="margin-bottom:14px">${commitRows}</div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" onclick="pushSelected()">Push seleccionados &rarr;</button>
-      <button class="btn btn-ghost" onclick="pushAll()">Push todos</button>
-    </div>`;
-
-  document.getElementById('diff-table-section').style.display = 'none';
-  document.getElementById('diff-banner-no-changes').style.display = 'none';
+    <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:16px">${commitRows}</div>
+    <button class="btn btn-primary" onclick="executePush()">Ejecutar push &mdash; ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} &rarr;</button>`;
 }
 
-function pushSelected() {
+function updatePushBtn() {
+  const all = document.querySelectorAll('.commit-check');
+  const checked = document.querySelectorAll('.commit-check:checked');
+  const any = checked.length > 0;
+  const allSelected = checked.length === all.length;
+
+  const btn = document.getElementById('btn-execute-push');
+  if (btn) {
+    btn.disabled = !any;
+    btn.style.opacity = any ? '1' : '0.4';
+    btn.style.cursor = any ? 'pointer' : 'not-allowed';
+  }
+
+  const master = document.getElementById('check-select-all');
+  if (master) {
+    master.checked = allSelected;
+    master.indeterminate = any && !allSelected;
+  }
+}
+
+function toggleSelectAll() {
+  const master = document.getElementById('check-select-all');
+  const all = document.querySelectorAll('.commit-check');
+  all.forEach(c => c.checked = master.checked);
+  updatePushBtn();
+}
+
+function executePush() {
   const checked = document.querySelectorAll('.commit-check:checked');
   if (!checked.length) return;
   CHECK_RESULTS.push.ok = true;
@@ -639,6 +645,11 @@ function pushSelected() {
 function pushAll() {
   CHECK_RESULTS.push.ok = true;
   renderStep2Checks();
+}
+
+function renderStep3Diff() {
+  document.getElementById('diff-has-changes').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
+  document.getElementById('diff-no-changes').style.display  = DIFF_COUNT > 0 ? 'none'  : 'block';
 }
 
 // --- DEPLOY SIMULATION ---
@@ -678,7 +689,7 @@ function confirmDeploy() {
   showLine();
 }
 
-function resetDeployStep3() {
+function resetDeployStep4() {
   document.getElementById('deploy-gate').style.display = 'block';
   document.getElementById('deploy-log').style.display = 'none';
   document.getElementById('deploy-done').style.display = 'none';
@@ -744,6 +755,8 @@ function viewStep(id) {
   const v = document.getElementById('view-'+id);
   if(v) v.classList.add('visible');
   if(id === 2) renderStep2Checks();
+  if(id === 3) renderStep3Diff();
+  if(id === 5) document.getElementById('snapshot-name').value = document.getElementById('snapshot-name').value || generateSnapshotName();
   renderSidebar();
 }
 
@@ -768,7 +781,7 @@ function toggleSyncCheck() {
 }
 
 function advanceToDone() {
-  stepStates[6] = 'done';
+  stepStates[7] = 'done';
   viewingStep = 'done';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   document.getElementById('view-done').classList.add('visible');
@@ -798,6 +811,10 @@ function completeAuto(idx) {
 // --- SNAPSHOT ---
 function confirmSnapshot() {
   const inputVal = document.getElementById('snapshot-name').value.trim();
+  if (inputVal && (inputVal.length > 64 || !/^[a-zA-Z0-9_\-\.]+$/.test(inputVal))) {
+    alert('Nombre no válido. Usa solo letras, dígitos, guiones, guiones bajos o puntos. Máximo 64 caracteres.');
+    return;
+  }
   const name = inputVal || generateSnapshotName();
   setSnapshotName(name);
 
@@ -807,10 +824,12 @@ function confirmSnapshot() {
   document.getElementById('snap-log').style.display = 'block';
 
   const SNAP_LINES = [
-    {cls:'ok', text:'✓ Enviando POST /versions...'},
-    {cls:'ok', text:'✓ Operación iniciada — LRO polling...'},
-    {cls:'ok', text:'✓ Esperando confirmación de CX...'},
-    {cls:'ok', text:'✓ Snapshot "' + name + '" creado correctamente'},
+    {cls:'ok',  text:'✓ Enviando POST /versions...'},
+    {cls:'ok',  text:'✓ Operación iniciada — LRO polling...'},
+    {cls:'ok',  text:'✓ Esperando confirmación de CX...'},
+    {cls:'ok',  text:'✓ Snapshot "' + name + '" creado correctamente'},
+    {cls:'del', text:'  v1 · 2026-07-01_1200 → eliminada (límite 5 versiones)'},
+    {cls:'ok',  text:'✓ Staging apuntando a "' + name + '"'},
   ];
 
   const logBlock = document.getElementById('snap-log-block');
@@ -859,8 +878,8 @@ const ROLLBACK_LINES = [
   { cls: 'ok', text: '✓ Rollback completado' },
 ];
 
-function rollbackFromStep6() {
-  viewStep(5);
+function rollbackFromStep7() {
+  viewStep(6);
   setTimeout(() => rollbackStaging(), 100);
 }
 
@@ -896,15 +915,16 @@ function rollbackStaging() {
 
 // --- CANCEL / RESET ---
 function cancelDeploy() {
-  if(confirm('¿Cancelar el deploy? CX no ha sido modificado.')) resetDeploy();
+  if(confirm('El draft de CX ya tiene los cambios del deploy. Cancelar no los deshace — para revertirlos usa el rollback desde el paso de validación de tests.\n\n¿Cerrar el panel igualmente?')) resetDeploy();
 }
 function resetDeploy() {
   setRunning(false);
-  stepStates = ['active','pending','pending','pending','pending','pending','pending'];
+  stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
   current = 1; viewingStep = 1;
   snapshotName = '';
+  CHECK_RESULTS.push.ok = false;
   resetInventoryUI();
-  resetDeployStep3();
+  resetDeployStep4();
   resetSnapshotUI();
   // Resetear estado de rollback
   document.getElementById('rollback-confirm').style.display = 'none';
@@ -912,9 +932,8 @@ function resetDeploy() {
   document.getElementById('rollback-log-block').innerHTML = '';
   document.getElementById('rollback-done-banner').style.display = 'none';
   document.getElementById('test-action-bar').style.display = 'flex';
-  // Resetear secciones del paso 2
-  document.getElementById('diff-table-section').style.display = 'none';
-  document.getElementById('diff-banner-no-changes').style.display = 'none';
+  // Resetear push-done
+  document.getElementById('push-done').style.display = 'none';
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
   // Restaurar topbar
   const badge = document.getElementById('topbar-env');
