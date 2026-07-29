@@ -73,6 +73,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em}
 .pill-mod{background:rgba(59,130,246,.15);color:#60a5fa}
 .pill-new{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-del{background:rgba(239,68,68,.15);color:#f87171}
 .pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
 .pill-skip{background:var(--bg-3);color:var(--text-3)}
 
@@ -249,11 +250,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <table class="diff-table">
             <thead><tr><th>Tipo</th><th>Recurso</th><th>Operaci&oacute;n</th></tr></thead>
             <tbody>
-              <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">PATCH (Full Update)</span></td></tr>
-              <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">PATCH (Full Update)</span></td></tr>
+              <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">PATCH</span></td></tr>
+              <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">PATCH</span></td></tr>
               <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><span class="pill pill-new">POST</span></td></tr>
+              <tr><td>Example</td><td><code>compra_tulipanes_002</code></td><td><span class="pill pill-del">DELETE</span></td></tr>
             </tbody>
           </table>
+        </div>
+        <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-new">POST</span> Recurso nuevo — se crea en CX</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-mod">PATCH</span> Recurso modificado — se actualiza en CX</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)"><span class="pill pill-del">DELETE</span> Recurso eliminado localmente — se borra de CX</div>
         </div>
         <div class="action-bar">
           <button class="btn btn-primary" id="btn-continue-diff" onclick="advance(2)">Continuar &rarr;</button>
