@@ -619,6 +619,8 @@ function renderSidebar() {
 
 // --- NAVIGATION ---
 function viewStep(id) {
+  const idx = id - 1;
+  if(idx >= 0 && stepStates[idx] === 'pending') return;
   viewingStep = id;
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   const v = document.getElementById('view-'+id);
