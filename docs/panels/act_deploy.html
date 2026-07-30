@@ -27,6 +27,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* LAYOUT */
 .layout{display:flex;flex:1;min-height:0;overflow:hidden}
 
+/* SPECS PANEL */
+.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px}
+.specs-section{display:flex;flex-direction:column;gap:10px}
+.specs-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.spec-block{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.spec-block-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.spec-block p{font-size:12px;color:var(--text-2);line-height:1.6}
+.spec-block code{font-size:11px;font-family:'SF Mono',Menlo,monospace;color:var(--text);background:var(--bg-2);padding:1px 4px;border-radius:3px}
+.spec-step-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px}
+.spec-empty{font-size:12px;color:var(--text-3);font-style:italic}
+
 /* SIDEBAR */
 .sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
 .sidebar-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:0 16px 12px}
@@ -540,6 +551,72 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
   </main>
+
+  <!-- SPECS PANEL -->
+  <aside class="specs-panel">
+
+    <div style="font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+      <span style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
+      Especificaciones funcionales
+    </div>
+
+    <!-- General -->
+    <div class="specs-section">
+      <div class="specs-section-title">General</div>
+      <div class="spec-block">
+        <div class="spec-block-label">Auth</div>
+        <p><code>gcloud auth print-access-token</code> — se obtiene una vez al inicio y se reutiliza en todas las llamadas a la API de CX.</p>
+      </div>
+      <div class="spec-block">
+        <div class="spec-block-label">Cabeceras obligatorias</div>
+        <p><code>Authorization: Bearer &lt;token&gt;</code><br><code>Content-Type: application/json</code><br><code>x-goog-user-project: &lt;GCP_PROJECT&gt;</code></p>
+      </div>
+      <div class="spec-block">
+        <div class="spec-block-label">Agente de referencia</div>
+        <p>Petal 1.0 — región <code>europe-west1</code>. ID y proyecto en <code>definitions/agent.yaml</code>.</p>
+      </div>
+    </div>
+
+    <!-- Por paso -->
+    <div class="specs-section">
+      <div class="specs-section-title">Specs por paso</div>
+
+      <div id="spec-step-1">
+        <div class="spec-step-title">Paso 1 — Inventario CX</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el agente Petal. Este paso hace una foto del estado actual: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>Si desplegamos sin saber el estado actual, no podemos comparar qué ha cambiado. Esta foto es el punto de partida de todo el pipeline — sin ella, el diff no tiene contra qué comparar.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>Una lista completa de los 12 tipos de recursos del agente, lista para comparar con lo que tenemos en el repositorio.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Detalle técnico</div>
+          <p>Invoca cada <code>push_*.py</code> en modo lectura (LIST sin PATCH). Token desde <code>gcloud auth print-access-token</code>. Configuración del agente desde <code>definitions/agent.yaml</code>. Si algún LIST falla → abortar, no continuar con datos parciales.</p>
+        </div>
+      </div>
+
+      <div id="spec-step-2" style="display:none"><p class="spec-empty">Spec pendiente — Paso 2</p></div>
+      <div id="spec-step-3" style="display:none"><p class="spec-empty">Spec pendiente — Paso 3</p></div>
+      <div id="spec-step-4" style="display:none"><p class="spec-empty">Spec pendiente — Paso 4</p></div>
+      <div id="spec-step-5" style="display:none"><p class="spec-empty">Spec pendiente — Paso 5</p></div>
+      <div id="spec-step-6" style="display:none"><p class="spec-empty">Spec pendiente — Paso 6</p></div>
+      <div id="spec-step-7" style="display:none"><p class="spec-empty">Spec pendiente — Paso 7</p></div>
+      <div id="spec-step-8" style="display:none"><p class="spec-empty">Spec pendiente — Paso 8</p></div>
+      <div id="spec-step-done" style="display:none"><p class="spec-empty">Pipeline completado.</p></div>
+    </div>
+
+  </aside>
+
 </div>
 
 <script>
@@ -984,7 +1061,14 @@ function viewStep(id) {
   if(id === 2) renderStep2Checks();
   if(id === 3) renderStep3Diff();
   if(id === 5) document.getElementById('snapshot-name').value = document.getElementById('snapshot-name').value || generateSnapshotName();
+  syncSpecsPanel(id);
   renderSidebar();
+}
+
+function syncSpecsPanel(id) {
+  document.querySelectorAll('[id^="spec-step-"]').forEach(el => el.style.display = 'none');
+  const spec = document.getElementById('spec-step-' + id);
+  if(spec) spec.style.display = 'block';
 }
 
 function advance(fromStep) {
