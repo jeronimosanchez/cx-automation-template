@@ -277,6 +277,10 @@
   .block.proceso .block-header { background: #1a3329; color: #4caf87; }
   :root[data-theme="light"] .block.proceso { border-color: #a8d5bf; }
   :root[data-theme="light"] .block.proceso .block-header { background: #eaf7f0; color: #1a6641; }
+  .block.criterios { border-color: #2d3a4a; }
+  .block.criterios .block-header { background: #1a2535; color: #7eb8e8; }
+  :root[data-theme="light"] .block.criterios { border-color: #b8d0e8; }
+  :root[data-theme="light"] .block.criterios .block-header { background: #eaf2fb; color: #1a4a6e; }
 
   .paso-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
   .paso-chip { flex-shrink:0; font-size:11px; font-weight:600; padding:3px 8px; border-radius:4px; cursor:pointer; border:none; }
@@ -691,13 +695,24 @@ const PHASES = [
         { path: 'docs/data/act_cx_draft_resources_inventory.json', desc: 'Inventario de recursos del Draft — generado, en .gitignore' }
       ]
     },
-    val: { grupos: [{ title: "Verificación", items: [
-      "act_cx_draft_resources_inventory.json existe y es JSON válido",
-      "Tiene los 12 tipos de recursos",
-      "generated_at, agent y totals presentes en el JSON",
-      "docs/data/act_cx_draft_resources_inventory.json está en .gitignore",
-      "python act/scripts/utils/cx_inventory.py corre sin errores"
-    ] }], decisions: [] }
+    val: { grupos: [
+      { title: "Ejecución", items: [
+        { criterio: "exit code 0, sin Traceback/Error/Exception en stdout ni stderr", porQue: "Confirma que el script terminó correctamente. Los errores de auth y red van a stderr — si solo revisas stdout los omites. Un exit code distinto de 0 o excepción en cualquiera de los dos streams indica fallo." }
+      ]},
+      { title: "Archivo", items: [
+        { criterio: "act_cx_draft_resources_inventory.json existe y es JSON válido", porQue: "Sin el archivo, el resto del pipeline no tiene entrada. JSON inválido (truncado, mal formado) haría fallar cualquier parser downstream sin un mensaje de error claro." },
+        { criterio: "docs/data/act_cx_draft_resources_inventory.json en .gitignore", porQue: "Es un archivo generado que cambia en cada ejecución. Commitearlo ensuciaría el historial de git y generaría conflictos de merge innecesarios." }
+      ]},
+      { title: "Estructura del JSON", items: [
+        { criterio: "Los 12 tipos en resources son arrays (no null ni string)", porQue: "null indica fallo capturado internamente — diferente de lista vacía (recurso inexistente). El diff trata null y [] de forma distinta; un null silencioso generaría un diff erróneo." },
+        { criterio: "generated_at, agent y totals presentes; agent no es placeholder", porQue: "generated_at permite saber si el snapshot es reciente. agent identifica el agente — un placeholder literal significaría que la variable de entorno no se expandió y el inventario apunta al agente equivocado." }
+      ]},
+      { title: "Integridad de datos", items: [
+        { criterio: "Suma de todos los totals > 0", porQue: "Si todos los totals son 0 el script corrió sin errores pero no recuperó nada — fallo silencioso típico de un problema de auth o de proyecto GCP incorrecto." },
+        { criterio: "Para cada tipo: totals[tipo] == len(resources[tipo])", porQue: "Detecta paginación incompleta o fallos parciales: la API puede devolver totals: 5 pero solo 3 ítems si una página de resultados no se recuperó. El diff usaría los 3 como si fueran los 5." },
+        { criterio: "Para cada tipo con count > 0: todos los ítems tienen name no vacío", porQue: "El diff hace matching por name (identificador de recurso en CX). Sin name, el diff no puede emparejar el recurso con su YAML en definitions/ y falla silenciosamente." }
+      ]}
+    ], decisions: [] }
   },
   { id: 4, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Panel visual del estado actual del agente Petal en CX", tag: "html", tagLabel: ".html",
     llm: {
@@ -1105,12 +1120,27 @@ function renderGenericPhase(p, ps) {
     ? `<div class="llm-section"><div class="llm-section-title">Operaciones</div>${renderOperaciones(p.llm.operaciones)}</div>` : '';
   const outputsHtml = p.llm.outputs && p.llm.outputs.length
     ? `<div class="llm-section"><div class="llm-section-title">Outputs</div>${p.llm.outputs.map(o=>`<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path||o}</div>${o.desc?`<div class="op-desc">${o.desc}</div>`:''}</div></div>`).join('')}</div>` : '';
-  const valCriteriosHtml = p.val && p.val.grupos && p.val.grupos.length
-    ? `<div class="llm-section"><div class="llm-section-title">Criterios de validación</div><p style="font-size:12px;color:var(--text-2);margin-bottom:10px;line-height:1.5">La fase no está completa hasta que estos criterios se cumplen. Verifícalos tú mismo antes de marcar la fase como hecha.</p>${p.val.grupos.map(g=>`<div style="margin-bottom:8px">${g.title?`<div style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${g.title}</div>`:''}${renderList(g.items,false)}</div>`).join('')}</div>` : '';
+  const renderCriteriosTablas = () => p.val && p.val.grupos && p.val.grupos.length
+    ? `<p style="font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.5">La fase no está completa hasta que estos criterios se cumplen. Verifícalos tú mismo antes de marcar la fase como hecha.</p>
+      ${p.val.grupos.map(g => {
+        const hasObj = g.items.length && typeof g.items[0] === 'object';
+        const tableRows = hasObj
+          ? g.items.map(it => `<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;font-family:monospace;color:var(--text-1);vertical-align:top">${it.criterio}</td><td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2);vertical-align:top">${it.porQue}</td></tr>`).join('')
+          : g.items.map(it => `<tr><td colspan="2" style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-1)">${typeof it==='object'?it.criterio:it}</td></tr>`).join('');
+        return `<div style="margin-bottom:16px">
+          ${g.title ? `<div style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">${g.title}</div>` : ''}
+          <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:6px;overflow:hidden;table-layout:fixed"><colgroup><col style="width:45%"><col style="width:55%"></colgroup>
+            ${hasObj ? `<thead><tr><th style="padding:6px 10px;background:var(--bg-2);font-size:11px;font-weight:600;color:var(--text-2);text-align:left;border-bottom:1px solid var(--border)">Criterio</th><th style="padding:6px 10px;background:var(--bg-2);font-size:11px;font-weight:600;color:var(--text-2);text-align:left;border-bottom:1px solid var(--border)">Por qué es necesario</th></tr></thead>` : ''}
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>`;
+      }).join('')}`
+    : '';
+  const valCriteriosHtml = null;
   const hasContent = porQueHtml || reglasHtml || leerHtml || pasosHtml || opHtml || outputsHtml;
   const llmHtml = contextoHtml
     + `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>`
-    + porQueHtml + reglasHtml + leerHtml + opHtml + pasosHtml + outputsHtml + valCriteriosHtml
+    + porQueHtml + reglasHtml + leerHtml + opHtml + pasosHtml + outputsHtml
     + (!hasContent ? `<p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:12px">Contenido en construcción — se completa fase por fase en conversación.</p>` : '');
 
   let checkIdx = 0;
@@ -1147,11 +1177,12 @@ function renderGenericPhase(p, ps) {
     const items = g.items.map(item => {
       const i = checkIdx2++;
       const checked = (ps.checked||[])[i] === true;
+      const label = typeof item === 'object' ? item.criterio : item;
       return `<div class="check-item${checked?' checked':''}"
                    role="checkbox" aria-checked="${checked}" tabindex="0"
                    onclick="toggleCheck(${p.id},${i},this)">
         <div class="check-box" aria-hidden="true">${checked?'✓':''}</div>
-        <div class="check-text">${item}</div></div>`;
+        <div class="check-text">${label}</div></div>`;
     }).join('');
     return `<div class="checklist-group">${g.title?`<div class="checklist-group-title">${g.title}</div>`:''}<div class="checklist" role="group">${items}</div></div>`;
   }).join('');
@@ -1179,12 +1210,18 @@ function renderGenericPhase(p, ps) {
         + renderStatusTable(), true)
     : '';
 
+  const criteriosBody = renderCriteriosTablas();
+  const criteriosBlock = criteriosBody
+    ? makeBlock('criterios','✅','Criterios de validación','criterios'+p.id, criteriosBody, true)
+    : '';
+
   const procesoBlock = p.val.grupos && p.val.grupos.length
     ? makeBlock('proceso','⚙️','Proceso — ejecución y verificación','proceso'+p.id,procesoHtml,true)
     : '';
 
   return makeBlock('llm','🤖','Para el LLM — instrucciones de construcción','llm'+p.id,llmHtml,true)
     + statusTableBlock
+    + criteriosBlock
     + makeBlock('val','✋','Gate de Jero — comprensión y plan','val'+p.id,valHtml,true)
     + procesoBlock;
 }
