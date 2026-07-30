@@ -278,6 +278,25 @@
   :root[data-theme="light"] .block.proceso { border-color: #a8d5bf; }
   :root[data-theme="light"] .block.proceso .block-header { background: #eaf7f0; color: #1a6641; }
 
+  .paso-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+  .paso-chip { flex-shrink:0; font-size:11px; font-weight:600; padding:3px 8px; border-radius:4px; cursor:pointer; border:none; }
+  .paso-chip.pending { background:#333; color:#888; }
+  .paso-chip.running { background:#3d2f00; color:#f0a500; }
+  .paso-chip.done    { background:#1a3329; color:#4caf87; }
+  .paso-chip.error   { background:#3d0000; color:#f44; }
+  .paso-text { flex:1; font-size:13px; color:var(--text-1); line-height:1.5; }
+  .paso-expand-btn { flex-shrink:0; font-size:11px; color:var(--text-2); background:none; border:none; cursor:pointer; padding:2px 6px; }
+  .paso-output { display:none; margin-top:6px; margin-left:80px; }
+  .paso-output textarea { width:100%; min-height:60px; font-size:12px; padding:8px 10px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text); font-family:inherit; resize:vertical; }
+  :root[data-theme="light"] .paso-chip.pending { background:#e8e8e8; color:#666; }
+  :root[data-theme="light"] .paso-chip.running { background:#fff8e0; color:#8a6000; }
+  :root[data-theme="light"] .paso-chip.done    { background:#eaf7f0; color:#1a6641; }
+  :root[data-theme="light"] .paso-chip.error   { background:#fff0f0; color:#c00; }
+  .proceso-section-label { font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-3); margin-bottom:8px; margin-top:4px; }
+  .proceso-separator { border:none; border-top:1px solid var(--border); margin:16px 0 14px; }
+  .validate-btn:disabled { opacity:0.45; cursor:not-allowed; }
+  .validate-btn:disabled:hover { background:var(--accent-indigo); transform:none; }
+
   .block-body { padding: 20px; background: var(--bg); }
   .block-body.hidden { display: none; }
 
@@ -1086,10 +1105,12 @@ function renderGenericPhase(p, ps) {
     ? `<div class="llm-section"><div class="llm-section-title">Operaciones</div>${renderOperaciones(p.llm.operaciones)}</div>` : '';
   const outputsHtml = p.llm.outputs && p.llm.outputs.length
     ? `<div class="llm-section"><div class="llm-section-title">Outputs</div>${p.llm.outputs.map(o=>`<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path||o}</div>${o.desc?`<div class="op-desc">${o.desc}</div>`:''}</div></div>`).join('')}</div>` : '';
+  const valCriteriosHtml = p.val && p.val.grupos && p.val.grupos.length
+    ? `<div class="llm-section"><div class="llm-section-title">Criterios de validación</div><p style="font-size:12px;color:var(--text-2);margin-bottom:10px;line-height:1.5">La fase no está completa hasta que estos criterios se cumplen. Verifícalos tú mismo antes de marcar la fase como hecha.</p>${p.val.grupos.map(g=>`<div style="margin-bottom:8px">${g.title?`<div style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${g.title}</div>`:''}${renderList(g.items,false)}</div>`).join('')}</div>` : '';
   const hasContent = porQueHtml || reglasHtml || leerHtml || pasosHtml || opHtml || outputsHtml;
   const llmHtml = contextoHtml
     + `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>`
-    + porQueHtml + reglasHtml + leerHtml + opHtml + pasosHtml + outputsHtml
+    + porQueHtml + reglasHtml + leerHtml + opHtml + pasosHtml + outputsHtml + valCriteriosHtml
     + (!hasContent ? `<p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:12px">Contenido en construcción — se completa fase por fase en conversación.</p>` : '');
 
   let checkIdx = 0;
@@ -1112,7 +1133,7 @@ function renderGenericPhase(p, ps) {
 
   const valHtml = `
     <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
-      Antes de ejecutar, escribe qué has entendido de esta fase y qué vas a hacer exactamente.
+      <strong>Instrucción:</strong> antes de ejecutar, escribe qué has entendido de esta fase y qué vas a hacer exactamente.
     </p>
     <label class="notes-label" for="notesArea-${p.id}">Comprensión y plan — Opus</label>
     <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Escribe qué vas a hacer, qué archivos vas a crear y cómo lo vas a verificar..." style="min-height:120px">${ps.notes||''}</textarea>
@@ -1120,16 +1141,36 @@ function renderGenericPhase(p, ps) {
             aria-label="${isDone||isContinued?'Confirmado':'Confirmar — Jero'}">
       <span aria-hidden="true">✓</span> ${isDone||isContinued?'Confirmado':'Confirmar — Jero'}</button>`;
 
+  let checkIdx2 = 0;
+  const valItems = p.val.grupos.flatMap(g => g.items);
+  const valChecksHtml = p.val.grupos.map(g => {
+    const items = g.items.map(item => {
+      const i = checkIdx2++;
+      const checked = (ps.checked||[])[i] === true;
+      return `<div class="check-item${checked?' checked':''}"
+                   role="checkbox" aria-checked="${checked}" tabindex="0"
+                   onclick="toggleCheck(${p.id},${i},this)">
+        <div class="check-box" aria-hidden="true">${checked?'✓':''}</div>
+        <div class="check-text">${item}</div></div>`;
+    }).join('');
+    return `<div class="checklist-group">${g.title?`<div class="checklist-group-title">${g.title}</div>`:''}<div class="checklist" role="group">${items}</div></div>`;
+  }).join('');
+
+  const allChecked = valItems.length > 0 && valItems.every((_,i) => (ps.checked||[])[i] === true);
+  const continuarDisabled = !allChecked && !isContinued ? ' disabled' : '';
+
   const procesoHtml = `
     <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
-      Ejecuta la fase y pega aquí el estado: qué hiciste, qué produjiste, errores encontrados y cómo los resolviste. Luego marca los criterios de verificación.
+      <strong>Instrucción:</strong> actualiza este log mientras ejecutas — pega lo que va pasando, errores y cómo los resolviste. Cuando termines, marca los criterios de verificación.
     </p>
-    <label class="notes-label" for="procesoArea-${p.id}">Estado de ejecución — Opus</label>
-    <textarea class="notes-area" id="procesoArea-${p.id}" placeholder="Describe qué ejecutaste, qué archivos se crearon y el resultado de las verificaciones..." style="min-height:140px">${ps.proceso||''}</textarea>
-    <div style="margin-top:16px">${gruposHtml}</div>
-    <button class="validate-btn${isContinued?' validated':''}" id="continuarBtn-${p.id}" onclick="continuarPhase(${p.id})"
-            aria-label="${isContinued?'Fase completada':'Continuar →'}">
-      <span aria-hidden="true">${isContinued?'✓':'→'}</span> ${isContinued?'Fase completada':'Continuar →'}</button>`;
+    <label class="notes-label" for="procesoArea-${p.id}">Log de ejecución — Opus</label>
+    <textarea class="notes-area" id="procesoArea-${p.id}" placeholder="Pega aquí lo que va ocurriendo: comandos ejecutados, archivos creados, errores encontrados..." style="min-height:160px;font-family:monospace;font-size:12px">${ps.proceso||''}</textarea>
+    <div style="margin-top:16px">${valChecksHtml}</div>
+    <div style="margin-top:16px">
+      <button class="validate-btn${isContinued?' validated':''}"${continuarDisabled} id="continuarBtn-${p.id}" onclick="continuarPhase(${p.id})"
+              aria-label="${isContinued?'Fase completada':'Continuar →'}">
+        <span aria-hidden="true">${isContinued?'✓':'→'}</span> ${isContinued?'Fase completada':'Continuar →'}</button>
+    </div>`;
 
   const statusTableBlock = p.llm.leyenda
     ? makeBlock('ref','📊','Estado actual de componentes del repo','ref-status-'+p.id,
@@ -1240,6 +1281,46 @@ function continuarPhase(id) {
   btn.innerHTML = `<span aria-hidden="true">✓</span> Fase completada`;
   btn.setAttribute('aria-label', 'Fase completada');
   renderTabs();
+}
+
+function setPasoStatus(phaseId, i, newStatus) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].pasoStatus) state[phaseId].pasoStatus = [];
+  state[phaseId].pasoStatus[i] = newStatus;
+  saveState(state);
+  loadPhase(phaseId);
+}
+
+function setValStatus(phaseId, i, newStatus) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].valStatus) state[phaseId].valStatus = [];
+  state[phaseId].valStatus[i] = newStatus;
+  saveState(state);
+  loadPhase(phaseId);
+}
+
+function togglePasoOutput(phaseId, i) {
+  const el = document.getElementById(`pasoOutput-${phaseId}-${i}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleValOutput(phaseId, i) {
+  const el = document.getElementById(`valOutput-${phaseId}-${i}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function savePasoOutput(phaseId, i, value) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].pasoOutput) state[phaseId].pasoOutput = [];
+  state[phaseId].pasoOutput[i] = value;
+  saveState(state);
+}
+
+function saveValOutput(phaseId, i, value) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].valOutput) state[phaseId].valOutput = [];
+  state[phaseId].valOutput[i] = value;
+  saveState(state);
 }
 
 /* ── Status table data para Fase 0 ── */
