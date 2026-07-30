@@ -194,6 +194,8 @@
   .tag-py    { background: #2563eb; }
   .tag-html  { background: #c2410c; }
   .tag-ci    { background: #7c3aed; }
+  .tag-discarded { background: #3d2b2b; color: #e57373; }
+  .phase-tab.discarded-tab .tab-name { color: #7d8590; text-decoration: line-through; }
   .tag-audit { background: #4b5563; }
   .tag-goal  { background: #047857; }
 
@@ -676,9 +678,9 @@ const PHASES = [
       "He verificado que la estructura del repo coincide con la definida en Goal",
       "He identificado qué scripts existen ya y cuáles faltan por crear"
     ] }], decisions: [] } },
-  { id: 3, title: "CX_inventory.py", subtitle: "Snapshot del estado actual del agente Petal en Dialogflow CX", tag: "py", tagLabel: ".py",
+  { id: 3, discarded: true, title: "act_cx_draft_resources_inventory.py", subtitle: "Snapshot del estado actual del agente Petal en Dialogflow CX", tag: "py", tagLabel: ".py",
     llm: {
-      objetivo: "Crear el script que consulta la API de Dialogflow CX y genera un JSON con el estado actual de los 12 tipos de recursos en el Draft del agente. El Draft es el estado editable del agente — lo que hay en él en este momento, antes de que se publique ningún snapshot. Ese JSON es la referencia de partida para el diff: qué hay ahora vs qué debería haber según definitions/.",
+      objetivo: "Crear el script que consulta la API de Dialogflow CX y genera un JSON con el estado actual de los 12 tipos de recursos en el Draft del agente. El Draft es el estado editable del agente — lo que hay en él en este momento, antes de que se publique ningún snapshot. Ese JSON es la referencia de partida para el diff: qué hay ahora vs qué debería haber según definitions/. El script incluye validación de salida (postcondición): antes de escribir el JSON y salir, comprueba la integridad de los datos generados. Si algo falla, imprime el error específico por stderr y sale con exit 1.",
       porQue: "Sin saber qué hay en CX no puedes comparar, no puedes ser idempotente y el panel de deploy no tiene nada que mostrar. Este script es el paso previo a todo lo demás: el panel de inventario lo consume para visualizarlo, act_deploy.html lo usa en el Paso 1, y deploy.py lo usa para decidir qué ha cambiado y qué hay que desplegar.",
       leer: [
         "Antes de empezar, lee los constraints de la Fase 1 (Goal) — en concreto cómo autenticarse con la API de CX y qué cabeceras son obligatorias en cada llamada. Sin esto el script no funcionará."
@@ -687,6 +689,7 @@ const PHASES = [
         "Crear act/scripts/utils/act_cx_draft_resources_inventory.py",
         "El script llama a la API de CX una vez por cada tipo de recurso (12 en total) y recoge la lista completa de lo que hay en el Draft del agente",
         "Estructura del JSON de salida: { generated_at, agent, totals: { playbooks: N, examples: N, ... }, resources: { playbooks: [...], examples: [...], tools: [...], ... 12 tipos } }",
+        "Validación de salida (postcondición) — antes de escribir el archivo, comprobar en memoria: (1) los 12 tipos están presentes en resources como arrays, (2) totals[tipo] == len(resources[tipo]) para cada tipo, (3) para cada tipo con totals[tipo] > 0: todos los ítems tienen campo name que no es null, no es cadena vacía y no es solo whitespace. Si alguna comprobación falla: imprimir el criterio fallido y el valor encontrado por stderr, y salir con exit 1 sin escribir el archivo.",
         "Guardar el resultado en docs/data/act_cx_draft_resources_inventory.json",
         "Añadir docs/data/act_cx_draft_resources_inventory.json al .gitignore — es un archivo generado, no código"
       ],
@@ -704,17 +707,16 @@ const PHASES = [
         { criterio: "docs/data/act_cx_draft_resources_inventory.json en .gitignore", porQue: "Es un archivo generado que cambia en cada ejecución. Commitearlo ensuciaría el historial de git y generaría conflictos de merge innecesarios." }
       ]},
       { title: "Estructura del JSON", items: [
-        { criterio: "Los 12 tipos en resources son arrays (no null ni string)", porQue: "null indica fallo capturado internamente — diferente de lista vacía (recurso inexistente). El diff trata null y [] de forma distinta; un null silencioso generaría un diff erróneo." },
-        { criterio: "generated_at, agent y totals presentes; agent no es placeholder", porQue: "generated_at permite saber si el snapshot es reciente. agent identifica el agente — un placeholder literal significaría que la variable de entorno no se expandió y el inventario apunta al agente equivocado." }
+        { criterio: "Los 12 tipos presentes en resources como arrays: playbooks, examples, tools, intents, entityTypes, webhooks, generators, flows, pages, agentConfig, environments, versions", porQue: "null indica fallo capturado internamente — diferente de lista vacía (recurso inexistente). Un tipo ausente rompe el diff silenciosamente. El diff trata null y [] de forma distinta." },
+        { criterio: "generated_at, agent y totals presentes; agent no es placeholder; totals es un dict de enteros (no null ni lista)", porQue: "agent como placeholder literal significa que la variable de entorno no se expandió — el inventario apunta al agente equivocado. totals como null haría que el criterio 7 lanzara excepción en vez de fallar limpiamente." }
       ]},
       { title: "Integridad de datos", items: [
-        { criterio: "Suma de todos los totals > 0", porQue: "Si todos los totals son 0 el script corrió sin errores pero no recuperó nada — fallo silencioso típico de un problema de auth o de proyecto GCP incorrecto." },
         { criterio: "Para cada tipo: totals[tipo] == len(resources[tipo])", porQue: "Detecta paginación incompleta o fallos parciales: la API puede devolver totals: 5 pero solo 3 ítems si una página de resultados no se recuperó. El diff usaría los 3 como si fueran los 5." },
         { criterio: "Para cada tipo con count > 0: todos los ítems tienen name no vacío", porQue: "El diff hace matching por name (identificador de recurso en CX). Sin name, el diff no puede emparejar el recurso con su YAML en definitions/ y falla silenciosamente." }
       ]}
     ], decisions: [] }
   },
-  { id: 4, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Panel visual del estado actual del agente Petal en CX", tag: "html", tagLabel: ".html",
+  { id: 4, discarded: true, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Panel visual del estado actual del agente Petal en CX", tag: "html", tagLabel: ".html",
     llm: {
       objetivo: "Crear el panel HTML que muestra de forma visual el contenido del snapshot de CX — qué recursos hay desplegados, cuántos son de cada tipo y cuáles son sus datos principales.",
       porQue: "El JSON que genera cx_inventory.py no es legible directamente. Este panel es la capa de visualización: convierte ese JSON en algo que una persona puede leer, explorar y usar para entender el estado actual del agente antes de desplegar.",
@@ -782,12 +784,12 @@ function renderTabs() {
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
     tab.setAttribute('aria-controls', 'contentInner');
     tab.setAttribute('aria-label', p.special === 'goal' ? `Objetivo del proyecto` : `Fase ${p.id}: ${p.title} — estado: ${status === 'done' ? 'completada' : status === 'active-s' ? 'en progreso' : 'pendiente'}`);
-    tab.className = 'phase-tab' + (isActive ? ' active' : '') + (status === 'done' ? ' done-tab' : '');
+    tab.className = 'phase-tab' + (isActive ? ' active' : '') + (status === 'done' ? ' done-tab' : '') + (p.discarded ? ' discarded-tab' : '');
     const isGoal = p.special === 'goal';
     tab.innerHTML = `
       <div class="tab-top">
         <span class="tab-num" aria-hidden="true">${p.id}</span>
-        <span class="tab-tag tag-${p.tag}" aria-hidden="true">${p.tagLabel}</span>
+        <span class="tab-tag ${p.discarded ? 'tag-discarded' : 'tag-'+p.tag}" aria-hidden="true">${p.discarded ? 'Descartada' : p.tagLabel}</span>
       </div>
       <div class="tab-name">${p.title}</div>`;
     tab.addEventListener('click', () => loadPhase(p.id));
