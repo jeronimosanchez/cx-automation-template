@@ -746,7 +746,7 @@ const PHASES = [
         { criterio: "Cada paso supera sus criterios de validación individuales antes de avanzar al siguiente", porQue: "Los criterios globales no son suficientes — cada paso tiene condiciones específicas definidas en act_cx_resources_deploy.html que el script debe respetar antes de continuar." }
       ]}
     ], decisions: [] } },
-  { id: 4, title: "validate_pipeline", subtitle: "Smoke test del pipeline de despliegue en 3 niveles", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/validate_pipeline.py</code> — smoke test del pipeline de despliegue en 3 niveles (ver reglas).", reglas: [
+  { id: 4, title: "validate_pipeline", subtitle: "Smoke test del pipeline de despliegue en 3 niveles", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/validate_pipeline.py</code> — smoke test del pipeline de despliegue en 3 niveles (ver reglas). Valida que <code>act_cx_resources_deploy.py</code> (Fase 3) funciona correctamente por sí solo, antes de envolverlo en el servidor de la Fase 5.", reglas: [
         'Nivel 1 — Read-only (automático): verificar auth válido + sin 401/403, conectividad con CX (GET al agente responde), LIST completa para los 12 tipos sin errores, JSON de inventario con estructura correcta (totals == len para cada tipo), idempotencia del diff (definitions/ sin cambios → diff vacío). El script ejecuta estos checks y reporta PASS/FAIL por cada uno.',
         'Nivel 2 — Dry-run (automático): <code>--dry-run</code> completa sin errores en los 8 pasos (exit 0), diff detecta exactamente los cambios introducidos en definitions/, orden de deploy correcto en el plan generado. El script ejecuta estos checks y reporta PASS/FAIL por cada uno.',
         'Nivel 3 — Write real (checklist manual por ahora): PATCH de recurso de prueba, LRO polling y detección de code:3, PATCH /environments/staging. El script imprime el checklist con instrucciones para que Jero los verifique manualmente — no los automatiza.'
@@ -769,7 +769,123 @@ const PHASES = [
         "PATCH /environments/staging completa sin errores"
       ]}
     ], decisions: [] } },
-  { id: 5, title: "CI/CD", subtitle: "GitHub Actions con workflow_dispatch", tag: "ci", tagLabel: ".yml",
+  { id: 5, title: "server.py", subtitle: "Servidor Flask local — conecta el panel HTML con el pipeline Python", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/server.py</code> — servidor Flask que expone los 8 pasos del pipeline como endpoints HTTP. El panel HTML llama a estos endpoints en lugar de simular localmente. Importa las funciones de <code>act_cx_resources_deploy.py</code> — no reimplementa lógica.", reglas: [
+      'Exponer un endpoint por paso: <code>POST /step/&lt;n&gt;</code> donde n es 1–8. El panel HTML llama a cada endpoint al pulsar el botón de ese paso.',
+      'Importar las funciones de <code>act_cx_resources_deploy.py</code> — no reimplementar lógica. El servidor es un adaptador HTTP, no un segundo pipeline.',
+      'CORS habilitado para que el HTML servido desde <code>file://</code> pueda llamar al servidor. Usar <code>flask-cors</code> o cabeceras manuales — sin CORS, el navegador bloquea todas las llamadas.',
+      'Puerto: 5000 por defecto, configurable via variable de entorno <code>PORT</code>.',
+      'Los endpoints devuelven JSON con estructura <code>{status, log, data}</code> — el panel HTML espera ese formato exacto para actualizar la UI.',
+      'El servidor NO gestiona estado entre pasos — cada llamada es independiente. El estado del pipeline lo mantiene el panel HTML.',
+      'Arranque: <code>python act/server.py</code>. Se puede automatizar con un script <code>start.sh</code> en la raíz del repo que active el entorno virtual y arranque el servidor. No tiene coste — corre en local en el Mac.',
+      'Esta fase construye el servidor de forma aislada — la conexión real del panel HTML a estos endpoints es trabajo de la Fase 7. Aquí basta con que el servidor responda correctamente a peticiones directas (curl, requests).'
+    ], leer: [
+      'act/act_cx_resources_deploy.py — importar las funciones de cada paso. Entender la firma de cada función (parámetros, retorno) antes de escribir los endpoints.',
+      'docs/panels/act_cx_resources_deploy.html — ver qué datos espera cada botón en la respuesta del servidor: qué campos de <code>data</code> usa la UI para actualizar el estado del paso.'
+    ], outputs: [{ path: 'act/server.py', desc: 'Servidor Flask — 8 endpoints + CORS + arranque' }], pasos: [] }, val: { grupos: [
+      { title: "Arranque · Automático (LLM)", items: [
+        "<code>python act/server.py</code> arranca sin errores — servidor escuchando en puerto 5000",
+        "<code>curl -X POST localhost:5000/step/1</code> devuelve JSON válido con <code>{status, log}</code>",
+        "CORS no bloquea las llamadas desde <code>file://</code> — cabecera <code>Access-Control-Allow-Origin: *</code> presente en la respuesta"
+      ]},
+      { title: "Integración · Manual (Jero)", items: [
+        "Un curl manual a cada uno de los 8 endpoints devuelve datos reales del agente Petal — no vacíos ni de ejemplo",
+        "Ningún endpoint reimplementa lógica — todo pasa por las funciones de <code>act_cx_resources_deploy.py</code>"
+      ]}
+    ], decisions: [] } },
+  { id: 6, title: "validate_server", subtitle: "Smoke test del servidor Flask — valida los 8 endpoints antes de conectar el HTML", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/validate_server.py</code> — smoke test automático que arranca <code>server.py</code>, golpea los 8 endpoints con peticiones HTTP reales y verifica que cada uno responde con el formato correcto. Esta fase existe porque <code>server.py</code> es una capa nueva entre el HTML y el pipeline — puede fallar por razones que <code>validate_pipeline.py</code> (Fase 4) no cubre: puerto ocupado, CORS mal configurado, JSON mal formado, un endpoint que no llama a la función correcta.", reglas: [
+      'Arrancar el servidor como subproceso (<code>subprocess.Popen</code>) antes de los tests y cerrarlo siempre al terminar, incluso si un test falla.',
+      'Para cada uno de los 8 endpoints (<code>POST /step/1</code> .. <code>/step/8</code>): verificar código HTTP 200, verificar que el body es JSON válido, verificar que tiene las claves <code>status</code>, <code>log</code> y <code>data</code>.',
+      'Verificar que la cabecera <code>Access-Control-Allow-Origin</code> está presente en al menos una respuesta — si falta, el HTML en <code>file://</code> no podrá llamar al servidor y el fallo sería invisible hasta abrir el navegador.',
+      'Verificar que cada endpoint llama realmente a la función correspondiente de <code>act_cx_resources_deploy.py</code> y no devuelve datos hardcodeados — comparar el <code>data</code> recibido contra lo que la función debería producir dado un estado conocido, reutilizando el mismo enfoque de Nivel 1 (read-only) de <code>validate_pipeline.py</code>.',
+      'Separar los checks que no requieren CX (puerto, CORS, formato JSON) de los que sí llaman a CX de verdad — misma distinción Nivel 1 vs Nivel 3 que ya usa <code>validate_pipeline.py</code>.',
+      'Exit 0 si los 8 endpoints pasan, exit 1 con el detalle exacto de qué endpoint falló y por qué.'
+    ], leer: [
+      'act/server.py — Fase 5. Entender los 8 endpoints antes de escribir los tests.',
+      'act/validate_pipeline.py — Fase 4. Reutilizar el mismo patrón de niveles (estructura vs. conexión real) en lugar de inventar uno nuevo.'
+    ], outputs: [{ path: 'act/validate_server.py', desc: 'Smoke test del servidor — arranca, prueba 8 endpoints, cierra' }], pasos: [] }, val: { grupos: [
+      { title: "Arranque y cierre · Automático (LLM)", items: [
+        { criterio: "El servidor arranca como subproceso sin intervención manual y el script lo cierra al terminar, incluso si un test falla", porQue: "Sin cierre garantizado, un test fallido deja el puerto 5000 ocupado y bloquea la siguiente ejecución del propio script de validación." },
+        { criterio: "Si el puerto 5000 ya está ocupado al arrancar, el script falla con un mensaje claro en vez de colgarse", porQue: "Un servidor previo sin cerrar es el fallo más común en este tipo de test — el mensaje claro ahorra una depuración a ciegas." }
+      ]},
+      { title: "Estructura de los 8 endpoints · Automático (LLM)", items: [
+        { criterio: "Los 8 endpoints devuelven 200 y JSON válido con status, log y data", porQue: "El panel HTML depende de ese formato exacto para actualizar la UI — un campo ausente rompe el render sin que el servidor lo reporte como error." },
+        { criterio: "La cabecera Access-Control-Allow-Origin está presente", porQue: "Sin CORS, el navegador bloquea la llamada desde file:// silenciosamente — el fallo solo se ve abriendo la consola del navegador, no en el log del servidor." }
+      ]},
+      { title: "Conexión real con el pipeline · Automático (LLM)", items: [
+        { criterio: "Los datos devueltos por cada endpoint corresponden a la ejecución real de la función de act_cx_resources_deploy.py, no a datos de prueba fijos", porQue: "Un endpoint que devuelve un JSON de ejemplo pasaría los checks de estructura sin estar realmente conectado al pipeline — este check es el que detecta esa trampa." }
+      ]},
+      { title: "Spot check · Manual (Jero)", items: [
+        { criterio: "Un curl manual a localhost:5000/step/1 devuelve un log reconocible del Paso 1 real, no un placeholder", porQue: "Una verificación humana rápida antes de tocar el HTML evita depurar dos capas a la vez si algo falla más adelante." }
+      ]}
+    ], decisions: [] } },
+  { id: 7, title: "Producción", subtitle: "Panel operativo final — sin specs, conectado al servidor real", tag: "html", tagLabel: ".html",
+    llm: {
+      objetivo: "Convertir <code>docs/panels/act_cx_resources_deploy.html</code> en el panel de producción real: eliminar la columna de specs Y reemplazar toda la lógica de simulación (setTimeout, datos hardcodeados) por llamadas <code>fetch()</code> reales al servidor creado en la Fase 5. Hasta ahora el panel corría una demo — cada paso fingía una respuesta con un temporizador. A partir de esta fase, cada paso llama de verdad al servidor, que a su vez ejecuta <code>act_cx_resources_deploy.py</code> contra el agente real. El archivo actual tiene la columna de specs para que puedas consultarla durante las Fases 3-6; al llegar aquí, esa información ya cumplió su función.",
+      reglas: [
+        'Eliminar el elemento <code>&lt;aside class="specs-panel"&gt;</code> completo y todo su contenido interno — no dejar ningún rastro del elemento ni de su estructura HTML.',
+        'Eliminar el CSS exclusivo de specs: <code>.specs-panel</code>, <code>.specs-tab</code>, <code>.specs-content</code>, <code>.specs-section</code>, <code>.tech-toggle</code> y cualquier otra clase o regla que solo exista para la columna de specs. No eliminar CSS compartido con el resto del panel.',
+        'Eliminar la función JavaScript <code>toggleSpecsPanel()</code> y cualquier llamada a ella, así como cualquier variable o lógica JS exclusiva de specs.',
+        'Reemplazar cada función de simulación (por ejemplo <code>startInventory()</code> con su <code>setTimeout</code> y su array <code>INV_LINES</code> hardcodeado) por una llamada <code>fetch()</code> real a <code>http://localhost:&lt;PORT&gt;/step/&lt;n&gt;</code> — usar el puerto y el formato de respuesta <code>{status, log, data}</code> definidos en <code>act/server.py</code> (Fase 5).',
+        'Manejar el caso de que el servidor no esté arrancado: si el <code>fetch</code> falla (conexión rechazada), mostrar un mensaje claro al usuario — nunca dejar el paso en un estado ambiguo ni fingir éxito.',
+        'El log que se muestra en cada paso pasa a ser el campo <code>log</code> devuelto por el servidor — no un array de líneas escritas de antemano en el HTML.',
+        'Conservar intactos sin ninguna modificación: topbar, sidebar de navegación, panel principal de steps, todos los estados (pending/active/done) e interacciones de los 8 pasos, botones de acción y lógica de progreso.',
+        'No crear un archivo nuevo — editar el existente <code>docs/panels/act_cx_resources_deploy.html</code>. Verificar que el layout del panel principal ocupa el 100% del ancho disponible después de la eliminación sin romper ningún estilo existente.'
+      ],
+      leer: [
+        'docs/panels/act_cx_resources_deploy.html — leer el archivo completo antes de editar: identificar exactamente qué pertenece a specs (aside, CSS y JS) y qué pertenece al panel operativo (topbar, sidebar, steps) para no eliminar nada incorrecto.',
+        'act/server.py — Fase 5. Entender la URL, el puerto y el formato exacto de respuesta {status, log, data} de cada endpoint antes de reescribir el JS de cada paso.'
+      ],
+      outputs: [{ path: "docs/panels/act_cx_resources_deploy.html", desc: "Panel de producción — sin specs, conectado al servidor real (Fase 5), sin simulación" }],
+      pasos: []
+    },
+    val: { grupos: [
+      { title: "Limpieza · Automático (LLM)", items: [
+        "No existe ningún elemento <code>&lt;aside class=\"specs-panel\"&gt;</code> en el HTML",
+        "No existe CSS de <code>.specs-panel</code> ni de <code>.specs-tab</code> ni de <code>.specs-content</code>",
+        "No existe la función <code>toggleSpecsPanel()</code> ni ninguna llamada a ella",
+        "El área de steps ocupa el 100% del ancho — sin columna lateral vacía"
+      ]},
+      { title: "Conexión al servidor · Automático (LLM)", items: [
+        "Ninguna función de paso usa setTimeout con datos hardcodeados — todas llaman fetch() al servidor real",
+        "El log mostrado en cada paso proviene del campo log de la respuesta del servidor, no de un array escrito de antemano",
+        "Si el fetch falla (servidor no arrancado), el panel muestra un mensaje claro — nunca un estado colgado ni un falso éxito"
+      ]},
+      { title: "Funcionalidad · Automático (LLM)", items: [
+        "Los 8 pasos cargan correctamente y muestran su contenido",
+        "Los botones de navegación entre pasos funcionan",
+        "Los estados (pending/active/done) se aplican correctamente",
+        "El progreso se actualiza al avanzar entre pasos"
+      ]},
+      { title: "Visual · Manual (Jero)", items: [
+        "El panel se ve limpio en landscape — sin espacios vacíos ni columnas huérfanas",
+        "El panel se ve limpio en portrait — el layout se adapta correctamente",
+        "No hay elementos rotos ni desplazados visualmente"
+      ]}
+    ], decisions: [] } },
+  { id: 8, title: "validate_html", subtitle: "Valida que el panel conectado funciona de extremo a extremo — HTML + servidor + pipeline", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/validate_html.py</code> — verifica automáticamente que <code>docs/panels/act_cx_resources_deploy.html</code> quedó conectado al servidor real tras la Fase 7: sin simulaciones residuales, con llamadas <code>fetch()</code> a los endpoints correctos. Es un chequeo de código fuente (grep/parseo), no un test de navegador — complementa, no sustituye, el recorrido visual que hace Jero.", reglas: [
+      'Verificar que no queda ninguna simulación: buscar patrones como <code>setTimeout</code> asociados a los flujos de pasos y arrays hardcodeados de resultado (<code>INV_LINES</code>, <code>CHECK_RESULTS</code>, <code>DIFF_COUNT</code> y equivalentes), y confirmar que fueron reemplazados por llamadas fetch reales.',
+      'Verificar que existe una llamada <code>fetch</code> (o <code>XMLHttpRequest</code>) hacia el servidor local para cada uno de los 8 pasos.',
+      'Verificar que hay manejo de error cuando el servidor no responde — el panel no debe quedarse colgado en silencio ni parecer un éxito falso; debe mostrar un mensaje claro (por ejemplo, "No se pudo conectar con el servidor local — ¿está arrancado?").',
+      'No requiere que el servidor esté corriendo para este chequeo — es análisis estático del HTML, no una petición real. Eso ya lo cubren la Fase 6 y el recorrido manual de esta misma fase.',
+      'Exit 0 si todos los checks pasan, exit 1 con el patrón exacto que falta o que sigue presente indebidamente.'
+    ], leer: [
+      'docs/panels/act_cx_resources_deploy.html — el archivo ya editado en la Fase 7, para verificar qué quedó dentro.',
+      'act/server.py — Fase 5. Para saber la URL y el puerto exactos que el HTML debe llamar.'
+    ], outputs: [{ path: 'act/validate_html.py', desc: 'Análisis estático — confirma que el HTML llama al servidor real y no simula' }], pasos: [] }, val: { grupos: [
+      { title: "Sin simulación residual · Automático (LLM)", items: [
+        { criterio: "No quedan funciones de simulación con setTimeout generando datos falsos para ningún paso", porQue: "Si sobrevive una simulación, ese paso parece funcionar en el panel sin haber tocado nunca el pipeline real — un fallo invisible que solo se descubre en el peor momento." },
+        { criterio: "No quedan arrays de datos hardcodeados (INV_LINES, CHECK_RESULTS, DIFF_COUNT y equivalentes) usados para renderizar el resultado de un paso", porQue: "Son el rastro de la versión simulada — si el LLM olvida alguno, ese paso sigue mostrando datos de mentira aunque el resto ya esté conectado." }
+      ]},
+      { title: "Conexión real · Automático (LLM)", items: [
+        { criterio: "Existe una llamada fetch (o equivalente) al endpoint correcto para cada uno de los 8 pasos", porQue: "Es la verificación mínima de que el botón de cada paso realmente dispara una petición al servidor, no solo actualiza el estado visual." },
+        { criterio: "Hay manejo explícito de error cuando el servidor no responde — mensaje visible, no un estado colgado o un falso OK", porQue: "El servidor es un proceso local que Jero puede olvidar arrancar — sin este manejo, el panel fallaría de forma confusa en el peor momento: durante un deploy real." }
+      ]},
+      { title: "Recorrido completo · Manual (Jero)", items: [
+        { criterio: "Con el servidor arrancado, Jero completa los 8 pasos desde el panel y cada uno refleja datos reales del agente Petal, no ejemplos", porQue: "Es la única verificación que confirma la experiencia real de uso — los checks automáticos validan piezas sueltas, este paso valida que la pieza completa se siente bien y hace lo que promete." },
+        { criterio: "Si el servidor se detiene a mitad de un paso, el panel lo comunica con claridad en vez de quedarse en un estado ambiguo", porQue: "Es el escenario más probable de fallo en el día a día — Jero cierra sin querer el terminal del servidor mientras el panel sigue abierto." }
+      ]}
+    ], decisions: [] } },
+  { id: 9, title: "CI/CD", subtitle: "GitHub Actions con workflow_dispatch", tag: "ci", tagLabel: ".yml",
     llm: {
       objetivo: "Crear <code>.github/workflows/deploy.yml</code> — el workflow que ejecuta <code>act_cx_resources_deploy.py</code> en GitHub Actions con trigger manual (<code>workflow_dispatch</code>). El valor no es la automaticidad sino las garantías: <code>concurrency: 1</code>, WIF, trazabilidad y QA gate obligatorio que no se puede saltar.",
       reglas: [
@@ -798,43 +914,10 @@ const PHASES = [
         { criterio: "El segundo lanzamiento simultáneo espera (no cancela) al primero", porQue: "cancel-in-progress:false es el comportamiento correcto — verificar que está activo protege contra configuraciones incorrectas que cancelarían deploys en curso." },
         { criterio: "Trazabilidad visible en GitHub Actions tab — quién lanzó, cuándo, qué commit", porQue: "La trazabilidad es una de las cuatro garantías centrales de CI/CD — sin ella no hay registro de qué se desplegó ni cuándo." }
       ]}
-    ], decisions: [] } },
-  { id: 6, title: "Producción", subtitle: "Panel operativo final — sin specs", tag: "html", tagLabel: ".html",
-    llm: {
-      objetivo: "Limpiar <code>docs/panels/act_cx_resources_deploy.html</code> eliminando completamente la columna de specs para producir el panel que Jero usará en el día a día. El archivo actual tiene la columna de specs para que puedas consultarla durante las Fases 3-5. Al llegar aquí, esa información ya cumplió su función — el panel de operación no la necesita. El resultado es un archivo idéntico en funcionalidad pero con el área de steps ocupando el 100% del ancho.",
-      reglas: [
-        'Eliminar el elemento <code>&lt;aside class="specs-panel"&gt;</code> completo y todo su contenido interno — no dejar ningún rastro del elemento ni de su estructura HTML.',
-        'Eliminar el CSS exclusivo de specs: <code>.specs-panel</code>, <code>.specs-tab</code>, <code>.specs-content</code>, <code>.specs-section</code>, <code>.tech-toggle</code> y cualquier otra clase o regla que solo exista para la columna de specs. No eliminar CSS compartido con el resto del panel.',
-        'Eliminar la función JavaScript <code>toggleSpecsPanel()</code> y cualquier llamada a ella, así como cualquier variable o lógica JS exclusiva de specs.',
-        'Conservar intactos sin ninguna modificación: topbar, sidebar de navegación, panel principal de steps, todos los estados (pending/active/done) e interacciones de los 8 pasos, botones de acción y lógica de progreso.',
-        'No crear un archivo nuevo — editar el existente <code>docs/panels/act_cx_resources_deploy.html</code>. Verificar que el layout del panel principal ocupa el 100% del ancho disponible después de la eliminación sin romper ningún estilo existente.'
-      ],
-      leer: ['docs/panels/act_cx_resources_deploy.html — leer el archivo completo antes de editar: identificar exactamente qué pertenece a specs (aside, CSS y JS) y qué pertenece al panel operativo (topbar, sidebar, steps) para no eliminar nada incorrecto.'],
-      outputs: [{ path: "docs/panels/act_cx_resources_deploy.html", desc: "Versión de producción — panel operativo limpio sin columna de specs" }],
-      pasos: []
-    },
-    val: { grupos: [
-      { title: "Limpieza · Automático (LLM)", items: [
-        "No existe ningún elemento <code>&lt;aside class=\"specs-panel\"&gt;</code> en el HTML",
-        "No existe CSS de <code>.specs-panel</code> ni de <code>.specs-tab</code> ni de <code>.specs-content</code>",
-        "No existe la función <code>toggleSpecsPanel()</code> ni ninguna llamada a ella",
-        "El área de steps ocupa el 100% del ancho — sin columna lateral vacía"
-      ]},
-      { title: "Funcionalidad · Automático (LLM)", items: [
-        "Los 8 pasos cargan correctamente y muestran su contenido",
-        "Los botones de navegación entre pasos funcionan",
-        "Los estados (pending/active/done) se aplican correctamente",
-        "El progreso se actualiza al avanzar entre pasos"
-      ]},
-      { title: "Visual · Manual (Jero)", items: [
-        "El panel se ve limpio en landscape — sin espacios vacíos ni columnas huérfanas",
-        "El panel se ve limpio en portrait — el layout se adapta correctamente",
-        "No hay elementos rotos ni desplazados visualmente"
-      ]}
     ], decisions: [] } }
 ];
 
-const KEY = 'act_playbook_v3';
+const KEY = 'act_playbook_v4';
 function loadState() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
 function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
 function getPS(s, id) { return s[id] || { status: 'pending', notes: '', checked: [], decisions: {} }; }
