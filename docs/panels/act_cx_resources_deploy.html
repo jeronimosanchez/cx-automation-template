@@ -148,6 +148,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <span class="topbar-commit">GitHub: staging &middot; 98fcbdd</span>
   <div class="topbar-meta">
     <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
+    <button id="btn-toggle-specs" class="btn btn-ghost" onclick="toggleSpecsPanel()">SPECS &#9654;</button>
     <button id="btn-reset" class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
   </div>
 </div>
@@ -543,7 +544,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </main>
 
   <!-- SPECS PANEL -->
-  <aside class="specs-panel">
+  <aside class="specs-panel" id="specs-panel" style="display:none">
 
     <div style="font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px">
       <span style="background:rgba(59,130,246,.15);color:var(--accent-light);border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
@@ -584,6 +585,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <div id="spec-step-1">
         <div class="spec-step-title">Paso 1 — Inventario CX</div>
+        <div class="spec-block">
+          <div class="spec-block-label">1.1 — Pre-flight check (automático)</div>
+          <p>Antes de lanzar las 12 llamadas LIST, el script verifica que la autenticación y la conectividad con CX funcionan. Si falla aquí, el error es inmediato y claro — no a mitad del inventario.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Antes de llamar a cualquier función <code>inventory_*()</code>, ejecutar:<br>
+1. <code>get_headers()</code> — verifica que gcloud está autenticado y genera token fresco.<br>
+&nbsp;&nbsp;&nbsp;Si falla → RuntimeError claro: "gcloud no autenticado. Ejecuta <code>gcloud auth login</code>."<br>
+2. <code>GET {PARENT}</code> — un GET al endpoint del agente para verificar conectividad y permisos.<br>
+&nbsp;&nbsp;&nbsp;Si falla → error claro con status code y mensaje de la API.<br>
+Sin este check, un fallo de auth produce errores HTTP 401 a mitad de las 12 llamadas,<br>
+sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y explícito.</div>
+        </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
           <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el draft del agente Petal. El draft es el estado editable de CX — no la versión que está corriendo en staging para test cases. Este paso hace una foto de ese borrador: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
@@ -932,6 +945,15 @@ function toggleGeneralSpecs() {
   const open = content.style.display !== 'none';
   content.style.display = open ? 'none' : 'flex';
   arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
+let specsOpen = false;
+function toggleSpecsPanel() {
+  specsOpen = !specsOpen;
+  const panel = document.getElementById('specs-panel');
+  const btn = document.getElementById('btn-toggle-specs');
+  panel.style.display = specsOpen ? 'flex' : 'none';
+  btn.textContent = specsOpen ? 'SPECS ▼' : 'SPECS ▶';
 }
 
 function setRunning(val) {

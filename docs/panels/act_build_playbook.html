@@ -620,7 +620,7 @@ const PHASES = [
         'Agente de referencia: Petal (floristería online en español) — el pipeline es genérico, Petal es la instancia sobre la que construyes y pruebas',
         'Plataforma: Dialogflow CX, región europe-west1',
         'El sistema ACT puede crear, modificar y eliminar 12 tipos de recursos CX: Playbooks, Examples, Tools, Intents, Entity Types, Webhooks, Generators, Flows, Pages, Agent Config, Environments, Versions',
-        'Repo: cx-automation-template — scripts en <code>act/scripts/</code> (push/, pull/, utils/), YAMLs en <code>definitions/</code>, outputs generados en <code>docs/data/</code>'
+        'Repo: cx-automation-template — scripts en <code>act/</code> (cx_client.py · cx_payloads.py · validate_api.py · act_cx_resources_deploy.py · validate_pipeline.py), YAMLs en <code>definitions/</code>, outputs generados en <code>docs/data/</code>'
       ],
       constraints: [
         'Auth: gcloud auth print-access-token — genera el token de acceso temporal para cada llamada a la API. Nunca google.auth.default(), da problemas en este entorno.',
@@ -659,19 +659,21 @@ const PHASES = [
       outputs: [],
       leyenda: "Leyenda: ✓ existe y funciona · ⚠ existe pero hay deuda · ✗ no existe aún · ? no verificado",
       targetTree: `cx-automation-template/
-├── act/
-│   └── scripts/
-│       ├── push/        ← 12 push_*.py
-│       ├── pull/        ← 12 pull_*.py
-│       ├── utils/       ← herramientas compartidas
-│       ├── tests/
-│       └── deploy.py    ← orquestador
-├── definitions/         ← YAMLs fuente de verdad (12 tipos)
+├── act/                              ← scripts del pipeline de deploy
+│   ├── utils/                        ← soporte compartido (importado por el pipeline)
+│   │   ├── cx_client.py              ← conexión HTTP + auth · existe ✓
+│   │   └── cx_payloads.py            ← Full Update + ignore fields · existe ✓
+│   ├── act_cx_resources_deploy.py    ← orquestador: pipeline completo 8 pasos · crear en Fase 3
+│   ├── validate_pipeline.py          ← smoke test del pipeline en 3 niveles · crear en Fase 4
+│   ├── tests/                        ← tests CI/CD del pipeline
+│   └── build/                        ← artefactos one-time (no forman parte del deploy)
+│       └── validate_api.py           ← validación conectividad API · Sprint 1 · existe ✓
+├── definitions/                      ← YAMLs fuente de verdad (12 tipos de recursos CX) · existe ✓
 ├── docs/
-│   ├── panels/          ← HTMLs interactivos
-│   └── data/            ← JSONs generados
+│   ├── panels/                       ← HTMLs interactivos: playbooks y specs · existe ✓
+│   └── data/                         ← JSONs generados en runtime · .gitignore
 └── .github/
-    └── workflows/       ← CI/CD`,
+    └── workflows/                    ← CI/CD: deploy.yml con workflow_dispatch · crear en Fase 5`,
       operaciones: []
     },
     val: { grupos: [{ title: "Confirmación de discovery", items: [
@@ -679,61 +681,66 @@ const PHASES = [
       "He verificado que la estructura del repo coincide con la definida en Goal",
       "He identificado qué scripts existen ya y cuáles faltan por crear"
     ] }], decisions: [] } },
-  { id: 3, title: "act_cx_resources_deploy.py", subtitle: "Crear act/act_cx_resources_deploy.py — pipeline completo de 8 pasos desde cero", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/act_cx_resources_deploy.py</code> desde cero — el script que ejecuta el pipeline completo de 8 pasos. Lee <code>docs/panels/act_cx_resources_deploy.html</code> antes de escribir una línea: es la fuente de verdad. Importa desde <code>cx_client.py</code> y <code>cx_payloads.py</code> — no reimplementes lo que ya está ahí.", reglas: ['El Paso 1 escribe el inventario en <code>docs/data/act_cx_draft_resources_inventory.json</code>. El Paso 3 lo lee desde ahí para calcular el diff. Añadir al <code>.gitignore</code> — es un archivo generado.', 'Arquitectura en 3 capas: <code>cx_client.py</code> (conexión) · <code>cx_payloads.py</code> (adaptación) · <code>act_cx_resources_deploy.py</code> (orquestación). Dentro de <code>act_cx_resources_deploy.py</code>, la granularidad es por función (una por recurso), no por archivo. Antes de empezar, analiza si esta división te parece correcta para el problema. Si propones otra estructura, muéstrala y espera confirmación.', 'Idempotencia: antes de subir cualquier recurso, implementa el patrón LIST→diff→PATCH/POST solo lo que cambió. Nunca recrear recursos existentes.', 'Orden del pipeline: el orden exacto de los 8 pasos está definido en <code>act_cx_resources_deploy.html</code> — lee ese archivo antes de escribir una línea de código e implementa exactamente ese orden.', 'LRO polling real: cuando llamas POST /versions, la API responde 200 OK al instante pero la versión sigue procesando. Tienes que consultar GET /operations/{id} en bucle hasta que la respuesta diga done:true. No usar sleep() fijo — es un antipatrón.', 'displayName obligatorio en POST /versions: sin él la API devuelve 200 OK pero la operation falla silenciosamente con code:3. Incluirlo siempre.', 'Para cada paso del pipeline, lee el HTML completo de <code>act_cx_resources_deploy.html</code>: el diseño UI (etiquetas, estados, botones, flujo de interacción) Y las specs técnicas (criterios de validación, llamadas API, casos de error). UI y specs deben coincidir. Si encuentras discrepancias o áreas grises entre ambas, pregunta antes de continuar — no asumas qué tiene prioridad.'], leer: ['act/cx_client.py', 'act/cx_payloads.py', 'docs/panels/act_cx_resources_deploy.html — fuente de verdad del pipeline. Lee los 8 pasos completos: para cada paso, lee la columna SPECS (comportamiento técnico exacto, criterios de validación, casos de error — los TECH ▼ desplegables tienen las llamadas API concretas) y la columna UI (estados de la interfaz que el script debe producir en cada momento). No basta con el orden — cada paso tiene criterios de validación específicos que el script debe respetar.', 'definitions/ — YAMLs de los 12 tipos de recursos que se despliegan a CX: playbooks/, examples/, tools/, intents/, entity_types/, webhooks/, generators/, flows/, pages/, config/ (agent config), environments/, versions/. Son la fuente de verdad local contra la que se hace el diff en el Paso 3.'], outputs: [], pasos: [] }, val: { grupos: [
-      { title: "Paso 1 — Inventario CX", items: [
+  { id: 3, title: "act_cx_resources_deploy.py", subtitle: "Crear act/act_cx_resources_deploy.py — pipeline completo de 8 pasos desde cero", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/act_cx_resources_deploy.py</code> desde cero — el script que ejecuta el pipeline completo de 8 pasos. Lee <code>docs/panels/act_cx_resources_deploy.html</code> antes de escribir una línea: es la fuente de verdad. Importa desde <code>cx_client.py</code> y <code>cx_payloads.py</code> — no reimplementes lo que ya está ahí.", reglas: ['El Paso 1 escribe el inventario en <code>docs/data/act_cx_draft_resources_inventory.json</code>. El Paso 3 lo lee desde ahí para calcular el diff. Añadir al <code>.gitignore</code> — es un archivo generado.', 'Arquitectura en 3 capas: <code>cx_client.py</code> (conexión) · <code>cx_payloads.py</code> (adaptación) · <code>act_cx_resources_deploy.py</code> (orquestación). Dentro de <code>act_cx_resources_deploy.py</code>, la granularidad es por función (una por recurso), no por archivo. Antes de empezar, analiza si esta división te parece correcta para el problema. Si propones otra estructura, muéstrala y espera confirmación.', '<strong>Dónde guardar cada archivo:</strong> Si durante la construcción necesitas crear un archivo auxiliar, usa esta pregunta para decidir dónde va: <strong>¿El archivo tiene alguna relación con <code>act_cx_resources_deploy.py</code> en runtime — lo importa o es importado por él?</strong> · <strong>Sí → <code>act/</code></strong> (forma parte del pipeline permanente) · <strong>No → <code>act/build/</code></strong> (artefacto de construcción, one-time). Ejemplos concretos: <code>cx_client.py</code> → <code>act_cx_resources_deploy.py</code> hace <code>from cx_client import get_headers, api_get</code> al arrancar → <code>act/</code> · <code>cx_payloads.py</code> → <code>act_cx_resources_deploy.py</code> hace <code>from cx_payloads import build_full_update_body</code> para construir el body de PATCH → <code>act/</code> · <code>validate_pipeline.py</code> → llama a <code>act_cx_resources_deploy.py --dry-run</code> para verificar que el pipeline funciona → <code>act/</code> · <code>validate_api.py</code> → script standalone creado en Sprint 1 para comprobar que la API de CX acepta los 9 patrones de llamada. Ningún import entre él y el pipeline. Una vez construido el pipeline, no se vuelve a usar → <code>act/build/</code>', 'Idempotencia: antes de subir cualquier recurso, implementa el patrón LIST→diff→PATCH/POST solo lo que cambió. Nunca recrear recursos existentes.', 'Orden del pipeline: el orden exacto de los 8 pasos está definido en <code>act_cx_resources_deploy.html</code> — lee ese archivo antes de escribir una línea de código e implementa exactamente ese orden.', 'LRO polling real: cuando llamas POST /versions, la API responde 200 OK al instante pero la versión sigue procesando. Tienes que consultar GET /operations/{id} en bucle hasta que la respuesta diga done:true. No usar sleep() fijo — es un antipatrón.', 'displayName obligatorio en POST /versions: sin él la API devuelve 200 OK pero la operation falla silenciosamente con code:3. Incluirlo siempre.', 'Para cada paso del pipeline, lee el HTML completo de <code>act_cx_resources_deploy.html</code>: el diseño UI (etiquetas, estados, botones, flujo de interacción) Y las specs técnicas (criterios de validación, llamadas API, casos de error). UI y specs deben coincidir. Si encuentras discrepancias o áreas grises entre ambas, pregunta antes de continuar — no asumas qué tiene prioridad.'], leer: ['act/cx_client.py', 'act/cx_payloads.py', 'docs/panels/act_cx_resources_deploy.html — fuente de verdad del pipeline. Lee los 8 pasos completos: para cada paso, lee la columna SPECS (comportamiento técnico exacto, criterios de validación, casos de error — los TECH ▼ desplegables tienen las llamadas API concretas) y la columna UI (estados de la interfaz que el script debe producir en cada momento). No basta con el orden — cada paso tiene criterios de validación específicos que el script debe respetar.', 'definitions/ — YAMLs de los 12 tipos de recursos que se despliegan a CX: playbooks/, examples/, tools/, intents/, entity_types/, webhooks/, generators/, flows/, pages/, config/ (agent config), environments/, versions/. Son la fuente de verdad local contra la que se hace el diff en el Paso 3.'], outputs: [], pasos: [] }, val: { grupos: [
+      { title: "Criterios automáticos y manuales", items: [
+        "Automático (LLM): el script lo verifica al ejecutarse — observable en el log de ejecución. El LLM debe completar todos los criterios automáticos antes de que Jero marque la fase como hecha. Manual (Jero): requiere verificación directa fuera del script — Jero lo comprueba con git diff o inspeccionando el código."
+      ]},
+      { title: "Paso 1 — Inventario CX · Automático (LLM)", items: [
         { criterio: "LIST completado para los 12 tipos de recursos", porQue: "El Paso 3 necesita un inventario completo para calcular el diff correctamente — un tipo ausente produce operaciones POST incorrectas sobre recursos que ya existen." },
         { criterio: "Si cualquier LIST falla → abortar inmediatamente, no continuar con datos parciales", porQue: "Datos parciales dan un diff corrupto en el Paso 3: recursos existentes aparecerían como nuevos (POST) y se duplicarían." },
         { criterio: "Token de auth válido — sin errores 401/403", porQue: "Auth falla silenciosamente si no se verifica explícitamente — el script debe comprobar el token antes de lanzar 12 llamadas LIST." },
         { criterio: "429 (rate limit) → reintentar con backoff exponencial (máx. 3 intentos); si persiste → abortar", porQue: "Rate limit es transitorio — el backoff lo resuelve en la mayoría de casos sin intervención humana." }
       ]},
-      { title: "Paso 2 — Push a GitHub staging", items: [
+      { title: "Paso 2 — Push a GitHub staging · Automático (LLM)", items: [
         { criterio: "Push exitoso — sin errores de red ni de permisos", porQue: "Si el push falla, el Paso 3 compara contra código desactualizado — el diff no refleja los cambios reales." },
         { criterio: "origin/staging al día con staging local tras el push", porQue: "El Paso 3 lee de GitHub staging — si hay commits pendientes, el diff tiene desfase respecto a lo que el usuario quiere desplegar." },
         { criterio: "Si hay conflicto → abortar, no continuar", porQue: "Un conflicto en push indica que el remoto tiene commits que el local no tiene — continuar sobrescribiría trabajo." },
         { criterio: "Si ya está al día (0 commits pendientes) → el paso completa sin error — no bloquea el pipeline", porQue: "El pipeline puede ejecutarse sin cambios en Git cuando solo cambia algo en CX — el paso no debe ser un bloqueante en ese caso." }
       ]},
-      { title: "Paso 3 — Diff GitHub vs CX", items: [
+      { title: "Paso 3 — Diff GitHub vs CX · Automático (LLM)", items: [
         { criterio: "Diff completado para los 12 tipos de recursos", porQue: "Un diff parcial deja recursos sin comparar — cambios en tipos no procesados no llegarían al Paso 4." },
         { criterio: "POST/PATCH/DELETE mutuamente excluyentes por recurso", porQue: "Un recurso no puede ser nuevo y modificado a la vez — si el clasificador produce los dos, el deploy ejecuta operaciones contradictorias." },
         { criterio: "Tabla coherente con el inventario del Paso 1", porQue: "El inventario del Paso 1 es la foto de CX — si el diff no parte de ella, opera sobre datos que ya no representan el estado actual." },
         { criterio: "Si sin cambios → pipeline termina limpiamente, no continúa al Paso 4", porQue: "No hay operaciones que ejecutar — continuar con una lista vacía hace el deploy en vacío y crea un snapshot innecesario." }
       ]},
-      { title: "Paso 4 — Confirmar deploy", items: [
+      { title: "Paso 4 — Confirmar deploy · Automático (LLM)", items: [
         { criterio: "Deploy completo → todos los recursos OK, banner verde, botón 'Continuar →'", porQue: "El pipeline solo puede avanzar al Paso 5 si todos los recursos se aplicaron — un OK parcial no es un OK." },
         { criterio: "Deploy parcial → resumen OK/ERROR/no-intentado, dos opciones de recuperación", porQue: "Un fallo en un recurso deja los siguientes como 'no intentados' — el resumen diferencia lo que completó de lo que quedó sin ejecutar." },
         { criterio: "'Reintentar fallidos' → reintenta el fallido más todos los 'no intentado'; no reintenta los que ya completaron OK", porQue: "Reintentar los que ya están en CX crea duplicados o errores — solo los pendientes necesitan reintento." },
         { criterio: "'Revertir draft' → restaura el draft al estado previo al deploy", porQue: "Si el deploy parcial deja CX en estado inconsistente, el rollback del draft es la única salida limpia." }
       ]},
-      { title: "Paso 5 — Snapshot del agente", items: [
+      { title: "Paso 5 — Snapshot del agente · Automático (LLM)", items: [
         { criterio: "Snapshot creado → esperar done:true en el LRO antes de reportar éxito", porQue: "POST /versions responde 200 OK al instante pero la versión sigue procesando. Sin polling, el Paso 6 hace QA sobre una versión incompleta." },
         { criterio: "displayName siempre presente en el POST body — nunca omitirlo aunque el campo UI esté vacío", porQue: "Bug silencioso del backend: sin displayName la API devuelve 200 OK pero la operation falla internamente con code:3 sin mensaje visible." },
         { criterio: "Si ya hay 5 versiones → la más antigua se elimina automáticamente, el snapshot se crea igualmente", porQue: "CX tiene un límite de 5 versiones por entorno — el script no debe bloquearse en ese límite, es comportamiento esperado de la API." },
         { criterio: "El nombre del snapshot se propaga a los Pasos 6, 7 y 8", porQue: "Los tres pasos posteriores necesitan el nombre para mostrar contexto al usuario y para ejecutar el rollback si es necesario." }
       ]},
-      { title: "Paso 6 — Validación de tests", items: [
+      { title: "Paso 6 — Validación de tests · Automático (LLM)", items: [
         { criterio: "'Tests superados' → avanza al Paso 7 sin ninguna llamada a la API", porQue: "Este paso solo toma decisiones — no ejecuta operaciones CX. Cualquier llamada en este estado es un error de implementación." },
         { criterio: "Rollback confirmado → staging apunta a la versión anterior + draft restaurado desde esa versión", porQue: "El rollback debe revertir dos cosas a la vez: el entorno staging y el draft — si solo revierte uno, quedan desincronizados." },
         { criterio: "Rollback cancelado → staging y draft no se modifican", porQue: "Cancelar el rollback es 'pausar, no actuar' — el pipeline queda en espera sin tocar CX." },
         { criterio: "Producción no se toca en ningún caso durante este paso", porQue: "Este paso opera exclusivamente sobre staging y draft — producción es intocable hasta el Paso 8." }
       ]},
-      { title: "Paso 7 — Gate QA staging", items: [
+      { title: "Paso 7 — Gate QA staging · Automático (LLM)", items: [
         { criterio: "'Validado' → avanza al Paso 8 sin llamadas a la API", porQue: "La validación es una decisión humana, no una operación CX — el paso no debe ejecutar nada al avanzar." },
         { criterio: "Rollback → PATCH /environments/staging a versión anterior + draft restaurado desde esa versión", porQue: "Misma secuencia que el Paso 6 — staging y draft deben revertirse juntos para mantener consistencia." },
         { criterio: "Producción no se modifica en ningún caso durante este paso", porQue: "Producción solo cambia en el Paso 8 — cualquier PATCH a producción aquí sería un error crítico." },
         { criterio: "Tras rollback, el pipeline queda abortado — no pausado", porQue: "Un rollback es una decisión definitiva: el usuario decidió que el snapshot no es válido. Pausar daría una salida falsa de 'continuar'." }
       ]},
-      { title: "Paso 8 — Aprobar subida a producción", items: [
+      { title: "Paso 8 — Aprobar subida a producción · Automático (LLM)", items: [
         { criterio: "Merge primero, promoción después — nunca en paralelo ni al revés", porQue: "Si la promoción va primero y el merge falla, producción apunta a un snapshot cuyo código no está en main — código y agente desincronizados." },
         { criterio: "Si merge falla → PATCH /environments/production no se ejecuta", porQue: "Un merge fallido indica conflictos entre staging y main — promover en ese estado deja producción sin respaldo en el historial de git." },
         { criterio: "'Abortar' en conflicto no inicia rollback — solo restaura el gate inicial", porQue: "Abortar el merge no es revertir el deploy — staging y su snapshot quedan intactos para reintentar cuando se resuelva el conflicto." },
         { criterio: "El snapshot asignado a producción es el mismo que ya tiene staging (sin crear versión nueva)", porQue: "Reutilizar el snapshot de staging garantiza que producción ejecuta exactamente lo validado en QA — crear una versión nueva introduciría un estado no validado." }
       ]},
-      { title: "Script", items: [
+      { title: "Script · Automático (LLM)", items: [
         { criterio: "--dry-run completa sin errores", porQue: "Verifica que el script arranca, parsea la configuración y construye el plan de ejecución correctamente sin tocar CX." },
-        { criterio: "Exit 0 en éxito, exit 1 con mensaje específico en fallo", porQue: "El orquestador tiene que comunicar claramente si algo falló y dónde — sin esto el pipeline no puede detectar errores automáticamente." },
-        { criterio: "<code>cx_client.py</code> y <code>cx_payloads.py</code> no han sido modificados", porQue: "El script nuevo importa de estas capas pero no las toca — si fueron modificados, hay un error de scope." }
+        { criterio: "Exit 0 en éxito, exit 1 con mensaje específico en fallo", porQue: "El orquestador tiene que comunicar claramente si algo falló y dónde — sin esto el pipeline no puede detectar errores automáticamente." }
       ]},
-      { title: "Pipeline", items: [
+      { title: "Script · Manual (Jero)", items: [
+        { criterio: "<code>cx_client.py</code> y <code>cx_payloads.py</code> no han sido modificados", porQue: "El script nuevo importa de estas capas pero no las toca — si fueron modificados, hay un error de scope. Verificar con: <code>git diff HEAD act/cx_client.py act/cx_payloads.py</code>" }
+      ]},
+      { title: "Pipeline · Automático (LLM)", items: [
         { criterio: "Los 8 pasos se ejecutan en el orden exacto definido en act_cx_resources_deploy.html", porQue: "El orden no es opcional — snapshot antes de push a producción, QA antes del gate final. Un orden incorrecto puede desplegar sin snapshot o sin QA." },
         { criterio: "LRO polling espera done:true antes de continuar al siguiente paso", porQue: "POST /versions responde 200 OK inmediatamente pero la versión sigue procesando. Sin polling, el pipeline continúa con una versión incompleta." },
         { criterio: "displayName presente en POST /versions", porQue: "Bug silencioso del backend: sin displayName la API devuelve 200 OK pero la operación falla internamente con code:3 sin mensaje de error visible." },
@@ -744,7 +751,55 @@ const PHASES = [
         'Nivel 1 — Read-only (automático): verificar auth válido + sin 401/403, conectividad con CX (GET al agente responde), LIST completa para los 12 tipos sin errores, JSON de inventario con estructura correcta (totals == len para cada tipo), idempotencia del diff (definitions/ sin cambios → diff vacío). El script ejecuta estos checks y reporta PASS/FAIL por cada uno.',
         'Nivel 2 — Dry-run (automático): <code>--dry-run</code> completa sin errores en los 8 pasos (exit 0), diff detecta exactamente los cambios introducidos en definitions/, orden de deploy correcto en el plan generado. El script ejecuta estos checks y reporta PASS/FAIL por cada uno.',
         'Nivel 3 — Write real (checklist manual por ahora): PATCH de recurso de prueba, LRO polling y detección de code:3, PATCH /environments/staging. El script imprime el checklist con instrucciones para que Jero los verifique manualmente — no los automatiza.'
-      ], leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Todos PASS", "Environments coherentes", "Exit code 0"] }], decisions: [] } }
+      ], leer: [], outputs: [], pasos: [] }, val: { grupos: [
+      { title: "Nivel 1 — Read-only · Automático (LLM)", items: [
+        "Auth válido — sin errores 401/403: PASS",
+        "Conectividad con CX — GET al agente responde: PASS",
+        "LIST completa para los 12 tipos sin errores: PASS",
+        "JSON de inventario con estructura correcta — totals == len por tipo: PASS",
+        "Idempotencia del diff — definitions/ sin cambios → diff vacío: PASS"
+      ]},
+      { title: "Nivel 2 — Dry-run · Automático (LLM)", items: [
+        "--dry-run completa sin errores en los 8 pasos: exit 0",
+        "Diff detecta exactamente los cambios introducidos en definitions/",
+        "Orden de deploy correcto en el plan generado"
+      ]},
+      { title: "Nivel 3 — Write real · Manual (Jero)", items: [
+        "PATCH de recurso de prueba aplicado correctamente en CX",
+        "LRO polling espera done:true y detecta code:3 cuando falta displayName",
+        "PATCH /environments/staging completa sin errores"
+      ]}
+    ], decisions: [] } },
+  { id: 5, title: "CI/CD", subtitle: "GitHub Actions con workflow_dispatch", tag: "ci", tagLabel: ".yml",
+    llm: {
+      objetivo: "Crear <code>.github/workflows/deploy.yml</code> — el workflow que ejecuta <code>act_cx_resources_deploy.py</code> en GitHub Actions con trigger manual (<code>workflow_dispatch</code>). El valor no es la automaticidad sino las garantías: <code>concurrency: 1</code>, WIF, trazabilidad y QA gate obligatorio que no se puede saltar.",
+      reglas: [
+        "Trigger: <code>workflow_dispatch</code> exclusivamente — nunca <code>on: push</code>. Jero decide cuándo lanzar; GitHub Actions garantiza cómo.",
+        "Auth: WIF (Workload Identity Federation) — nunca SA keys. Variables <code>GCP_WIF_PROVIDER</code> y <code>GCP_SERVICE_ACCOUNT</code> ya están en GitHub Variables.",
+        "<code>concurrency: 1</code> con <code>cancel-in-progress: false</code> — si hay un deploy en curso, el nuevo espera; no se cancela.",
+        "El workflow llama a <code>act_cx_resources_deploy.py</code> — no reimplementa lógica. El script es la fuente de verdad del pipeline.",
+        "QA gate dentro del script (Step 7) — el workflow no necesita implementarlo; lo hereda del script."
+      ],
+      leer: [
+        "act/act_cx_resources_deploy.py — para entender qué llama el workflow y qué variables de entorno necesita",
+        "definitions/agent.yaml — project/location para las variables de entorno del workflow"
+      ],
+      outputs: [{ path: ".github/workflows/deploy.yml", desc: "Workflow de GitHub Actions con trigger manual (workflow_dispatch)" }],
+      pasos: []
+    },
+    val: { grupos: [
+      { title: "Estructura · Automático (LLM)", items: [
+        { criterio: "Trigger es <code>workflow_dispatch</code> (no <code>push</code>)", porQue: "El trigger manual garantiza que Jero controla cuándo se despliega — un push automático ejecutaría el deploy sin intervención humana." },
+        { criterio: "<code>concurrency: 1</code> presente con <code>cancel-in-progress: false</code>", porQue: "Sin concurrency:1, dos deploys simultáneos pueden corromper el estado del agente. cancel-in-progress:false hace que el nuevo espere — no cancela el deploy en curso." },
+        { criterio: "WIF configurado con <code>GCP_WIF_PROVIDER</code> y <code>GCP_SERVICE_ACCOUNT</code>", porQue: "SA keys son credenciales estáticas que quedan expuestas en el repositorio. WIF genera tokens temporales por sesión — sin superficie de ataque permanente." },
+        { criterio: "El workflow llama a <code>act_cx_resources_deploy.py</code> sin reimplementar lógica", porQue: "La lógica del pipeline vive en el script — duplicarla en el YAML crea dos fuentes de verdad que se desincronizarán." }
+      ]},
+      { title: "Garantías · Manual (Jero)", items: [
+        { criterio: "Lanzar el workflow desde GitHub UI funciona correctamente", porQue: "El trigger manual solo se puede verificar desde la interfaz de GitHub — no hay forma de simularlo en local." },
+        { criterio: "El segundo lanzamiento simultáneo espera (no cancela) al primero", porQue: "cancel-in-progress:false es el comportamiento correcto — verificar que está activo protege contra configuraciones incorrectas que cancelarían deploys en curso." },
+        { criterio: "Trazabilidad visible en GitHub Actions tab — quién lanzó, cuándo, qué commit", porQue: "La trazabilidad es una de las cuatro garantías centrales de CI/CD — sin ella no hay registro de qué se desplegó ni cuándo." }
+      ]}
+    ], decisions: [] } }
 ];
 
 const KEY = 'act_playbook_v3';
@@ -895,18 +950,21 @@ function renderGoalPhase(p, ps) {
     + makeBlock('val', '⚠️', 'Constraints no negociables', 'goal-constraints', constraintsHtml, true)
     + makeBlock('ref', '🗺️', 'Mapa de fases', 'goal-ref', refHtml, true)
     + makeBlock('ref', '📁', 'Estructura del repo', 'goal-tree', `<div class="tree-view">cx-automation-template/
-├── act/
-│   └── scripts/
-│       ├── push/           <span class="tree-comment">← 12 push_*.py — escribe recursos en CX</span>
-│       ├── pull/           <span class="tree-comment">← 12 pull_*.py — lee recursos de CX</span>
-│       ├── utils/          <span class="tree-comment">← diff.py · validate_api.py · cx_inventory.py</span>
-│       └── deploy.py       <span class="tree-comment">← orquestador del pipeline</span>
-├── definitions/            <span class="tree-comment">← YAMLs fuente de verdad (12 tipos de recursos CX)</span>
+├── act/                         <span class="tree-comment">← scripts del pipeline de deploy</span>
+│   ├── utils/                   <span class="tree-comment">← soporte compartido (importado por el pipeline)</span>
+│   │   ├── cx_client.py         <span class="tree-comment">← conexión HTTP + auth · existe ✓</span>
+│   │   └── cx_payloads.py       <span class="tree-comment">← Full Update + ignore fields · existe ✓</span>
+│   ├── act_cx_resources_deploy.py  <span class="tree-comment">← orquestador: pipeline completo 8 pasos · crear en Fase 3</span>
+│   ├── validate_pipeline.py     <span class="tree-comment">← smoke test del pipeline en 3 niveles · crear en Fase 4</span>
+│   ├── tests/                   <span class="tree-comment">← tests CI/CD del pipeline</span>
+│   └── build/                   <span class="tree-comment">← artefactos one-time de construcción (no forman parte del deploy)</span>
+│       └── validate_api.py      <span class="tree-comment">← validación conectividad API · Sprint 1 · existe ✓</span>
+├── definitions/                 <span class="tree-comment">← YAMLs fuente de verdad (12 tipos de recursos CX) · existe ✓</span>
 ├── docs/
-│   ├── panels/             <span class="tree-comment">← act_cx_resources_deploy.html · act_build_playbook.html · …</span>
-│   └── data/               <span class="tree-comment">← act_cx_draft_resources_inventory.json (generado · .gitignore)</span>
+│   ├── panels/                  <span class="tree-comment">← HTMLs interactivos: playbooks y specs del pipeline · existe ✓</span>
+│   └── data/                    <span class="tree-comment">← JSONs generados en runtime · .gitignore · no committear</span>
 └── .github/
-    └── workflows/          <span class="tree-comment">← deploy.yml (CI/CD)</span></div>`, true)
+    └── workflows/               <span class="tree-comment">← CI/CD: deploy.yml con workflow_dispatch · crear en Fase 5</span></div>`, true)
     + makeBlock('val', '✋', 'Validación — confirmar objetivo del proyecto', 'goal-val', goalValHtml, true)
 }
 
