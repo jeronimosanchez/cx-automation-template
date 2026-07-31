@@ -4,7 +4,7 @@
 :root {
   --bg:#0d1117;--bg-2:#1a2030;--bg-3:#252d3a;--border:#3d4755;
   --text:#f0f6fc;--text-2:#b0bac6;--text-3:#8b95a1;
-  --accent:#3b82f6;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
+  --accent:#3b82f6;--accent-light:#60a5fa;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -28,34 +28,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .layout{display:flex;flex:1;min-height:0;overflow:hidden}
 
 /* SPECS PANEL */
-.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s ease;overflow:hidden;position:relative}
-.specs-panel.collapsed{width:36px}
-.specs-tab{display:none;writing-mode:vertical-rl;text-orientation:mixed;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase;padding:20px 10px;white-space:nowrap;align-self:stretch;align-items:center;justify-content:center}
-.specs-tab:hover{color:var(--text)}
-.specs-panel.collapsed .specs-tab{display:flex}
-.specs-panel.collapsed .specs-content{display:none}
-.specs-content{flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px}
-.specs-hdr{font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-shrink:0}
-.specs-collapse-btn{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px;line-height:1;padding:0 2px;border-radius:3px;transition:color .1s}
-.specs-collapse-btn:hover{color:var(--text)}
-.specs-section{display:flex;flex-direction:column;gap:0}
-.specs-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
-.specs-section-title:hover{color:var(--text-2)}
-.section-chevron{font-size:9px;opacity:.6;transition:transform .15s;display:inline-block;margin-left:auto}
-.specs-section.collapsed .section-chevron{transform:rotate(-90deg)}
-.section-body{display:flex;flex-direction:column;gap:10px;padding-top:10px}
-.specs-section.collapsed .section-body{display:none}
+.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px}
+.specs-section{display:flex;flex-direction:column;gap:10px}
+.specs-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .spec-block{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
 .spec-block-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .spec-block p{font-size:12px;color:var(--text-2);line-height:1.6}
 .spec-block code{font-size:11px;font-family:'SF Mono',Menlo,monospace;color:var(--text);background:var(--bg-2);padding:1px 4px;border-radius:3px}
+.tech-toggle{margin-top:8px;display:inline-flex;align-items:center;gap:4px;background:none;border:1px solid var(--border);border-radius:3px;color:var(--text-3);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;cursor:pointer;font-family:'SF Mono',Menlo,monospace;transition:color .15s,border-color .15s}
+.tech-toggle:hover{color:var(--text-2);border-color:var(--text-3)}
+.tech-content{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);line-height:1.8}
 .spec-step-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px}
 .spec-empty{font-size:12px;color:var(--text-3);font-style:italic}
-.criteria-label{display:flex;align-items:center;cursor:pointer;user-select:none}
-.criteria-chevron{font-size:9px;opacity:.6;transition:transform .15s;display:inline-block;margin-left:auto}
-.criteria-collapsed .criteria-chevron{transform:rotate(-90deg)}
-.criteria-body{margin-top:6px}
-.criteria-collapsed .criteria-body{display:none}
 
 /* SIDEBAR */
 .sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
@@ -77,6 +61,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .s-done .step-status-text{color:#4ade80}
 .s-active .step-status-text{color:#93c5fd}
 .s-gate .step-status-text{color:#fbbf24}
+.s-error .step-status-text{color:#f87171}
 .s-pending .step-status-text{color:var(--text-3)}
 .step-connector{width:1px;height:6px;background:var(--border);margin-left:27px}
 
@@ -106,7 +91,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pill-new{background:rgba(34,197,94,.15);color:#4ade80}
 .pill-del{background:rgba(239,68,68,.15);color:#f87171}
 .pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
-.pill-skip{background:var(--bg-3);color:var(--text-3)}
 .pill-err{background:rgba(239,68,68,.15);color:#f87171}
 .pill-dim{background:var(--bg-3);color:var(--text-3)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bg-3)}
@@ -125,17 +109,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stat-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
 .stat-label{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
 .stat-value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
-.stat-sub{font-size:11px;color:var(--text-3);margin-top:2px}
-
 /* PROGRESS */
-.progress-wrap{margin-bottom:20px}
 .progress-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bg-3)}
 .progress-item:last-child{border-bottom:none}
 .progress-icon{width:18px;text-align:center;font-size:13px;flex-shrink:0}
 .progress-name{flex:1;font-size:13px;color:var(--text)}
-.progress-status{font-size:12px;color:var(--text-3)}
-.progress-status.ok{color:#4ade80}
-.progress-status.skip{color:var(--text-3)}
 
 /* DONE BANNER */
 .done-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:20px}
@@ -149,17 +127,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .snapshot-input:focus{border-color:var(--gate)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 
-/* CHECK ROWS (Paso 2) */
-.check-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
-.check-row:last-child{border-bottom:none}
-.check-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;margin-top:1px}
-.check-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
-.check-detail{font-size:12px;color:var(--text-3);font-family:'SF Mono',Menlo,monospace}
-.check-detail.err{color:#f87171}
-.check-error-hint{font-size:12px;color:#f87171;margin-top:6px;line-height:1.5}
-
-/* INFO NOTE */
-.info-note{font-size:12px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-top:12px;line-height:1.6}
+/* ERROR BLOCK */
+.error-block{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:20px 24px}
 
 /* ACTION RESULT ROWS */
 .action-result{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
@@ -179,8 +148,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <span class="topbar-commit">GitHub: staging &middot; 98fcbdd</span>
   <div class="topbar-meta">
     <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
-    <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
-    <button class="btn btn-ghost" id="specs-toggle-btn" onclick="toggleSpecsPanel()" title="Mostrar/ocultar specs">&#9654; SPECS</button>
+    <button id="btn-reset" class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
   </div>
 </div>
 
@@ -195,7 +163,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-1">
       <div class="phase-eyebrow">Paso 1 de 8</div>
       <div class="phase-title">Inventario CX</div>
-      <div class="phase-sub">Lee el estado actual del agente desde la API de Dialogflow CX.</div>
+      <div class="phase-sub">
+        Lee el estado actual del draft del agente desde la API de Dialogflow CX.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El draft es el estado editable &mdash; no la versi&oacute;n que CX usa para test cases. Los cambios no se propagan hasta crear el snapshot en el Step 5.</p>
+      </div>
 
       <!-- Estado inicial: botón para iniciar -->
       <div id="inv-start">
@@ -209,9 +180,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <!-- Estado completado con inventario (oculto hasta finalizar) -->
       <div id="inv-done" style="display:none">
-        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
-          <span style="color:#4ade80;font-weight:600;font-size:13px">Inventario completado &#10003;</span>
-        </div>
+        <div class="done-banner"><p>Inventario completado &#10003;</p></div>
 
         <!-- Cuadrícula de 12 tipos de recursos -->
         <div class="cards-grid" style="margin-bottom:24px">
@@ -346,7 +315,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
       <div class="gate-block" id="deploy-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
-        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
+        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">4</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Confirmar deploy &rarr;</button>
           <button class="btn btn-ghost" onclick="cancelDeploy(false)">Cancelar</button>
@@ -363,9 +332,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <!-- Deploy OK -->
       <div id="deploy-done" style="display:none">
-        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
-          <span style="color:#4ade80;font-weight:600;font-size:13px">Deploy completado &#10003;</span>
-        </div>
+        <div class="done-banner"><p>Deploy completado &#10003;</p></div>
         <div class="action-bar">
           <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
         </div>
@@ -373,7 +340,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <!-- Deploy PARCIAL (fallo) -->
       <div id="deploy-fail" style="display:none">
-        <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:16px 20px;margin-bottom:16px">
+        <div class="error-block" style="margin-bottom:16px">
           <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Deploy parcial &mdash; fallo en el recurso 3</div>
           <div id="deploy-fail-summary" style="font-size:13px;color:var(--text-2);line-height:1.8;margin-bottom:14px"></div>
           <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">El draft del agente en CX tiene cambios aplicados a medias. Elige c&oacute;mo continuar:</div>
@@ -408,9 +375,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
       </div>
       <div id="snap-done" style="display:none">
-        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
-          <span style="color:#4ade80;font-weight:600;font-size:13px">Snapshot completado &#10003;</span>
-        </div>
+        <div class="done-banner"><p>Snapshot completado &#10003;</p></div>
         <div class="action-bar">
           <button class="btn btn-primary" onclick="advance(5)">Continuar &rarr;</button>
         </div>
@@ -423,19 +388,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-title">Validaci&oacute;n de tests</div>
       <div class="phase-sub">Confirma que has ejecutado la suite de tests QA y que todos los casos han pasado correctamente en el entorno staging.</div>
       <div class="gate-block">
-        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <div class="gate-title" id="test-gate-title">&#9995; Acci&oacute;n requerida</div>
         <div class="action-bar" id="test-action-bar">
           <button class="btn btn-gate" onclick="advance(6)">Tests superados &rarr;</button>
           <button class="btn btn-danger" onclick="showRollbackConfirm()">Tests fallidos</button>
         </div>
       </div>
-      <div id="rollback-confirm" style="display:none;margin-top:20px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:20px 24px">
+      <div id="rollback-confirm" class="error-block" style="display:none;margin-top:20px">
         <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tests fallidos &mdash; rollback de staging</div>
         <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, el sistema revertir&aacute; el entorno staging de CX al estado anterior.</p>
         <div class="slabel" style="margin-bottom:8px">Qu&eacute; va a ocurrir</div>
         <div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:4px">Si confirmas rollback</div>
           <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar a <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
           <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:14px">Si cancelas</div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Staging &rarr; conserva el snapshot actual como borrador</div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Draft de CX &rarr; no se modifica</div></div>
           <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
         </div>
         <div class="slabel" style="margin-bottom:6px">Qu&eacute; hacer despu&eacute;s</div>
@@ -448,7 +418,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="rollback-log" style="display:none;margin-top:20px">
         <div class="output-block" id="rollback-log-block" style="min-height:80px"></div>
       </div>
-      <div id="rollback-done-banner" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px">
+      <div id="rollback-done-banner" class="error-block" style="display:none;margin-top:16px">
         <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Deploy abortado</div>
         <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Staging restaurado al estado anterior. Los pasos siguientes quedan fuera de juego.</p>
         <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
@@ -467,12 +437,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
         </div>
         <div class="action-bar">
-          <button class="btn btn-gate" onclick="advance(7)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
+          <button class="btn btn-gate" id="btn-validado-p7" onclick="this.disabled=true;this.textContent='Aprobando...';setTimeout(()=>advance(7),350)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
           <button class="btn btn-danger" onclick="rollbackFromStep7()">Rollback a staging anterior</button>
         </div>
       </div>
       <div class="slabel">Estado actual de entornos</div>
-      <div class="output-block"><span class="dim">draft     </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="dim">&#8592; fuente del snapshot</span>
+      <div class="output-block"><span class="dim">draft     </span> &rarr; (estado editado)  <span class="dim">&#8592; fuente de &ldquo;<span class="snapshot-name-ref">—</span>&rdquo;</span>
 <span class="info">staging   </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="ok">&#8592; nuevo</span>
 <span class="warn">producci&oacute;n</span> &rarr; v5 &middot; 2026-07-25_1134  &#8592; actual</div>
     </div>
@@ -497,8 +467,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="action-result">
             <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">2</div>
             <div class="action-result-body">
-              <div class="action-result-title">Snapshot nuevo en el entorno producci&oacute;n de CX</div>
-              <div class="action-result-desc">Se crea una versi&oacute;n nueva del agente y se asigna al entorno de producci&oacute;n. Los usuarios ya ven los cambios.</div>
+              <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
+              <div class="action-result-desc">La versi&oacute;n de staging (<span class="snapshot-name-ref">&mdash;</span>) se asigna al entorno de producci&oacute;n. No se crea una versi&oacute;n nueva. Los usuarios ya ven los cambios.</div>
             </div>
           </div>
         </div>
@@ -529,7 +499,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-eyebrow">Deploy completado</div>
       <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
       <div class="phase-sub">Desplegado en producci&oacute;n &middot; verificado en staging.</div>
-      <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; 2026-07-28 &middot; 09:45 UTC &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
+      <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; <span id="done-timestamp">2026-07-28 &middot; 09:45 UTC</span> &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
 
       <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
       <div style="margin-bottom:20px">
@@ -543,8 +513,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="action-result">
           <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
           <div class="action-result-body">
-            <div class="action-result-title">Snapshot nuevo en producci&oacute;n de CX</div>
-            <div class="action-result-desc"><span class="snapshot-name-ref">—</span> &middot; asignado al entorno producci&oacute;n. Los usuarios ya ven los cambios.</div>
+            <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
+            <div class="action-result-desc">Versi&oacute;n <span class="snapshot-name-ref">—</span> asignada al entorno producci&oacute;n. Los usuarios ya ven los cambios.</div>
           </div>
         </div>
         <div class="action-result" id="done-sync-row">
@@ -572,129 +542,349 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   </main>
 
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SPECS PANEL — Solo para generación del backend con Opus.
-       Para eliminar: cambiar SHOW_SPECS = false en el bloque JS de config
-       o borrar este aside completo + ajustar SHOW_SPECS.
-       ═══════════════════════════════════════════════════════════════════ -->
-  <aside class="specs-panel collapsed" id="specs-panel">
+  <!-- SPECS PANEL -->
+  <aside class="specs-panel">
 
-    <!-- Tab visible solo cuando está colapsado -->
-    <div class="specs-tab" onclick="toggleSpecsPanel()" title="Ver specs">SPECS</div>
-
-    <!-- Contenido del panel -->
-    <div class="specs-content" id="specs-content">
-
-      <div class="specs-hdr">
-        <span style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
-        Especificaciones funcionales
-        <button class="specs-collapse-btn" onclick="toggleSpecsPanel()" title="Expandir">›</button>
-      </div>
-
-      <!-- General (colapsable) -->
-      <div class="specs-section" id="section-general">
-        <div class="specs-section-title" onclick="toggleSection('section-general')">
-          General <span class="section-chevron">▾</span>
-        </div>
-        <div class="section-body">
-          <div class="spec-block">
-            <div class="spec-block-label">Auth</div>
-            <p><code>gcloud auth print-access-token</code> — se obtiene una vez al inicio y se reutiliza en todas las llamadas a la API de CX.</p>
-          </div>
-          <div class="spec-block">
-            <div class="spec-block-label">Cabeceras obligatorias</div>
-            <p><code>Authorization: Bearer &lt;token&gt;</code><br><code>Content-Type: application/json</code><br><code>x-goog-user-project: &lt;GCP_PROJECT&gt;</code></p>
-          </div>
-          <div class="spec-block">
-            <div class="spec-block-label">Agente de referencia</div>
-            <p>Petal 1.0 — región <code>europe-west1</code>. ID y proyecto en <code>definitions/agent.yaml</code>.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Specs por paso (colapsable) -->
-      <div class="specs-section" id="section-steps">
-        <div class="specs-section-title" onclick="toggleSection('section-steps')">
-          Specs por paso <span class="section-chevron">▾</span>
-        </div>
-        <div class="section-body">
-
-          <div id="spec-step-1">
-            <div class="spec-step-title">Paso 1 — Inventario CX</div>
-            <div class="spec-block">
-              <div class="spec-block-label">Qué hace</div>
-              <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el agente Petal. Este paso hace una foto del estado actual: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
-            </div>
-            <div class="spec-block">
-              <div class="spec-block-label">Por qué existe</div>
-              <p>Si desplegamos sin saber el estado actual, no podemos comparar qué ha cambiado. Esta foto es el punto de partida de todo el pipeline — sin ella, el diff no tiene contra qué comparar.</p>
-            </div>
-            <div class="spec-block">
-              <div class="spec-block-label">Qué necesita</div>
-              <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
-            </div>
-            <div class="spec-block">
-              <div class="spec-block-label">Qué produce</div>
-              <p>Una lista completa de los 12 tipos de recursos del agente, lista para comparar con lo que tenemos en el repositorio.</p>
-            </div>
-            <div class="spec-block">
-              <div class="spec-block-label">Detalle técnico</div>
-              <p>Invoca cada <code>push_*.py</code> en modo lectura (LIST sin PATCH). Token desde <code>gcloud auth print-access-token</code>. Configuración del agente desde <code>definitions/agent.yaml</code>. Si algún LIST falla → abortar, no continuar con datos parciales.</p>
-            </div>
-          </div>
-
-          <div id="spec-step-2" style="display:none"><p class="spec-empty">Spec pendiente — Paso 2</p></div>
-          <div id="spec-step-3" style="display:none"><p class="spec-empty">Spec pendiente — Paso 3</p></div>
-          <div id="spec-step-4" style="display:none"><p class="spec-empty">Spec pendiente — Paso 4</p></div>
-          <div id="spec-step-5" style="display:none"><p class="spec-empty">Spec pendiente — Paso 5</p></div>
-          <div id="spec-step-6" style="display:none"><p class="spec-empty">Spec pendiente — Paso 6</p></div>
-          <div id="spec-step-7" style="display:none"><p class="spec-empty">Spec pendiente — Paso 7</p></div>
-          <div id="spec-step-8" style="display:none"><p class="spec-empty">Spec pendiente — Paso 8</p></div>
-          <div id="spec-step-done" style="display:none"><p class="spec-empty">Pipeline completado.</p></div>
-
-        </div>
-      </div>
-
-      <!-- Criterios de validación (colapsable, sincronizado con paso activo) -->
-      <div class="specs-section" id="section-criteria">
-        <div class="specs-section-title" onclick="toggleSection('section-criteria')">
-          Criterios de validación <span class="section-chevron">▾</span>
-        </div>
-        <div class="section-body">
-
-          <div id="criteria-step-1">
-            <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-              <div class="spec-block-label" style="color:var(--gate)">Paso 1 — Inventario CX</div>
-              <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si algún LIST falla → paso en error, no continúa<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío</p>
-            </div>
-          </div>
-
-          <div id="criteria-step-2" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 2</p></div>
-          <div id="criteria-step-3" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 3</p></div>
-          <div id="criteria-step-4" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 4</p></div>
-          <div id="criteria-step-5" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 5</p></div>
-          <div id="criteria-step-6" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 6</p></div>
-          <div id="criteria-step-7" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 7</p></div>
-          <div id="criteria-step-8" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 8</p></div>
-          <div id="criteria-step-done" style="display:none"><p class="spec-empty">Pipeline completado.</p></div>
-
-        </div>
-      </div>
-
+    <div style="font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+      <span style="background:rgba(59,130,246,.15);color:var(--accent-light);border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
+      Especificaciones funcionales
     </div>
+
+    <!-- Specs generales -->
+    <div class="specs-section">
+      <div class="specs-section-title" onclick="toggleGeneralSpecs()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none">
+        <span>Specs generales</span>
+        <span id="general-specs-arrow" style="font-size:9px;color:var(--text-3);transform:rotate(-90deg);transition:transform .2s;display:inline-block">▼</span>
+      </div>
+      <div id="general-specs-content" style="display:none;flex-direction:column;gap:10px;margin-top:10px">
+        <div class="spec-block">
+          <div class="spec-block-label">Auth</div>
+          <p>CX exige identificación antes de cualquier llamada. Usamos gcloud en lugar de una clave de servicio fija porque es más seguro — el token expira, no hay credenciales que robar.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none"><code>gcloud auth print-access-token</code> — se obtiene una vez al inicio y se reutiliza en todas las llamadas. Si expira, el Paso 1 falla con <code>401</code>.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Cabeceras obligatorias</div>
+          <p>Google necesita saber quién eres, en qué formato hablas y a qué proyecto cargar el uso. Sin estas tres cabeceras la API rechaza la llamada aunque el token sea válido.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none"><code>Authorization: Bearer &lt;token&gt;</code><br><code>Content-Type: application/json</code><br><code>x-goog-user-project: &lt;GCP_PROJECT&gt;</code></div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Agente de referencia</div>
+          <p>El agente es Petal 1.0 en Google Cloud. Todos los scripts leen su ID y región desde un único archivo — así si cambia, solo se toca en un sitio.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Petal 1.0 — región <code>europe-west1</code>. ID y proyecto en <code>definitions/agent.yaml</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Por paso -->
+    <div class="specs-section">
+      <div class="specs-section-title">Specs por paso</div>
+
+      <div id="spec-step-1">
+        <div class="spec-step-title">Paso 1 — Inventario CX</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el draft del agente Petal. El draft es el estado editable de CX — no la versión que está corriendo en staging para test cases. Este paso hace una foto de ese borrador: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Invoca cada <code>push_*.py</code> en modo lectura (LIST sin PATCH). Si algún LIST falla → abortar inmediatamente, sin datos parciales.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>Si desplegamos sin saber el estado actual, no podemos comparar qué ha cambiado. Esta foto es el punto de partida de todo el pipeline — sin ella, el diff no tiene contra qué comparar.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Token de <code>gcloud auth print-access-token</code>. Configuración del agente (ID, región, proyecto) desde <code>definitions/agent.yaml</code>.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>Una lista completa de los 12 tipos de recursos del agente (Playbooks, Examples, Tools, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Agent Config, Environments, Versions), con el conteo de cada uno. Esta lista es el punto de referencia que el Paso 3 usa para calcular qué ha cambiado.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Persiste en <code>docs/data/act_cx_draft_resources_inventory.json</code> (generado, en <code>.gitignore</code>). Estructura: <code>{ generated_at, agent, totals: { playbooks: N, ... }, resources: { playbooks: [...], ... } }</code></div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Flujo del paso</div>
+          <p>1. <strong>Inicial</strong> — botón "Iniciar inventario →"<br>
+  2. <strong>Corriendo</strong> — log animado con las llamadas LIST a la API (12 tipos de recursos)<br>
+  3. <strong>Completado</strong> — banner ✓ + cuadrícula de 12 stat-cards con conteos + botón "Continuar →"<br>
+  4. <strong>Error</strong> — si algún LIST falla → paso en error, no continúa al Paso 2</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si cualquier LIST falla → abortar inmediatamente, no continuar con datos parciales<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío<br>✓ Si draft difiere de staging (deploy anterior incompleto) → el inventario refleja el draft, no staging</p>
+          <div style="border-top:1px solid var(--border);margin:10px 0 8px"></div>
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Integridad del JSON generado</div>
+          <p style="margin-bottom:6px">Antes de guardar el archivo, el sistema verifica que los datos son coherentes y completos — así el Paso 3 puede confiar en ellos sin comprobaciones adicionales.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">✓ Los 12 tipos presentes en <code>resources</code> como arrays (<code>null</code> ≠ <code>[]</code> — null = fallo, [] = tipo inexistente)<br>✓ <code>totals[tipo] == len(resources[tipo])</code> para cada tipo — detecta paginación incompleta<br>✓ Todos los ítems con count > 0 tienen <code>name</code> no vacío — el diff usa <code>name</code> como clave<br>✓ <code>generated_at</code>, <code>agent</code> y <code>totals</code> presentes y válidos; <code>agent</code> no es un placeholder</div>
+        </div>
+      </div>
+
+      <div id="spec-step-2" style="display:none">
+        <div class="spec-step-title">Paso 2 — Push a GitHub staging</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>Tienes cambios en tu rama staging local que todavía no están en GitHub. Este paso los sube a GitHub staging para que el pipeline pueda comparar contra CX.</p>
+          <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">El script ejecuta <code>git push origin staging</code>, empujando los commits de staging local a <code>origin/staging</code> en GitHub. El usuario ve el log del resultado.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>El diff del Paso 3 compara GitHub staging contra el draft de CX. Si los commits no están en GitHub todavía, el diff estaría comparando contra código desactualizado.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>Acceso a GitHub con commits pendientes de push. Sin conflictos con el remoto.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Sin conflictos con <code>origin/staging</code>. Si el remoto está adelantado → abortar; resolver con pull antes de continuar.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>La rama <code>staging</code> de GitHub actualizada. A partir de aquí el Paso 3 ya tiene contra qué comparar.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Detalle técnico</div>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none"><code>git push origin staging</code> — si ya está al día ("Everything up-to-date") el paso completa. Si hay conflicto con <code>origin/staging</code> → abortar; el usuario resuelve antes de continuar.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Flujo del paso</div>
+          <p>1. <strong>Inicial</strong> — status ✗ con commits pendientes, lista de commits, botón "Hacer push →"<br>
+  2. <strong>Ya al día</strong> — si 0 commits pendientes: status ✓, botón "Continuar →" directamente<br>
+  3. <strong>Corriendo</strong> — log animado del push en curso<br>
+  4. <strong>Éxito</strong> — status ✓, botón "Continuar →"<br>
+  5. <strong>Error</strong> — mensaje de fallo (conflicto o red), botón "Reintentar"</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ Push exitoso — sin errores de red ni de permisos<br>✓ <code>origin/staging</code> al día con staging local<br>✓ Si hay conflicto → abortar, no continuar<br>✓ Path de error validado con <code>PUSH_SIMULATE_FAIL=true</code> — el sistema detecta el fallo, muestra el error y no continúa al Paso 3<br>✓ Si ya está al día (0 commits pendientes) → el paso completa sin error — no bloquea el pipeline</p>
+        </div>
+      </div>
+      <div id="spec-step-3" style="display:none">
+        <div class="spec-step-title">Paso 3 — Diff GitHub vs CX</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>Antes de tocar nada en CX, el sistema compara lo que tienes en GitHub staging con lo que hay ahora mismo en el draft del agente. El resultado es una lista exacta: qué recursos hay que crear, cuáles modificar y cuáles eliminar. Solo se opera sobre lo que ha cambiado.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Diff entre <code>definitions/</code> de GitHub staging y el inventario del Paso 1 (<code>act_cx_draft_resources_inventory.json</code>). Genera POST (nuevo), PATCH (modificado), DELETE (eliminado). Matching por campo <code>name</code>.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>Si desplegaras todo siempre estarías machacando recursos que no han cambiado, arriesgando inconsistencias. El diff es lo que hace que el pipeline sea idempotente: ejecutarlo dos veces seguidas sin cambios no hace nada.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>El inventario generado en el Paso 1 como foto del estado actual del draft, y los archivos de definición de GitHub staging como fuente de verdad de lo que debería haber.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none"><code>act_cx_draft_resources_inventory.json</code> · <code>definitions/**/*.yaml</code> (rama <code>staging</code>)</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>Una lista de operaciones por recurso: POST · PATCH · DELETE. Si no hay diferencias, el pipeline termina aquí — no hay nada que desplegar.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Flujo del paso</div>
+          <p>1. <strong>Con cambios</strong> — tabla con Tipo · Recurso · Operación + leyenda POST/PATCH/DELETE + botón "Continuar →"<br>
+          2. <strong>Sin cambios</strong> — aviso "Sin cambios detectados" + botón "Cerrar" → pipeline termina</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ Diff completado para los 12 tipos de recursos<br>
+          ✓ POST/PATCH/DELETE mutuamente excluyentes por recurso<br>
+          ✓ Tabla coherente con el inventario del Paso 1<br>
+          ✓ Si sin cambios → pipeline termina limpiamente, no continúa al Paso 4</p>
+        </div>
+      </div>
+      <div id="spec-step-4" style="display:none">
+        <div class="spec-step-title">Paso 4 — Confirmar deploy</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>Aplica al draft del agente en CX los cambios calculados en el Paso 3, recurso a recurso. Es el único paso que realmente muta CX — todo lo anterior era preparación.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Para cada recurso en la lista del Paso 3: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados".</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>Sin este paso el diff no sirve de nada. Es el momento en que los cambios pasan de GitHub al agente.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>La lista de operaciones del Paso 3 y conexión activa con CX.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Lista POST/PATCH/DELETE del Paso 3. Token de <code>gcloud auth print-access-token</code>. Headers obligatorios (ver Specs generales).</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>El draft del agente en CX actualizado con los cambios. Si falla en algún recurso, el draft queda en estado parcial — algunos recursos aplicados, otros no — con dos salidas de recuperación.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Flujo del paso</div>
+          <p>El recuento y descripción de recursos (X modificados, Y nuevos, Z eliminados) viene del diff del Paso 3 — el script lo pasa a la UI antes de mostrar el gate de confirmación. El log de ejecución se emite línea a línea, una por recurso, de forma progresiva — no como resumen final. El resto de estados y botones son derivables del HTML.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ Deploy completo → todos los recursos OK, banner verde, botón "Continuar →"<br>
+          ✓ Deploy parcial → resumen OK/ERROR/no-intentado, dos opciones de recuperación<br>
+          ✓ "Reintentar fallidos" → solo reintenta los que fallaron, no los ya aplicados<br>
+          ✓ "Revertir draft" → restaura el draft al estado previo al deploy<br>
+          ✓ Simulable con <code>DEPLOY_SIMULATE_FAIL=true</code></p>
+        </div>
+      </div>
+      <div id="spec-step-5" style="display:none">
+        <div class="spec-step-title">Paso 5 — Snapshot del agente</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>CX congela el estado actual del draft como una versión numerada en el entorno staging. A partir de aquí los tests tienen una referencia estable — el draft ya no importa porque el snapshot es inmutable.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none"><code>POST /versions</code> en el entorno staging → devuelve una LRO. Polling en <code>GET /operations/{id}</code> hasta <code>done:true</code>. <code>displayName</code> obligatorio en el body — sin él la API devuelve 200 pero la operation falla silenciosamente con <code>code:3</code>.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>El draft es mutable y puede cambiar en cualquier momento. El snapshot congela el estado para que los tests tengan una referencia fija y es el punto de rollback si los tests fallan en el Paso 6.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>Conexión activa con CX. El nombre del snapshot es opcional — si el usuario lo deja vacío, el script genera uno automático.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Nombre → campo <code>displayName</code> en el POST body. Máx. 64 chars, letras/dígitos/guiones/guiones bajos. Si vacío → el script genera un nombre automático con fecha y hora; el campo nunca se omite del body.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>Una nueva versión del agente en staging. La versión anterior se conserva para poder hacer rollback. El nombre del snapshot queda disponible para los Pasos 6, 7 y 8.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">CX conserva máximo 5 versiones por entorno. Si ya hay 5, la más antigua se elimina automáticamente al crear ésta. El script almacena el nombre del snapshot en memoria para propagarlo a los pasos siguientes.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Flujo del paso</div>
+          <p>El nombre que el usuario introduce (o vacío) se envía como <code>displayName</code> en el POST. Si está vacío, el script genera el nombre automáticamente — el campo nunca se omite. El resultado del LRO confirma el nombre final asignado por CX.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ Snapshot creado → esperar <code>done:true</code> en el LRO antes de reportar éxito — no reportar antes<br>
+          ✓ <code>displayName</code> siempre presente en el POST body — nunca omitirlo aunque el campo UI esté vacío<br>
+          ✓ Si ya hay 5 versiones → la más antigua se elimina automáticamente, el snapshot se crea igualmente<br>
+          ✓ El nombre del snapshot se propaga a los elementos <code>snapshot-name-ref</code> de Pasos 6, 7 y 8</p>
+        </div>
+      </div>
+      <div id="spec-step-6" style="display:none">
+        <div class="spec-step-title">Paso 6 — Validación de tests</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>Este paso no ejecuta tests — es el punto de decisión donde el usuario declara si los tests QA han pasado o fallado en staging. Según la respuesta, el pipeline avanza o revierte.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>El pipeline no puede ejecutar los tests QA por sí solo — requieren un runner externo. Este gate obliga a verificar los resultados antes de permitir el avance a producción.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>El snapshot creado en el Paso 5, necesario para poder hacer rollback si los tests fallan. El usuario habrá ejecutado la suite QA externamente antes de llegar aquí.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>Dos salidas posibles: si los tests pasan, el pipeline avanza al Paso 7. Si se confirma rollback, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Rollback: <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Si el usuario cancela el rollback: ninguna llamada a la API — staging y draft quedan sin cambios.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Flujo del paso</div>
+          <p>La decisión del usuario (superados / fallidos) determina el camino. Si rollback confirmado: el script hace PATCH sobre staging y restaura el draft — el pipeline queda abortado. Si rollback cancelado: el pipeline queda en pausa con el snapshot actual intacto.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ "Tests superados" → avanza al Paso 7 sin ninguna llamada a la API<br>
+          ✓ Rollback confirmado → staging apunta a la versión anterior + draft restaurado desde esa versión<br>
+          ✓ Rollback cancelado → staging y draft no se modifican<br>
+          ✓ Producción no se toca en ningún caso durante este paso</p>
+        </div>
+      </div>
+      <div id="spec-step-7" style="display:none">
+        <div class="spec-step-title">Paso 7 — Gate QA staging</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>El usuario valida directamente el agente en el entorno staging de CX. La UI muestra el estado actual de los tres entornos (draft, staging, producción) para dar contexto completo. Cuando el usuario confirma, el pipeline avanza a producción. Si algo falla en las pruebas, puede revertir staging a la versión anterior desde este mismo paso.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>Antes de impactar a usuarios reales, este paso ofrece una última barrera de validación humana con el snapshot real activo en staging — no en simulación. El Paso 6 valida con tests automatizados; este paso valida con exploración manual directa en CX.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>El snapshot del Paso 5 activo en el entorno staging. El usuario habrá probado el agente en CX antes de pulsar "Validado".</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>Dos salidas posibles: si el usuario valida, el pipeline avanza al Paso 8 sin ninguna llamada a la API. Si el usuario revierte, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta — misma secuencia que el rollback del Paso 6.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">"Validado" → <code>advance(7)</code> sin ninguna llamada a API. "Rollback a staging anterior" → <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Misma secuencia que <code>rollbackStaging()</code> del Paso 6.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Flujo del paso</div>
+          <p>El bloque de estado de entornos muestra las tres filas (draft, staging, producción) con la versión activa en cada una, para que el usuario tenga el contexto completo antes de decidir. El enlace abre directamente el agente en CX staging. No hay lógica automática en este paso.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ "Validado" → avanza al Paso 8 sin llamadas a la API<br>
+          ✓ Rollback → <code>PATCH /environments/staging</code> a versión anterior + draft restaurado desde esa versión<br>
+          ✓ Producción no se modifica en ningún caso durante este paso<br>
+          ✓ Tras rollback, el pipeline queda abortado — no pausado</p>
+        </div>
+      </div>
+      <div id="spec-step-8" style="display:none">
+        <div class="spec-step-title">Paso 8 — Aprobar subida a producción</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>Ejecuta las dos acciones que llevan los cambios a producción: merge de la rama staging a main en GitHub, y promoción del snapshot activo al entorno de producción en CX. Se ejecutan en secuencia: si el merge falla, la promoción no se intenta.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>Separa la aprobación definitiva del resto del pipeline. En este punto el usuario tiene toda la información necesaria — staging validado manualmente, snapshot conocido — antes de tomar la decisión que impacta a usuarios reales.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>El snapshot del Paso 5 activo en staging. La rama staging sin conflictos con main en GitHub — si los hay, el merge falla y el paso lo indica.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>Si ambas acciones tienen éxito: el snapshot queda asignado a producción, staging mergeado a main, pipeline completado. Si el merge falla por conflicto: el pipeline se detiene y el usuario resuelve en GitHub antes de reintentar — la promoción a CX no se ejecuta hasta que el merge complete.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Acción 1: merge <code>staging → main</code> vía GitHub API (o <code>gh pr merge</code>). Si el merge devuelve conflicto, mostrar panel y detener. Acción 2: <code>PATCH /environments/production</code> apuntando al mismo snapshot que ya tiene staging — no se crea una versión nueva, solo se reasigna el entorno. Si la rama staging diverge o hay conflictos, el merge falla antes de tocar CX producción.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Flujo del paso</div>
+          <p>Las dos acciones se emiten progresivamente en el log, una tras otra. Si el merge falla por conflicto, el panel de conflicto reemplaza el log y muestra el enlace a GitHub para resolverlo — el usuario puede reintentar desde el mismo estado. "Abortar" en ese panel solo cancela el intento de merge; staging y su snapshot quedan intactos y el gate inicial reaparece.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ Merge primero, promoción después — nunca en paralelo ni al revés<br>
+          ✓ Si merge falla → <code>PATCH /environments/production</code> no se ejecuta<br>
+          ✓ "Abortar" en conflicto no inicia rollback — solo restaura el gate inicial<br>
+          ✓ El snapshot asignado a producción es el mismo que ya tiene staging (sin crear versión nueva)<br>
+          ✓ Producción solo se modifica si el merge completó sin errores</p>
+        </div>
+      </div>
+      <div id="spec-step-done" style="display:none">
+        <div class="spec-step-title">Pipeline completado</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Estado final</div>
+          <p>Staging y producción apuntan al mismo snapshot. El código validado está en main. El deploy queda registrado con timestamp.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Estado final de entornos: <code>staging → &lt;snapshot&gt;</code> · <code>production → &lt;snapshot&gt;</code>. La rama main tiene el commit de merge. El checkbox "Sincronizar main local" recuerda al operador hacer <code>git fetch origin main:main</code> en su copia local — es manual, no lo hace el script.</div>
+        </div>
+      </div>
+    </div>
+
   </aside>
-  <!-- ═══════════════════════════════════════════════════════════════════
-       FIN SPECS PANEL
-       ═══════════════════════════════════════════════════════════════════ -->
 
 </div>
 
 <script>
-// ─── SPECS PANEL — cambiar a false para eliminar el panel ────────────────────
-const SHOW_SPECS = true;
-// ─────────────────────────────────────────────────────────────────────────────
-
-const DIFF_COUNT = 3;
+const DIFF_COUNT = 4;
 const DEPLOY_COUNT = 4;
 const TEST_COUNT = 42;
 const PUSH_SIMULATE_FAIL           = false;
@@ -705,7 +895,7 @@ const CHECK_RESULTS = {
   push: {
     ok: false,
     pending: [
-      { hash: '98fcbdd', msg: 'fix: deploy panel mejoras' },
+      { hash: 'c4f2a1b', msg: 'fix: deploy panel mejoras' },
       { hash: 'a3b1c2d', msg: 'feat: añadir example compra_rosas_001' },
     ],
   },
@@ -727,11 +917,29 @@ let current = 1;
 let viewingStep = 1;
 let snapshotName = '';
 let isRunning = false;
+let animVersion = 0;
+
+function toggleTech(btn) {
+  const content = btn.nextElementSibling;
+  const open = content.style.display !== 'none';
+  content.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? 'TECH ▼' : 'TECH ▲';
+}
+
+function toggleGeneralSpecs() {
+  const content = document.getElementById('general-specs-content');
+  const arrow = document.getElementById('general-specs-arrow');
+  const open = content.style.display !== 'none';
+  content.style.display = open ? 'none' : 'flex';
+  arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
 
 function setRunning(val) {
   isRunning = val;
   document.getElementById('sidebar').style.opacity = val ? '0.4' : '1';
   document.getElementById('sidebar').style.pointerEvents = val ? 'none' : '';
+  const btn = document.getElementById('btn-reset');
+  if (btn) { btn.disabled = val; btn.style.opacity = val ? '0.4' : '1'; btn.style.pointerEvents = val ? 'none' : ''; }
 }
 
 const INV_LINES = [
@@ -744,6 +952,7 @@ const INV_LINES = [
 ];
 
 function startInventory() {
+  const v = ++animVersion;
   setRunning(true);
   document.getElementById('inv-start').style.display = 'none';
   document.getElementById('inv-log').style.display = 'block';
@@ -751,6 +960,7 @@ function startInventory() {
   logBlock.innerHTML = '';
   let i = 0;
   function showLine() {
+    if (animVersion !== v) return;
     if(i >= INV_LINES.length) {
       setTimeout(() => {
         document.getElementById('inv-done').style.display = 'block';
@@ -809,7 +1019,7 @@ function renderStep2Checks() {
 function executePush() {
   const r = CHECK_RESULTS.push;
   setRunning(true);
-  document.getElementById('push-status-icon').innerHTML = '<div style="width:14px;height:14px;border:2px solid #60a5fa;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>';
+  document.getElementById('push-status-icon').innerHTML = '<div style="width:14px;height:14px;border:2px solid var(--accent-light);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>';
   document.getElementById('push-status-label').textContent = 'Enviando commits a origin/staging...';
   document.getElementById('push-status-detail').textContent = '';
   document.getElementById('push-action').innerHTML = '';
@@ -901,19 +1111,22 @@ function renderStep3Diff() {
 const DEPLOY_RESOURCES = [
   {label:'Playbook · Compra · PATCH (Full Update)',         ok: true,  okText:'OK',                            cls:'ok'},
   {label:'Playbook · Orquestador · PATCH (Full Update)',    ok: true,  okText:'OK',                            cls:'ok'},
-  {label:'Example · compra_rosas_001 · POST',               ok: false, okText:'OK', errText:'ERROR 400: campo "steps" no válido', cls:'del'},
+  {label:'Example · compra_rosas_001 · POST',               ok: false, okText:'OK', errText:'ERROR 400: campo "steps" no válido', cls:'ok'},
   {label:'Example · compra_tulipanes_002 · DELETE',         ok: true,  okText:'OK',                            cls:'del'},
 ];
 
 function confirmDeploy() {
+  const v = ++animVersion;
   setRunning(true);
   document.getElementById('deploy-gate').style.display = 'none';
   document.getElementById('deploy-log').style.display = 'block';
+  document.getElementById('deploy-fail').style.display = 'none';
   const failAt = DEPLOY_SIMULATE_FAIL ? DEPLOY_RESOURCES.findIndex(r => !r.ok) : -1;
   const logBlock = document.getElementById('deploy-log-block');
   logBlock.innerHTML = '';
   let i = 0;
   function showLine() {
+    if (animVersion !== v) return;
     if (i >= DEPLOY_RESOURCES.length) {
       setTimeout(() => {
         if (failAt === -1) {
@@ -948,7 +1161,7 @@ function confirmDeploy() {
       }, 400);
       return;
     }
-    appendLogLine(logBlock, res.cls === 'del' ? 'del' : 'ok', `✓ ${res.label} → ${res.okText}`);
+    appendLogLine(logBlock, res.cls === 'del' ? 'dim' : 'ok', `✓ ${res.label} → ${res.okText}`);
     i++;
     setTimeout(showLine, 400);
   }
@@ -972,6 +1185,8 @@ function retryFailed() {
   const retryLines = [
     {cls:'ok',  text:'↻ Reintentando Example · compra_rosas_001 · POST...'},
     {cls:'ok',  text:'✓ Example · compra_rosas_001 · POST → OK'},
+    {cls:'ok',  text:'↻ Reintentando Example · compra_tulipanes_002 · DELETE...'},
+    {cls:'ok',  text:'✓ Example · compra_tulipanes_002 · DELETE → OK'},
     {cls:'ok',  text:'✓ Deploy completado — todos los recursos aplicados'},
   ];
   let i = 0;
@@ -1022,6 +1237,7 @@ function resetDeployStep4() {
   document.getElementById('deploy-gate').style.display = 'block';
   document.getElementById('deploy-log').style.display = 'none';
   document.getElementById('deploy-done').style.display = 'none';
+  document.getElementById('deploy-fail').style.display = 'none';
   document.getElementById('deploy-log-block').innerHTML = '';
 }
 
@@ -1044,6 +1260,7 @@ function stateText(state) {
   if(state==='gate') return 'Esperando confirmación';
   if(state==='active') return 'En progreso...';
   if(state==='pending') return 'Pendiente';
+  if(state==='error') return 'Rollback';
   return '';
 }
 function badgeContent(state, n) {
@@ -1107,16 +1324,15 @@ function syncSpecsPanel(id) {
   document.querySelectorAll('[id^="spec-step-"]').forEach(el => el.style.display = 'none');
   const spec = document.getElementById('spec-step-' + id);
   if(spec) spec.style.display = 'block';
-  document.querySelectorAll('[id^="criteria-step-"]').forEach(el => el.style.display = 'none');
-  const criteria = document.getElementById('criteria-step-' + id);
-  if(criteria) criteria.style.display = 'block';
 }
 
 function advance(fromStep) {
+  if(stepStates[fromStep] !== 'pending') return; // SM-02: ya completado o en curso
   const idx = fromStep - 1;
   stepStates[idx] = 'done';
   const nextIdx = idx + 1;
   if(nextIdx < STEPS.length) {
+    if (stepStates[nextIdx] === 'done' || stepStates[nextIdx] === 'gate') return;
     stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
     if(!STEPS[nextIdx].gate) {
       setTimeout(() => completeAuto(nextIdx), 600);
@@ -1133,6 +1349,9 @@ function toggleSyncCheck() {
 }
 
 function confirmProduction() {
+  const r = document.getElementById('prod-conflict-reminder');
+  if(r) r.remove();
+  const v = ++animVersion;
   setRunning(true);
   document.getElementById('prod-gate').style.display = 'none';
   document.getElementById('prod-log').style.display = 'block';
@@ -1149,14 +1368,14 @@ function confirmProduction() {
     {cls:'warn', text:'  Merge abortado — main no ha sido modificado'},
   ];
   const snapLines = [
-    {cls:'ok',   text:'✓ Creando snapshot de producción...'},
-    {cls:'ok',   text:'✓ LRO polling — esperando confirmación de CX...'},
-    {cls:'ok',   text:'✓ Snapshot "' + (snapshotName || '2026-07-29_1045') + '" creado en producción'},
-    {cls:'ok',   text:'✓ Entorno producción apuntando a la versión nueva'},
+    {cls:'ok', text:'✓ Asignando versión "' + (snapshotName || '2026-07-29_1045') + '" al entorno de producción...'},
+    {cls:'ok', text:'✓ PATCH /environments/production — versión asignada'},
+    {cls:'ok', text:'✓ Entorno producción apuntando a "' + (snapshotName || '2026-07-29_1045') + '"'},
   ];
   const lines = PRODUCTION_SIMULATE_CONFLICT ? conflictLines : [...mergeLines, ...snapLines];
   let i = 0;
   function showLine() {
+    if (animVersion !== v) return;
     if (i >= lines.length) {
       setTimeout(() => {
         if (PRODUCTION_SIMULATE_CONFLICT) {
@@ -1180,10 +1399,19 @@ function abortProduction() {
   document.getElementById('prod-log').style.display = 'none';
   document.getElementById('prod-log-block').innerHTML = '';
   document.getElementById('prod-gate').style.display = 'block';
+  const existing = document.getElementById('prod-conflict-reminder');
+  if (!existing) {
+    const rem = document.createElement('p');
+    rem.id = 'prod-conflict-reminder';
+    rem.style.cssText = 'color:var(--gate);font-size:12px;margin-top:10px';
+    rem.textContent = 'Conflicto de merge pendiente — resuélvelo en GitHub antes de reintentar.';
+    document.getElementById('prod-gate').appendChild(rem);
+  }
   setRunning(false);
 }
 
 function advanceToDone() {
+  if (stepStates[7] !== 'gate') return;
   stepStates[7] = 'done';
   viewingStep = 'done';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
@@ -1194,17 +1422,20 @@ function advanceToDone() {
   badge.style.color = '#4ade80';
   badge.style.borderColor = 'rgba(34,197,94,.3)';
   document.getElementById('last-deploy-time').textContent = 'ahora mismo';
+  const _d = new Date(), _p = n => String(n).padStart(2,'0');
+  document.getElementById('done-timestamp').textContent = _d.getUTCFullYear() + '-' + _p(_d.getUTCMonth()+1) + '-' + _p(_d.getUTCDate()) + ' · ' + _p(_d.getUTCHours()) + ':' + _p(_d.getUTCMinutes()) + ' UTC';
   renderSidebar();
 }
 
 function completeAuto(idx) {
+  const v = ++animVersion;
   stepStates[idx] = 'done';
   const nextIdx = idx + 1;
   if(nextIdx < STEPS.length) {
     stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
     current = STEPS[nextIdx].id;
     viewStep(current);
-    if(!STEPS[nextIdx].gate) setTimeout(() => completeAuto(nextIdx), 800);
+    if(!STEPS[nextIdx].gate) setTimeout(() => { if(animVersion !== v) return; completeAuto(nextIdx); }, 800);
   }
   renderSidebar();
 }
@@ -1217,6 +1448,7 @@ function confirmSnapshot() {
   }
   const name = inputVal || generateSnapshotName();
   setSnapshotName(name);
+  const v = ++animVersion;
   setRunning(true);
   document.getElementById('snap-gate').style.display = 'none';
   document.getElementById('snap-log').style.display = 'block';
@@ -1225,13 +1457,14 @@ function confirmSnapshot() {
     {cls:'ok',  text:'✓ Operación iniciada — LRO polling...'},
     {cls:'ok',  text:'✓ Esperando confirmación de CX...'},
     {cls:'ok',  text:'✓ Snapshot "' + name + '" creado correctamente'},
-    {cls:'del', text:'  v1 · 2026-07-01_1200 → eliminada (límite 5 versiones)'},
+    {cls:'dim', text:'  v1 · 2026-07-01_1200 → eliminada (límite 5 versiones)'},
     {cls:'ok',  text:'✓ Staging apuntando a "' + name + '"'},
   ];
   const logBlock = document.getElementById('snap-log-block');
   logBlock.innerHTML = '';
   let i = 0;
   function showLine() {
+    if (animVersion !== v) return;
     if(i >= SNAP_LINES.length) {
       setTimeout(() => {
         document.getElementById('snap-done').style.display = 'block';
@@ -1261,9 +1494,13 @@ function resetSnapshotUI() {
 
 function showRollbackConfirm() {
   document.getElementById('rollback-confirm').style.display = 'block';
+  document.getElementById('test-action-bar').style.display = 'none';
 }
 function hideRollbackConfirm() {
   document.getElementById('rollback-confirm').style.display = 'none';
+  document.getElementById('test-action-bar').style.display = 'flex';
+  const tgt = document.getElementById('test-gate-title');
+  if(tgt) tgt.style.display = '';
 }
 const ROLLBACK_LINES = [
   { cls: 'ok', text: '✓ Iniciando rollback de staging...' },
@@ -1274,20 +1511,28 @@ const ROLLBACK_LINES = [
 ];
 
 function rollbackFromStep7() {
+  if(isRunning) return;
+  if(!confirm('¿Revertir staging al estado anterior?')) return;
+  stepStates[6] = 'pending'; // SM-03: bloquea paso 7 mientras el rollback está en curso
+  renderSidebar();
   viewStep(6);
   setTimeout(() => showRollbackConfirm(), 100);
 }
 
 function rollbackStaging() {
+  const v = ++animVersion;
   setRunning(true);
   document.getElementById('rollback-confirm').style.display = 'none';
   document.getElementById('test-action-bar').style.display = 'none';
+  const tgt = document.getElementById('test-gate-title');
+  if(tgt) tgt.style.display = 'none';
   const logWrap = document.getElementById('rollback-log');
   const logBlock = document.getElementById('rollback-log-block');
   logWrap.style.display = 'block';
   logBlock.innerHTML = '';
   let i = 0;
   function showLine() {
+    if (animVersion !== v) return;
     if (i >= ROLLBACK_LINES.length) {
       setTimeout(() => {
         document.getElementById('rollback-done-banner').style.display = 'block';
@@ -1312,14 +1557,22 @@ function rollbackStaging() {
 }
 
 function cancelDeploy(afterDeploy) {
-  const msg = afterDeploy
-    ? 'El draft de CX ya tiene los cambios del deploy. Cancelar no los deshace — para revertirlos usa el rollback desde el paso de validación de tests.\n\n¿Cerrar el panel igualmente?'
-    : 'CX no ha sido modificado todavía. ¿Cancelar el deploy?';
-  if(confirm(msg)) resetDeploy();
+  if(afterDeploy) {
+    if(confirm('El draft de CX ya tiene los cambios del deploy.\n\n¿Ir al rollback para revertirlos?')) {
+      stepStates[5] = 'gate';  // desbloquea paso 6 para que viewStep lo acepte
+      stepStates[6] = 'pending'; // bloquea paso 7
+      renderSidebar();
+      viewStep(6);
+      setTimeout(() => showRollbackConfirm(), 100);
+    }
+  } else {
+    if(confirm('¿Cancelar el deploy?\n\nEl inventario local no se ha modificado.')) resetDeploy();
+  }
 }
 
 function resetDeploy() {
   setRunning(false);
+  animVersion++;
   stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
   current = 1; viewingStep = 1;
   snapshotName = '';
@@ -1332,6 +1585,8 @@ function resetDeploy() {
   document.getElementById('rollback-log-block').innerHTML = '';
   document.getElementById('rollback-done-banner').style.display = 'none';
   document.getElementById('test-action-bar').style.display = 'flex';
+  const tgtReset = document.getElementById('test-gate-title');
+  if(tgtReset) tgtReset.style.display = '';
   document.getElementById('push-log').style.display = 'none';
   document.getElementById('push-log').style.opacity = '1';
   document.getElementById('push-log-block').innerHTML = '';
@@ -1339,13 +1594,27 @@ function resetDeploy() {
   document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
   document.getElementById('push-status-detail').textContent = 'origin/staging está 2 commits por detrás';
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
+  document.getElementById('done-timestamp').textContent = '— · — UTC';
   const badge = document.getElementById('topbar-env');
   badge.textContent = 'STAGING';
   badge.style.background = 'rgba(59,130,246,.15)';
   badge.style.color = '#60a5fa';
   badge.style.borderColor = 'rgba(59,130,246,.3)';
   document.getElementById('last-deploy-time').textContent = 'hace 3 días';
+  document.getElementById('prod-gate').style.display = 'block';
+  document.getElementById('prod-log').style.display = 'none';
+  document.getElementById('prod-log-block').innerHTML = '';
+  document.getElementById('prod-conflict').style.display = 'none';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  // P1-A: restaurar btn-validado-p7 para el segundo ciclo
+  const btnP7 = document.getElementById('btn-validado-p7');
+  if (btnP7) { btnP7.disabled = false; btnP7.textContent = 'Validado — aprobar producción →'; }
+  // P2-F: resetear checkbox "Sincronizar main local"
+  const syncCb = document.getElementById('check-sync-local');
+  if (syncCb) {
+    syncCb.checked = false;
+    document.getElementById('done-sync-title').style.color = 'var(--text-2)';
+  }
   viewStep(1);
 }
 
@@ -1353,24 +1622,5 @@ document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
 document.getElementById('snapshot-name').value = generateSnapshotName();
 viewStep(1);
 renderSidebar();
-
-// SPECS PANEL — funciones de control
-if (!SHOW_SPECS) document.getElementById('specs-panel').style.display = 'none';
-
-function toggleSpecsPanel() {
-  const panel = document.getElementById('specs-panel');
-  panel.classList.toggle('collapsed');
-  const isCollapsed = panel.classList.contains('collapsed');
-  document.querySelector('.specs-collapse-btn').textContent = isCollapsed ? '›' : '‹';
-  const topBtn = document.getElementById('specs-toggle-btn');
-  if (topBtn) topBtn.textContent = isCollapsed ? '▶ SPECS' : '◀ SPECS';
-}
-
-function toggleSection(id) {
-  document.getElementById(id).classList.toggle('collapsed');
-}
-
-function toggleCriteria(id) {
-  document.getElementById(id).classList.toggle('criteria-collapsed');
-}
 </script>
+
