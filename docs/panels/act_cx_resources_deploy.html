@@ -588,7 +588,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">Qué hace</div>
           <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el draft del agente Petal. El draft es el estado editable de CX — no la versión que está corriendo en staging para test cases. Este paso hace una foto de ese borrador: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Invoca cada <code>push_*.py</code> en modo lectura (LIST sin PATCH). Si algún LIST falla → abortar inmediatamente, sin datos parciales.</div>
+          <div class="tech-content" style="display:none">Invoca los 12 scripts <code>pull_*.py</code> (READ-ONLY, un script por tipo de recurso). Si algún LIST falla → abortar inmediatamente, sin datos parciales.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
@@ -615,7 +615,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si cualquier LIST falla → abortar inmediatamente, no continuar con datos parciales<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío<br>✓ Si draft difiere de staging (deploy anterior incompleto) → el inventario refleja el draft, no staging</p>
+          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si cualquier LIST falla → abortar inmediatamente, no continuar con datos parciales<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío<br>✓ Si draft difiere de staging (deploy anterior incompleto) → el inventario refleja el draft, no staging<br>✓ 429 (rate limit) → reintentar con backoff exponencial (máx. 3 intentos); si persiste → abortar</p>
           <div style="border-top:1px solid var(--border);margin:10px 0 8px"></div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Integridad del JSON generado</div>
           <p style="margin-bottom:6px">Antes de guardar el archivo, el sistema verifica que los datos son coherentes y completos — así el Paso 3 puede confiar en ellos sin comprobaciones adicionales.</p>
@@ -706,7 +706,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">Qué hace</div>
           <p>Aplica al draft del agente en CX los cambios calculados en el Paso 3, recurso a recurso. Es el único paso que realmente muta CX — todo lo anterior era preparación.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Para cada recurso en la lista del Paso 3: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados".</div>
+          <div class="tech-content" style="display:none">Para cada recurso en la lista del Paso 3: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados". Orden de deploy obligatorio: Entity Types → Intents → Webhooks → Tools → Generators → Playbooks → Examples → Flows → Pages → Agent Config. Los tipos que son referenciados por otros van primero — si un playbook referencia un webhook, el webhook debe existir antes del PATCH del playbook.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
@@ -730,7 +730,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
           <p>✓ Deploy completo → todos los recursos OK, banner verde, botón "Continuar →"<br>
           ✓ Deploy parcial → resumen OK/ERROR/no-intentado, dos opciones de recuperación<br>
-          ✓ "Reintentar fallidos" → solo reintenta los que fallaron, no los ya aplicados<br>
+          ✓ "Reintentar fallidos" → reintenta el recurso fallido más todos los que quedaron como "no intentado" por el fallo anterior; no reintenta los que ya completaron OK<br>
           ✓ "Revertir draft" → restaura el draft al estado previo al deploy<br>
           ✓ Simulable con <code>DEPLOY_SIMULATE_FAIL=true</code></p>
         </div>
@@ -853,7 +853,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">Qué produce</div>
           <p>Si ambas acciones tienen éxito: el snapshot queda asignado a producción, staging mergeado a main, pipeline completado. Si el merge falla por conflicto: el pipeline se detiene y el usuario resuelve en GitHub antes de reintentar — la promoción a CX no se ejecuta hasta que el merge complete.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Acción 1: merge <code>staging → main</code> vía GitHub API (o <code>gh pr merge</code>). Si el merge devuelve conflicto, mostrar panel y detener. Acción 2: <code>PATCH /environments/production</code> apuntando al mismo snapshot que ya tiene staging — no se crea una versión nueva, solo se reasigna el entorno. Si la rama staging diverge o hay conflictos, el merge falla antes de tocar CX producción.</div>
+          <div class="tech-content" style="display:none">Acción 1: merge <code>staging → main</code> vía GitHub API (o <code>gh pr merge</code>). Si el merge devuelve conflicto, mostrar panel y detener. Acción 2: <code>PATCH /environments/production</code> apuntando al mismo snapshot que ya tiene staging — no se crea una versión nueva, solo se reasigna el entorno. Si la rama staging diverge o hay conflictos, el merge falla antes de tocar CX producción. Si el merge falla → main no ha sido modificado. El abort es limpio — no requiere acción de recuperación en GitHub.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Flujo del paso</div>
