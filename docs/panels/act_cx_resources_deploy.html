@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>act_deploy — Deploy Petal 1.0</title>
+<title>act_cx_resources_deploy.py — Deploy Petal 1.0</title>
 <style>
 :root {
   --bg:#0d1117;--bg-2:#1a2030;--bg-3:#252d3a;--border:#3d4755;
@@ -602,6 +602,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-block">
           <div class="spec-block-label">Detalle técnico</div>
           <p>Invoca cada <code>push_*.py</code> en modo lectura (LIST sin PATCH). Token desde <code>gcloud auth print-access-token</code>. Configuración del agente desde <code>definitions/agent.yaml</code>. Si algún LIST falla → abortar, no continuar con datos parciales.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si algún LIST falla → paso en error, no continúa<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío</p>
         </div>
       </div>
 
