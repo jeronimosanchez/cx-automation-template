@@ -785,14 +785,9 @@ const PHASES = [
       'act/act_cx_resources_deploy.py — importar las funciones de cada paso. Entender la firma de cada función (parámetros, retorno) antes de escribir los endpoints.',
       'docs/panels/act_cx_resources_deploy.html — ver qué datos espera cada botón en la respuesta del servidor: qué campos de <code>data</code> usa la UI para actualizar el estado del paso.'
     ], outputs: [{ path: 'act/server.py', desc: 'Servidor Flask — 8 endpoints + CORS + arranque' }], pasos: [] }, val: { grupos: [
-      { title: "Arranque · Automático (LLM)", items: [
-        "<code>python act/server.py</code> arranca sin errores — servidor escuchando en puerto 5000",
-        "<code>curl -X POST localhost:5000/step/1</code> devuelve JSON válido con <code>{status, log}</code>",
-        "CORS no bloquea las llamadas desde <code>file://</code> — cabecera <code>Access-Control-Allow-Origin: *</code> presente en la respuesta"
-      ]},
-      { title: "Integración · Manual (Jero)", items: [
-        { criterio: "Ejecuta <code>curl -X POST localhost:5000/step/1</code> (y repite para los pasos 2-8). <strong>Esperado:</strong> cada respuesta trae datos reales del agente Petal en el campo <code>data</code> — nunca vacíos, nunca valores de ejemplo.", porQue: "Un endpoint puede pasar los checks automáticos de formato devolviendo un JSON con la forma correcta pero datos falsos — solo mirar el contenido real lo detecta." },
-        { criterio: "Lee el código de cada endpoint en <code>server.py</code>. <strong>Esperado:</strong> cada uno delega en una función de <code>act_cx_resources_deploy.py</code> — ninguno reimplementa la lógica del paso dentro del propio endpoint.", porQue: "Si la lógica se duplica en el servidor, queda una segunda fuente de verdad que se desincroniza con el pipeline real la primera vez que se modifique uno de los dos." }
+      { title: "Construcción · Automático (LLM)", items: [
+        { criterio: "<code>python act/server.py</code> arranca sin errores — servidor escuchando en el puerto configurado", porQue: "Confirma que la sintaxis y los imports son correctos antes de pasar a la Fase 6, donde se prueban los 8 endpoints en profundidad — probar aquí lo que Fase 6 ya prueba mejor sería trabajo duplicado." },
+        { criterio: "Los 8 endpoints existen y delegan en una función de <code>act_cx_resources_deploy.py</code> — ninguno reimplementa lógica dentro del propio endpoint", porQue: "Es la única propiedad estructural que Fase 6 no puede verificar por fuera (necesita leer el código, no solo golpear el endpoint) — el resto de la validación funcional vive en Fase 6." }
       ]}
     ], decisions: [] } },
   { id: 6, title: "validate_server", subtitle: "Smoke test del servidor Flask — valida los 8 endpoints antes de conectar el HTML", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/validate_server.py</code> — smoke test automático que arranca <code>server.py</code>, golpea los 8 endpoints con peticiones HTTP reales y verifica que cada uno responde con el formato correcto. Esta fase existe porque <code>server.py</code> es una capa nueva entre el HTML y el pipeline — puede fallar por razones que <code>validate_pipeline.py</code> (Fase 4) no cubre: puerto ocupado, CORS mal configurado, JSON mal formado, un endpoint que no llama a la función correcta.", reglas: [
@@ -847,11 +842,6 @@ const PHASES = [
         "No existe CSS de <code>.specs-panel</code> ni de <code>.specs-tab</code> ni de <code>.specs-content</code>",
         "No existe la función <code>toggleSpecsPanel()</code> ni ninguna llamada a ella",
         "El área de steps ocupa el 100% del ancho — sin columna lateral vacía"
-      ]},
-      { title: "Conexión al servidor · Automático (LLM)", items: [
-        "Ninguna función de paso usa setTimeout con datos hardcodeados — todas llaman fetch() al servidor real",
-        "El log mostrado en cada paso proviene del campo log de la respuesta del servidor, no de un array escrito de antemano",
-        "Si el fetch falla (servidor no arrancado), el panel muestra un mensaje claro — nunca un estado colgado ni un falso éxito"
       ]},
       { title: "Funcionalidad · Automático (LLM)", items: [
         "Los 8 pasos cargan correctamente y muestran su contenido",
