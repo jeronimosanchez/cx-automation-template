@@ -28,7 +28,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .layout{display:flex;flex:1;min-height:0;overflow:hidden}
 
 /* SPECS PANEL */
-.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px}
+.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s}
+.specs-panel.collapsed{width:36px;overflow:hidden}
+.specs-tab{display:none;writing-mode:vertical-rl;text-orientation:mixed;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase;padding:20px 10px;white-space:nowrap;align-self:stretch;align-items:center;justify-content:center}
+.specs-tab:hover{color:var(--text)}
+.specs-panel.collapsed .specs-tab{display:flex}
+.specs-panel.collapsed .specs-content{display:none}
+.specs-content{overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px;flex:1}
 .specs-section{display:flex;flex-direction:column;gap:10px}
 .specs-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .spec-block{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
@@ -148,7 +154,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <span class="topbar-commit">GitHub: staging &middot; 98fcbdd</span>
   <div class="topbar-meta">
     <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
-    <button id="btn-toggle-specs" class="btn btn-ghost" onclick="toggleSpecsPanel()">SPECS &#9654;</button>
     <button id="btn-reset" class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
   </div>
 </div>
@@ -544,7 +549,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </main>
 
   <!-- SPECS PANEL -->
-  <aside class="specs-panel" id="specs-panel" style="display:none">
+  <aside class="specs-panel collapsed" id="specs-panel">
+    <div class="specs-tab" onclick="toggleSpecsPanel()" title="Ver specs">SPECS</div>
+    <div class="specs-content">
 
     <div style="font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px">
       <span style="background:rgba(59,130,246,.15);color:var(--accent-light);border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
@@ -892,6 +899,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
       </div>
     </div>
 
+    </div><!-- /specs-content -->
   </aside>
 
 </div>
@@ -947,13 +955,9 @@ function toggleGeneralSpecs() {
   arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
 }
 
-let specsOpen = false;
 function toggleSpecsPanel() {
-  specsOpen = !specsOpen;
   const panel = document.getElementById('specs-panel');
-  const btn = document.getElementById('btn-toggle-specs');
-  panel.style.display = specsOpen ? 'flex' : 'none';
-  btn.textContent = specsOpen ? 'SPECS ▼' : 'SPECS ▶';
+  panel.classList.toggle('collapsed');
 }
 
 function setRunning(val) {
@@ -1640,6 +1644,7 @@ function resetDeploy() {
   viewStep(1);
 }
 
+document.getElementById('specs-panel').classList.add('collapsed');
 document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
 document.getElementById('snapshot-name').value = generateSnapshotName();
 viewStep(1);
