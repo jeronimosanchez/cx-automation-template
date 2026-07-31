@@ -1415,7 +1415,7 @@ const REPO_COMPONENTS = [
   { file: 'act/pull_*.py (12)',           tipo: 'pull scripts', funcion: 'Sync inversa CX → local',   estado: 'ok',   nota: 'Espejo de los push',
     descripcion: 'Descarga todos los recursos del agente desde Dialogflow CX a archivos YAML locales',
     mecanismo: 'GET/LIST de CX → escribe YAMLs locales. Stripea campos read-only para que el round-trip con push reporte unchanged. Nunca POST/PATCH/DELETE.' },
-  { file: 'act/diff.py',                  tipo: 'utilidad',    funcion: 'Función pura de diff campo a campo',  estado: 'ok',   nota: 'Opus no toca este archivo — ya existe y lo usan los push_*.py internamente',
+  { file: 'act/diff.py',                  tipo: 'utilidad',    funcion: 'Función pura de diff campo a campo',  estado: 'ok',   nota: '',
     descripcion: 'Compara dos versiones de un recurso (local vs remoto) campo a campo y devuelve qué ha cambiado. Es la base de la idempotencia: todos los push_*.py la importan para saber si hay que hacer PATCH o no.',
     mecanismo: 'Recibe local+remoto (dicts) → DiffResult(needs_update, update_mask, patch_payload). Sin red, sin side effects. Los push_*.py la llaman internamente en su paso LIST→diff→PATCH.' },
   { file: 'act/validate_api.py',          tipo: 'validación',  funcion: 'Conectividad API (9 checks)', estado: 'ok',   nota: '9/9 PASS en producción',
