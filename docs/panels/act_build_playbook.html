@@ -194,6 +194,8 @@
   .tag-py    { background: #2563eb; }
   .tag-html  { background: #c2410c; }
   .tag-ci    { background: #7c3aed; }
+  .tag-discarded { background: #3d2b2b; color: #e57373; }
+  .phase-tab.discarded-tab .tab-name { color: #7d8590; text-decoration: line-through; }
   .tag-audit { background: #4b5563; }
   .tag-goal  { background: #047857; }
 
@@ -273,6 +275,33 @@
   .block.llm .block-header { background: var(--llm-bg); color: var(--llm-header); }
   .block.val { border-color: var(--val-border); }
   .block.val .block-header { background: var(--val-bg); color: var(--val-header); }
+  .block.proceso { border-color: #2d4a3e; }
+  .block.proceso .block-header { background: #1a3329; color: #4caf87; }
+  :root[data-theme="light"] .block.proceso { border-color: #a8d5bf; }
+  :root[data-theme="light"] .block.proceso .block-header { background: #eaf7f0; color: #1a6641; }
+  .block.criterios { border-color: #2d3a4a; }
+  .block.criterios .block-header { background: #1a2535; color: #7eb8e8; }
+  :root[data-theme="light"] .block.criterios { border-color: #b8d0e8; }
+  :root[data-theme="light"] .block.criterios .block-header { background: #eaf2fb; color: #1a4a6e; }
+
+  .paso-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+  .paso-chip { flex-shrink:0; font-size:11px; font-weight:600; padding:3px 8px; border-radius:4px; cursor:pointer; border:none; }
+  .paso-chip.pending { background:#333; color:#888; }
+  .paso-chip.running { background:#3d2f00; color:#f0a500; }
+  .paso-chip.done    { background:#1a3329; color:#4caf87; }
+  .paso-chip.error   { background:#3d0000; color:#f44; }
+  .paso-text { flex:1; font-size:13px; color:var(--text-1); line-height:1.5; }
+  .paso-expand-btn { flex-shrink:0; font-size:11px; color:var(--text-2); background:none; border:none; cursor:pointer; padding:2px 6px; }
+  .paso-output { display:none; margin-top:6px; margin-left:80px; }
+  .paso-output textarea { width:100%; min-height:60px; font-size:12px; padding:8px 10px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text); font-family:inherit; resize:vertical; }
+  :root[data-theme="light"] .paso-chip.pending { background:#e8e8e8; color:#666; }
+  :root[data-theme="light"] .paso-chip.running { background:#fff8e0; color:#8a6000; }
+  :root[data-theme="light"] .paso-chip.done    { background:#eaf7f0; color:#1a6641; }
+  :root[data-theme="light"] .paso-chip.error   { background:#fff0f0; color:#c00; }
+  .proceso-section-label { font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-3); margin-bottom:8px; margin-top:4px; }
+  .proceso-separator { border:none; border-top:1px solid var(--border); margin:16px 0 14px; }
+  .validate-btn:disabled { opacity:0.45; cursor:not-allowed; }
+  .validate-btn:disabled:hover { background:var(--accent-indigo); transform:none; }
 
   .block-body { padding: 20px; background: var(--bg); }
   .block-body.hidden { display: none; }
@@ -577,7 +606,7 @@
 <script>
 const PHASES = [
   {
-    id: 0,
+    id: 1,
     title: 'Objetivo del proyecto',
     subtitle: 'Por qué existe ACT y qué construimos',
     tag: 'goal',
@@ -585,230 +614,118 @@ const PHASES = [
     special: 'goal',
     goal: {
       que: 'Construir el pipeline de deploy automático (ACT) que sincroniza los artefactos de Petal — el agente conversacional de Dialogflow CX — desde el repositorio Git hasta producción, con trazabilidad completa y QA manual y obligatorio.',
-      necesidad: 'Hoy el deploy es manual: un desarrollador ejecuta scripts sueltos, sin orden garantizado, sin snapshot antes de cambios, sin QA automático y sin registro en GitHub. Un error en producción no tiene rollback limpio.',
-      output: 'Pipeline completo operativo: Rama → Commit local → Push GitHub → CX Draft → Snapshot/Staging → QA manual → Producción. 12 recursos CX cubiertos. Deploy idempotente, trazable y reversible.',
+      necesidad: 'Hoy el deploy es manual: un desarrollador ejecuta scripts sueltos, sin orden garantizado, sin snapshot antes de cambios, sin garantía de que el QA se ejecuta contra el snapshot y entorno correctos, y sin registro en GitHub. Un error en producción no tiene rollback limpio.',
+      output: 'Pipeline completo operativo — 12 recursos CX cubiertos. <code>act_cx_resources_deploy.html</code> define los pasos del pipeline desde la perspectiva del usuario. El backend que construyes tiene que dar respuesta a cada uno de esos pasos. Analiza ese archivo antes de empezar — es la referencia de qué tiene que funcionar cuando termines.',
       scope: [
-        'Agente: Petal (floristería online en español)',
+        'Agente de referencia: Petal (floristería online en español) — el pipeline es genérico, Petal es la instancia sobre la que construyes y pruebas',
         'Plataforma: Dialogflow CX, región europe-west1',
-        'El sistema ACT puede desplegar y modificar 12 tipos de recursos CX: Playbooks, Examples, Tools, Intents, Entity Types, Webhooks, Generators, Flows, Pages, Agent Config, Environments, Versions',
-        'CI/CD: GitHub Actions con WIF (sin SA keys)',
-        'Repo: cx-automation-template'
+        'El sistema ACT puede crear, modificar y eliminar 12 tipos de recursos CX: Playbooks, Examples, Tools, Intents, Entity Types, Webhooks, Generators, Flows, Pages, Agent Config, Environments, Versions',
+        'Repo: cx-automation-template — scripts en <code>act/scripts/</code> (push/, pull/, utils/), YAMLs en <code>definitions/</code>, outputs generados en <code>docs/data/</code>'
       ],
       constraints: [
         'Auth: gcloud auth print-access-token — genera el token de acceso temporal para cada llamada a la API. Nunca google.auth.default(), da problemas en este entorno.',
         'Headers obligatorios en toda llamada: Authorization: Bearer &lt;token&gt; · Content-Type: application/json · x-goog-user-project: &lt;GCP_PROJECT&gt;. Sin alguno de estos, la API rechaza la petición.',
-        'Idempotencia: LIST → diff → PATCH/POST solo lo que cambió — nunca recrear recursos existentes. Así el deploy es seguro de relanzar sin efectos secundarios.',
         'Playbooks: Full Update sin updateMask — al modificar un playbook, mandar el objeto completo aunque solo haya cambiado una línea. Bug confirmado del backend de Dialogflow CX en europe-west1.',
-        'Orden del snapshot: POST versión → PATCH environment → DELETE versión antigua. Si borras primero, CX rechaza el borrado porque el environment aún referencia esa versión.',
-        'LRO polling obligatorio en POST /versions: la API responde 200 OK inmediatamente pero la versión sigue procesando. Hay que consultar GET /operations/{id} hasta done:true antes de continuar.',
-        'displayName obligatorio en POST /versions — sin él la API devuelve 200 pero la operación falla silenciosamente con code:3. Incluirlo siempre.',
         'WIF exclusivamente en CI/CD — la autenticación de GitHub Actions a GCP es vía Workload Identity Federation. Nunca SA keys (credenciales estáticas).',
-        'concurrency: 1 en workflows de GitHub Actions — garantiza que solo corre un deploy a la vez. Evita que dos deploys simultáneos se pisen sobre el mismo agente CX.',
         'Gates de validación humana: Opus ejecuta cada fase, muestra qué produjo y espera confirmación de Jero antes de avanzar. Jero valida en el HTML marcando la fase como completada.'
       ],
-      fases: [
-        { n: 1, nombre: 'Auditoría inicial', desc: 'Estado actual del repo y decisiones de estructura' },
-        { n: 2, nombre: '.py placement', desc: 'Reorganizar todos los scripts Python en act/scripts/' },
-        { n: 3, nombre: 'CX_inventory.py', desc: 'generate_cx_petal_artefacts_inventory.py → inventory.json' },
-        { n: 4, nombre: 'act_cx_petal_artefacts_inventory.html', desc: 'Panel visual del estado del sistema' },
-        { n: 5, nombre: 'act_deploy.html', desc: 'Panel de control y ejecución del deploy' },
-        { n: 6, nombre: 'deploy.py', desc: 'Orquestador — pipeline completo de 8 pasos' },
-        { n: 7, nombre: 'diff_pipeline — TBD', desc: 'Pendiente: archivo propio o módulo de deploy.py' },
-        { n: 8, nombre: 'QA pipeline', desc: 'Smoke tests pre-deploy' },
-        { n: 9, nombre: 'ACT CI/CD', desc: 'deploy.yml — GitHub Actions completo' }
-      ],
       filosofia: {
-        norte: 'Liberar a la persona de leer e interpretar documentación técnica generada por máquina.',
+        norte: 'Liberar a la persona de leer e interpretar documentación técnica.',
         porQue: 'Validar documentación técnica exige un esfuerzo cognitivo alto, genera errores, y crea el riesgo de que los gates los complete el propio LLM en lugar de la persona. Cuando eso ocurre, se pierde lo único que la persona aporta de forma insustituible: conocimiento de dominio, criterio, dirección y capacidad creativa en la definición.',
         rolLlm: 'Co-crear, no co-validar. El LLM propone estructura, implementa y ejecuta. La persona aporta criterio, dirección y decisiones de diseño. El resultado es de los dos — y ninguno lo habría producido igual solo.',
         principios: [
-          { n: 1, titulo: 'Lenguaje natural primero', desc: 'Lo ves en la tabla de auditoría: columna Descripción (humano) antes que Mecanismo (técnico). Y en el playbook completo: Goal + Auditoría dan contexto en lenguaje natural antes de que Opus toque nada.' },
-          { n: 2, titulo: 'La persona aporta el conocimiento', desc: 'Jero define qué hace diff.py, qué limitaciones tiene, por qué deploy.py es mejor nombre que orchestrator.py, qué principios guían el sistema. Eso no puede hacerlo el LLM solo.' },
-          { n: 3, titulo: 'Contexto antes que comandos', desc: 'El playbook entero es esto. Fase 0 (Goal) y Fase 1 (Auditoría) existen solo para dar contexto. Opus no ejecuta nada hasta Fase 2. La mayoría de pipelines van directo al "haz esto" — aquí el "por qué existe" va primero.' },
-          { n: 4, titulo: 'El LLM como traductor', desc: 'Jero describe "mover los 12 push_*.py a scripts/push/" y el LLM sabe ejecutarlo con git mv, actualizar imports, verificar. La premisa: el LLM traduce lenguaje natural a ejecución técnica mejor y más rápido que una persona.' },
-          { n: 5, titulo: 'Verificación automática en cada fase', desc: 'Cada fase del playbook incluye un bloque de validación que la máquina ejecuta. El humano no revisa comandos intermedios — revisa que las verificaciones pasan.' },
-          { n: 6, titulo: 'El humano valida el resultado, no el proceso', desc: 'En los gates no se revisa cada git mv — se revisa que pytest pasa, que la estructura es la correcta, que deploy.py tiene el comportamiento esperado. La ejecución es invisible; el resultado es lo que se valida.' }
+          { n: 1, titulo: 'Lenguaje natural primero', desc: 'Las instrucciones de cada fase están escritas en lenguaje natural, no como comandos técnicos. Opus lee, interpreta y escribe en el área de validación qué ha entendido y qué va a hacer. Solo cuando Jero confirma, Opus ejecuta.' },
+          { n: 2, titulo: 'El criterio de dominio es de la persona', desc: 'Jero conoce el negocio, el sistema y las decisiones de diseño. Opus puede proponer y asesorar, pero la decisión final sobre qué construir, cómo y por qué siempre pertenece a Jero.' },
+          { n: 3, titulo: 'Las fases tienen roles diferentes', desc: 'Algunas fases son de contextualización (leer, entender, auditar), otras son de ejecución (construir, escribir código), otras son de validación (comprobar que el output es correcto).' },
+          { n: 4, titulo: 'Los inputs de cada fase los define Jero', desc: 'Los inputs necesarios para ejecutar cada fase — documentos, HTMLs, imágenes u otro formato — los proporciona Jero y están especificados en las instrucciones de esa fase.' },
+          { n: 5, titulo: 'Las fases son secuenciales', desc: 'No se avanza a la siguiente fase hasta que Jero la ha validado. El orden no es opcional.' },
+          { n: 6, titulo: 'El LLM como traductor', desc: 'Jero describe en lenguaje natural qué construir y hacia dónde. Opus traduce eso en ejecución técnica concreta. Por ejemplo: "necesito un script que compare lo que hay en el repo con lo que hay en producción y solo suba las diferencias" → Opus implementa la lógica, maneja los casos edge y verifica. La premisa: esta división es más eficiente que cualquiera de los dos trabajando solo.' },
+          { n: 7, titulo: 'Validar comprensión y resultado, no el proceso', desc: 'Jero valida que Opus entendió correctamente y tiene un plan claro antes de ejecutar. La ejecución técnica es responsabilidad exclusiva de Opus.' },
+          { n: 8, titulo: 'El trabajo es conjunto, el control es de Jero', desc: 'Jero define, dirige y decide — es la parte pensante del proceso. Opus ejecuta y puede asesorar en la parte técnica, pero Jero siempre tiene la última palabra.' },
+          { n: 9, titulo: 'Cada artefacto tiene su propia validación', desc: 'Cada fase construye un artefacto concreto — un .py, un .html u otro archivo. Ese artefacto tiene sus propios criterios de validación, definidos en el bloque "Criterios de validación" de esa fase. No son criterios genéricos — son específicos del artefacto que se está construyendo: qué tiene que producir, cómo se comprueba que funciona y qué condiciones tiene que cumplir antes de avanzar a la siguiente fase.' }
         ]
       }
     }
   },
-  {
-    id: 1,
-    title: "Auditoría inicial",
-    subtitle: "Contexto del punto de partida — lee antes de construir",
-    tag: "audit", tagLabel: "Auditoría",
-    special: "auditoria",
-    context: {
-      sistema: { title: "Qué es ACT", body: "Línea de automatización CD que gestiona el despliegue de artefactos al agente conversacional Petal en Dialogflow CX. Forma parte del sistema de 4 líneas: ACT · GEN · QAP · RES." },
-      agente: { title: "Agente Petal", body: "Floristería online en español sobre Dialogflow CX (europe-west1). Arquitectura LLM-pure basada en Playbooks, sin NLU clásico." },
-      recursos: { title: "El sistema ACT puede desplegar y modificar estos 12 tipos de recursos CX", items: ["Playbooks", "Examples", "Tools", "Agent Config", "Flows", "Pages", "Intents", "Entity Types", "Webhooks", "Generators", "Environments", "Versions"] },
-      leyenda: "Leyenda: ✓ funciona — mantener · ⚠ reemplazar — bug o deuda · ✗ eliminar — sin uso activo · ◯ nuevo — por crear"
-    },
+  { id: 2, title: "Discovery", subtitle: "Inventario del repo — verifica lo que hay y dónde está", tag: "py", tagLabel: "Discovery",
     llm: {
-      objetivo: "Fase de contexto — lee la tabla de estado y el árbol canónico del repo. No ejecutes nada. La construcción empieza en la Fase 2.",
-      leer: [],
-      outputs: [],
-      templates: {
-        auditoria: `| Archivo | Tipo | Función | Estado | Observación |
-|---------|------|---------|--------|-------------|
-| act/push_playbooks.py | push script | Deploy Playbooks → CX | ✓ funciona | Full Update (bug europe-west1) |
-| act/validate_api_v2.py | validación | Tests edge cases API | ✗ eliminar | Auth incorrecto, hallazgos incorporados |
-...`,
-        estructura: `cx-automation-template/
-├── act/
-│   └── scripts/
-│       ├── push/                                         ← NUEVO: 12 push_*.py agrupados
-│       │   ├── push_playbooks.py
-│       │   ├── push_examples.py
-│       │   └── ... (10 más)
-│       ├── pull/                                         ← NUEVO: 12 pull_*.py agrupados
-│       │   ├── pull_playbooks.py
-│       │   └── ... (11 más)
-│       ├── utils/                                        ← NUEVO: utilidades compartidas
-│       │   ├── diff.py
-│       │   ├── validate_api.py
-│       │   ├── diff_pipeline.py                          ← NUEVO: diff 3 dimensiones
-│       │   └── generate_cx_petal_artefacts_inventory.py ← NUEVO: genera inventory.json
-│       ├── orchestrator/                                 ← NUEVO
-│       │   └── orchestrator.py                          ← NUEVO: reemplaza deploy.py
-│       └── tests/
-│           ├── conftest.py
-│           ├── test_diff.py
-│           ├── test_push_*.py (×12)
-│           └── test_pull_*.py (×12)
-├── definitions/                  ← fuente de verdad YAMLs (12 tipos)
-├── docs/
-│   ├── data/
-│   │   └── act_cx_petal_artefacts_inventory.json        ← NUEVO (generado)
-│   └── panels/
-│       ├── act_build_playbook.html
-│       ├── act_cx_petal_artefacts_inventory.html        ← NUEVO: vista completa
-│       ├── act_orchestrator.html
-│       ├── act_deploy.html
-│       └── qap_skills.html
-└── .github/workflows/            ← NUEVO: CI/CD`
-      },
-      pasos: []
-    },
-    val: {
-      grupos: [{
-        title: 'Confirmación de lectura',
-        items: [
-          'He leído la tabla de estado de componentes',
-          'He leído el árbol canónico target',
-          'Entiendo qué archivos se eliminan, cuáles se reemplazan y cuáles son nuevos'
-        ]
-      }],
-      decisions: []
-    }
-  },
-  { id: 2, title: ".py placement", subtitle: "Colocar todos los scripts en su ubicación definitiva dentro de act/scripts/", tag: "py", tagLabel: ".py",
-    llm: {
-      objetivo: "Reorganizar TODOS los scripts Python de act/ en la estructura target de act/scripts/. No solo push y pull — también utilidades, tests y eliminar los marcados como ✗. Al terminar, act/ raíz solo debe contener la carpeta scripts/.",
-      leer: [
-        "Inventario completo actual en act/: 12 push_*.py, 12 pull_*.py, diff.py, validate_api.py, deploy.py, validate_api_v2.py, audit_examples.py + act/tests/ (28 archivos)",
-        "Constraints — lee los constraints de Fase 0 antes de ejecutar, especialmente auth (gcloud auth print-access-token, nunca google.auth.default()) y Full Update (push_playbooks.py sin updateMask)"
+      objetivo: "Fase de discovery — lee el repo y verifica que los scripts están en su sitio correcto. No muevas ni modifiques nada. Jero ha reorganizado el repo manualmente antes de esta fase. Tu trabajo es confirmar que la estructura es la correcta e inventariar lo que existe.",
+      contexto: [
+        { title: "Agente Petal", body: "Floristería online en español sobre Dialogflow CX (europe-west1). Es el agente de referencia sobre el que construyes y pruebas — el pipeline es genérico pero Petal es la instancia real." },
+        { title: "Terminología clave — definitions/ vs resources", body: "<code>definitions/</code> son los YAMLs del repo — la fuente de verdad local de cómo deben ser los recursos. <em>Resources</em> es el término de la API de CX para lo que hay desplegado en el agente en este momento. El deploy sincroniza <code>definitions/</code> → CX: compara lo que hay en el repo contra lo que hay en la API, y aplica solo las diferencias. Nunca uses <em>definitions</em> para referirte a recursos de CX, ni <em>resources</em> para los YAMLs del repo." }
       ],
+      leer: [],
       pasos: [],
       outputs: [],
-      operaciones: [
-        { tipo: 'crear', items: [
-            'act/scripts/push/', 'act/scripts/pull/', 'act/scripts/utils/', 'act/scripts/tests/'
-        ]},
-        { tipo: 'mover', destino: 'act/scripts/push/', items: [
-            { archivo: 'act/push_playbooks.py', nota: 'Full Update — bug europe-west1' },
-            { archivo: 'act/push_examples.py', nota: '' },
-            { archivo: 'act/push_tools.py', nota: '' },
-            { archivo: 'act/push_intents.py', nota: '' },
-            { archivo: 'act/push_entity_types.py', nota: '' },
-            { archivo: 'act/push_webhooks.py', nota: '' },
-            { archivo: 'act/push_generators.py', nota: '' },
-            { archivo: 'act/push_flows.py', nota: '' },
-            { archivo: 'act/push_pages.py', nota: '' },
-            { archivo: 'act/push_agent_config.py', nota: '' },
-            { archivo: 'act/push_environments.py', nota: '' },
-            { archivo: 'act/push_versions.py', nota: '' }
-        ]},
-        { tipo: 'mover', destino: 'act/scripts/pull/', items: [
-            { archivo: 'act/pull_playbooks.py', nota: '' },
-            { archivo: 'act/pull_examples.py', nota: '' },
-            { archivo: 'act/pull_tools.py', nota: '' },
-            { archivo: 'act/pull_intents.py', nota: '' },
-            { archivo: 'act/pull_entity_types.py', nota: '' },
-            { archivo: 'act/pull_webhooks.py', nota: '' },
-            { archivo: 'act/pull_generators.py', nota: '' },
-            { archivo: 'act/pull_flows.py', nota: '' },
-            { archivo: 'act/pull_pages.py', nota: '' },
-            { archivo: 'act/pull_agent_config.py', nota: '' },
-            { archivo: 'act/pull_environments.py', nota: '' },
-            { archivo: 'act/pull_versions.py', nota: '' }
-        ]},
-        { tipo: 'mover', destino: 'act/scripts/utils/', items: [
-            { archivo: 'act/diff.py', nota: 'mantener intacto — se amplía en Fase 3' },
-            { archivo: 'act/validate_api.py', nota: '' }
-        ]},
-        { tipo: 'mover', archivo: 'act/deploy.py', destino: 'act/scripts/deploy.py', nota: 'conserva contenido — se reescribe en Fase 4' },
-        { tipo: 'mover', archivo: 'act/tests/', destino: 'act/scripts/tests/', nota: 'carpeta completa: conftest.py · __init__.py · test_diff.py · 12 test_push_*.py · 12 test_pull_*.py' },
-        { tipo: 'eliminar', items: [
-            { archivo: 'act/validate_api_v2.py', nota: 'auth incorrecto — hallazgos incorporados en validate_api.py' },
-            { archivo: 'act/audit_examples.py', nota: 'sin uso activo' }
-        ]},
-        { tipo: 'verificar', items: [
-            { archivo: 'imports relativos', nota: 'actualizar en cada script movido si los hay' },
-            { archivo: 'google.auth.default()', nota: 'ningún script debe usarlo — solo gcloud auth print-access-token' }
-        ]},
-        { tipo: 'ejecutar', archivo: 'pytest act/scripts/tests/ -q', nota: '100% PASS antes de cerrar la fase' }
-      ]
+      leyenda: "Leyenda: ✓ existe y funciona · ⚠ existe pero hay deuda · ✗ no existe aún · ? no verificado",
+      targetTree: `cx-automation-template/
+├── act/
+│   └── scripts/
+│       ├── push/        ← 12 push_*.py
+│       ├── pull/        ← 12 pull_*.py
+│       ├── utils/       ← herramientas compartidas
+│       ├── tests/
+│       └── deploy.py    ← orquestador
+├── definitions/         ← YAMLs fuente de verdad (12 tipos)
+├── docs/
+│   ├── panels/          ← HTMLs interactivos
+│   └── data/            ← JSONs generados
+└── .github/
+    └── workflows/       ← CI/CD`,
+      operaciones: []
     },
-    val: { grupos: [{ title: "Verificación", items: [
-      "act/ raíz contiene solo scripts/ — sin .py sueltos",
-      "act/scripts/push/ tiene exactamente 12 push_*.py",
-      "act/scripts/pull/ tiene exactamente 12 pull_*.py",
-      "act/scripts/utils/ tiene diff.py y validate_api.py",
-      "act/scripts/deploy.py existe (movido de act/deploy.py)",
-      "act/scripts/tests/ tiene conftest.py + __init__.py + test_diff.py + 24 test_*.py",
-      "validate_api_v2.py y audit_examples.py eliminados",
-      "pytest act/scripts/tests/ -q → 100% PASS",
-      "Ningún script usa google.auth.default()",
-      "push_playbooks.py usa Full Update sin updateMask"
+    val: { grupos: [{ title: "Confirmación de discovery", items: [
+      "He listado todos los scripts existentes en act/scripts/",
+      "He verificado que la estructura del repo coincide con la definida en Goal",
+      "He identificado qué scripts existen ya y cuáles faltan por crear"
     ] }], decisions: [] } },
-  { id: 3, title: "CX_inventory.py", subtitle: "Snapshot del estado actual del agente Petal en Dialogflow CX", tag: "py", tagLabel: ".py",
+  { id: 3, discarded: true, title: "act_cx_draft_resources_inventory.py", subtitle: "Snapshot del estado actual del agente Petal en Dialogflow CX", tag: "py", tagLabel: ".py",
     llm: {
-      objetivo: "Crear el script que consulta la API de Dialogflow CX y genera un JSON con el estado actual de los 12 tipos de recursos del agente Petal. Ese JSON es la fuente de verdad de lo que hay ahora mismo desplegado en CX.",
-      porQue: "Sin saber qué hay en CX no puedes comparar, no puedes ser idempotente y el panel de deploy no tiene nada que mostrar. Este script es el paso previo a todo lo demás: el panel de inventario lo consume para visualizarlo, act_deploy.html lo usa en el Paso 1, y deploy.py lo usa para decidir qué ha cambiado y qué hay que desplegar.",
+      objetivo: "Crear el script que consulta la API de Dialogflow CX y genera un JSON con el estado actual de los 12 tipos de recursos en el Draft del agente. El Draft es el estado editable del agente — lo que hay en él en este momento, antes de que se publique ningún snapshot. Ese JSON es la referencia de partida para el diff: qué hay ahora vs qué debería haber según definitions/. El script incluye validación de salida (postcondición): antes de escribir el JSON y salir, comprueba la integridad de los datos generados. Si algo falla, imprime el error específico por stderr y sale con exit 1.",
+      porQue: "Sin saber qué hay en CX no puedes comparar, no puedes ser idempotente y el panel de deploy no tiene nada que mostrar. Este script es el paso previo a todo lo demás: el panel de inventario lo consume para visualizarlo, act_cx_resources_deploy.html lo usa en el Paso 1, y deploy.py lo usa para decidir qué ha cambiado y qué hay que desplegar.",
       leer: [
-        "Constraints de Fase 0 — auth (gcloud auth print-access-token) y headers obligatorios"
+        "Antes de empezar, lee los constraints de la Fase 1 (Goal) — en concreto cómo autenticarse con la API de CX y qué cabeceras son obligatorias en cada llamada. Sin esto el script no funcionará."
       ],
       pasos: [
-        "Crear act/scripts/utils/cx_inventory.py",
-        "El script llama a la API de CX una vez por cada tipo de recurso (12 en total), recoge la lista completa de lo que hay desplegado y lo guarda en un JSON estructurado",
-        "Autenticación: usa gcloud auth print-access-token — igual que el resto del sistema",
+        "Crear act/scripts/utils/act_cx_draft_resources_inventory.py",
+        "El script llama a la API de CX una vez por cada tipo de recurso (12 en total) y recoge la lista completa de lo que hay en el Draft del agente",
         "Estructura del JSON de salida: { generated_at, agent, totals: { playbooks: N, examples: N, ... }, resources: { playbooks: [...], examples: [...], tools: [...], ... 12 tipos } }",
-        "Guardar en docs/data/act_cx_petal_artefacts_inventory.json",
-        "Añadir docs/data/act_cx_petal_artefacts_inventory.json al .gitignore — es un archivo generado, no código"
+        "Validación de salida (postcondición) — antes de escribir el archivo, comprobar en memoria: (1) los 12 tipos están presentes en resources como arrays, (2) totals[tipo] == len(resources[tipo]) para cada tipo, (3) para cada tipo con totals[tipo] > 0: todos los ítems tienen campo name que no es null, no es cadena vacía y no es solo whitespace. Si alguna comprobación falla: imprimir el criterio fallido y el valor encontrado por stderr, y salir con exit 1 sin escribir el archivo.",
+        "Guardar el resultado en docs/data/act_cx_draft_resources_inventory.json",
+        "Añadir docs/data/act_cx_draft_resources_inventory.json al .gitignore — es un archivo generado, no código"
       ],
       outputs: [
-        { path: 'act/scripts/utils/cx_inventory.py', desc: 'Script que genera el snapshot del agente en CX' },
-        { path: 'docs/data/act_cx_petal_artefacts_inventory.json', desc: 'Snapshot del estado actual — generado, en .gitignore' }
+        { path: 'act/scripts/utils/act_cx_draft_resources_inventory.py', desc: 'Script que extrae los recursos del Draft del agente en CX' },
+        { path: 'docs/data/act_cx_draft_resources_inventory.json', desc: 'Inventario de recursos del Draft — generado, en .gitignore' }
       ]
     },
-    val: { grupos: [{ title: "Verificación", items: [
-      "act_cx_petal_artefacts_inventory.json existe y es JSON válido",
-      "Tiene los 12 tipos de recursos",
-      "generated_at, agent y totals presentes en el JSON",
-      "docs/data/act_cx_petal_artefacts_inventory.json está en .gitignore",
-      "python act/scripts/utils/cx_inventory.py corre sin errores"
-    ] }], decisions: [] }
+    val: { grupos: [
+      { title: "Ejecución", items: [
+        { criterio: "exit code 0, sin Traceback/Error/Exception en stdout ni stderr", porQue: "Confirma que el script terminó correctamente. Los errores de auth y red van a stderr — si solo revisas stdout los omites. Un exit code distinto de 0 o excepción en cualquiera de los dos streams indica fallo." }
+      ]},
+      { title: "Archivo", items: [
+        { criterio: "act_cx_draft_resources_inventory.json existe y es JSON válido", porQue: "Sin el archivo, el resto del pipeline no tiene entrada. JSON inválido (truncado, mal formado) haría fallar cualquier parser downstream sin un mensaje de error claro." },
+        { criterio: "docs/data/act_cx_draft_resources_inventory.json en .gitignore", porQue: "Es un archivo generado que cambia en cada ejecución. Commitearlo ensuciaría el historial de git y generaría conflictos de merge innecesarios." }
+      ]},
+      { title: "Estructura del JSON", items: [
+        { criterio: "Los 12 tipos presentes en resources como arrays: playbooks, examples, tools, intents, entityTypes, webhooks, generators, flows, pages, agentConfig, environments, versions", porQue: "null indica fallo capturado internamente — diferente de lista vacía (recurso inexistente). Un tipo ausente rompe el diff silenciosamente. El diff trata null y [] de forma distinta." },
+        { criterio: "generated_at, agent y totals presentes; agent no es placeholder; totals es un dict de enteros (no null ni lista)", porQue: "agent como placeholder literal significa que la variable de entorno no se expandió — el inventario apunta al agente equivocado. totals como null haría que el criterio 7 lanzara excepción en vez de fallar limpiamente." }
+      ]},
+      { title: "Integridad de datos", items: [
+        { criterio: "Para cada tipo: totals[tipo] == len(resources[tipo])", porQue: "Detecta paginación incompleta o fallos parciales: la API puede devolver totals: 5 pero solo 3 ítems si una página de resultados no se recuperó. El diff usaría los 3 como si fueran los 5." },
+        { criterio: "Para cada tipo con count > 0: todos los ítems tienen name no vacío", porQue: "El diff hace matching por name (identificador de recurso en CX). Sin name, el diff no puede emparejar el recurso con su YAML en definitions/ y falla silenciosamente." }
+      ]}
+    ], decisions: [] }
   },
-  { id: 4, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Panel visual del estado actual del agente Petal en CX", tag: "html", tagLabel: ".html",
+  { id: 4, discarded: true, title: "act_cx_petal_artefacts_inventory.html", subtitle: "Panel visual del estado actual del agente Petal en CX", tag: "html", tagLabel: ".html",
     llm: {
       objetivo: "Crear el panel HTML que muestra de forma visual el contenido del snapshot de CX — qué recursos hay desplegados, cuántos son de cada tipo y cuáles son sus datos principales.",
       porQue: "El JSON que genera cx_inventory.py no es legible directamente. Este panel es la capa de visualización: convierte ese JSON en algo que una persona puede leer, explorar y usar para entender el estado actual del agente antes de desplegar.",
       leer: [
-        "docs/data/act_cx_petal_artefacts_inventory.json — estructura: { generated_at, agent, totals: { playbooks: N, ... }, resources: { playbooks: [...], ... } }"
+        "docs/data/act_cx_draft_resources_inventory.json — estructura: { generated_at, agent, totals: { playbooks: N, ... }, resources: { playbooks: [...], ... } }"
       ],
       pasos: [
-        "El panel lee docs/data/act_cx_petal_artefacts_inventory.json al cargarse",
+        "El panel lee docs/data/act_cx_draft_resources_inventory.json al cargarse",
         "Zona 1 — Cabecera: muestra el nombre del agente (campo agent) y cuándo se generó el snapshot (campo generated_at, en tiempo relativo: 'hace 3 min'). Botón 'Actualizar snapshot' que al hacer clic ejecuta cx_inventory.py y recarga la página.",
         "Zona 2 — Resumen en grid: 12 tarjetas, una por tipo de recurso (del campo totals). Cada tarjeta muestra el nombre del tipo y el número de recursos desplegados. Al clicar una tarjeta, la zona de detalle filtra por ese tipo.",
         "Zona 3 — Detalle por tipo: tabla con los recursos del tipo seleccionado (del campo resources). Muestra name, displayName y los demás campos relevantes que devuelva la API. Por defecto la primera tarjeta (Playbooks) está seleccionada.",
@@ -826,14 +743,25 @@ const PHASES = [
       "El panel funciona en modo oscuro y claro"
     ] }], decisions: [] }
   },
-  { id: 5, title: "act_deploy.html", subtitle: "Panel de commits — 8 pasos del pipeline", tag: "html", tagLabel: ".html", llm: { objetivo: "Actualizar act_deploy.html para consumir act_cx_petal_artefacts_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Paso 1 desde act_cx_petal_artefacts_inventory.json", "8 pasos en orden", "Estado en localStorage"] }], decisions: [] } },
-  { id: 6, title: "deploy.py", subtitle: "Reescribir act/scripts/deploy.py — pipeline de 8 pasos", tag: "py", tagLabel: ".py", llm: { objetivo: "Reescribir act/scripts/deploy.py desde cero con el pipeline completo de 8 pasos, corrigiendo el bug del orden del snapshot y añadiendo idempotencia, LRO polling y gates humanos.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--dry-run sin errores", "Orden snapshot: POST versión → PATCH environment → DELETE versión antigua", "LRO polling: espera done:true antes de continuar", "displayName presente en POST /versions", "deploy.py antiguo (act/deploy.py) ya no existe — reemplazado"] }], decisions: [] } },
-  { id: 7, title: "diff_pipeline — TBD", subtitle: "Pendiente de definir tras act_deploy.html — puede integrarse en deploy.py", tag: "py", tagLabel: ".py", llm: { objetivo: "Decidir si diff_pipeline.py es un archivo separado o se integra como módulo dentro de deploy.py. Definir tras completar Fase 5 (act_deploy.html) y Fase 6 (deploy.py).", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--git coincide con git status", "--cx detecta cambios reales", "--all produce tabla ASCII"] }], decisions: [] } },
+  { id: 5, discarded: true, title: "act_cx_resources_deploy.html", subtitle: "Panel de commits — 8 pasos del pipeline", tag: "html", tagLabel: ".html", llm: { objetivo: "Actualizar act_cx_resources_deploy.html para consumir act_cx_draft_resources_inventory.json.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Paso 1 desde act_cx_draft_resources_inventory.json", "8 pasos en orden", "Estado en localStorage"] }], decisions: [] } },
+  { id: 6, title: "act_cx_resources_deploy.py", subtitle: "Crear act/act_cx_resources_deploy.py — pipeline completo de 8 pasos desde cero", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear act/act_cx_resources_deploy.py desde cero. act/deploy.py existe y seguirá existiendo — no tocarlo. El nuevo script implementa exactamente los pasos definidos en docs/panels/act_cx_resources_deploy.html — ese archivo es la fuente de verdad del pipeline: lee sus pasos, su orden y qué hace cada uno antes de escribir una línea de código. Reutiliza las funciones de auth y versiones de deploy.py importándolas directamente.", reglas: ['Idempotencia: antes de subir cualquier recurso, llama al push_*.py correspondiente que ya implementa LIST→diff→PATCH. Nunca recrear recursos existentes.', 'Orden del pipeline: el orden exacto de los 8 pasos está definido en <code>act_cx_resources_deploy.html</code> — lee ese archivo antes de escribir una línea de código e implementa exactamente ese orden.', 'LRO polling real: cuando llamas POST /versions, la API responde 200 OK al instante pero la versión sigue procesando. Tienes que consultar GET /operations/{id} en bucle hasta que la respuesta diga done:true. No usar sleep() fijo — es un antipatrón.', 'displayName obligatorio en POST /versions: sin él la API devuelve 200 OK pero la operation falla silenciosamente con code:3. Incluirlo siempre.'], leer: ['act/deploy.py — funciones reutilizables: get_token, build_headers, parent_path, base_url, create_version, get_latest_version_name, get_all_versions, update_staging, delete_version', 'docs/panels/act_cx_resources_deploy.html — orden exacto de los 8 pasos del pipeline y qué hace cada uno'], outputs: [], pasos: [] }, val: { grupos: [
+      { title: "Script", items: [
+        { criterio: "--dry-run completa sin errores", porQue: "Verifica que el script arranca, parsea la configuración y construye el plan de ejecución correctamente sin tocar CX." },
+        { criterio: "Exit 0 en éxito, exit 1 con mensaje específico en fallo", porQue: "El orquestador tiene que comunicar claramente si algo falló y dónde — sin esto el pipeline no puede detectar errores automáticamente." },
+        { criterio: "act/deploy.py sigue existiendo y sin modificaciones", porQue: "El script nuevo no reemplaza al antiguo — coexisten. Si deploy.py fue tocado, hay un error de scope." }
+      ]},
+      { title: "Pipeline", items: [
+        { criterio: "Los 8 pasos se ejecutan en el orden exacto definido en act_cx_resources_deploy.html", porQue: "El orden no es opcional — snapshot antes de push a producción, QA antes del gate final. Un orden incorrecto puede desplegar sin snapshot o sin QA." },
+        { criterio: "LRO polling espera done:true antes de continuar al siguiente paso", porQue: "POST /versions responde 200 OK inmediatamente pero la versión sigue procesando. Sin polling, el pipeline continúa con una versión incompleta." },
+        { criterio: "displayName presente en POST /versions", porQue: "Bug silencioso del backend: sin displayName la API devuelve 200 OK pero la operación falla internamente con code:3 sin mensaje de error visible." }
+      ]}
+    ], decisions: [] } },
+  { id: 7, title: "diff_pipeline — TBD", subtitle: "Pendiente de definir tras act_cx_resources_deploy.html — puede integrarse en deploy.py", tag: "py", tagLabel: ".py", llm: { objetivo: "Decidir si diff_pipeline.py es un archivo separado o se integra como módulo dentro de deploy.py. Definir tras completar Fase 5 (act_cx_resources_deploy.html) y Fase 6 (deploy.py).", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["--git coincide con git status", "--cx detecta cambios reales", "--all produce tabla ASCII"] }], decisions: [] } },
   { id: 8, title: "validate_pipeline", subtitle: "Smoke test pre-deploy de extremo a extremo", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear validate_pipeline.py con smoke test completo.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Todos PASS", "Environments coherentes", "Exit code 0"] }], decisions: [] } },
-  { id: 9, title: "ACT CI/CD", subtitle: "CI/CD completo — .github/workflows/", tag: "ci", tagLabel: "ACT CI/CD", llm: { objetivo: "Crear deploy.yml, staging.yml y production.yml.", leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Tres .yml sin errores", "deploy.yml se dispara en push", "production.yml requiere aprobación"] }], decisions: [] } }
+  { id: 9, title: "ACT CI/CD", subtitle: "CI/CD completo — .github/workflows/", tag: "ci", tagLabel: "ACT CI/CD", llm: { objetivo: "Crear deploy.yml, staging.yml y production.yml.", reglas: ['concurrency: 1 en todos los workflows: solo puede correr un deploy a la vez. Si dos deploys corren en paralelo sobre el mismo agente CX se pisan mutuamente. Incluye concurrency: 1 en cada .yml.'], leer: [], outputs: [], pasos: [] }, val: { grupos: [{ title: "Verificación", items: ["Tres .yml sin errores", "deploy.yml se dispara en push", "production.yml requiere aprobación"] }], decisions: [] } }
 ];
 
-const KEY = 'act_playbook_v1';
+const KEY = 'act_playbook_v3';
 function loadState() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
 function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
 function getPS(s, id) { return s[id] || { status: 'pending', notes: '', checked: [], decisions: {} }; }
@@ -843,14 +771,14 @@ let state = loadState();
 
 function computeStatus(id) {
   const ps = getPS(state, id);
-  if (ps.status === 'done') return 'done';
+  if (ps.status === 'done' || ps.status === 'continued') return 'done';
   if ((ps.checked || []).some(Boolean)) return 'active-s';
   return 'pending';
 }
 
 function updateProgress() {
   const trackable = PHASES.filter(p => p.special !== 'goal');
-  const done = trackable.filter(p => (state[p.id] || {}).status === 'done').length;
+  const done = trackable.filter(p => ['done','continued'].includes((state[p.id] || {}).status)).length;
   document.getElementById('progressFill').style.width = Math.round(done / trackable.length * 100) + '%';
   document.getElementById('progressLabel').textContent = `${done} / ${trackable.length} fases`;
   const bar = document.querySelector('.topbar-progress-bar');
@@ -868,12 +796,12 @@ function renderTabs() {
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
     tab.setAttribute('aria-controls', 'contentInner');
     tab.setAttribute('aria-label', p.special === 'goal' ? `Objetivo del proyecto` : `Fase ${p.id}: ${p.title} — estado: ${status === 'done' ? 'completada' : status === 'active-s' ? 'en progreso' : 'pendiente'}`);
-    tab.className = 'phase-tab' + (isActive ? ' active' : '') + (status === 'done' ? ' done-tab' : '');
+    tab.className = 'phase-tab' + (isActive ? ' active' : '') + (status === 'done' ? ' done-tab' : '') + (p.discarded ? ' discarded-tab' : '');
     const isGoal = p.special === 'goal';
     tab.innerHTML = `
       <div class="tab-top">
-        <span class="tab-num" aria-hidden="true">${isGoal ? '★' : p.id}</span>
-        <span class="tab-tag tag-${p.tag}" aria-hidden="true">${p.tagLabel}</span>
+        <span class="tab-num" aria-hidden="true">${p.id}</span>
+        <span class="tab-tag ${p.discarded ? 'tag-discarded' : 'tag-'+p.tag}" aria-hidden="true">${p.discarded ? 'Descartada' : p.tagLabel}</span>
       </div>
       <div class="tab-name">${p.title}</div>`;
     tab.addEventListener('click', () => loadPhase(p.id));
@@ -933,9 +861,6 @@ function renderGoalPhase(p, ps) {
 
   const f = g.filosofia;
   const filosofiaHtml = `
-    <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.4);color:#ca8a04;font-size:11px;font-weight:600;margin-bottom:12px;">
-      ⚠ WIP — ejemplos pendientes de revisión
-    </div>
     <div class="llm-section">
       <div class="llm-section-title">Norte</div>
       <p style="font-size:14px;font-weight:600;color:var(--text)">${f.norte}</p>
@@ -961,39 +886,42 @@ function renderGoalPhase(p, ps) {
       ${renderList(g.constraints, false)}
     </div>`;
 
-  const fasesRows = g.fases.map(f => `<tr>
-    <td style="font-variant-numeric:tabular-nums;font-weight:600;color:var(--text)">${f.n}</td>
-    <td style="font-weight:500;color:var(--text)">${f.nombre}</td>
-    <td style="color:var(--text-2)">${f.desc}</td>
-  </tr>`).join('');
-
-  const refHtml = `<p style="font-size:12px; color:var(--text-2); margin-bottom:12px;">
-    Las siguientes 9 fases construyen el sistema completo: el panel de ejecución de deploy (act_deploy.html), los artefactos que lo sustentan — scripts Python, inventario de recursos CX y panel de estado — y los pipelines de integración continua que lo automatizan (GitHub Actions CI/CD).
-  </p><div style="overflow-x:auto">
-    <table class="st-table" aria-label="Mapa de fases del pipeline ACT">
-      <thead><tr>
-        <th style="width:40px">#</th><th>Fase</th><th>Descripción</th>
-      </tr></thead>
-      <tbody>${fasesRows}</tbody>
-    </table>
-  </div>`;
+  const refHtml = `<p style="font-size:13px; color:var(--text-2); line-height:1.6;">
+    Las fases de este proyecto están definidas en la cabecera de este mismo archivo — las pestañas que aparecen en la parte superior. Lee las pestañas para conocer qué fases existen, su número y su título. No hay una lista separada: la cabecera es la fuente de verdad. Si las fases cambian, la cabecera lo refleja automáticamente.
+  </p>`;
 
   const isDone = ps.status === 'done';
   const goalValHtml = `
-    <label class="notes-label" for="notesArea-0">Notas</label>
-    <textarea class="notes-area" id="notesArea-0" placeholder="Observaciones sobre el objetivo, decisiones de alcance...">${ps.notes||''}</textarea>
-    <button class="validate-btn${isDone?' validated':''}" id="validateBtn-0" onclick="validatePhase(0)"
-            aria-label="${isDone?'Objetivo ya confirmado':'Marcar objetivo del proyecto como validado'}">
-      <span aria-hidden="true">✓</span> ${isDone?'Objetivo confirmado':'Confirmar objetivo del proyecto'}
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
+      Antes de avanzar, escribe aquí tu comprensión del objetivo. Incluye: qué vas a construir, por qué existe este pipeline, qué constraints son críticos y cuántas fases tiene el proyecto según la cabecera.
+    </p>
+    <label class="notes-label" for="notesArea-1">Comprensión de Opus</label>
+    <textarea class="notes-area" id="notesArea-1" placeholder="Escribe qué vas a construir, para qué existe, qué constraints son críticos y cuántas fases tiene el proyecto..." style="min-height:120px">${ps.notes||''}</textarea>
+    <p style="font-size:11px;color:var(--text-3);margin-bottom:14px">Jero confirma después de leer lo que has escrito.</p>
+    <button class="validate-btn${isDone?' validated':''}" id="validateBtn-1" onclick="validatePhase(1)"
+            aria-label="${isDone?'Objetivo ya confirmado':'Confirmar que Opus ha entendido el objetivo'}">
+      <span aria-hidden="true">✓</span> ${isDone?'Objetivo confirmado':'Confirmar objetivo — Jero'}
     </button>`;
 
   return makeBlock('ctx', '🎯', 'Qué construimos — contexto del proyecto', 'goal-ctx', ctxHtml, true)
-    + makeBlock('ctx', '🧭', 'Filosofía — por qué este pipeline se construye así', 'goal-filosofia', filosofiaHtml, false)
+    + makeBlock('ctx', '🤝', 'Protocolo de colaboración — cómo trabajamos', 'goal-filosofia', filosofiaHtml, false)
     + makeBlock('llm', '📦', 'Output esperado y scope', 'goal-llm', llmHtml, true)
     + makeBlock('val', '⚠️', 'Constraints no negociables', 'goal-constraints', constraintsHtml, true)
-    + makeBlock('ref', '🗺️', 'Mapa de fases — 9 fases en total', 'goal-ref', refHtml, true)
+    + makeBlock('ref', '🗺️', 'Mapa de fases', 'goal-ref', refHtml, true)
+    + makeBlock('ref', '📁', 'Estructura del repo', 'goal-tree', `<div class="tree-view">cx-automation-template/
+├── act/
+│   └── scripts/
+│       ├── push/           <span class="tree-comment">← 12 push_*.py — escribe recursos en CX</span>
+│       ├── pull/           <span class="tree-comment">← 12 pull_*.py — lee recursos de CX</span>
+│       ├── utils/          <span class="tree-comment">← diff.py · validate_api.py · cx_inventory.py</span>
+│       └── deploy.py       <span class="tree-comment">← orquestador del pipeline</span>
+├── definitions/            <span class="tree-comment">← YAMLs fuente de verdad (12 tipos de recursos CX)</span>
+├── docs/
+│   ├── panels/             <span class="tree-comment">← act_cx_resources_deploy.html · act_build_playbook.html · …</span>
+│   └── data/               <span class="tree-comment">← act_cx_draft_resources_inventory.json (generado · .gitignore)</span>
+└── .github/
+    └── workflows/          <span class="tree-comment">← deploy.yml (CI/CD)</span></div>`, true)
     + makeBlock('val', '✋', 'Validación — confirmar objetivo del proyecto', 'goal-val', goalValHtml, true)
-    + renderMdBlock(p);
 }
 
 function renderPhase0(p, ps) {
@@ -1004,6 +932,7 @@ function renderPhase0(p, ps) {
     <div class="ctx-card"><div class="ctx-card-title">${c.sistema.title}</div><p>${c.sistema.body}</p></div>
     <div class="ctx-card"><div class="ctx-card-title">${c.agente.title}</div><p>${c.agente.body}</p></div>
     <div class="ctx-card"><div class="ctx-card-title">${c.recursos.title}</div><ul>${c.recursos.items.map(i=>`<li>${i}</li>`).join('')}</ul></div>
+    <div class="ctx-card" style="grid-column:1/-1"><div class="ctx-card-title">${c.terminologia.title}</div><p>${c.terminologia.body}</p></div>
   </div>`;
 
   const outputsHtml = p.llm.outputs.map(o => `<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path}</div><div class="op-desc">${o.desc}</div></div></div>`).join('');
@@ -1012,12 +941,12 @@ function renderPhase0(p, ps) {
     <div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>
     <div class="llm-section"><div class="llm-section-title">Qué leer antes de empezar</div>${renderList(p.llm.leer, false)}</div>
     <div class="llm-section"><div class="llm-section-title">Outputs — crear exactamente estos archivos</div>${outputsHtml}</div>
-    <div class="llm-section"><div class="llm-section-title">Template — fase0_auditoria.md</div>
+    ${p.llm.templates && p.llm.templates.auditoria ? `<div class="llm-section"><div class="llm-section-title">Template — fase0_auditoria.md</div>
       <div class="template-block"><div class="template-label">Estructura esperada</div><div class="code-block">${p.llm.templates.auditoria.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>
-    </div>
-    <div class="llm-section"><div class="llm-section-title">Template — fase0_estructura_target.md</div>
+    </div>` : ''}
+    ${p.llm.templates && p.llm.templates.estructura ? `<div class="llm-section"><div class="llm-section-title">Template — fase0_estructura_target.md</div>
       <div class="template-block"><div class="template-label">Árbol de carpetas target</div><div class="code-block">${p.llm.templates.estructura.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>
-    </div>
+    </div>` : ''}
     <div class="llm-section"><div class="llm-section-title">Pasos de ejecución</div>${renderList(p.llm.pasos, true)}</div>`;
 
   let checkIdx = 0;
@@ -1045,11 +974,14 @@ function renderPhase0(p, ps) {
 
   const isDone = ps.status === 'done';
   const valHtml = gruposHtml + decisionsHtml + `
-    <label class="notes-label" for="notesArea-${p.id}">Notas</label>
-    <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Observaciones, decisiones, problemas...">${ps.notes||''}</textarea>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
+      Antes de que Jero confirme, escribe qué hiciste en esta fase y qué produjiste exactamente: qué archivos creaste o modificaste, qué cambios hiciste y cómo verificaste que funcionan. Luego marca los constraints que aplicaban.
+    </p>
+    <label class="notes-label" for="notesArea-${p.id}">Qué hiciste y qué produjiste — Opus</label>
+    <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Describe qué archivos creaste, qué cambios hiciste y cómo verificaste que funcionan..." style="min-height:120px">${ps.notes||''}</textarea>
     <button class="validate-btn${isDone?' validated':''}" id="validateBtn" onclick="validatePhase(${p.id})"
-            aria-label="${isDone?'Fase ya validada':'Marcar fase como validada'}">
-      <span aria-hidden="true">✓</span> ${isDone?'Fase validada':'Marcar como validada'}</button>`;
+            aria-label="${isDone?'Fase ya validada':'Confirmar fase — Jero'}">
+      <span aria-hidden="true">✓</span> ${isDone?'Fase validada':'Confirmar — Jero'}</button>`;
 
   const TARGET_TREE = `cx-automation-template/
 ├── act/
@@ -1100,10 +1032,10 @@ function renderPhase0(p, ps) {
 │   │   ├── act_build_playbook.html
 │   │   ├── act_cx_petal_artefacts_inventory.html                 ← NUEVO
 │   │   ├── act_orchestrator.html
-│   │   ├── act_deploy.html
+│   │   ├── act_cx_resources_deploy.html
 │   │   └── qap_skills.html
 │   └── data/
-│       └── act_cx_petal_artefacts_inventory.json                 ← NUEVO (generado)
+│       └── act_cx_draft_resources_inventory.json                 ← NUEVO (generado)
 ├── research/
 │   ├── cx-dialogflow/
 │   ├── conversational-design/
@@ -1114,10 +1046,7 @@ function renderPhase0(p, ps) {
         └── qa.yml`;
 
   return makeBlock('ctx','📋','Contexto del sistema — leer antes de empezar','ctx'+p.id,ctxHtml,true)
-    + makeBlock('ref','📊','Estado actual de componentes del repo','ref-status-'+p.id,`<p style="font-size:12px;color:var(--text-2);margin-bottom:12px">${c.leyenda}</p>`+renderStatusTable(),true)
-    + makeBlock('ref','🗂️','Estructura target del repo ACT','ref-tree-'+p.id,renderTreeView(TARGET_TREE),true)
-    + makeBlock('val','✋','Validación humana — gate de Jero','val'+p.id,valHtml,true)
-    + renderMdBlock(p);
+    + makeBlock('val','✋','Validación humana — gate de Jero','val'+p.id,valHtml,true);
 }
 
 function renderOperaciones(ops) {
@@ -1191,8 +1120,12 @@ function renderOperaciones(ops) {
 }
 
 function renderGenericPhase(p, ps) {
+  const contextoHtml = p.llm.contexto && p.llm.contexto.length
+    ? `<div class="ctx-grid" style="margin-bottom:16px">${p.llm.contexto.map(c=>`<div class="ctx-card" style="grid-column:1/-1"><div class="ctx-card-title">${c.title}</div><p>${c.body}</p></div>`).join('')}</div>` : '';
   const porQueHtml = p.llm.porQue
     ? `<div class="llm-section"><div class="llm-section-title">Por qué</div><p>${p.llm.porQue}</p></div>` : '';
+  const reglasHtml = p.llm.reglas && p.llm.reglas.length
+    ? `<div class="llm-section"><div class="llm-section-title">Reglas de construcción obligatorias</div>${renderList(p.llm.reglas, false)}</div>` : '';
   const leerHtml = p.llm.leer && p.llm.leer.length
     ? `<div class="llm-section"><div class="llm-section-title">Qué leer antes de empezar</div>${renderList(p.llm.leer, false)}</div>` : '';
   const pasosHtml = p.llm.pasos && p.llm.pasos.length
@@ -1201,9 +1134,27 @@ function renderGenericPhase(p, ps) {
     ? `<div class="llm-section"><div class="llm-section-title">Operaciones</div>${renderOperaciones(p.llm.operaciones)}</div>` : '';
   const outputsHtml = p.llm.outputs && p.llm.outputs.length
     ? `<div class="llm-section"><div class="llm-section-title">Outputs</div>${p.llm.outputs.map(o=>`<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path||o}</div>${o.desc?`<div class="op-desc">${o.desc}</div>`:''}</div></div>`).join('')}</div>` : '';
-  const hasContent = porQueHtml || leerHtml || pasosHtml || opHtml || outputsHtml;
-  const llmHtml = `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>`
-    + porQueHtml + leerHtml + opHtml + pasosHtml + outputsHtml
+  const renderCriteriosTablas = () => p.val && p.val.grupos && p.val.grupos.length
+    ? `<p style="font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.5">La fase no está completa hasta que estos criterios se cumplen. Verifícalos tú mismo antes de marcar la fase como hecha.</p>
+      ${p.val.grupos.map(g => {
+        const hasObj = g.items.length && typeof g.items[0] === 'object';
+        const tableRows = hasObj
+          ? g.items.map(it => `<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;font-family:monospace;color:var(--text-1);vertical-align:top">${it.criterio}</td><td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2);vertical-align:top">${it.porQue}</td></tr>`).join('')
+          : g.items.map(it => `<tr><td colspan="2" style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-1)">${typeof it==='object'?it.criterio:it}</td></tr>`).join('');
+        return `<div style="margin-bottom:16px">
+          ${g.title ? `<div style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">${g.title}</div>` : ''}
+          <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:6px;overflow:hidden;table-layout:fixed"><colgroup><col style="width:45%"><col style="width:55%"></colgroup>
+            ${hasObj ? `<thead><tr><th style="padding:6px 10px;background:var(--bg-2);font-size:11px;font-weight:600;color:var(--text-2);text-align:left;border-bottom:1px solid var(--border)">Criterio</th><th style="padding:6px 10px;background:var(--bg-2);font-size:11px;font-weight:600;color:var(--text-2);text-align:left;border-bottom:1px solid var(--border)">Por qué es necesario</th></tr></thead>` : ''}
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>`;
+      }).join('')}`
+    : '';
+  const valCriteriosHtml = null;
+  const hasContent = porQueHtml || reglasHtml || leerHtml || pasosHtml || opHtml || outputsHtml;
+  const llmHtml = contextoHtml
+    + `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>`
+    + porQueHtml + reglasHtml + leerHtml + opHtml + pasosHtml + outputsHtml
     + (!hasContent ? `<p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:12px">Contenido en construcción — se completa fase por fase en conversación.</p>` : '');
 
   let checkIdx = 0;
@@ -1222,16 +1173,71 @@ function renderGenericPhase(p, ps) {
   }).join('');
 
   const isDone = ps.status === 'done';
-  const valHtml = gruposHtml + `
-    <label class="notes-label" for="notesArea-${p.id}">Notas</label>
-    <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Observaciones...">${ps.notes||''}</textarea>
-    <button class="validate-btn${isDone?' validated':''}" id="validateBtn" onclick="validatePhase(${p.id})"
-            aria-label="${isDone?'Fase ya validada':'Marcar fase como validada'}">
-      <span aria-hidden="true">✓</span> ${isDone?'Fase validada':'Marcar como validada'}</button>`;
+  const isContinued = ps.status === 'continued';
+
+  const valHtml = `
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
+      <strong>Instrucción:</strong> antes de ejecutar, escribe qué has entendido de esta fase y qué vas a hacer exactamente.
+    </p>
+    <label class="notes-label" for="notesArea-${p.id}">Comprensión y plan — Opus</label>
+    <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Escribe qué vas a hacer, qué archivos vas a crear y cómo lo vas a verificar..." style="min-height:120px">${ps.notes||''}</textarea>
+    <button class="validate-btn${isDone||isContinued?' validated':''}" id="validateBtn-${p.id}" onclick="validatePhase(${p.id})"
+            aria-label="${isDone||isContinued?'Confirmado':'Confirmar — Jero'}">
+      <span aria-hidden="true">✓</span> ${isDone||isContinued?'Confirmado':'Confirmar — Jero'}</button>`;
+
+  let checkIdx2 = 0;
+  const valItems = p.val.grupos.flatMap(g => g.items);
+  const valChecksHtml = p.val.grupos.map(g => {
+    const items = g.items.map(item => {
+      const i = checkIdx2++;
+      const checked = (ps.checked||[])[i] === true;
+      const label = typeof item === 'object' ? item.criterio : item;
+      return `<div class="check-item${checked?' checked':''}"
+                   role="checkbox" aria-checked="${checked}" tabindex="0"
+                   onclick="toggleCheck(${p.id},${i},this)">
+        <div class="check-box" aria-hidden="true">${checked?'✓':''}</div>
+        <div class="check-text">${label}</div></div>`;
+    }).join('');
+    return `<div class="checklist-group">${g.title?`<div class="checklist-group-title">${g.title}</div>`:''}<div class="checklist" role="group">${items}</div></div>`;
+  }).join('');
+
+  const allChecked = valItems.length > 0 && valItems.every((_,i) => (ps.checked||[])[i] === true);
+  const continuarDisabled = !allChecked && !isContinued ? ' disabled' : '';
+
+  const procesoHtml = `
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
+      <strong>Instrucción:</strong> actualiza este log mientras ejecutas — pega lo que va pasando, errores y cómo los resolviste. Cuando termines, marca los criterios de verificación.
+    </p>
+    <label class="notes-label" for="procesoArea-${p.id}">Log de ejecución — Opus</label>
+    <textarea class="notes-area" id="procesoArea-${p.id}" placeholder="Pega aquí lo que va ocurriendo: comandos ejecutados, archivos creados, errores encontrados..." style="min-height:160px;font-family:monospace;font-size:12px">${ps.proceso||''}</textarea>
+    <div style="margin-top:16px">${valChecksHtml}</div>
+    <div style="margin-top:16px">
+      <button class="validate-btn${isContinued?' validated':''}"${continuarDisabled} id="continuarBtn-${p.id}" onclick="continuarPhase(${p.id})"
+              aria-label="${isContinued?'Fase completada':'Continuar →'}">
+        <span aria-hidden="true">${isContinued?'✓':'→'}</span> ${isContinued?'Fase completada':'Continuar →'}</button>
+    </div>`;
+
+  const statusTableBlock = p.llm.leyenda
+    ? makeBlock('ref','📊','Estado actual de componentes del repo','ref-status-'+p.id,
+        (p.llm.targetTree ? `<div class="tree-view" style="margin-bottom:16px">${p.llm.targetTree}</div>` : '')
+        + `<p style="font-size:12px;color:var(--text-2);margin-bottom:12px">${p.llm.leyenda}</p>`
+        + renderStatusTable(), true)
+    : '';
+
+  const criteriosBody = renderCriteriosTablas();
+  const criteriosBlock = criteriosBody
+    ? makeBlock('criterios','✅','Criterios de validación','criterios'+p.id, criteriosBody, true)
+    : '';
+
+  const procesoBlock = p.val.grupos && p.val.grupos.length
+    ? makeBlock('proceso','⚙️','Proceso — ejecución y verificación','proceso'+p.id,procesoHtml,true)
+    : '';
 
   return makeBlock('llm','🤖','Para el LLM — instrucciones de construcción','llm'+p.id,llmHtml,true)
-    + makeBlock('val','✋','Validación humana — gate de Jero','val'+p.id,valHtml,true)
-    + renderMdBlock(p);
+    + statusTableBlock
+    + criteriosBlock
+    + makeBlock('val','✋','Gate de Jero — comprensión y plan','val'+p.id,valHtml,true)
+    + procesoBlock;
 }
 
 function loadPhase(id) {
@@ -1243,14 +1249,12 @@ function loadPhase(id) {
   let bodyHtml;
   if (p.special === 'goal') {
     bodyHtml = renderGoalPhase(p, ps);
-  } else if (p.special === 'auditoria') {
-    bodyHtml = renderPhase0(p, ps);
   } else {
     bodyHtml = renderGenericPhase(p, ps);
   }
 
   const eyebrow = p.special === 'goal'
-    ? 'Fase 0 — Objetivo'
+    ? `Fase ${p.id} — Objetivo`
     : `Fase ${p.id} de ${PHASES.filter(x => x.special !== 'goal').length}`;
 
   inner.innerHTML = `
@@ -1266,6 +1270,14 @@ function loadPhase(id) {
     notesEl.addEventListener('input', e => {
       if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
       state[id].notes = e.target.value;
+      saveState(state);
+    });
+  }
+  const procesoEl = document.getElementById('procesoArea-' + id);
+  if (procesoEl) {
+    procesoEl.addEventListener('input', e => {
+      if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
+      state[id].proceso = e.target.value;
       saveState(state);
     });
   }
@@ -1298,16 +1310,68 @@ function selectDecision(phaseId, decIdx, optIdx, el) {
 }
 
 function validatePhase(id) {
-  const btn = document.getElementById('validateBtn-' + id) || document.getElementById('validateBtn');
+  const btn = document.getElementById('validateBtn-' + id);
   if (!btn || btn.classList.contains('validated')) return;
   if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
   state[id].status = 'done';
   saveState(state);
   btn.classList.add('validated');
-  const isGoal = id === 0;
-  btn.innerHTML = `<span aria-hidden="true">✓</span> ${isGoal ? 'Objetivo confirmado' : 'Fase validada'}`;
-  btn.setAttribute('aria-label', isGoal ? 'Objetivo ya confirmado' : 'Fase ya validada');
+  const isGoal = id === 1;
+  btn.innerHTML = `<span aria-hidden="true">✓</span> ${isGoal ? 'Objetivo confirmado' : 'Confirmado'}`;
+  btn.setAttribute('aria-label', isGoal ? 'Objetivo ya confirmado' : 'Confirmado');
   renderTabs();
+}
+
+function continuarPhase(id) {
+  const btn = document.getElementById('continuarBtn-' + id);
+  if (!btn || btn.classList.contains('validated')) return;
+  if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
+  state[id].status = 'continued';
+  saveState(state);
+  btn.classList.add('validated');
+  btn.innerHTML = `<span aria-hidden="true">✓</span> Fase completada`;
+  btn.setAttribute('aria-label', 'Fase completada');
+  renderTabs();
+}
+
+function setPasoStatus(phaseId, i, newStatus) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].pasoStatus) state[phaseId].pasoStatus = [];
+  state[phaseId].pasoStatus[i] = newStatus;
+  saveState(state);
+  loadPhase(phaseId);
+}
+
+function setValStatus(phaseId, i, newStatus) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].valStatus) state[phaseId].valStatus = [];
+  state[phaseId].valStatus[i] = newStatus;
+  saveState(state);
+  loadPhase(phaseId);
+}
+
+function togglePasoOutput(phaseId, i) {
+  const el = document.getElementById(`pasoOutput-${phaseId}-${i}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleValOutput(phaseId, i) {
+  const el = document.getElementById(`valOutput-${phaseId}-${i}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function savePasoOutput(phaseId, i, value) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].pasoOutput) state[phaseId].pasoOutput = [];
+  state[phaseId].pasoOutput[i] = value;
+  saveState(state);
+}
+
+function saveValOutput(phaseId, i, value) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].valOutput) state[phaseId].valOutput = [];
+  state[phaseId].valOutput[i] = value;
+  saveState(state);
 }
 
 /* ── Status table data para Fase 0 ── */
@@ -1374,11 +1438,11 @@ const REPO_COMPONENTS = [
     mecanismo: 'Por crear en Fase 3. Diff en 3 dimensiones: --git (vs rama), --cx (vs API CX en vivo), --all (tabla completa). Envuelve diff.py añadiendo visión de pipeline.' },
   { file: 'act/scripts/utils/generate_cx_petal_artefacts_inventory.py',   tipo: 'utilidad',    funcion: 'Genera inventory.json',       estado: 'new',  nota: 'Crear en Fase 4',
     descripcion: 'Generará un inventario completo del estado actual del agente consultando la API de CX',
-    mecanismo: 'Por crear en Fase 5. Consulta la API CX → genera act_cx_petal_artefacts_inventory.json con estado de los 12 tipos de artefactos.' },
+    mecanismo: 'Por crear en Fase 5. Consulta la API CX → genera act_cx_draft_resources_inventory.json con estado de los 12 tipos de artefactos.' },
   { file: 'docs/panels/act_cx_petal_artefacts_inventory.html',            tipo: 'panel',       funcion: 'Vista completa inventario',   estado: 'new',  nota: 'Crear en Fase 5',
     descripcion: 'Panel web que mostrará el inventario de artefactos del agente con filtros interactivos',
-    mecanismo: 'Por crear en Fase 6. Consume act_cx_petal_artefacts_inventory.json y renderiza estado del sistema con filtros interactivos.' },
-  { file: 'docs/data/act_cx_petal_artefacts_inventory.json',              tipo: 'datos',       funcion: 'Estado del sistema (generado)', estado: 'new', nota: 'Crear en Fase 4',
+    mecanismo: 'Por crear en Fase 6. Consume act_cx_draft_resources_inventory.json y renderiza estado del sistema con filtros interactivos.' },
+  { file: 'docs/data/act_cx_draft_resources_inventory.json',              tipo: 'datos',       funcion: 'Estado del sistema (generado)', estado: 'new', nota: 'Crear en Fase 4',
     descripcion: 'Archivo de datos generado automáticamente con el estado actual de los 12 tipos de recursos del agente',
     mecanismo: 'Por crear en Fase 5. Generado por generate_cx_petal_artefacts_inventory.py. No commitear (en .gitignore).' },
   { file: '.github/workflows/*.yml',      tipo: 'ACT CI/CD',   funcion: 'Pipeline automatizado',       estado: 'new',  nota: 'Crear en Fase 8',
@@ -1426,135 +1490,6 @@ function renderTreeView(text) {
   return `<div class="tree-view" role="img" aria-label="Árbol de estructura target del worktree">${lines}</div>`;
 }
 
-function generateMarkdown(phase) {
-  const stripHtml = s => s.replace(/<[^>]+>/g, '');
-
-  if (phase.special === 'goal') {
-    const g = phase.goal;
-    let md = `# ${phase.title}\n\n> ${phase.subtitle}\n\n`;
-    md += `## Qué construimos\n\n${g.que}\n\n`;
-    md += `## Por qué existe ACT\n\n${g.necesidad}\n\n`;
-    md += `## Output esperado\n\n${g.output}\n\n`;
-    md += `## Scope\n\n`;
-    g.scope.forEach(s => { md += `- ${s}\n`; });
-    md += '\n';
-    md += `## Constraints no negociables\n\n`;
-    g.constraints.forEach(c => { md += `- ${c}\n`; });
-    md += '\n';
-    md += `## Mapa de fases\n\n`;
-    md += `| # | Fase | Descripción |\n|---|------|-------------|\n`;
-    g.fases.forEach(f => { md += `| ${f.n} | ${f.nombre} | ${f.desc} |\n`; });
-    return md.trim();
-  }
-
-  let md = `# Fase ${phase.id} — ${phase.title}\n\n`;
-  md += `> ${phase.subtitle}\n\n`;
-
-  if (phase.special === 'auditoria') {
-    const c = phase.context;
-    md += `## Contexto del sistema\n\n`;
-    md += `**${c.sistema.title}:** ${c.sistema.body}\n\n`;
-    md += `**${c.agente.title}:** ${c.agente.body}\n\n`;
-    md += `**${c.recursos.title}:** ${c.recursos.items.join(', ')}\n\n`;
-    md += `## Leyenda de estado\n\n${c.leyenda}\n\n`;
-  }
-
-  md += `## Objetivo\n\n${stripHtml(phase.llm.objetivo)}\n\n`;
-
-  if (phase.llm.porQue) {
-    md += `## Por qué\n\n${phase.llm.porQue}\n\n`;
-  }
-
-  if (phase.llm.leer && phase.llm.leer.length) {
-    md += `## Qué leer antes de empezar\n\n`;
-    phase.llm.leer.forEach(l => { md += `- ${stripHtml(l)}\n`; });
-    md += '\n';
-  }
-
-  if (phase.llm.outputs && phase.llm.outputs.length) {
-    md += `## Outputs esperados\n\n`;
-    phase.llm.outputs.forEach(o => { md += `- \`${o.path}\` — ${o.desc}\n`; });
-    md += '\n';
-  }
-
-  if (phase.llm.operaciones && phase.llm.operaciones.length) {
-    md += `## Operaciones\n\n`;
-    md += `| Tipo | Archivo | Destino | Nota |\n|------|---------|---------|------|\n`;
-    phase.llm.operaciones.forEach(op => {
-      if (op.items) {
-        if (op.tipo === 'crear') {
-          // CREAR group: list string paths in the archivo column
-          md += `| ${op.tipo.toUpperCase()} | ${op.items.map(f => `\`${f}\``).join(', ')} | — | |\n`;
-        } else {
-          // Group with sub-items: header row + indented sub-rows
-          const destLabel = op.destino ? `→ \`${op.destino}\`` : op.tipo.toUpperCase();
-          md += `| ${op.tipo.toUpperCase()} | **${destLabel}** | | |\n`;
-          op.items.forEach(item => {
-            md += `| | ↳ \`${item.archivo}\` | — | ${item.nota || ''} |\n`;
-          });
-        }
-      } else {
-        md += `| ${op.tipo.toUpperCase()} | \`${op.archivo}\` | ${op.destino ? `\`${op.destino}\`` : '—'} | ${op.nota || ''} |\n`;
-      }
-    });
-    md += '\n';
-  }
-
-  if (phase.llm.pasos && phase.llm.pasos.length) {
-    md += `## Pasos de ejecución\n\n`;
-    phase.llm.pasos.forEach((p, i) => { md += `${i+1}. ${stripHtml(p)}\n`; });
-    md += '\n';
-  }
-
-  if (phase.llm.templates) {
-    md += `## Templates\n\n### fase0_auditoria.md\n\`\`\`\n${phase.llm.templates.auditoria}\n\`\`\`\n\n`;
-    md += `### fase0_estructura_target.md\n\`\`\`\n${phase.llm.templates.estructura}\n\`\`\`\n\n`;
-  }
-
-  md += `## Criterios de validación\n\n`;
-  phase.val.grupos.forEach(g => {
-    md += `### ${g.title}\n`;
-    g.items.forEach(item => { md += `- [ ] ${item}\n`; });
-    md += '\n';
-  });
-
-  return md.trim();
-}
-
-function copyMarkdown(phaseId) {
-  const phase = PHASES.find(p => p.id === phaseId);
-  const md = generateMarkdown(phase);
-  navigator.clipboard.writeText(md).then(() => {
-    const btn = document.getElementById('copyBtn-' + phaseId);
-    if (!btn) return;
-    btn.classList.add('copied');
-    btn.textContent = '✓ Copiado';
-    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copiar'; }, 2000);
-  });
-}
-
-function renderMdBlock(phase) {
-  const md = generateMarkdown(phase);
-  const escaped = md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const outputs = (phase.llm && phase.llm.outputs) || [];
-  const outputChips = outputs.map(o =>
-    `<div class="md-file-chip"><span aria-hidden="true">📄</span><code>${o.path}</code><span>— ${o.desc}</span></div>`
-  ).join('');
-
-  const label = phase.special === 'goal'
-    ? 'Brief .md — Objetivo del proyecto'
-    : `Brief .md — Fase ${phase.id}`;
-
-  const bodyHtml = `
-    <div class="md-toolbar">
-      <span class="md-toolbar-label">Brief ejecutable para Claude Code</span>
-      <button class="copy-btn" id="copyBtn-${phase.id}" onclick="copyMarkdown(${phase.id})" aria-label="Copiar brief en markdown al portapapeles">Copiar</button>
-    </div>
-    <div class="md-preview" role="textbox" aria-readonly="true" aria-label="Contenido del brief en markdown" aria-multiline="true">${escaped}</div>
-    ${outputChips ? `<div class="md-files">${outputChips}</div>` : ''}`;
-
-  return makeBlock('md', '📋', label, 'md'+phase.id, bodyHtml, false);
-}
 
 /* ── Teclado: Enter/Space activan role="checkbox" ── */
 document.addEventListener('keydown', function(e) {

@@ -1,0 +1,1337 @@
+<meta charset="utf-8">
+<title>act_cx_resources_deploy.py — Deploy Petal 1.0</title>
+<style>
+:root {
+  --bg:#0d1117;--bg-2:#1a2030;--bg-3:#252d3a;--border:#3d4755;
+  --text:#f0f6fc;--text-2:#b0bac6;--text-3:#8b95a1;
+  --accent:#3b82f6;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:14px}
+
+/* TOP BAR */
+.topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.topbar-agent{font-weight:700;font-size:15px}
+.topbar-sep{color:var(--border);font-size:18px}
+.topbar-env{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;transition:background .3s,color .3s,border-color .3s}
+.topbar-commit{font-size:12px;color:var(--text-3);font-family:monospace}
+.topbar-meta{color:var(--text-3);font-size:12px;margin-left:auto;display:flex;align-items:center;gap:12px}
+.btn{padding:6px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-gate{background:var(--gate);color:#000}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.btn-ghost{background:var(--bg-3);color:var(--text-2);border:1px solid var(--border)}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* SPECS PANEL */
+.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px}
+.specs-section{display:flex;flex-direction:column;gap:10px}
+.specs-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.spec-block{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.spec-block-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.spec-block p{font-size:12px;color:var(--text-2);line-height:1.6}
+.spec-block code{font-size:11px;font-family:'SF Mono',Menlo,monospace;color:var(--text);background:var(--bg-2);padding:1px 4px;border-radius:3px}
+.spec-step-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px}
+.spec-empty{font-size:12px;color:var(--text-3);font-style:italic}
+
+/* SIDEBAR */
+.sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
+.sidebar-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:0 16px 12px}
+.step-item{display:flex;align-items:flex-start;gap:12px;padding:9px 16px;cursor:pointer;border-left:2px solid transparent;transition:background .1s;position:relative}
+.step-item:hover{background:var(--bg-3)}
+.step-item.active{background:rgba(59,130,246,.08);border-left-color:var(--accent)}
+.step-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;transition:background .2s}
+.s-done .step-badge{background:var(--success);color:#000}
+.s-active .step-badge{background:var(--accent);color:#fff}
+.s-gate .step-badge{background:var(--gate);color:#000}
+.s-error .step-badge{background:var(--error);color:#fff}
+.s-pending .step-badge{background:var(--bg-3);color:var(--text-3);border:1px solid var(--border)}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:13px;font-weight:500;line-height:1.3}
+.s-pending .step-name{color:var(--text-3)}
+.s-active .step-name,.s-gate .step-name{color:var(--text)}
+.step-status-text{font-size:11px;margin-top:2px}
+.s-done .step-status-text{color:#4ade80}
+.s-active .step-status-text{color:#93c5fd}
+.s-gate .step-status-text{color:#fbbf24}
+.s-pending .step-status-text{color:var(--text-3)}
+.step-connector{width:1px;height:6px;background:var(--border);margin-left:27px}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:28px 32px}
+.step-view{display:none;max-width:720px}
+.step-view.visible{display:block}
+.phase-eyebrow{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.phase-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.phase-sub{font-size:14px;color:var(--text-2);margin-bottom:24px;line-height:1.5}
+
+/* GATE BLOCK */
+.gate-block{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:20px 24px;margin-bottom:20px}
+.gate-title{font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.gate-block p{color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px}
+.action-bar{display:flex;gap:10px;margin-top:4px}
+
+/* DIFF */
+.diff-wrap{overflow-x:auto;margin-bottom:20px}
+.diff-table{width:100%;border-collapse:collapse;font-size:13px}
+.diff-table th{text-align:left;padding:6px 12px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.diff-table td{padding:8px 12px;border-bottom:1px solid var(--bg-3);font-variant-numeric:tabular-nums}
+.diff-table tr:last-child td{border-bottom:none}
+.diff-table code{font-size:12px;color:var(--text-2);font-family:monospace}
+.pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.pill-mod{background:rgba(59,130,246,.15);color:#60a5fa}
+.pill-new{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-del{background:rgba(239,68,68,.15);color:#f87171}
+.pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-skip{background:var(--bg-3);color:var(--text-3)}
+.pill-err{background:rgba(239,68,68,.15);color:#f87171}
+.pill-dim{background:var(--bg-3);color:var(--text-3)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bg-3)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)}
+
+/* OUTPUT */
+.output-block{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8;overflow-x:auto;white-space:pre}
+.output-block .ok{color:#4ade80}
+.output-block .info{color:#60a5fa}
+.output-block .warn{color:#fbbf24}
+.output-block .dim{color:var(--text-3)}
+.output-block .del{color:#f87171}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.stat-label{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.stat-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* PROGRESS */
+.progress-wrap{margin-bottom:20px}
+.progress-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bg-3)}
+.progress-item:last-child{border-bottom:none}
+.progress-icon{width:18px;text-align:center;font-size:13px;flex-shrink:0}
+.progress-name{flex:1;font-size:13px;color:var(--text)}
+.progress-status{font-size:12px;color:var(--text-3)}
+.progress-status.ok{color:#4ade80}
+.progress-status.skip{color:var(--text-3)}
+
+/* DONE BANNER */
+.done-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:20px}
+.done-banner p{font-size:13px;color:#4ade80;font-weight:500}
+
+/* SECTION LABEL */
+.slabel{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+
+/* SNAPSHOT GATE (Paso 4) */
+.snapshot-input{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'SF Mono',Menlo,monospace;width:100%;outline:none;transition:border-color .15s}
+.snapshot-input:focus{border-color:var(--gate)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* CHECK ROWS (Paso 2) */
+.check-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
+.check-row:last-child{border-bottom:none}
+.check-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;margin-top:1px}
+.check-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.check-detail{font-size:12px;color:var(--text-3);font-family:'SF Mono',Menlo,monospace}
+.check-detail.err{color:#f87171}
+.check-error-hint{font-size:12px;color:#f87171;margin-top:6px;line-height:1.5}
+
+/* INFO NOTE */
+.info-note{font-size:12px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-top:12px;line-height:1.6}
+
+/* ACTION RESULT ROWS */
+.action-result{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
+.action-result:last-child{border-bottom:none}
+.action-result-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;margin-top:1px}
+.action-result-body{flex:1}
+.action-result-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.action-result-desc{font-size:12px;color:var(--text-2);line-height:1.55}
+
+</style>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="topbar-agent">Petal 1.0</span>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-env" id="topbar-env">STAGING</span>
+  <span class="topbar-commit">GitHub: staging &middot; 98fcbdd</span>
+  <div class="topbar-meta">
+    <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
+    <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- STEP 1: Inventario CX -->
+    <div class="step-view" id="view-1">
+      <div class="phase-eyebrow">Paso 1 de 8</div>
+      <div class="phase-title">Inventario CX</div>
+      <div class="phase-sub">Lee el estado actual del agente desde la API de Dialogflow CX.</div>
+
+      <!-- Estado inicial: botón para iniciar -->
+      <div id="inv-start">
+        <button class="btn btn-primary" onclick="startInventory()">Iniciar inventario &rarr;</button>
+      </div>
+
+      <!-- Log animado (oculto hasta pulsar) -->
+      <div id="inv-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="inv-log-block" style="min-height:80px"></div>
+      </div>
+
+      <!-- Estado completado con inventario (oculto hasta finalizar) -->
+      <div id="inv-done" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
+          <span style="color:#4ade80;font-weight:600;font-size:13px">Inventario completado &#10003;</span>
+        </div>
+
+        <!-- Cuadrícula de 12 tipos de recursos -->
+        <div class="cards-grid" style="margin-bottom:24px">
+          <div class="stat-card">
+            <div class="stat-label">Playbooks</div>
+            <div class="stat-value">4</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Examples</div>
+            <div class="stat-value">11</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tools</div>
+            <div class="stat-value">2</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Flows</div>
+            <div class="stat-value">1</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pages</div>
+            <div class="stat-value">6</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Intents</div>
+            <div class="stat-value">8</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Entity Types</div>
+            <div class="stat-value">3</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Webhooks</div>
+            <div class="stat-value">1</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Generators</div>
+            <div class="stat-value">2</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Agent Config</div>
+            <div class="stat-value">1</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Environments</div>
+            <div class="stat-value">2</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Versions</div>
+            <div class="stat-value">5</div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Push a GitHub staging -->
+    <div class="step-view" id="view-2">
+      <div class="phase-eyebrow">Paso 2 de 8</div>
+      <div class="phase-title">Push a GitHub staging</div>
+      <div class="phase-sub">Sube los commits locales a la rama <strong>staging de GitHub</strong> antes de calcular el diff con CX.</div>
+
+      <!-- Status header — actualiza en los 3 estados -->
+      <div id="push-status" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px 8px 0 0;border-bottom:none">
+        <div id="push-status-icon" style="width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--error)">✗</div>
+        <div>
+          <div id="push-status-label" style="font-size:13px;font-weight:600;color:var(--text)">Commits pendientes de push</div>
+          <div id="push-status-detail" style="font-size:11px;color:var(--text-3);margin-top:1px">origin/staging está 2 commits por detrás</div>
+        </div>
+      </div>
+
+      <!-- Lista de commits — siempre visible -->
+      <div id="push-commit-list" style="border:1px solid var(--border);border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:16px"></div>
+
+      <!-- Log — aparece durante el push, debajo de la lista -->
+      <div id="push-log" style="display:none;margin-bottom:16px">
+        <div class="output-block" id="push-log-block" style="min-height:60px"></div>
+      </div>
+
+      <!-- Acción — botón push o continuar -->
+      <div id="push-action"></div>
+    </div>
+
+    <!-- STEP 3: Diff GitHub vs CX -->
+    <div class="step-view" id="view-3">
+      <div class="phase-eyebrow">Paso 3 de 8</div>
+      <div class="phase-title">Diff GitHub vs CX</div>
+      <div class="phase-sub">Compara la rama <strong>staging de GitHub</strong> contra el entorno <strong>staging de CX</strong>.</div>
+
+      <!-- Con cambios -->
+      <div id="diff-has-changes" style="display:none">
+        <div class="diff-wrap">
+          <table class="diff-table">
+            <thead><tr><th>Tipo</th><th>Recurso</th><th>Operaci&oacute;n</th></tr></thead>
+            <tbody>
+              <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">PATCH</span></td></tr>
+              <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">PATCH</span></td></tr>
+              <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><span class="pill pill-new">POST</span></td></tr>
+              <tr><td>Example</td><td><code>compra_tulipanes_002</code></td><td><span class="pill pill-del">DELETE</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="legend" style="margin-bottom:20px">
+          <span class="legend-item"><span class="pill pill-new">POST</span> Nuevo en CX</span>
+          <span class="legend-item"><span class="pill pill-mod">PATCH</span> Modificado en CX</span>
+          <span class="legend-item"><span class="pill pill-del">DELETE</span> Eliminado de CX</span>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Sin cambios -->
+      <div id="diff-no-changes" style="display:none">
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:18px 20px;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">Sin cambios detectados</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">El agente en CX staging ya est&aacute; al d&iacute;a con la rama staging de GitHub. No hay nada que desplegar.</p>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="resetDeploy()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Confirmar deploy -->
+    <div class="step-view" id="view-4">
+      <div class="phase-eyebrow">Paso 4 de 8</div>
+      <div class="phase-title">Confirmar deploy</div>
+      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
+      <div class="gate-block" id="deploy-gate">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">3</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Confirmar deploy &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy(false)">Cancelar</button>
+        </div>
+      </div>
+      <div id="deploy-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="deploy-log-block" style="min-height:80px"></div>
+        <div class="legend">
+          <span class="legend-item"><span class="pill pill-ok">OK</span> Aplicado</span>
+          <span class="legend-item"><span class="pill pill-err">ERROR</span> Fallo en API</span>
+          <span class="legend-item"><span class="pill pill-dim">—</span> No intentado</span>
+        </div>
+      </div>
+
+      <!-- Deploy OK -->
+      <div id="deploy-done" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
+          <span style="color:#4ade80;font-weight:600;font-size:13px">Deploy completado &#10003;</span>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Deploy PARCIAL (fallo) -->
+      <div id="deploy-fail" style="display:none">
+        <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:16px 20px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Deploy parcial &mdash; fallo en el recurso 3</div>
+          <div id="deploy-fail-summary" style="font-size:13px;color:var(--text-2);line-height:1.8;margin-bottom:14px"></div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">El draft del agente en CX tiene cambios aplicados a medias. Elige c&oacute;mo continuar:</div>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="retryFailed()">Reintentar fallidos &rarr;</button>
+            <button class="btn btn-danger" onclick="revertDraft()">Revertir draft</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Snapshot del agente -->
+    <div class="step-view" id="view-5">
+      <div class="phase-eyebrow">Paso 5 de 8</div>
+      <div class="phase-title">Snapshot del agente</div>
+      <div class="phase-sub">CX guarda un snapshot nuevo del agente en el entorno staging. La versi&oacute;n anterior se conserva para rollback si los tests fallan.</div>
+      <div class="gate-block" id="snap-gate">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p>Se crear&aacute; un snapshot nuevo del agente en CX staging. El snapshot anterior (<strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong>) se conserva para poder hacer rollback si los tests fallan.</p>
+        <p style="margin-top:0;margin-bottom:16px">CX conserva un m&aacute;ximo de <strong style="color:var(--text)">5 versiones del agente</strong>. Si ya hay 5, la m&aacute;s antigua se eliminar&aacute; autom&aacute;ticamente al crear &eacute;sta.</p>
+        <div style="margin-bottom:20px">
+          <div class="slabel" style="margin-bottom:8px">Nombre del snapshot</div>
+          <input type="text" id="snapshot-name" class="snapshot-input" value="">
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, d&iacute;gitos, guiones y guiones bajos. M&aacute;x. 64 caracteres. Vac&iacute;o = nombre autom&aacute;tico con fecha y hora.</div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-snapshot-confirm" onclick="confirmSnapshot()">Crear snapshot &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
+        </div>
+      </div>
+      <div id="snap-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
+      </div>
+      <div id="snap-done" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:14px 20px;margin-bottom:20px">
+          <span style="color:#4ade80;font-weight:600;font-size:13px">Snapshot completado &#10003;</span>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(5)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6: Validación de tests -->
+    <div class="step-view" id="view-6">
+      <div class="phase-eyebrow">Paso 6 de 8</div>
+      <div class="phase-title">Validaci&oacute;n de tests</div>
+      <div class="phase-sub">Confirma que has ejecutado la suite de tests QA y que todos los casos han pasado correctamente en el entorno staging.</div>
+      <div class="gate-block">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <div class="action-bar" id="test-action-bar">
+          <button class="btn btn-gate" onclick="advance(6)">Tests superados &rarr;</button>
+          <button class="btn btn-danger" onclick="showRollbackConfirm()">Tests fallidos</button>
+        </div>
+      </div>
+      <div id="rollback-confirm" style="display:none;margin-top:20px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:20px 24px">
+        <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tests fallidos &mdash; rollback de staging</div>
+        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, el sistema revertir&aacute; el entorno staging de CX al estado anterior.</p>
+        <div class="slabel" style="margin-bottom:8px">Qu&eacute; va a ocurrir</div>
+        <div style="margin-bottom:16px">
+          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar a <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
+        </div>
+        <div class="slabel" style="margin-bottom:6px">Qu&eacute; hacer despu&eacute;s</div>
+        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Vuelve a tu rama de trabajo, corrige los problemas y haz un nuevo deploy cuando est&eacute; listo.</p>
+        <div class="action-bar">
+          <button class="btn btn-danger" onclick="rollbackStaging()">Confirmar rollback</button>
+          <button class="btn btn-ghost" onclick="hideRollbackConfirm()">Cancelar</button>
+        </div>
+      </div>
+      <div id="rollback-log" style="display:none;margin-top:20px">
+        <div class="output-block" id="rollback-log-block" style="min-height:80px"></div>
+      </div>
+      <div id="rollback-done-banner" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px">
+        <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Deploy abortado</div>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Staging restaurado al estado anterior. Los pasos siguientes quedan fuera de juego.</p>
+        <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
+      </div>
+    </div>
+
+    <!-- STEP 7: Gate QA — staging -->
+    <div class="step-view" id="view-7">
+      <div class="phase-eyebrow">Paso 7 de 8</div>
+      <div class="phase-title">Gate QA &mdash; staging</div>
+      <div class="phase-sub">Valida el agente manualmente en el entorno staging de CX antes de promover a producci&oacute;n.</div>
+      <div class="gate-block">
+        <div class="gate-title">&#9995; Validaci&oacute;n manual requerida</div>
+        <p>El agente est&aacute; en staging con la nueva versi&oacute;n (<span class="snapshot-name-ref">—</span>). Pr&uacute;ebalo en Dialogflow CX y confirma que todo funciona antes de promover a producci&oacute;n.</p>
+        <div style="margin-bottom:16px">
+          <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" onclick="advance(7)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
+          <button class="btn btn-danger" onclick="rollbackFromStep7()">Rollback a staging anterior</button>
+        </div>
+      </div>
+      <div class="slabel">Estado actual de entornos</div>
+      <div class="output-block"><span class="dim">draft     </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="dim">&#8592; fuente del snapshot</span>
+<span class="info">staging   </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="ok">&#8592; nuevo</span>
+<span class="warn">producci&oacute;n</span> &rarr; v5 &middot; 2026-07-25_1134  &#8592; actual</div>
+    </div>
+
+    <!-- STEP 8: Aprobar subida a producción -->
+    <div class="step-view" id="view-8">
+      <div class="phase-eyebrow">Paso 8 de 8</div>
+      <div class="phase-title">Aprobar subida a producci&oacute;n</div>
+      <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se ejecutan dos acciones en orden.</div>
+
+      <!-- Gate -->
+      <div class="gate-block" id="prod-gate">
+        <div class="gate-title">&#9995; Confirmar deploy a producci&oacute;n</div>
+        <div style="margin-bottom:20px">
+          <div class="action-result">
+            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">1</div>
+            <div class="action-result-body">
+              <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
+              <div class="action-result-desc">El c&oacute;digo validado queda registrado en main. Si hay conflictos, el merge se aborta y el paso te lo indica.</div>
+            </div>
+          </div>
+          <div class="action-result">
+            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">2</div>
+            <div class="action-result-body">
+              <div class="action-result-title">Snapshot nuevo en el entorno producci&oacute;n de CX</div>
+              <div class="action-result-desc">Se crea una versi&oacute;n nueva del agente y se asigna al entorno de producci&oacute;n. Los usuarios ya ven los cambios.</div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" onclick="confirmProduction()">Promover a producci&oacute;n &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
+        </div>
+      </div>
+
+      <!-- Visor -->
+      <div id="prod-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="prod-log-block" style="min-height:80px"></div>
+      </div>
+
+      <!-- Conflicto de merge -->
+      <div id="prod-conflict" style="display:none;margin-top:16px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:16px 20px">
+        <div style="font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Conflicto de merge</div>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Git no puede hacer el merge autom&aacute;ticamente. Hay cambios en <code style="font-size:12px">main</code> que entran en conflicto con <code style="font-size:12px">staging</code>. Debes resolverlo en GitHub antes de continuar.</p>
+        <div class="action-bar">
+          <a href="https://github.com/jeronimosanchez/cx-automation-template/compare/main...staging" target="_blank" class="btn btn-gate" style="text-decoration:none">&#8599; Resolver conflicto en GitHub</a>
+          <button class="btn btn-ghost" onclick="abortProduction()">Abortar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP DONE -->
+    <div class="step-view" id="view-done">
+      <div class="phase-eyebrow">Deploy completado</div>
+      <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
+      <div class="phase-sub">Desplegado en producci&oacute;n &middot; verificado en staging.</div>
+      <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; 2026-07-28 &middot; 09:45 UTC &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
+
+      <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
+      <div style="margin-bottom:20px">
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
+            <div class="action-result-desc">El c&oacute;digo validado queda registrado en main de GitHub.</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Snapshot nuevo en producci&oacute;n de CX</div>
+            <div class="action-result-desc"><span class="snapshot-name-ref">—</span> &middot; asignado al entorno producci&oacute;n. Los usuarios ya ven los cambios.</div>
+          </div>
+        </div>
+        <div class="action-result" id="done-sync-row">
+          <div class="action-result-icon">
+            <input type="checkbox" id="check-sync-local" onchange="toggleSyncCheck()" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">
+          </div>
+          <div class="action-result-body">
+            <div class="action-result-title" id="done-sync-title" style="color:var(--text-2)">Sincronizar main local <span style="font-size:11px;font-weight:400;color:var(--text-3)">(recomendado)</span></div>
+            <div class="action-result-desc">Copia y ejecuta manualmente en tu terminal:<br>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
+                <code style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace">git fetch origin main:main</code>
+                <button onclick="navigator.clipboard.writeText('git fetch origin main:main').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copiar',1500)})" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slabel">Estado final de entornos</div>
+      <div class="output-block"><span class="ok">&#10003;</span> staging    &rarr; <span class="snapshot-name-ref">—</span>
+<span class="ok">&#10003;</span> producci&oacute;n &rarr; <span class="snapshot-name-ref">—</span>  <span class="info">&#8592; nuevo</span></div>
+
+      <div style="margin-top:4px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
+    </div>
+
+  </main>
+
+  <!-- SPECS PANEL -->
+  <aside class="specs-panel">
+
+    <div style="font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+      <span style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
+      Especificaciones funcionales
+    </div>
+
+    <!-- General -->
+    <div class="specs-section">
+      <div class="specs-section-title">General</div>
+      <div class="spec-block">
+        <div class="spec-block-label">Auth</div>
+        <p><code>gcloud auth print-access-token</code> — se obtiene una vez al inicio y se reutiliza en todas las llamadas a la API de CX.</p>
+      </div>
+      <div class="spec-block">
+        <div class="spec-block-label">Cabeceras obligatorias</div>
+        <p><code>Authorization: Bearer &lt;token&gt;</code><br><code>Content-Type: application/json</code><br><code>x-goog-user-project: &lt;GCP_PROJECT&gt;</code></p>
+      </div>
+      <div class="spec-block">
+        <div class="spec-block-label">Agente de referencia</div>
+        <p>Petal 1.0 — región <code>europe-west1</code>. ID y proyecto en <code>definitions/agent.yaml</code>.</p>
+      </div>
+    </div>
+
+    <!-- Por paso -->
+    <div class="specs-section">
+      <div class="specs-section-title">Specs por paso</div>
+
+      <div id="spec-step-1">
+        <div class="spec-step-title">Paso 1 — Inventario CX</div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué hace</div>
+          <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el agente Petal. Este paso hace una foto del estado actual: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Por qué existe</div>
+          <p>Si desplegamos sin saber el estado actual, no podemos comparar qué ha cambiado. Esta foto es el punto de partida de todo el pipeline — sin ella, el diff no tiene contra qué comparar.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué necesita</div>
+          <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Qué produce</div>
+          <p>Una lista completa de los 12 tipos de recursos del agente, lista para comparar con lo que tenemos en el repositorio.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Detalle técnico</div>
+          <p>Invoca cada <code>push_*.py</code> en modo lectura (LIST sin PATCH). Token desde <code>gcloud auth print-access-token</code>. Configuración del agente desde <code>definitions/agent.yaml</code>. Si algún LIST falla → abortar, no continuar con datos parciales.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si algún LIST falla → paso en error, no continúa<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío</p>
+        </div>
+      </div>
+
+      <div id="spec-step-2" style="display:none"><p class="spec-empty">Spec pendiente — Paso 2</p></div>
+      <div id="spec-step-3" style="display:none"><p class="spec-empty">Spec pendiente — Paso 3</p></div>
+      <div id="spec-step-4" style="display:none"><p class="spec-empty">Spec pendiente — Paso 4</p></div>
+      <div id="spec-step-5" style="display:none"><p class="spec-empty">Spec pendiente — Paso 5</p></div>
+      <div id="spec-step-6" style="display:none"><p class="spec-empty">Spec pendiente — Paso 6</p></div>
+      <div id="spec-step-7" style="display:none"><p class="spec-empty">Spec pendiente — Paso 7</p></div>
+      <div id="spec-step-8" style="display:none"><p class="spec-empty">Spec pendiente — Paso 8</p></div>
+      <div id="spec-step-done" style="display:none"><p class="spec-empty">Pipeline completado.</p></div>
+    </div>
+
+  </aside>
+
+</div>
+
+<script>
+// --- DATOS DINÁMICOS (hardcoded en prototipo) ---
+const DIFF_COUNT = 3;           // dinámico: vendrá del diff API
+const DEPLOY_COUNT = 4;         // dinámico: recursos modificados
+const TEST_COUNT = 42;          // dinámico: número de tests en la suite
+const PUSH_SIMULATE_FAIL           = false; // true = simular push rechazado (non-fast-forward)
+const DEPLOY_SIMULATE_FAIL         = false; // true = simular fallo en el 3er recurso
+const PRODUCTION_SIMULATE_CONFLICT = false; // true = simular conflicto de merge
+
+// Resultados de los checks de deploy.py (en producción vendrán del script)
+const CHECK_RESULTS = {
+  push: {
+    ok: false,
+    pending: [
+      { hash: '98fcbdd', msg: 'fix: deploy panel mejoras' },
+      { hash: 'a3b1c2d', msg: 'feat: añadir example compra_rosas_001' },
+    ],
+    // Estado OK (sin pendientes):
+    // ok: true, pending: []
+  },
+};
+
+const STEPS = [
+  {id:1, name:'Inventario CX',           sub:'',  gate:false},
+  {id:2, name:'Push a GitHub staging',   sub:'',  gate:true},
+  {id:3, name:'Diff GitHub vs CX',       sub:'',  gate:true},
+  {id:4, name:'Confirmar deploy',        sub:'',  gate:true},
+  {id:5, name:'Snapshot del agente',     sub:'',  gate:true},
+  {id:6, name:'Validación de tests',     sub:'',  gate:true},
+  {id:7, name:'Gate QA — staging',       sub:'',  gate:true},
+  {id:8, name:'Aprobar producción',      sub:'',  gate:true},
+];
+
+// start state: step 1 active, rest pending
+let stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
+let current = 1;
+let viewingStep = 1;
+let snapshotName = '';
+let isRunning = false;
+
+function setRunning(val) {
+  isRunning = val;
+  document.getElementById('sidebar').style.opacity = val ? '0.4' : '1';
+  document.getElementById('sidebar').style.pointerEvents = val ? 'none' : '';
+}
+
+// --- INVENTORY SIMULATION ---
+const INV_LINES = [
+  {cls:'ok', text:'✓ Conectando con Dialogflow CX...'},
+  {cls:'ok', text:'✓ Leyendo recursos del agente (12 tipos)...'},
+  {cls:'ok', text:'✓ Playbooks (4) · Examples (11) · Tools (2)'},
+  {cls:'ok', text:'✓ Flows (1) · Pages (6) · Intents (8)'},
+  {cls:'ok', text:'✓ Entity Types (3) · Webhooks (1) · Generators (2) · Agent Config (1) · Environments (2) · Versions (5)'},
+  {cls:'ok', text:'✓ Inventario completo — 46 recursos en 2.3s'},
+];
+
+function startInventory() {
+  setRunning(true);
+  document.getElementById('inv-start').style.display = 'none';
+  document.getElementById('inv-log').style.display = 'block';
+  const logBlock = document.getElementById('inv-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if(i >= INV_LINES.length) {
+      setTimeout(() => {
+        document.getElementById('inv-done').style.display = 'block';
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    const line = INV_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function resetInventoryUI() {
+  document.getElementById('inv-start').style.display = 'block';
+  document.getElementById('inv-log').style.display = 'none';
+  document.getElementById('inv-done').style.display = 'none';
+  document.getElementById('inv-log-block').innerHTML = '';
+}
+
+function renderStep2Checks() {
+  const r = CHECK_RESULTS.push;
+
+  // Commit list — siempre la misma
+  const commitRows = r.pending.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;${i < r.pending.length - 1 ? 'border-bottom:1px solid var(--bg-3);' : ''}">
+      <span style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-3);flex-shrink:0">${c.hash}</span>
+      <span style="font-size:13px;color:var(--text-2)">${c.msg}</span>
+    </div>`).join('');
+  document.getElementById('push-commit-list').innerHTML = commitRows;
+
+  if (r.ok) {
+    // Estado completado — restaurar cabecera y CTA correctos
+    document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
+    document.getElementById('push-status-label').textContent = r.pending.length > 0
+      ? `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`
+      : 'origin/staging ya está al día con HEAD';
+    document.getElementById('push-status-detail').textContent = r.pending.length > 0
+      ? 'origin/staging al día con HEAD'
+      : 'Nada que pushear — continúa al diff';
+    if (r.pending.length > 0) {
+      document.getElementById('push-log').style.display = 'block';
+      document.getElementById('push-log').style.opacity = '0.6';
+    }
+    document.getElementById('push-action').innerHTML =
+      '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
+  } else {
+    // Estado pending — botón de acción
+    document.getElementById('push-action').innerHTML =
+      `<button class="btn btn-primary" onclick="executePush()">Ejecutar push &mdash; ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} &rarr;</button>`;
+  }
+}
+
+
+function executePush() {
+  const r = CHECK_RESULTS.push;
+  setRunning(true);
+
+  document.getElementById('push-status-icon').innerHTML = '<div style="width:14px;height:14px;border:2px solid #60a5fa;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>';
+  document.getElementById('push-status-label').textContent = 'Enviando commits a origin/staging...';
+  document.getElementById('push-status-detail').textContent = '';
+  document.getElementById('push-action').innerHTML = '';
+
+  const logWrap = document.getElementById('push-log');
+  const logBlock = document.getElementById('push-log-block');
+  logWrap.style.display = 'block';
+  logBlock.innerHTML = '';
+
+  if (PUSH_SIMULATE_FAIL) {
+    const failLines = [
+      {cls:'ok',  text:'✓ Conectando con origin/staging...'},
+      {cls:'del', text:'✗ remote: error: push rejected (non-fast-forward)'},
+      {cls:'del', text:'✗ Updates were rejected because the remote contains work'},
+      {cls:'dim', text:'  you do not have locally. Pull before pushing.'},
+    ];
+    let i = 0;
+    function showFailLine() {
+      if (i >= failLines.length) {
+        setTimeout(() => {
+          document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:16px">✗</span>';
+          document.getElementById('push-status-label').textContent = 'Push rechazado — remoto adelantado';
+          document.getElementById('push-status-detail').textContent = 'origin/staging tiene commits que no tienes en local';
+          document.getElementById('push-action').innerHTML = `
+            <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">Para resolver, ejecuta en tu terminal y vuelve a intentar:</div>
+            <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:12px">
+              <code style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace">git pull --rebase origin staging</code>
+              <button onclick="navigator.clipboard.writeText('git pull --rebase origin staging').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copiar',1500)})" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+            </div>
+            <button class="btn btn-ghost" onclick="retryPush()">Reintentar push</button>`;
+          setRunning(false);
+        }, 300);
+        return;
+      }
+      appendLogLine(logBlock, failLines[i].cls, failLines[i].text);
+      i++;
+      setTimeout(showFailLine, 400);
+    }
+    showFailLine();
+    return;
+  }
+
+  const pushLines = [
+    {cls:'ok',  text:'✓ Conectando con origin/staging...'},
+    ...r.pending.map(c => ({cls:'ok', text:`✓ ${c.hash}  ${c.msg}`})),
+    {cls:'ok',  text:`✓ Push completado — ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} en origin/staging`},
+  ];
+
+  let i = 0;
+  function showLine() {
+    if (i >= pushLines.length) {
+      setTimeout(() => {
+        document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
+        document.getElementById('push-status-label').textContent = `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`;
+        document.getElementById('push-status-detail').textContent = 'origin/staging al día con HEAD';
+        document.getElementById('push-status-detail').style.color = 'var(--text-3)';
+        logWrap.style.opacity = '0.6';
+        document.getElementById('push-action').innerHTML =
+          '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
+        CHECK_RESULTS.push.ok = true;
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    const line = pushLines[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function retryPush() {
+  const r = CHECK_RESULTS.push;
+  document.getElementById('push-log').style.display = 'none';
+  document.getElementById('push-log-block').innerHTML = '';
+  document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:14px">✗</span>';
+  document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
+  document.getElementById('push-status-detail').textContent = `origin/staging está ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} por detrás`;
+  renderStep2Checks();
+}
+
+
+function renderStep3Diff() {
+  document.getElementById('diff-has-changes').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
+  document.getElementById('diff-no-changes').style.display  = DIFF_COUNT > 0 ? 'none'  : 'block';
+}
+
+// --- DEPLOY SIMULATION ---
+const DEPLOY_RESOURCES = [
+  {label:'Playbook · Compra · PATCH (Full Update)',         ok: true,  okText:'OK',                            cls:'ok'},
+  {label:'Playbook · Orquestador · PATCH (Full Update)',    ok: true,  okText:'OK',                            cls:'ok'},
+  {label:'Example · compra_rosas_001 · POST',               ok: false, okText:'OK', errText:'ERROR 400: campo "steps" no válido', cls:'del'},
+  {label:'Example · compra_tulipanes_002 · DELETE',         ok: true,  okText:'OK',                            cls:'del'},
+];
+
+function confirmDeploy() {
+  setRunning(true);
+  document.getElementById('deploy-gate').style.display = 'none';
+  document.getElementById('deploy-log').style.display = 'block';
+
+  const failAt = DEPLOY_SIMULATE_FAIL
+    ? DEPLOY_RESOURCES.findIndex(r => !r.ok)
+    : -1; // -1 = todos OK
+
+  const logBlock = document.getElementById('deploy-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+
+  function showLine() {
+    if (i >= DEPLOY_RESOURCES.length) {
+      // Todas procesadas
+      setTimeout(() => {
+        if (failAt === -1) {
+          appendLogLine(logBlock, 'ok', `✓ Deploy completado — ${DEPLOY_RESOURCES.length} recursos en 3.1s`);
+          setTimeout(() => {
+            document.getElementById('deploy-done').style.display = 'block';
+            setRunning(false);
+          }, 300);
+        } else {
+          const ok  = DEPLOY_RESOURCES.filter((r, idx) => idx < failAt).length;
+          const skipped = DEPLOY_RESOURCES.filter((r, idx) => idx > failAt).length;
+          document.getElementById('deploy-fail-summary').innerHTML =
+            `<span style="color:#4ade80">✓ ${ok} aplicado${ok !== 1 ? 's' : ''}</span> &nbsp;·&nbsp; ` +
+            `<span style="color:#f87171">✗ 1 fallido</span> &nbsp;·&nbsp; ` +
+            `<span style="color:var(--text-3)">${skipped} no intentado${skipped !== 1 ? 's' : ''}</span>`;
+          document.getElementById('deploy-fail').style.display = 'block';
+          setRunning(false);
+        }
+      }, 300);
+      return;
+    }
+
+    const res = DEPLOY_RESOURCES[i];
+
+    if (failAt !== -1 && i === failAt) {
+      appendLogLine(logBlock, 'del', `✗ ${res.label} → ${res.errText}`);
+      i++;
+      setTimeout(() => {
+        // Añadir restantes como "no intentado"
+        for (let j = i; j < DEPLOY_RESOURCES.length; j++) {
+          appendLogLine(logBlock, 'dim', `— ${DEPLOY_RESOURCES[j].label} → no intentado`);
+        }
+        i = DEPLOY_RESOURCES.length;
+        setTimeout(showLine, 200);
+      }, 400);
+      return;
+    }
+
+    const text = res.cls === 'del'
+      ? `✓ ${res.label} → ${res.okText}`
+      : `✓ ${res.label} → ${res.okText}`;
+    appendLogLine(logBlock, res.cls === 'del' ? 'del' : 'ok', text);
+    i++;
+    setTimeout(showLine, 400);
+  }
+
+  showLine();
+}
+
+function appendLogLine(block, cls, text) {
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = text;
+  block.appendChild(span);
+  block.appendChild(document.createTextNode('\n'));
+}
+
+function retryFailed() {
+  // En producción: reintenta solo los recursos fallidos
+  document.getElementById('deploy-fail').style.display = 'none';
+  document.getElementById('deploy-log').style.display = 'block';
+  const logBlock = document.getElementById('deploy-log-block');
+  logBlock.innerHTML = '';
+  setRunning(true);
+  const retryLines = [
+    {cls:'ok',  text:'↻ Reintentando Example · compra_rosas_001 · POST...'},
+    {cls:'ok',  text:'✓ Example · compra_rosas_001 · POST → OK'},
+    {cls:'ok',  text:'✓ Deploy completado — todos los recursos aplicados'},
+  ];
+  let i = 0;
+  function showLine() {
+    if (i >= retryLines.length) {
+      setTimeout(() => {
+        document.getElementById('deploy-done').style.display = 'block';
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    appendLogLine(logBlock, retryLines[i].cls, retryLines[i].text);
+    i++;
+    setTimeout(showLine, 500);
+  }
+  showLine();
+}
+
+function revertDraft() {
+  if (!confirm('¿Revertir el draft de CX al estado anterior al deploy?')) return;
+  document.getElementById('deploy-fail').style.display = 'none';
+  const logBlock = document.getElementById('deploy-log-block');
+  setRunning(true);
+  const revertLines = [
+    {cls:'warn', text:'↻ Revirtiendo draft del agente en CX...'},
+    {cls:'ok',   text:'✓ Draft restaurado al estado anterior'},
+    {cls:'ok',   text:'✓ Ningún cambio activo en CX — puedes corregir y volver a hacer deploy'},
+  ];
+  let i = 0;
+  function showLine() {
+    if (i >= revertLines.length) {
+      setTimeout(() => {
+        document.getElementById('deploy-gate').style.display = 'block';
+        document.getElementById('deploy-log').style.display = 'none';
+        logBlock.innerHTML = '';
+        setRunning(false);
+      }, 600);
+      return;
+    }
+    appendLogLine(logBlock, revertLines[i].cls, revertLines[i].text);
+    i++;
+    setTimeout(showLine, 500);
+  }
+  showLine();
+}
+
+function resetDeployStep4() {
+  document.getElementById('deploy-gate').style.display = 'block';
+  document.getElementById('deploy-log').style.display = 'none';
+  document.getElementById('deploy-done').style.display = 'none';
+  document.getElementById('deploy-log-block').innerHTML = '';
+}
+
+// --- SNAPSHOT NAME AUTO-GENERATE ---
+
+function generateSnapshotName() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
+}
+
+function setSnapshotName(name) {
+  snapshotName = name;
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = name);
+}
+
+// --- SIDEBAR RENDER ---
+function stateClass(state) {
+  return {done:'s-done',gate:'s-gate',active:'s-active',pending:'s-pending',error:'s-error'}[state] || 's-pending';
+}
+function stateText(state) {
+  if(state==='done') return 'Completado';
+  if(state==='gate') return 'Esperando confirmación';
+  if(state==='active') return 'En progreso...';
+  if(state==='pending') return 'Pendiente';
+  return '';
+}
+function badgeContent(state, n) {
+  if(state==='done') return '✓';
+  if(state==='gate') return '!';
+  if(state==='active') return '●';
+  return n;
+}
+
+function renderSidebar() {
+  const sb = document.getElementById('sidebar');
+  let html = '<div class="sidebar-label">Pipeline de deploy</div>';
+  STEPS.forEach((s,i) => {
+    const state = stepStates[i];
+    const sc = stateClass(state);
+    const active = viewingStep === s.id ? ' active' : '';
+    html += `<div class="step-item ${sc}${active}" onclick="viewStep(${s.id})">
+      <div class="step-badge">${badgeContent(state, s.id)}</div>
+      <div class="step-info">
+        <div class="step-name">${s.name}</div>
+        <div class="step-status-text">${stateText(state)}</div>
+      </div>
+    </div>`;
+    html += '<div class="step-connector"></div>';
+  });
+  if (stepStates[7] === 'done') {
+    const active = viewingStep === 'done' ? ' active' : '';
+    html += `<div class="step-item s-done${active}" onclick="viewDone()">
+      <div class="step-badge">★</div>
+      <div class="step-info">
+        <div class="step-name">Resumen</div>
+        <div class="step-status-text">Deploy completado</div>
+      </div>
+    </div>`;
+  }
+  sb.innerHTML = html;
+}
+
+function viewDone() {
+  viewingStep = 'done';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-done').classList.add('visible');
+  renderSidebar();
+}
+
+// --- NAVIGATION ---
+function viewStep(id) {
+  const idx = id - 1;
+  if(idx >= 0 && stepStates[idx] === 'pending') return;
+  viewingStep = id;
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  const v = document.getElementById('view-'+id);
+  if(v) v.classList.add('visible');
+  if(id === 2) renderStep2Checks();
+  if(id === 3) renderStep3Diff();
+  if(id === 5) document.getElementById('snapshot-name').value = document.getElementById('snapshot-name').value || generateSnapshotName();
+  syncSpecsPanel(id);
+  renderSidebar();
+}
+
+function syncSpecsPanel(id) {
+  document.querySelectorAll('[id^="spec-step-"]').forEach(el => el.style.display = 'none');
+  const spec = document.getElementById('spec-step-' + id);
+  if(spec) spec.style.display = 'block';
+}
+
+function advance(fromStep) {
+  const idx = fromStep - 1;
+  stepStates[idx] = 'done';
+  const nextIdx = idx + 1;
+  if(nextIdx < STEPS.length) {
+    stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
+    if(!STEPS[nextIdx].gate) {
+      setTimeout(() => completeAuto(nextIdx), 600);
+    }
+    current = STEPS[nextIdx].id;
+    viewStep(current);
+  }
+}
+
+function toggleSyncCheck() {
+  const checked = document.getElementById('check-sync-local').checked;
+  const title = document.getElementById('done-sync-title');
+  title.style.color = checked ? 'var(--success)' : 'var(--text-2)';
+}
+
+function confirmProduction() {
+  setRunning(true);
+  document.getElementById('prod-gate').style.display = 'none';
+  document.getElementById('prod-log').style.display = 'block';
+  const logBlock = document.getElementById('prod-log-block');
+  logBlock.innerHTML = '';
+
+  const mergeLines = [
+    {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
+    {cls:'ok',   text:'✓ Fast-forward merge completado'},
+    {cls:'ok',   text:'✓ main actualizado — ' + (snapshotName || '2026-07-29_1045')},
+  ];
+  const conflictLines = [
+    {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
+    {cls:'del',  text:'✗ CONFLICT: merge conflict en definitions/playbooks/compra.yaml'},
+    {cls:'warn', text:'  Merge abortado — main no ha sido modificado'},
+  ];
+  const snapLines = [
+    {cls:'ok',   text:'✓ Creando snapshot de producción...'},
+    {cls:'ok',   text:'✓ LRO polling — esperando confirmación de CX...'},
+    {cls:'ok',   text:'✓ Snapshot "' + (snapshotName || '2026-07-29_1045') + '" creado en producción'},
+    {cls:'ok',   text:'✓ Entorno producción apuntando a la versión nueva'},
+  ];
+
+  const lines = PRODUCTION_SIMULATE_CONFLICT ? conflictLines : [...mergeLines, ...snapLines];
+  const failAt = PRODUCTION_SIMULATE_CONFLICT ? conflictLines.length : -1;
+
+  let i = 0;
+  function showLine() {
+    if (i >= lines.length) {
+      setTimeout(() => {
+        if (PRODUCTION_SIMULATE_CONFLICT) {
+          document.getElementById('prod-conflict').style.display = 'block';
+          setRunning(false);
+        } else {
+          advanceToDone();
+        }
+      }, 300);
+      return;
+    }
+    appendLogLine(logBlock, lines[i].cls, lines[i].text);
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function abortProduction() {
+  document.getElementById('prod-conflict').style.display = 'none';
+  document.getElementById('prod-log').style.display = 'none';
+  document.getElementById('prod-log-block').innerHTML = '';
+  document.getElementById('prod-gate').style.display = 'block';
+  setRunning(false);
+}
+
+function advanceToDone() {
+  stepStates[7] = 'done';
+  viewingStep = 'done';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-done').classList.add('visible');
+  // Actualizar topbar a PRODUCCIÓN
+  const badge = document.getElementById('topbar-env');
+  badge.textContent = 'PRODUCCIÓN';
+  badge.style.background = 'rgba(34,197,94,.15)';
+  badge.style.color = '#4ade80';
+  badge.style.borderColor = 'rgba(34,197,94,.3)';
+  // Actualizar último deploy
+  document.getElementById('last-deploy-time').textContent = 'ahora mismo';
+  renderSidebar();
+}
+
+function completeAuto(idx) {
+  stepStates[idx] = 'done';
+  const nextIdx = idx + 1;
+  if(nextIdx < STEPS.length) {
+    stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
+    current = STEPS[nextIdx].id;
+    viewStep(current);
+    if(!STEPS[nextIdx].gate) setTimeout(() => completeAuto(nextIdx), 800);
+  }
+  renderSidebar();
+}
+
+// --- SNAPSHOT ---
+function confirmSnapshot() {
+  const inputVal = document.getElementById('snapshot-name').value.trim();
+  if (inputVal && (inputVal.length > 64 || !/^[a-zA-Z0-9_\-\.]+$/.test(inputVal))) {
+    alert('Nombre no válido. Usa solo letras, dígitos, guiones, guiones bajos o puntos. Máximo 64 caracteres.');
+    return;
+  }
+  const name = inputVal || generateSnapshotName();
+  setSnapshotName(name);
+
+  // Ocultar gate, mostrar log
+  setRunning(true);
+  document.getElementById('snap-gate').style.display = 'none';
+  document.getElementById('snap-log').style.display = 'block';
+
+  const SNAP_LINES = [
+    {cls:'ok',  text:'✓ Enviando POST /versions...'},
+    {cls:'ok',  text:'✓ Operación iniciada — LRO polling...'},
+    {cls:'ok',  text:'✓ Esperando confirmación de CX...'},
+    {cls:'ok',  text:'✓ Snapshot "' + name + '" creado correctamente'},
+    {cls:'del', text:'  v1 · 2026-07-01_1200 → eliminada (límite 5 versiones)'},
+    {cls:'ok',  text:'✓ Staging apuntando a "' + name + '"'},
+  ];
+
+  const logBlock = document.getElementById('snap-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if(i >= SNAP_LINES.length) {
+      setTimeout(() => {
+        document.getElementById('snap-done').style.display = 'block';
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    const line = SNAP_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function resetSnapshotUI() {
+  document.getElementById('snap-gate').style.display = 'block';
+  document.getElementById('snap-log').style.display = 'none';
+  document.getElementById('snap-done').style.display = 'none';
+  document.getElementById('snap-log-block').innerHTML = '';
+  document.getElementById('snapshot-name').value = generateSnapshotName();
+}
+
+// --- ROLLBACK ---
+function showRollbackConfirm() {
+  document.getElementById('rollback-confirm').style.display = 'block';
+}
+function hideRollbackConfirm() {
+  document.getElementById('rollback-confirm').style.display = 'none';
+}
+const ROLLBACK_LINES = [
+  { cls: 'ok', text: '✓ Iniciando rollback de staging...' },
+  { cls: 'ok', text: '✓ Revirtiendo entorno staging...' },
+  { cls: 'ok', text: '✓ Restaurando snapshot anterior...' },
+  { cls: 'ok', text: '✓ Draft del agente en CX restaurado' },
+  { cls: 'ok', text: '✓ Rollback completado' },
+];
+
+function rollbackFromStep7() {
+  viewStep(6);
+  setTimeout(() => showRollbackConfirm(), 100);
+}
+
+function rollbackStaging() {
+  setRunning(true);
+  document.getElementById('rollback-confirm').style.display = 'none';
+  document.getElementById('test-action-bar').style.display = 'none';
+  const logWrap = document.getElementById('rollback-log');
+  const logBlock = document.getElementById('rollback-log-block');
+  logWrap.style.display = 'block';
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if (i >= ROLLBACK_LINES.length) {
+      setTimeout(() => {
+        const banner = document.getElementById('rollback-done-banner');
+        banner.style.display = 'block';
+        // Marcar paso 6 como error, pasos 7-8 fuera de juego
+        stepStates[5] = 'error';
+        stepStates[6] = 'pending';
+        stepStates[7] = 'pending';
+        renderSidebar();
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    const line = ROLLBACK_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+// --- CANCEL / RESET ---
+function cancelDeploy(afterDeploy) {
+  const msg = afterDeploy
+    ? 'El draft de CX ya tiene los cambios del deploy. Cancelar no los deshace — para revertirlos usa el rollback desde el paso de validación de tests.\n\n¿Cerrar el panel igualmente?'
+    : 'CX no ha sido modificado todavía. ¿Cancelar el deploy?';
+  if(confirm(msg)) resetDeploy();
+}
+function resetDeploy() {
+  setRunning(false);
+  stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
+  current = 1; viewingStep = 1;
+  snapshotName = '';
+  CHECK_RESULTS.push.ok = false;
+  resetInventoryUI();
+  resetDeployStep4();
+  resetSnapshotUI();
+  // Resetear estado de rollback
+  document.getElementById('rollback-confirm').style.display = 'none';
+  document.getElementById('rollback-log').style.display = 'none';
+  document.getElementById('rollback-log-block').innerHTML = '';
+  document.getElementById('rollback-done-banner').style.display = 'none';
+  document.getElementById('test-action-bar').style.display = 'flex';
+  // Resetear push
+  document.getElementById('push-log').style.display = 'none';
+  document.getElementById('push-log').style.opacity = '1';
+  document.getElementById('push-log-block').innerHTML = '';
+  document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:14px">✗</span>';
+  document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
+  document.getElementById('push-status-detail').textContent = 'origin/staging está 2 commits por detrás';
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
+  // Restaurar topbar
+  const badge = document.getElementById('topbar-env');
+  badge.textContent = 'STAGING';
+  badge.style.background = 'rgba(59,130,246,.15)';
+  badge.style.color = '#60a5fa';
+  badge.style.borderColor = 'rgba(59,130,246,.3)';
+  document.getElementById('last-deploy-time').textContent = 'hace 3 días';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  viewStep(1);
+}
+
+// --- INIT ---
+document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
+document.getElementById('snapshot-name').value = generateSnapshotName();
+viewStep(1);
+renderSidebar();
+</script>
