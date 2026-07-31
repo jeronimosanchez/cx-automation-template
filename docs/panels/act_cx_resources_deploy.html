@@ -28,15 +28,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .layout{display:flex;flex:1;min-height:0;overflow:hidden}
 
 /* SPECS PANEL */
-.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px}
-.specs-section{display:flex;flex-direction:column;gap:10px}
-.specs-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s ease;overflow:hidden;position:relative}
+.specs-panel.collapsed{width:36px}
+.specs-tab{display:none;writing-mode:vertical-rl;text-orientation:mixed;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase;padding:20px 10px;white-space:nowrap;align-self:stretch;align-items:center;justify-content:center}
+.specs-tab:hover{color:var(--text)}
+.specs-panel.collapsed .specs-tab{display:flex}
+.specs-panel.collapsed .specs-content{display:none}
+.specs-content{flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px}
+.specs-hdr{font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.specs-collapse-btn{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px;line-height:1;padding:0 2px;border-radius:3px;transition:color .1s}
+.specs-collapse-btn:hover{color:var(--text)}
+.specs-section{display:flex;flex-direction:column;gap:0}
+.specs-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
+.specs-section-title:hover{color:var(--text-2)}
+.section-chevron{font-size:9px;opacity:.6;transition:transform .15s;display:inline-block;margin-left:auto}
+.specs-section.collapsed .section-chevron{transform:rotate(-90deg)}
+.section-body{display:flex;flex-direction:column;gap:10px;padding-top:10px}
+.specs-section.collapsed .section-body{display:none}
 .spec-block{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
 .spec-block-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .spec-block p{font-size:12px;color:var(--text-2);line-height:1.6}
 .spec-block code{font-size:11px;font-family:'SF Mono',Menlo,monospace;color:var(--text);background:var(--bg-2);padding:1px 4px;border-radius:3px}
 .spec-step-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px}
 .spec-empty{font-size:12px;color:var(--text-3);font-style:italic}
+.criteria-label{display:flex;align-items:center;cursor:pointer;user-select:none}
+.criteria-chevron{font-size:9px;opacity:.6;transition:transform .15s;display:inline-block;margin-left:auto}
+.criteria-collapsed .criteria-chevron{transform:rotate(-90deg)}
+.criteria-body{margin-top:6px}
+.criteria-collapsed .criteria-body{display:none}
 
 /* SIDEBAR */
 .sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
@@ -161,6 +180,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="topbar-meta">
     <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
     <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
+    <button class="btn btn-ghost" id="specs-toggle-btn" onclick="toggleSpecsPanel()" title="Mostrar/ocultar specs">&#9654; SPECS</button>
   </div>
 </div>
 
@@ -552,87 +572,135 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   </main>
 
-  <!-- SPECS PANEL -->
-  <aside class="specs-panel">
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SPECS PANEL — Solo para generación del backend con Opus.
+       Para eliminar: cambiar SHOW_SPECS = false en el bloque JS de config
+       o borrar este aside completo + ajustar SHOW_SPECS.
+       ═══════════════════════════════════════════════════════════════════ -->
+  <aside class="specs-panel collapsed" id="specs-panel">
 
-    <div style="font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px">
-      <span style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
-      Especificaciones funcionales
+    <!-- Tab visible solo cuando está colapsado -->
+    <div class="specs-tab" onclick="toggleSpecsPanel()" title="Ver specs">SPECS</div>
+
+    <!-- Contenido del panel -->
+    <div class="specs-content" id="specs-content">
+
+      <div class="specs-hdr">
+        <span style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
+        Especificaciones funcionales
+        <button class="specs-collapse-btn" onclick="toggleSpecsPanel()" title="Expandir">›</button>
+      </div>
+
+      <!-- General (colapsable) -->
+      <div class="specs-section" id="section-general">
+        <div class="specs-section-title" onclick="toggleSection('section-general')">
+          General <span class="section-chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="spec-block">
+            <div class="spec-block-label">Auth</div>
+            <p><code>gcloud auth print-access-token</code> — se obtiene una vez al inicio y se reutiliza en todas las llamadas a la API de CX.</p>
+          </div>
+          <div class="spec-block">
+            <div class="spec-block-label">Cabeceras obligatorias</div>
+            <p><code>Authorization: Bearer &lt;token&gt;</code><br><code>Content-Type: application/json</code><br><code>x-goog-user-project: &lt;GCP_PROJECT&gt;</code></p>
+          </div>
+          <div class="spec-block">
+            <div class="spec-block-label">Agente de referencia</div>
+            <p>Petal 1.0 — región <code>europe-west1</code>. ID y proyecto en <code>definitions/agent.yaml</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Specs por paso (colapsable) -->
+      <div class="specs-section" id="section-steps">
+        <div class="specs-section-title" onclick="toggleSection('section-steps')">
+          Specs por paso <span class="section-chevron">▾</span>
+        </div>
+        <div class="section-body">
+
+          <div id="spec-step-1">
+            <div class="spec-step-title">Paso 1 — Inventario CX</div>
+            <div class="spec-block">
+              <div class="spec-block-label">Qué hace</div>
+              <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el agente Petal. Este paso hace una foto del estado actual: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
+            </div>
+            <div class="spec-block">
+              <div class="spec-block-label">Por qué existe</div>
+              <p>Si desplegamos sin saber el estado actual, no podemos comparar qué ha cambiado. Esta foto es el punto de partida de todo el pipeline — sin ella, el diff no tiene contra qué comparar.</p>
+            </div>
+            <div class="spec-block">
+              <div class="spec-block-label">Qué necesita</div>
+              <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
+            </div>
+            <div class="spec-block">
+              <div class="spec-block-label">Qué produce</div>
+              <p>Una lista completa de los 12 tipos de recursos del agente, lista para comparar con lo que tenemos en el repositorio.</p>
+            </div>
+            <div class="spec-block">
+              <div class="spec-block-label">Detalle técnico</div>
+              <p>Invoca cada <code>push_*.py</code> en modo lectura (LIST sin PATCH). Token desde <code>gcloud auth print-access-token</code>. Configuración del agente desde <code>definitions/agent.yaml</code>. Si algún LIST falla → abortar, no continuar con datos parciales.</p>
+            </div>
+          </div>
+
+          <div id="spec-step-2" style="display:none"><p class="spec-empty">Spec pendiente — Paso 2</p></div>
+          <div id="spec-step-3" style="display:none"><p class="spec-empty">Spec pendiente — Paso 3</p></div>
+          <div id="spec-step-4" style="display:none"><p class="spec-empty">Spec pendiente — Paso 4</p></div>
+          <div id="spec-step-5" style="display:none"><p class="spec-empty">Spec pendiente — Paso 5</p></div>
+          <div id="spec-step-6" style="display:none"><p class="spec-empty">Spec pendiente — Paso 6</p></div>
+          <div id="spec-step-7" style="display:none"><p class="spec-empty">Spec pendiente — Paso 7</p></div>
+          <div id="spec-step-8" style="display:none"><p class="spec-empty">Spec pendiente — Paso 8</p></div>
+          <div id="spec-step-done" style="display:none"><p class="spec-empty">Pipeline completado.</p></div>
+
+        </div>
+      </div>
+
+      <!-- Criterios de validación (colapsable, sincronizado con paso activo) -->
+      <div class="specs-section" id="section-criteria">
+        <div class="specs-section-title" onclick="toggleSection('section-criteria')">
+          Criterios de validación <span class="section-chevron">▾</span>
+        </div>
+        <div class="section-body">
+
+          <div id="criteria-step-1">
+            <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+              <div class="spec-block-label" style="color:var(--gate)">Paso 1 — Inventario CX</div>
+              <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si algún LIST falla → paso en error, no continúa<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío</p>
+            </div>
+          </div>
+
+          <div id="criteria-step-2" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 2</p></div>
+          <div id="criteria-step-3" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 3</p></div>
+          <div id="criteria-step-4" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 4</p></div>
+          <div id="criteria-step-5" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 5</p></div>
+          <div id="criteria-step-6" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 6</p></div>
+          <div id="criteria-step-7" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 7</p></div>
+          <div id="criteria-step-8" style="display:none"><p class="spec-empty">Criterios pendientes — Paso 8</p></div>
+          <div id="criteria-step-done" style="display:none"><p class="spec-empty">Pipeline completado.</p></div>
+
+        </div>
+      </div>
+
     </div>
-
-    <!-- General -->
-    <div class="specs-section">
-      <div class="specs-section-title">General</div>
-      <div class="spec-block">
-        <div class="spec-block-label">Auth</div>
-        <p><code>gcloud auth print-access-token</code> — se obtiene una vez al inicio y se reutiliza en todas las llamadas a la API de CX.</p>
-      </div>
-      <div class="spec-block">
-        <div class="spec-block-label">Cabeceras obligatorias</div>
-        <p><code>Authorization: Bearer &lt;token&gt;</code><br><code>Content-Type: application/json</code><br><code>x-goog-user-project: &lt;GCP_PROJECT&gt;</code></p>
-      </div>
-      <div class="spec-block">
-        <div class="spec-block-label">Agente de referencia</div>
-        <p>Petal 1.0 — región <code>europe-west1</code>. ID y proyecto en <code>definitions/agent.yaml</code>.</p>
-      </div>
-    </div>
-
-    <!-- Por paso -->
-    <div class="specs-section">
-      <div class="specs-section-title">Specs por paso</div>
-
-      <div id="spec-step-1">
-        <div class="spec-step-title">Paso 1 — Inventario CX</div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
-          <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el agente Petal. Este paso hace una foto del estado actual: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
-          <p>Si desplegamos sin saber el estado actual, no podemos comparar qué ha cambiado. Esta foto es el punto de partida de todo el pipeline — sin ella, el diff no tiene contra qué comparar.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué necesita</div>
-          <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
-          <p>Una lista completa de los 12 tipos de recursos del agente, lista para comparar con lo que tenemos en el repositorio.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Detalle técnico</div>
-          <p>Invoca cada <code>push_*.py</code> en modo lectura (LIST sin PATCH). Token desde <code>gcloud auth print-access-token</code>. Configuración del agente desde <code>definitions/agent.yaml</code>. Si algún LIST falla → abortar, no continuar con datos parciales.</p>
-        </div>
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si algún LIST falla → paso en error, no continúa<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío</p>
-        </div>
-      </div>
-
-      <div id="spec-step-2" style="display:none"><p class="spec-empty">Spec pendiente — Paso 2</p></div>
-      <div id="spec-step-3" style="display:none"><p class="spec-empty">Spec pendiente — Paso 3</p></div>
-      <div id="spec-step-4" style="display:none"><p class="spec-empty">Spec pendiente — Paso 4</p></div>
-      <div id="spec-step-5" style="display:none"><p class="spec-empty">Spec pendiente — Paso 5</p></div>
-      <div id="spec-step-6" style="display:none"><p class="spec-empty">Spec pendiente — Paso 6</p></div>
-      <div id="spec-step-7" style="display:none"><p class="spec-empty">Spec pendiente — Paso 7</p></div>
-      <div id="spec-step-8" style="display:none"><p class="spec-empty">Spec pendiente — Paso 8</p></div>
-      <div id="spec-step-done" style="display:none"><p class="spec-empty">Pipeline completado.</p></div>
-    </div>
-
   </aside>
+  <!-- ═══════════════════════════════════════════════════════════════════
+       FIN SPECS PANEL
+       ═══════════════════════════════════════════════════════════════════ -->
 
 </div>
 
 <script>
-// --- DATOS DINÁMICOS (hardcoded en prototipo) ---
-const DIFF_COUNT = 3;           // dinámico: vendrá del diff API
-const DEPLOY_COUNT = 4;         // dinámico: recursos modificados
-const TEST_COUNT = 42;          // dinámico: número de tests en la suite
-const PUSH_SIMULATE_FAIL           = false; // true = simular push rechazado (non-fast-forward)
-const DEPLOY_SIMULATE_FAIL         = false; // true = simular fallo en el 3er recurso
-const PRODUCTION_SIMULATE_CONFLICT = false; // true = simular conflicto de merge
+// ─── SPECS PANEL — cambiar a false para eliminar el panel ────────────────────
+const SHOW_SPECS = true;
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Resultados de los checks de deploy.py (en producción vendrán del script)
+const DIFF_COUNT = 3;
+const DEPLOY_COUNT = 4;
+const TEST_COUNT = 42;
+const PUSH_SIMULATE_FAIL           = false;
+const DEPLOY_SIMULATE_FAIL         = false;
+const PRODUCTION_SIMULATE_CONFLICT = false;
+
 const CHECK_RESULTS = {
   push: {
     ok: false,
@@ -640,8 +708,6 @@ const CHECK_RESULTS = {
       { hash: '98fcbdd', msg: 'fix: deploy panel mejoras' },
       { hash: 'a3b1c2d', msg: 'feat: añadir example compra_rosas_001' },
     ],
-    // Estado OK (sin pendientes):
-    // ok: true, pending: []
   },
 };
 
@@ -656,7 +722,6 @@ const STEPS = [
   {id:8, name:'Aprobar producción',      sub:'',  gate:true},
 ];
 
-// start state: step 1 active, rest pending
 let stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
 let current = 1;
 let viewingStep = 1;
@@ -669,7 +734,6 @@ function setRunning(val) {
   document.getElementById('sidebar').style.pointerEvents = val ? 'none' : '';
 }
 
-// --- INVENTORY SIMULATION ---
 const INV_LINES = [
   {cls:'ok', text:'✓ Conectando con Dialogflow CX...'},
   {cls:'ok', text:'✓ Leyendo recursos del agente (12 tipos)...'},
@@ -715,8 +779,6 @@ function resetInventoryUI() {
 
 function renderStep2Checks() {
   const r = CHECK_RESULTS.push;
-
-  // Commit list — siempre la misma
   const commitRows = r.pending.map((c, i) => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;${i < r.pending.length - 1 ? 'border-bottom:1px solid var(--bg-3);' : ''}">
       <span style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-3);flex-shrink:0">${c.hash}</span>
@@ -725,7 +787,6 @@ function renderStep2Checks() {
   document.getElementById('push-commit-list').innerHTML = commitRows;
 
   if (r.ok) {
-    // Estado completado — restaurar cabecera y CTA correctos
     document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
     document.getElementById('push-status-label').textContent = r.pending.length > 0
       ? `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`
@@ -740,22 +801,18 @@ function renderStep2Checks() {
     document.getElementById('push-action').innerHTML =
       '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
   } else {
-    // Estado pending — botón de acción
     document.getElementById('push-action').innerHTML =
       `<button class="btn btn-primary" onclick="executePush()">Ejecutar push &mdash; ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} &rarr;</button>`;
   }
 }
 
-
 function executePush() {
   const r = CHECK_RESULTS.push;
   setRunning(true);
-
   document.getElementById('push-status-icon').innerHTML = '<div style="width:14px;height:14px;border:2px solid #60a5fa;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>';
   document.getElementById('push-status-label').textContent = 'Enviando commits a origin/staging...';
   document.getElementById('push-status-detail').textContent = '';
   document.getElementById('push-action').innerHTML = '';
-
   const logWrap = document.getElementById('push-log');
   const logBlock = document.getElementById('push-log-block');
   logWrap.style.display = 'block';
@@ -799,7 +856,6 @@ function executePush() {
     ...r.pending.map(c => ({cls:'ok', text:`✓ ${c.hash}  ${c.msg}`})),
     {cls:'ok',  text:`✓ Push completado — ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} en origin/staging`},
   ];
-
   let i = 0;
   function showLine() {
     if (i >= pushLines.length) {
@@ -807,7 +863,6 @@ function executePush() {
         document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
         document.getElementById('push-status-label').textContent = `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`;
         document.getElementById('push-status-detail').textContent = 'origin/staging al día con HEAD';
-        document.getElementById('push-status-detail').style.color = 'var(--text-3)';
         logWrap.style.opacity = '0.6';
         document.getElementById('push-action').innerHTML =
           '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
@@ -838,13 +893,11 @@ function retryPush() {
   renderStep2Checks();
 }
 
-
 function renderStep3Diff() {
   document.getElementById('diff-has-changes').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
   document.getElementById('diff-no-changes').style.display  = DIFF_COUNT > 0 ? 'none'  : 'block';
 }
 
-// --- DEPLOY SIMULATION ---
 const DEPLOY_RESOURCES = [
   {label:'Playbook · Compra · PATCH (Full Update)',         ok: true,  okText:'OK',                            cls:'ok'},
   {label:'Playbook · Orquestador · PATCH (Full Update)',    ok: true,  okText:'OK',                            cls:'ok'},
@@ -856,18 +909,12 @@ function confirmDeploy() {
   setRunning(true);
   document.getElementById('deploy-gate').style.display = 'none';
   document.getElementById('deploy-log').style.display = 'block';
-
-  const failAt = DEPLOY_SIMULATE_FAIL
-    ? DEPLOY_RESOURCES.findIndex(r => !r.ok)
-    : -1; // -1 = todos OK
-
+  const failAt = DEPLOY_SIMULATE_FAIL ? DEPLOY_RESOURCES.findIndex(r => !r.ok) : -1;
   const logBlock = document.getElementById('deploy-log-block');
   logBlock.innerHTML = '';
   let i = 0;
-
   function showLine() {
     if (i >= DEPLOY_RESOURCES.length) {
-      // Todas procesadas
       setTimeout(() => {
         if (failAt === -1) {
           appendLogLine(logBlock, 'ok', `✓ Deploy completado — ${DEPLOY_RESOURCES.length} recursos en 3.1s`);
@@ -888,14 +935,11 @@ function confirmDeploy() {
       }, 300);
       return;
     }
-
     const res = DEPLOY_RESOURCES[i];
-
     if (failAt !== -1 && i === failAt) {
       appendLogLine(logBlock, 'del', `✗ ${res.label} → ${res.errText}`);
       i++;
       setTimeout(() => {
-        // Añadir restantes como "no intentado"
         for (let j = i; j < DEPLOY_RESOURCES.length; j++) {
           appendLogLine(logBlock, 'dim', `— ${DEPLOY_RESOURCES[j].label} → no intentado`);
         }
@@ -904,15 +948,10 @@ function confirmDeploy() {
       }, 400);
       return;
     }
-
-    const text = res.cls === 'del'
-      ? `✓ ${res.label} → ${res.okText}`
-      : `✓ ${res.label} → ${res.okText}`;
-    appendLogLine(logBlock, res.cls === 'del' ? 'del' : 'ok', text);
+    appendLogLine(logBlock, res.cls === 'del' ? 'del' : 'ok', `✓ ${res.label} → ${res.okText}`);
     i++;
     setTimeout(showLine, 400);
   }
-
   showLine();
 }
 
@@ -925,7 +964,6 @@ function appendLogLine(block, cls, text) {
 }
 
 function retryFailed() {
-  // En producción: reintenta solo los recursos fallidos
   document.getElementById('deploy-fail').style.display = 'none';
   document.getElementById('deploy-log').style.display = 'block';
   const logBlock = document.getElementById('deploy-log-block');
@@ -987,8 +1025,6 @@ function resetDeployStep4() {
   document.getElementById('deploy-log-block').innerHTML = '';
 }
 
-// --- SNAPSHOT NAME AUTO-GENERATE ---
-
 function generateSnapshotName() {
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -1000,7 +1036,6 @@ function setSnapshotName(name) {
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = name);
 }
 
-// --- SIDEBAR RENDER ---
 function stateClass(state) {
   return {done:'s-done',gate:'s-gate',active:'s-active',pending:'s-pending',error:'s-error'}[state] || 's-pending';
 }
@@ -1054,7 +1089,6 @@ function viewDone() {
   renderSidebar();
 }
 
-// --- NAVIGATION ---
 function viewStep(id) {
   const idx = id - 1;
   if(idx >= 0 && stepStates[idx] === 'pending') return;
@@ -1073,6 +1107,9 @@ function syncSpecsPanel(id) {
   document.querySelectorAll('[id^="spec-step-"]').forEach(el => el.style.display = 'none');
   const spec = document.getElementById('spec-step-' + id);
   if(spec) spec.style.display = 'block';
+  document.querySelectorAll('[id^="criteria-step-"]').forEach(el => el.style.display = 'none');
+  const criteria = document.getElementById('criteria-step-' + id);
+  if(criteria) criteria.style.display = 'block';
 }
 
 function advance(fromStep) {
@@ -1101,7 +1138,6 @@ function confirmProduction() {
   document.getElementById('prod-log').style.display = 'block';
   const logBlock = document.getElementById('prod-log-block');
   logBlock.innerHTML = '';
-
   const mergeLines = [
     {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
     {cls:'ok',   text:'✓ Fast-forward merge completado'},
@@ -1118,10 +1154,7 @@ function confirmProduction() {
     {cls:'ok',   text:'✓ Snapshot "' + (snapshotName || '2026-07-29_1045') + '" creado en producción'},
     {cls:'ok',   text:'✓ Entorno producción apuntando a la versión nueva'},
   ];
-
   const lines = PRODUCTION_SIMULATE_CONFLICT ? conflictLines : [...mergeLines, ...snapLines];
-  const failAt = PRODUCTION_SIMULATE_CONFLICT ? conflictLines.length : -1;
-
   let i = 0;
   function showLine() {
     if (i >= lines.length) {
@@ -1155,13 +1188,11 @@ function advanceToDone() {
   viewingStep = 'done';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   document.getElementById('view-done').classList.add('visible');
-  // Actualizar topbar a PRODUCCIÓN
   const badge = document.getElementById('topbar-env');
   badge.textContent = 'PRODUCCIÓN';
   badge.style.background = 'rgba(34,197,94,.15)';
   badge.style.color = '#4ade80';
   badge.style.borderColor = 'rgba(34,197,94,.3)';
-  // Actualizar último deploy
   document.getElementById('last-deploy-time').textContent = 'ahora mismo';
   renderSidebar();
 }
@@ -1178,7 +1209,6 @@ function completeAuto(idx) {
   renderSidebar();
 }
 
-// --- SNAPSHOT ---
 function confirmSnapshot() {
   const inputVal = document.getElementById('snapshot-name').value.trim();
   if (inputVal && (inputVal.length > 64 || !/^[a-zA-Z0-9_\-\.]+$/.test(inputVal))) {
@@ -1187,12 +1217,9 @@ function confirmSnapshot() {
   }
   const name = inputVal || generateSnapshotName();
   setSnapshotName(name);
-
-  // Ocultar gate, mostrar log
   setRunning(true);
   document.getElementById('snap-gate').style.display = 'none';
   document.getElementById('snap-log').style.display = 'block';
-
   const SNAP_LINES = [
     {cls:'ok',  text:'✓ Enviando POST /versions...'},
     {cls:'ok',  text:'✓ Operación iniciada — LRO polling...'},
@@ -1201,7 +1228,6 @@ function confirmSnapshot() {
     {cls:'del', text:'  v1 · 2026-07-01_1200 → eliminada (límite 5 versiones)'},
     {cls:'ok',  text:'✓ Staging apuntando a "' + name + '"'},
   ];
-
   const logBlock = document.getElementById('snap-log-block');
   logBlock.innerHTML = '';
   let i = 0;
@@ -1233,7 +1259,6 @@ function resetSnapshotUI() {
   document.getElementById('snapshot-name').value = generateSnapshotName();
 }
 
-// --- ROLLBACK ---
 function showRollbackConfirm() {
   document.getElementById('rollback-confirm').style.display = 'block';
 }
@@ -1265,9 +1290,7 @@ function rollbackStaging() {
   function showLine() {
     if (i >= ROLLBACK_LINES.length) {
       setTimeout(() => {
-        const banner = document.getElementById('rollback-done-banner');
-        banner.style.display = 'block';
-        // Marcar paso 6 como error, pasos 7-8 fuera de juego
+        document.getElementById('rollback-done-banner').style.display = 'block';
         stepStates[5] = 'error';
         stepStates[6] = 'pending';
         stepStates[7] = 'pending';
@@ -1288,13 +1311,13 @@ function rollbackStaging() {
   showLine();
 }
 
-// --- CANCEL / RESET ---
 function cancelDeploy(afterDeploy) {
   const msg = afterDeploy
     ? 'El draft de CX ya tiene los cambios del deploy. Cancelar no los deshace — para revertirlos usa el rollback desde el paso de validación de tests.\n\n¿Cerrar el panel igualmente?'
     : 'CX no ha sido modificado todavía. ¿Cancelar el deploy?';
   if(confirm(msg)) resetDeploy();
 }
+
 function resetDeploy() {
   setRunning(false);
   stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
@@ -1304,13 +1327,11 @@ function resetDeploy() {
   resetInventoryUI();
   resetDeployStep4();
   resetSnapshotUI();
-  // Resetear estado de rollback
   document.getElementById('rollback-confirm').style.display = 'none';
   document.getElementById('rollback-log').style.display = 'none';
   document.getElementById('rollback-log-block').innerHTML = '';
   document.getElementById('rollback-done-banner').style.display = 'none';
   document.getElementById('test-action-bar').style.display = 'flex';
-  // Resetear push
   document.getElementById('push-log').style.display = 'none';
   document.getElementById('push-log').style.opacity = '1';
   document.getElementById('push-log-block').innerHTML = '';
@@ -1318,7 +1339,6 @@ function resetDeploy() {
   document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
   document.getElementById('push-status-detail').textContent = 'origin/staging está 2 commits por detrás';
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
-  // Restaurar topbar
   const badge = document.getElementById('topbar-env');
   badge.textContent = 'STAGING';
   badge.style.background = 'rgba(59,130,246,.15)';
@@ -1329,9 +1349,28 @@ function resetDeploy() {
   viewStep(1);
 }
 
-// --- INIT ---
 document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
 document.getElementById('snapshot-name').value = generateSnapshotName();
 viewStep(1);
 renderSidebar();
+
+// SPECS PANEL — funciones de control
+if (!SHOW_SPECS) document.getElementById('specs-panel').style.display = 'none';
+
+function toggleSpecsPanel() {
+  const panel = document.getElementById('specs-panel');
+  panel.classList.toggle('collapsed');
+  const isCollapsed = panel.classList.contains('collapsed');
+  document.querySelector('.specs-collapse-btn').textContent = isCollapsed ? '›' : '‹';
+  const topBtn = document.getElementById('specs-toggle-btn');
+  if (topBtn) topBtn.textContent = isCollapsed ? '▶ SPECS' : '◀ SPECS';
+}
+
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+function toggleCriteria(id) {
+  document.getElementById(id).classList.toggle('criteria-collapsed');
+}
 </script>
