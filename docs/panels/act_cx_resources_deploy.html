@@ -588,7 +588,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">Qué hace</div>
           <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el draft del agente Petal. El draft es el estado editable de CX — no la versión que está corriendo en staging para test cases. Este paso hace una foto de ese borrador: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Invoca los 12 scripts <code>pull_*.py</code> (READ-ONLY, un script por tipo de recurso). Si algún LIST falla → abortar inmediatamente, sin datos parciales.</div>
+          <div class="tech-content" style="display:none">Llama a las 12 funciones <code>inventory_*()</code> de <code>act_cx_resources_deploy.py</code> (READ-ONLY, una función por tipo de recurso). Si algún LIST falla → abortar inmediatamente, sin datos parciales.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
