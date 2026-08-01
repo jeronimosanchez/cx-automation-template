@@ -106,3 +106,24 @@ def test_las_tres_operaciones_son_excluyentes_por_recurso():
 
     assert por_recurso == {"Cambiado": "PATCH", "Nuevo": "POST", "Sobrante": "DELETE"}
     assert len(operaciones) == len(por_recurso)
+
+
+def test_los_tools_integrados_no_entran_en_el_diff():
+    """code-interpreter lo provee la plataforma: no está ni puede estar en
+    el repo, y proponerlo como DELETE haría que el Paso 4 intentara borrar
+    un recurso de CX."""
+    remote = [{"name": "t/1", "displayName": "PetalDataTool", "toolType": "CUSTOMIZED_TOOL"},
+              {"name": "t/2", "displayName": "code-interpreter", "toolType": "BUILTIN_TOOL"}]
+    local = {"PetalDataTool": {"displayName": "PetalDataTool"}}
+
+    from act.act_cx_resources_deploy import diff_tools
+    assert diff_tools(remote, local) == []
+
+
+def test_un_tool_propio_ausente_del_repo_si_sale_como_delete():
+    remote = [{"name": "t/1", "displayName": "OtroTool", "toolType": "CUSTOMIZED_TOOL"}]
+
+    from act.act_cx_resources_deploy import diff_tools
+    operaciones = diff_tools(remote, {})
+
+    assert [(o["resource"], o["operation"]) for o in operaciones] == [("OtroTool", "DELETE")]

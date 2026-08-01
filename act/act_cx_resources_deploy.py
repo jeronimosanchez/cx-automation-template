@@ -38,6 +38,8 @@ DATA_DIR = REPO_ROOT / "docs" / "data"
 LOGS_DIR = REPO_ROOT / "logs"
 
 STAGING_BRANCH = "staging"
+# El Paso 3 compara contra lo que está subido a GitHub, no contra el disco.
+DEFINITIONS_REF = "origin/staging"
 MAIN_BRANCH = "main"
 STAGING_ENVIRONMENT = "staging"
 PRODUCTION_ENVIRONMENT = "production"
@@ -139,32 +141,83 @@ def step_result(status, log, data=None):
 
 # ── Definiciones locales ─────────────────────────────────────────────────────
 
-def definitions_belong_to(project, agent_id):
+def definitions_belong_to(project, agent_id, ref=DEFINITIONS_REF):
     """Si definitions/ describe al agente seleccionado.
 
     definitions/ solo tiene contenido real para el agente de referencia. Para
     cualquier otro, aplicar estos YAMLs sería desplegar el agente equivocado
     encima — de ahí que el diff salga vacío con aviso en vez de fallar.
     """
-    agent_file = DEFINITIONS_DIR / "agent.yaml"
-    if not agent_file.exists():
+    try:
+        config = yaml.safe_load(_git_file_contents(ref, "definitions/agent.yaml")) or {}
+    except PipelineError:
         return False
-    config = yaml.safe_load(agent_file.read_text()) or {}
     return config.get("project") == project and config.get("agent_id") == agent_id
 
 
-def load_local_definitions(resource_type):
-    """YAMLs locales de un tipo, indexados por displayName."""
-    if resource_type == "agent_config":
-        return _load_local_agent_config()
+def fetch_definitions_ref(ref=DEFINITIONS_REF):
+    """Actualiza la referencia remota antes de leerla.
 
-    directory = DEFINITIONS_DIR / RESOURCE_TYPES[resource_type]["definitions"]
-    if not directory.exists():
-        return {}
+    Sin el fetch, se leería la última copia local de la rama, que puede
+    llevar días sin refrescar — el diff saldría contra código viejo sin
+    ningún aviso.
+    """
+    remote, _, branch = ref.partition("/")
+    if not branch:
+        return
+    result = run_git("fetch", remote, branch, check=False)
+    if result.returncode != 0:
+        raise PipelineError(
+            f"No se pudo actualizar {ref}: {result.stderr.strip()}"
+        )
+
+
+def _git_tree_files(ref, directory):
+    result = run_git("ls-tree", "-r", "--name-only", ref, "--", directory, check=False)
+    if result.returncode != 0:
+        raise PipelineError(
+            f"No se pudo leer {directory} en {ref}: {result.stderr.strip()}. "
+            f"¿Existe la rama?"
+        )
+    return [line for line in result.stdout.splitlines() if line.endswith(".yaml")]
+
+
+def _git_file_contents(ref, path):
+    result = run_git("show", f"{ref}:{path}", check=False)
+    if result.returncode != 0:
+        raise PipelineError(f"No se pudo leer {path} en {ref}: {result.stderr.strip()}")
+    return result.stdout
+
+
+def load_definitions(resource_type, ref=DEFINITIONS_REF):
+    """YAMLs de un tipo, indexados por displayName.
+
+    Se leen del árbol de `ref` (por defecto origin/staging), no del disco.
+    El pipeline solo despliega lo que está commiteado y subido: si leyera el
+    working tree, podría aplicar a CX un cambio que no existe en ninguna
+    rama, y el agente quedaría sin respaldo en el historial de git.
+
+    Con ref=None lee del disco — solo para inspección local, nunca para el
+    Paso 3.
+    """
+    if resource_type == "agent_config":
+        return _load_agent_config(ref)
+
+    directory = f"definitions/{RESOURCE_TYPES[resource_type]['definitions']}"
+
+    if ref is None:
+        paths = sorted(
+            str(path.relative_to(REPO_ROOT))
+            for path in (REPO_ROOT / directory).rglob("*.yaml")
+        ) if (REPO_ROOT / directory).exists() else []
+        contents = ((path, (REPO_ROOT / path).read_text()) for path in paths)
+    else:
+        contents = ((path, _git_file_contents(ref, path))
+                    for path in sorted(_git_tree_files(ref, directory)))
 
     definitions = {}
-    for path in sorted(directory.rglob("*.yaml")):
-        document = yaml.safe_load(path.read_text())
+    for _, text in contents:
+        document = yaml.safe_load(text)
         if not isinstance(document, dict):
             continue
         display_name = document.get("displayName")
@@ -173,13 +226,23 @@ def load_local_definitions(resource_type):
     return definitions
 
 
-def _load_local_agent_config():
-    agent_file = DEFINITIONS_DIR / "agent.yaml"
-    if not agent_file.exists():
-        return {}
-    config = yaml.safe_load(agent_file.read_text()) or {}
+def _load_agent_config(ref=DEFINITIONS_REF):
+    path = "definitions/agent.yaml"
+    if ref is None:
+        agent_file = REPO_ROOT / path
+        if not agent_file.exists():
+            return {}
+        text = agent_file.read_text()
+    else:
+        text = _git_file_contents(ref, path)
+    config = yaml.safe_load(text) or {}
     definition = config.get("agent_definition")
     return {definition["displayName"]: definition} if definition else {}
+
+
+# Compatibilidad para inspección local — el Paso 3 usa load_definitions(ref).
+def load_local_definitions(resource_type):
+    return load_definitions(resource_type, ref=None)
 
 
 # ── Inventario — una función por tipo ────────────────────────────────────────
@@ -373,7 +436,13 @@ def diff_webhooks(remote_items, local_definitions):
 
 
 def diff_tools(remote_items, local_definitions):
-    return _diff_generic("tools", remote_items, local_definitions)
+    """Los tools integrados de la plataforma no son recursos del repo.
+
+    Sin este filtro salen como DELETE por no estar en definitions/, y el
+    Paso 4 intentaría borrar un tool que CX provee (code-interpreter).
+    """
+    propios = [t for t in remote_items if t.get("toolType") != "BUILTIN_TOOL"]
+    return _diff_generic("tools", propios, local_definitions)
 
 
 def diff_generators(remote_items, local_definitions):
@@ -806,10 +875,12 @@ def step_2_push_staging(project, agent_id, dry_run=False):
 
 # ── Paso 3 — Diff GitHub vs CX ───────────────────────────────────────────────
 
-def step_3_diff(project, agent_id, dry_run=False):
+def step_3_diff(project, agent_id, dry_run=False, ref=DEFINITIONS_REF):
     log = [f"Paso 3 — Diff GitHub vs CX · {project} / {agent_id}"]
+    fetch_definitions_ref(ref)
+    log.append(f"definitions/ leído de {ref} — no del disco")
 
-    if not definitions_belong_to(project, agent_id):
+    if not definitions_belong_to(project, agent_id, ref):
         log.append(
             "Aviso: no hay definiciones locales para este agente. "
             "definitions/ describe otro agente — no se propone ninguna operación."
@@ -821,7 +892,7 @@ def step_3_diff(project, agent_id, dry_run=False):
 
     for resource_type, diff in DIFF_FUNCTIONS.items():
         remote_items = inventory["resources"].get(resource_type, [])
-        local_definitions = load_local_definitions(resource_type)
+        local_definitions = load_definitions(resource_type, ref=ref)
         type_operations = diff(remote_items, local_definitions)
         operations.extend(type_operations)
         log.append(f"diff {resource_type}: {len(type_operations)} operaciones")
