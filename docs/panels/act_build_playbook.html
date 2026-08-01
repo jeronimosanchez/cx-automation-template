@@ -640,7 +640,7 @@ const PHASES = [
         'El sistema ACT puede crear, modificar y eliminar 12 tipos de recursos CX: Playbooks, Examples, Tools, Intents, Entity Types, Webhooks, Generators, Flows, Pages, Agent Config, Environments, Versions'
       ],
       constraints: [
-        'Auth: gcloud auth print-access-token — genera el token de acceso temporal para cada llamada a la API. Nunca google.auth.default(), da problemas en este entorno.',
+        'Auth: gcloud auth print-access-token — se obtiene una vez al inicio del pipeline y se reutiliza en todas las llamadas, no una vez por llamada. Si expira a mitad de un run largo (Pasos 6-7 son gates manuales que pueden durar horas), el script debe detectar el 401 y refrescar el token automáticamente antes de reintentar — no basta con que falle limpio en el Paso 1. Nunca google.auth.default(), da problemas en este entorno.',
         'Headers obligatorios en toda llamada: Authorization: Bearer &lt;token&gt; · Content-Type: application/json · x-goog-user-project: &lt;GCP_PROJECT&gt;. Sin alguno de estos, la API rechaza la petición.',
         'Playbooks: Full Update sin updateMask — al modificar un playbook, mandar el objeto completo aunque solo haya cambiado una línea. Bug confirmado del backend de Dialogflow CX en europe-west1.',
         'WIF exclusivamente en CI/CD — la autenticación de GitHub Actions a GCP es vía Workload Identity Federation. Nunca SA keys (credenciales estáticas).',
@@ -686,11 +686,9 @@ const PHASES = [
 │   └── scaffolding/                  ← artefactos one-time (no forman parte del deploy)
 │       └── validate_api.py           ← validación conectividad API · Sprint 1 · existe ✓
 ├── definitions/                      ← YAMLs fuente de verdad (12 tipos de recursos CX) · existe ✓
-├── docs/
-│   ├── panels/                       ← HTMLs interactivos: playbooks y specs · existe ✓
-│   └── data/                         ← JSONs generados en runtime · .gitignore
-└── .github/
-    └── workflows/                    ← CI/CD: deploy.yml con workflow_dispatch · crear en Fase 5`,
+└── docs/
+    ├── panels/                       ← HTMLs interactivos: playbooks y specs · existe ✓
+    └── data/                         ← JSONs generados en runtime · .gitignore`,
       operaciones: []
     },
     val: { grupos: [{ title: "Confirmación de discovery", items: [
@@ -716,7 +714,8 @@ const PHASES = [
         { criterio: "JSON de inventario con estructura correcta — totals == len por tipo: PASS", porQue: "Si el conteo declarado no coincide con los elementos reales, algo se perdió silenciosamente durante la paginación de la API." },
         { criterio: "Idempotencia del diff — definitions/ sin cambios → diff vacío: PASS", porQue: "Es la prueba de que el diff realmente compara y no genera falsos positivos — sin cambios reales, no debería proponer ninguna operación." },
         { criterio: "Si cualquier LIST falla → el script aborta inmediatamente, no continúa con datos parciales: PASS", porQue: "Datos parciales dan un diff corrupto en el Paso 3: recursos existentes aparecerían como nuevos y se duplicarían." },
-        { criterio: "429 (rate limit) → reintenta con backoff exponencial (máx. 3 intentos); si persiste, aborta: PASS", porQue: "Rate limit es transitorio — el backoff lo resuelve en la mayoría de casos sin intervención humana." }
+        { criterio: "429 (rate limit) → reintenta con backoff exponencial (máx. 3 intentos); si persiste, aborta: PASS", porQue: "Rate limit es transitorio — el backoff lo resuelve en la mayoría de casos sin intervención humana." },
+        { criterio: "401 en cualquier paso del pipeline (no solo el Paso 1) → refresca el token con gcloud auth print-access-token y reintenta la misma llamada una vez antes de abortar: PASS", porQue: "Los Pasos 6-7 son gates manuales que pueden durar horas — tiempo de sobra para que expire el token obtenido al inicio. Sin este refresco, un token vencido a mitad del Paso 8 puede dejar el merge a main hecho pero el PATCH a producción fallido, desincronizando git y CX." }
       ]},
       { title: "Nivel 2 — Dry-run · Automático (LLM)", items: [
         { criterio: "--dry-run completa sin errores en los 8 pasos: exit 0", porQue: "Confirma que el script arranca, parsea la configuración y construye el plan completo sin tocar CX — la base antes de confiar en cualquier ejecución real." },
@@ -809,11 +808,17 @@ const PHASES = [
         { criterio: "Los 8 endpoints devuelven 200 y JSON válido con status, log y data", porQue: "El panel HTML depende de ese formato exacto para actualizar la UI — un campo ausente rompe el render sin que el servidor lo reporte como error." },
         { criterio: "La cabecera Access-Control-Allow-Origin está presente", porQue: "Sin CORS, el navegador bloquea la llamada desde file:// silenciosamente — el fallo solo se ve abriendo la consola del navegador, no en el log del servidor." }
       ]},
-      { title: "Conexión real con el pipeline · Automático (LLM)", items: [
-        { criterio: "Los datos devueltos por cada endpoint corresponden a la ejecución real de la función de act_cx_resources_deploy.py, no a datos de prueba fijos", porQue: "Un endpoint que devuelve un JSON de ejemplo pasaría los checks de estructura sin estar realmente conectado al pipeline — este check es el que detecta esa trampa." }
+      { title: "Conexión real con el pipeline (Pasos 1-3, solo lectura) · Automático (LLM)", items: [
+        { criterio: "Los datos devueltos por los endpoints /step/1, /step/2 y /step/3 corresponden a la ejecución real de la función de act_cx_resources_deploy.py, no a datos de prueba fijos", porQue: "Un endpoint que devuelve un JSON de ejemplo pasaría los checks de estructura sin estar realmente conectado al pipeline — este check es el que detecta esa trampa. Se limita a los Pasos 1-3 porque son de solo lectura o sin riesgo real (inventario, push, diff) — nunca escriben en CX." }
       ]},
       { title: "Spot check · Manual (Jero)", items: [
         { criterio: "Ejecuta <code>curl -X POST localhost:5000/step/1</code> con el servidor recién arrancado por <code>validate_server.py</code>. <strong>Esperado:</strong> el campo <code>log</code> de la respuesta describe el Paso 1 real (por ejemplo, menciona los 12 tipos de recursos) — no un texto genérico tipo 'test' u 'ok'.", porQue: "Una verificación humana rápida antes de tocar el HTML evita depurar dos capas a la vez si algo falla más adelante." }
+      ]},
+      { title: "Escritura real — Pasos 4-8 · Manual (Jero)", items: [
+        { criterio: "Crea un Playbook nuevo llamado 'prueba' (que no exista ya en el repo ni en CX) con el texto 'prueba de deploy' — es un recurso adicional, nunca modifiques ni elimines nada existente. Ejecuta el pipeline completo, Paso 4 a Paso 8, hasta que llegue a producción. <strong>Esperado:</strong> el Playbook 'prueba' aparece en producción junto a todo lo demás sin ningún cambio, y cada paso intermedio (deploy, snapshot, tests, gate QA) se completó correctamente.", porQue: "Es la única forma de confirmar que los endpoints de escritura real (Pasos 4-8) funcionan de extremo a extremo contra CX, sin arriesgar ningún recurso existente." },
+        { criterio: "Modifica el texto del Playbook 'prueba' a 'prueba eliminación' y vuelve a lanzar el pipeline. En el Paso 7 (Gate QA — staging), en vez de validar, elige rollback. <strong>Esperado:</strong> staging vuelve a la versión anterior (con el texto original 'prueba de deploy', no 'prueba eliminación') y el draft queda restaurado — el cambio nunca llega a producción.", porQue: "Confirma que el camino de rollback funciona de verdad antes del día que lo necesites de verdad, no solo que el camino feliz funciona." },
+        { criterio: "Elimina el Playbook 'prueba' (y solo ese recurso) y ejecuta el pipeline una última vez hasta producción. <strong>Esperado:</strong> producción queda sin el Playbook 'prueba'.", porQue: "Deja el sistema limpio tras la prueba — el recurso de prueba no debe sobrevivir a la validación." },
+        { criterio: "Compara el inventario completo de los 12 tipos de recursos contra el que existía antes de empezar esta prueba. <strong>Esperado:</strong> todo lo demás —cada Playbook, Example, Tool, etc. que ya existía— permanece exactamente igual, sin ningún cambio no intencionado durante todo el ciclo.", porQue: "Confirma que el ciclo de prueba completo (crear, modificar, rollback, eliminar) no tuvo ningún efecto colateral sobre el resto del sistema." }
       ]}
     ], decisions: [] } },
   { id: 7, title: "Producción", subtitle: "Panel operativo final — sin specs, conectado al servidor real", tag: "html", tagLabel: ".html",
@@ -827,7 +832,8 @@ const PHASES = [
         'Manejar el caso de que el servidor no esté arrancado: si el <code>fetch</code> falla (conexión rechazada), mostrar un mensaje claro al usuario — nunca dejar el paso en un estado ambiguo ni fingir éxito.',
         'El log que se muestra en cada paso pasa a ser el campo <code>log</code> devuelto por el servidor — no un array de líneas escritas de antemano en el HTML.',
         'Conservar intactos sin ninguna modificación: topbar, sidebar de navegación, panel principal de steps, todos los estados (pending/active/done) e interacciones de los 8 pasos, botones de acción y lógica de progreso.',
-        'No crear un archivo nuevo — editar el existente <code>docs/panels/act_cx_resources_deploy.html</code>. Verificar que el layout del panel principal ocupa el 100% del ancho disponible después de la eliminación sin romper ningún estilo existente.'
+        'No crear un archivo nuevo — editar el existente <code>docs/panels/act_cx_resources_deploy.html</code>. Verificar que el layout del panel principal ocupa el 100% del ancho disponible después de la eliminación sin romper ningún estilo existente.',
+        'Persistir el estado del pipeline en <code>localStorage</code> (mismo patrón que <code>act_build_playbook.html</code>, clave <code>act_playbook_v5</code>): qué paso está activo y cuáles se completaron. Sin esto, cerrar la pestaña o recargar la página a mitad de una operación real (por ejemplo, un snapshot con el LRO todavía en curso) pierde todo el progreso visual sin que el usuario sepa que la operación siguió completándose en CX.'
       ],
       leer: [
         'docs/panels/act_cx_resources_deploy.html — leer el archivo completo antes de editar: identificar exactamente qué pertenece a specs (aside, CSS y JS) y qué pertenece al panel operativo (topbar, sidebar, steps) para no eliminar nada incorrecto.',
@@ -873,44 +879,18 @@ const PHASES = [
         { criterio: "Existe una llamada fetch (o equivalente) al endpoint correcto para cada uno de los 8 pasos", porQue: "Es la verificación mínima de que el botón de cada paso realmente dispara una petición al servidor, no solo actualiza el estado visual." },
         { criterio: "Hay manejo explícito de error cuando el servidor no responde — mensaje visible, no un estado colgado o un falso OK", porQue: "El servidor es un proceso local que Jero puede olvidar arrancar — sin este manejo, el panel fallaría de forma confusa en el peor momento: durante un deploy real." }
       ]},
+      { title: "Persistencia de estado · Automático (LLM)", items: [
+        { criterio: "Recargar la página (F5) a mitad de cualquier paso recupera el estado exacto — qué paso estaba activo y qué se había completado — desde localStorage", porQue: "El estado del pipeline vivía solo en memoria del navegador — recargar por costumbre, o porque la pantalla parece congelada durante una llamada real más lenta que la animación simulada, perdía todo el progreso sin ningún aviso." },
+        { criterio: "Cerrar y reabrir la pestaña tiene el mismo efecto: el estado persiste entre sesiones del navegador", porQue: "Cerrar la pestaña a mitad de una operación real (por ejemplo, un snapshot con el LRO en curso) no debe dejar a Jero sin ninguna señal de que la operación siguió completándose en CX." }
+      ]},
       { title: "Recorrido completo · Manual (Jero)", items: [
         { criterio: "Con <code>server.py</code> arrancado, recorre los 8 pasos desde cero en el panel real (sin recargar). <strong>Esperado:</strong> cada paso muestra datos reales del agente Petal — nunca los ejemplos que tenía la versión simulada.", porQue: "Es la única verificación que confirma la experiencia real de uso — los checks automáticos validan piezas sueltas, este paso valida que la pieza completa se siente bien y hace lo que promete." },
         { criterio: "A mitad de un paso, detén el proceso de <code>server.py</code> en la terminal. <strong>Esperado:</strong> el panel muestra un mensaje de error claro (por ejemplo, 'no se pudo conectar con el servidor') — nunca queda colgado en silencio ni simula un éxito.", porQue: "Es el escenario más probable de fallo en el día a día — Jero cierra sin querer el terminal del servidor mientras el panel sigue abierto." }
       ]}
-    ], decisions: [] } },
-  { id: 9, title: "CI/CD", subtitle: "GitHub Actions con workflow_dispatch", tag: "ci", tagLabel: ".yml",
-    llm: {
-      objetivo: "Crear <code>.github/workflows/deploy.yml</code> — el workflow que ejecuta <code>act_cx_resources_deploy.py</code> en GitHub Actions con trigger manual (<code>workflow_dispatch</code>). El valor no es la automaticidad sino las garantías: <code>concurrency: 1</code>, WIF, trazabilidad y QA gate obligatorio que no se puede saltar.",
-      reglas: [
-        "Trigger: <code>workflow_dispatch</code> exclusivamente — nunca <code>on: push</code>. Jero decide cuándo lanzar; GitHub Actions garantiza cómo.",
-        "Auth: WIF (Workload Identity Federation) — nunca SA keys. Variables <code>GCP_WIF_PROVIDER</code> y <code>GCP_SERVICE_ACCOUNT</code> ya están en GitHub Variables.",
-        "<code>concurrency: 1</code> con <code>cancel-in-progress: false</code> — si hay un deploy en curso, el nuevo espera; no se cancela.",
-        "El workflow llama a <code>act_cx_resources_deploy.py</code> — no reimplementa lógica. El script es la fuente de verdad del pipeline.",
-        "QA gate dentro del script (Step 7) — el workflow no necesita implementarlo; lo hereda del script."
-      ],
-      leer: [
-        "act/act_cx_resources_deploy.py — para entender qué llama el workflow y qué variables de entorno necesita",
-        "definitions/agent.yaml — project/location para las variables de entorno del workflow"
-      ],
-      outputs: [{ path: ".github/workflows/deploy.yml", desc: "Workflow de GitHub Actions con trigger manual (workflow_dispatch)" }],
-      pasos: []
-    },
-    val: { grupos: [
-      { title: "Estructura · Automático (LLM)", items: [
-        { criterio: "Trigger es <code>workflow_dispatch</code> (no <code>push</code>)", porQue: "El trigger manual garantiza que Jero controla cuándo se despliega — un push automático ejecutaría el deploy sin intervención humana." },
-        { criterio: "<code>concurrency: 1</code> presente con <code>cancel-in-progress: false</code>", porQue: "Sin concurrency:1, dos deploys simultáneos pueden corromper el estado del agente. cancel-in-progress:false hace que el nuevo espere — no cancela el deploy en curso." },
-        { criterio: "WIF configurado con <code>GCP_WIF_PROVIDER</code> y <code>GCP_SERVICE_ACCOUNT</code>", porQue: "SA keys son credenciales estáticas que quedan expuestas en el repositorio. WIF genera tokens temporales por sesión — sin superficie de ataque permanente." },
-        { criterio: "El workflow llama a <code>act_cx_resources_deploy.py</code> sin reimplementar lógica", porQue: "La lógica del pipeline vive en el script — duplicarla en el YAML crea dos fuentes de verdad que se desincronizarán." }
-      ]},
-      { title: "Garantías · Manual (Jero)", items: [
-        { criterio: "Lanzar el workflow desde GitHub UI funciona correctamente", porQue: "El trigger manual solo se puede verificar desde la interfaz de GitHub — no hay forma de simularlo en local." },
-        { criterio: "El segundo lanzamiento simultáneo espera (no cancela) al primero", porQue: "cancel-in-progress:false es el comportamiento correcto — verificar que está activo protege contra configuraciones incorrectas que cancelarían deploys en curso." },
-        { criterio: "Trazabilidad visible en GitHub Actions tab — quién lanzó, cuándo, qué commit", porQue: "La trazabilidad es una de las cuatro garantías centrales de CI/CD — sin ella no hay registro de qué se desplegó ni cuándo." }
-      ]}
     ], decisions: [] } }
 ];
 
-const KEY = 'act_playbook_v4';
+const KEY = 'act_playbook_v5';
 function loadState() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
 function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
 function getPS(s, id) { return s[id] || { status: 'pending', notes: '', checked: [], decisions: {} }; }
@@ -1088,11 +1068,9 @@ function renderGoalPhase(p, ps) {
 │   └── scaffolding/             <span class="tree-comment">← artefactos one-time de construcción (no forman parte del deploy)</span>
 │       └── validate_api.py      <span class="tree-comment">← validación conectividad API · Sprint 1 · existe ✓</span>
 ├── definitions/                 <span class="tree-comment">← YAMLs fuente de verdad (12 tipos de recursos CX) · existe ✓</span>
-├── docs/
-│   ├── panels/                  <span class="tree-comment">← HTMLs interactivos: playbooks y specs del pipeline · existe ✓</span>
-│   └── data/                    <span class="tree-comment">← JSONs generados en runtime · .gitignore · no committear</span>
-└── .github/
-    └── workflows/               <span class="tree-comment">← CI/CD: deploy.yml con workflow_dispatch · crear en Fase 5</span></div>`, true)
+└── docs/
+    ├── panels/                  <span class="tree-comment">← HTMLs interactivos: playbooks y specs del pipeline · existe ✓</span>
+    └── data/                    <span class="tree-comment">← JSONs generados en runtime · .gitignore · no committear</span></div>`, true)
     + makeBlock('val', '✋', 'Validación — confirmar objetivo del proyecto', 'goal-val', goalValHtml, true)
 }
 
