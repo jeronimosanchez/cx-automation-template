@@ -335,6 +335,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-eyebrow">Paso 4 de 8</div>
       <div class="phase-title">Confirmar deploy</div>
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
+
+      <!-- Comprobación CX → repo: qué hay en CX que el repo no refleja -->
+      <div id="cxrepo-check" style="display:none;margin-bottom:16px">
+        <div id="cxrepo-clean" style="display:none;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28);border-radius:8px;padding:14px 18px">
+          <div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Comprobaci&oacute;n CX &rarr; repo</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">El repo refleja todo lo que hay en CX. Nada se perder&aacute; al desplegar.</p>
+        </div>
+
+        <div id="cxrepo-drift" style="display:none;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:16px 20px">
+          <div style="font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hay cambios en CX que el repo no tiene</div>
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Estos recursos existen o difieren en CX y no est&aacute;n reflejados en <code style="font-size:12px">definitions/</code>. El deploy sincroniza repo &rarr; CX, as&iacute; que <strong style="color:var(--text)">si contin&uacute;as se perder&aacute;n</strong>.</p>
+          <div class="diff-wrap" style="margin-bottom:14px">
+            <table class="diff-table">
+              <thead><tr><th>Tipo</th><th>Recurso</th><th>Qu&eacute; cambia</th></tr></thead>
+              <tbody id="cxrepo-rows"></tbody>
+            </table>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="pullToRepo()">&#8595; Traer al repo primero</button>
+            <button class="btn btn-ghost" onclick="acceptDrift()">Continuar y perderlos</button>
+          </div>
+        </div>
+
+        <div id="cxrepo-accepted" style="display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:12px 16px">
+          <p style="font-size:13px;color:var(--text-2);margin:0">Continuando sin traer <strong style="color:var(--text)" id="cxrepo-lost-count">0</strong> cambios de CX &mdash; se perder&aacute;n al desplegar.</p>
+        </div>
+      </div>
+
       <div class="gate-block" id="deploy-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate4-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate4-agent">Petal 1.0</strong></p>
@@ -760,6 +788,15 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Por qué existe</div>
           <p>Sin este paso el diff no sirve de nada. Es el momento en que los cambios pasan de GitHub al agente.</p>
         </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">4.0 — Comprobación CX &rarr; repo (antes del gate)</div>
+          <p>Antes de dejar confirmar, el sistema mira en la dirección contraria al diff: qué existe o difiere en CX que <code>definitions/</code> no recoge. El deploy sincroniza repo &rarr; CX, así que todo lo que esté solo en CX se borra al aplicar. Sin este aviso, el trabajo hecho desde la consola desaparece en silencio.</p>
+          <p style="margin-top:8px">Si hay diferencias, el gate de confirmación <strong>no se muestra</strong> hasta que el usuario elija: traerlas al repo primero, o continuar aceptando que se pierden. Si no hay ninguna, se indica y el gate aparece con normalidad.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH &#9660;</button>
+          <div class="tech-content" style="display:none">Recorre el inventario del Paso 1 y, por cada tipo, marca: recursos presentes en CX y ausentes de <code>definitions/</code> (los que el diff propone como <code>DELETE</code>), y campos con contenido en CX que el YAML no declara — estos últimos el diff no los ve, porque solo compara los campos que el local menciona.<br>
+No usa el diff del Paso 3 como fuente: ese mira repo &rarr; CX y por diseño es ciego a lo que el repo no nombra.<br>
+&laquo;Traer al repo&raquo; baja los cambios a <code>definitions/</code>, los commitea y reinicia el flujo desde el Paso 2 &mdash; el diff hay que recalcularlo contra el repo ya actualizado.</div>
+        </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
           <p>La lista de operaciones del Paso 3 y conexión activa con CX.</p>
@@ -776,7 +813,9 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ Deploy completo → todos los recursos OK, banner verde, botón "Continuar →"<br>
+          <p>✓ Comprobación CX → repo ejecutada antes del gate; si hay diferencias, el gate no aparece hasta elegir<br>
+          ✓ Diferencias listadas con tipo, recurso y qué cambia — nunca un aviso genérico<br>
+          ✓ Deploy completo → todos los recursos OK, banner verde, botón "Continuar →"<br>
           ✓ Deploy parcial → resumen OK/ERROR/no-intentado, dos opciones de recuperación<br>
           ✓ "Reintentar fallidos" → reintenta el recurso fallido más todos los que quedaron como "no intentado" por el fallo anterior; no reintenta los que ya completaron OK<br>
           ✓ "Revertir draft" → restaura el draft al estado previo al deploy<br>
@@ -1179,6 +1218,57 @@ function renderStep3Diff() {
   document.getElementById('diff-no-changes').style.display  = DIFF_COUNT > 0 ? 'none'  : 'block';
 }
 
+/* ── Comprobación CX → repo ──────────────────────────────────────────────
+   El diff del Paso 3 mira repo → CX: qué hay que aplicar. Esta comprobación
+   mira al revés — qué existe en CX que definitions/ no recoge. Sin ella, el
+   deploy borra en silencio el trabajo hecho desde la consola de CX, porque
+   el repo es la fuente de verdad y lo que no está en él se elimina.        */
+const CXREPO_DRIFT = [
+  {tipo:'Example',  recurso:'Ex — duelo → registro solemne',        cambio:'solo en CX, no está en el repo'},
+  {tipo:'Example',  recurso:'Ex — ocasión especial → celebracion',  cambio:'solo en CX, no está en el repo'},
+  {tipo:'Playbook', recurso:'Orquestador',                          cambio:'referencedPlaybooks: 2 referencias de más en CX'},
+];
+
+let driftAccepted = false;
+
+function renderCxRepoCheck() {
+  const wrap = document.getElementById('cxrepo-check');
+  const gate = document.getElementById('deploy-gate');
+  wrap.style.display = 'block';
+  document.getElementById('cxrepo-clean').style.display = 'none';
+  document.getElementById('cxrepo-drift').style.display = 'none';
+  document.getElementById('cxrepo-accepted').style.display = 'none';
+
+  if (CXREPO_DRIFT.length === 0) {
+    document.getElementById('cxrepo-clean').style.display = 'block';
+    gate.style.display = 'block';
+    return;
+  }
+  if (driftAccepted) {
+    document.getElementById('cxrepo-accepted').style.display = 'block';
+    document.getElementById('cxrepo-lost-count').textContent = CXREPO_DRIFT.length;
+    gate.style.display = 'block';
+    return;
+  }
+  document.getElementById('cxrepo-rows').innerHTML = CXREPO_DRIFT.map(d =>
+    `<tr><td>${d.tipo}</td><td><code>${d.recurso}</code></td><td>${d.cambio}</td></tr>`
+  ).join('');
+  document.getElementById('cxrepo-drift').style.display = 'block';
+  // El gate se oculta hasta que el usuario decida: continuar sin verlo sería
+  // exactamente el fallo silencioso que esta comprobación existe para evitar.
+  gate.style.display = 'none';
+}
+
+function pullToRepo() {
+  alert('Traer al repo: baja estos ' + CXREPO_DRIFT.length + ' cambios de CX a definitions/, '
+      + 'los commitea y vuelve a calcular el diff. El deploy se reinicia desde el Paso 2.');
+}
+
+function acceptDrift() {
+  driftAccepted = true;
+  renderCxRepoCheck();
+}
+
 const DEPLOY_RESOURCES = [
   {label:'Playbook · Compra · PATCH (Full Update)',         ok: true,  okText:'OK',                            cls:'ok'},
   {label:'Playbook · Orquestador · PATCH (Full Update)',    ok: true,  okText:'OK',                            cls:'ok'},
@@ -1305,7 +1395,8 @@ function revertDraft() {
 }
 
 function resetDeployStep4() {
-  document.getElementById('deploy-gate').style.display = 'block';
+  driftAccepted = false;
+  renderCxRepoCheck();
   document.getElementById('deploy-log').style.display = 'none';
   document.getElementById('deploy-done').style.display = 'none';
   document.getElementById('deploy-fail').style.display = 'none';
@@ -1386,6 +1477,7 @@ function viewStep(id) {
   if(v) v.classList.add('visible');
   if(id === 2) renderStep2Checks();
   if(id === 3) renderStep3Diff();
+  if(id === 4) renderCxRepoCheck();
   if(id === 5) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
   syncSpecsPanel(id);
   renderSidebar();
