@@ -42,6 +42,15 @@ MAIN_BRANCH = "main"
 STAGING_ENVIRONMENT = "staging"
 PRODUCTION_ENVIRONMENT = "production"
 
+# La API no expone ninguna señal de cuándo termina de propagarse un entorno
+# (GET /deployments vuelve vacío), así que el paso lo dice en vez de fingir
+# certeza o esperar con un sleep().
+PROPAGATION_NOTICE = (
+    "El cambio se ha aplicado, pero puede tardar unos minutos en propagarse a "
+    "todos los usuarios. Si pruebas producción ahora mismo y ves comportamiento "
+    "antiguo, espera y reintenta antes de asumir que el deploy falló."
+)
+
 
 # ── Tabla de recursos ────────────────────────────────────────────────────────
 #
@@ -794,9 +803,34 @@ def step_3_diff(project, agent_id, dry_run=False):
         f"({summary['POST']} POST, {summary['PATCH']} PATCH, {summary['DELETE']} DELETE)"
     )
 
+    warnings = unversionable_warnings(operations)
+    log.extend(warnings)
+
     return step_result("ok", log, {
         "operations": operations, "has_changes": True, "summary": summary,
+        "warnings": warnings,
     })
+
+
+# Tipos sin ningún mecanismo de versión: no hay entorno que los aísle, así que
+# un cambio en ellos es visible en draft, staging y producción a la vez.
+UNVERSIONABLE_TYPES = ("agent_config", "generators")
+
+
+def unversionable_warnings(operations):
+    afectados = sorted({
+        operation["type"] for operation in operations
+        if operation["type"] in UNVERSIONABLE_TYPES
+    })
+    if not afectados:
+        return []
+    nombres = " / ".join(
+        "Agent Config" if tipo == "agent_config" else "Generators" for tipo in afectados
+    )
+    return [
+        f"AVISO — Este deploy incluye cambios en {nombres} — sin staging posible. "
+        f"Serán visibles en todos los entornos a la vez al confirmar."
+    ]
 
 
 # ── Paso 4 — Confirmar deploy ────────────────────────────────────────────────
@@ -817,6 +851,8 @@ def step_4_deploy(project, agent_id, operations=None, dry_run=False, only_pendin
         key=lambda operation: DEPLOY_ORDER.index(operation["type"])
         if operation["type"] in DEPLOY_ORDER else len(DEPLOY_ORDER),
     )
+
+    log.extend(unversionable_warnings(ordered))
 
     if dry_run:
         log.append(f"[dry-run] Plan de {len(ordered)} operaciones en este orden:")
@@ -1008,10 +1044,12 @@ def step_8_approve_production(project, agent_id, version_names=None, dry_run=Fal
     log.append(
         f"Producción promovida a las mismas {len(versions)} versiones que staging"
     )
+    log.append(PROPAGATION_NOTICE)
     write_run_log(project, agent_id, log)
 
     return step_result("ok", log, {
         "merged": True, "promoted": True, "version_names": versions,
+        "notice": PROPAGATION_NOTICE,
     })
 
 
