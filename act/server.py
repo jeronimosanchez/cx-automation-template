@@ -17,6 +17,7 @@ Arranque:
 """
 
 import os
+import socket
 import sys
 import threading
 from pathlib import Path
@@ -135,8 +136,25 @@ def health():
                    data={"steps": sorted(pipeline.STEP_FUNCTIONS)}), 200
 
 
+def _avisar_si_el_puerto_esta_ocupado(port):
+    """En macOS el receptor de AirPlay escucha en el 5000 sobre IPv6.
+
+    Como este servidor solo se ata a IPv4, ambos conviven sin error — pero
+    un navegador que resuelva `localhost` a ::1 acaba hablando con AirPlay,
+    que devuelve 403 sin CORS. El panel usa 127.0.0.1 por eso; el aviso está
+    aquí para quien lo abra a mano.
+    """
+    with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as probe:
+        probe.settimeout(0.4)
+        if probe.connect_ex(("::1", port)) == 0:
+            print(f"AVISO: algo ocupa el puerto {port} sobre IPv6 (en macOS suele ser "
+                  f"AirPlay Receiver). Usa http://127.0.0.1:{port}, no localhost, o "
+                  f"desactiva AirPlay en Ajustes › General › AirDrop y Handoff.")
+
+
 def main():
     port = int(os.environ.get("PORT", DEFAULT_PORT))
+    _avisar_si_el_puerto_esta_ocupado(port)
     app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
 
 
