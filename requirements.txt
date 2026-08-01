@@ -8,3 +8,7 @@ pyyaml>=6.0
 
 # Dev / tests (Sprint 2, Task 7). Sin red, sin auth.
 pytest>=7.0
+
+# Servidor local que expone el pipeline al panel (act/server.py)
+flask>=2.2
+flask-cors>=4.0
