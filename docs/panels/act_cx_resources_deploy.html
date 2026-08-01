@@ -348,14 +348,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Estos recursos existen o difieren en CX y no est&aacute;n reflejados en <code style="font-size:12px">definitions/</code>. El deploy sincroniza repo &rarr; CX, as&iacute; que <strong style="color:var(--text)">si contin&uacute;as se perder&aacute;n</strong>.</p>
           <div class="diff-wrap" style="margin-bottom:14px">
             <table class="diff-table">
-              <thead><tr><th>Tipo</th><th>Recurso</th><th>Qu&eacute; cambia</th></tr></thead>
+              <thead><tr><th>Tipo</th><th>Recurso</th><th>Qu&eacute; cambia</th><th>Se puede traer</th></tr></thead>
               <tbody id="cxrepo-rows"></tbody>
             </table>
           </div>
+          <p id="cxrepo-nota-borrado" style="display:none;font-size:12px;color:var(--text-3);margin-bottom:14px">Los marcados <strong style="color:var(--text-2)">no</strong> son recursos que solo existen en CX. Traerlos exigir&iacute;a crear archivos nuevos en <code style="font-size:11px">definitions/</code>, y est&aacute; decidido que se borren &mdash; ya salen como <span class="pill pill-del">DELETE</span> en el diff del Paso 3.</p>
           <div class="action-bar">
-            <button class="btn btn-gate" onclick="pullToRepo()">&#8595; Traer al repo primero</button>
-            <button class="btn btn-ghost" onclick="acceptDrift()">Continuar y perderlos</button>
+            <button class="btn btn-gate" id="btn-pull-repo" onclick="pullToRepo()">&#8595; Traer al repo primero</button>
+            <button class="btn btn-ghost" onclick="acceptDrift()">Continuar sin traerlos</button>
           </div>
+        </div>
+
+        <!-- Previsualización: nada se escribe en definitions/ sin verlo antes (CLAUDE.md §7.4) -->
+        <div id="cxrepo-preview" style="display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px 20px">
+          <div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Cambios propuestos en definitions/</div>
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">No se ha guardado nada todav&iacute;a. Revisa y confirma.</p>
+          <div id="cxrepo-preview-body" style="margin-bottom:16px"></div>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="savePullToRepo()">Guardar en definitions/</button>
+            <button class="btn btn-ghost" onclick="cancelPull()">Cancelar</button>
+          </div>
+        </div>
+
+        <div id="cxrepo-pulled" style="display:none;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28);border-radius:8px;padding:14px 18px">
+          <div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Tra&iacute;do al repo</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0"><strong style="color:var(--text)" id="cxrepo-pulled-count">0</strong> cambios escritos en <code style="font-size:12px">definitions/</code>. El diff se recalcula con el repo ya actualizado.</p>
         </div>
 
         <div id="cxrepo-accepted" style="display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:12px 16px">
@@ -795,7 +812,8 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <button class="tech-toggle" onclick="toggleTech(this)">TECH &#9660;</button>
           <div class="tech-content" style="display:none">Recorre el inventario del Paso 1 y, por cada tipo, marca: recursos presentes en CX y ausentes de <code>definitions/</code> (los que el diff propone como <code>DELETE</code>), y campos con contenido en CX que el YAML no declara — estos últimos el diff no los ve, porque solo compara los campos que el local menciona.<br>
 No usa el diff del Paso 3 como fuente: ese mira repo &rarr; CX y por diseño es ciego a lo que el repo no nombra.<br>
-&laquo;Traer al repo&raquo; baja los cambios a <code>definitions/</code>, los commitea y reinicia el flujo desde el Paso 2 &mdash; el diff hay que recalcularlo contra el repo ya actualizado.</div>
+&laquo;Traer al repo&raquo; tiene un alcance acotado: <strong>solo actualiza campos de recursos que ya existen en <code>definitions/</code></strong> (por ejemplo a&ntilde;adir referencias que faltan a un playbook). Un recurso que solo vive en CX exigir&iacute;a crear un archivo nuevo y queda fuera &mdash; esos ya salen como <code>DELETE</code> en el diff, y traerlos contradir&iacute;a esa decisi&oacute;n. El bot&oacute;n se deshabilita si no hay nada actualizable.<br>
+Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actual y l&iacute;neas a a&ntilde;adir) y espera confirmaci&oacute;n, como cualquier modificaci&oacute;n de <code>definitions/</code> (CLAUDE.md &sect;7.4). Al guardar, el diff se recalcula contra el repo ya actualizado.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
@@ -814,7 +832,8 @@ No usa el diff del Paso 3 como fuente: ese mira repo &rarr; CX y por diseño es 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
           <p>✓ Comprobación CX → repo ejecutada antes del gate; si hay diferencias, el gate no aparece hasta elegir<br>
-          ✓ Diferencias listadas con tipo, recurso y qué cambia — nunca un aviso genérico<br>
+          ✓ Diferencias listadas con tipo, recurso, qué cambia y si se puede traer al repo<br>
+          ✓ "Traer al repo" muestra los cambios antes de escribir nada, con opción de cancelar<br>
           ✓ Deploy completo → todos los recursos OK, banner verde, botón "Continuar →"<br>
           ✓ Deploy parcial → resumen OK/ERROR/no-intentado, dos opciones de recuperación<br>
           ✓ "Reintentar fallidos" → reintenta el recurso fallido más todos los que quedaron como "no intentado" por el fallo anterior; no reintenta los que ya completaron OK<br>
@@ -1222,25 +1241,41 @@ function renderStep3Diff() {
    El diff del Paso 3 mira repo → CX: qué hay que aplicar. Esta comprobación
    mira al revés — qué existe en CX que definitions/ no recoge. Sin ella, el
    deploy borra en silencio el trabajo hecho desde la consola de CX, porque
-   el repo es la fuente de verdad y lo que no está en él se elimina.        */
+   el repo es la fuente de verdad y lo que no está en él se elimina.
+
+   Alcance de "Traer al repo": solo campos de recursos que YA existen en el
+   repo. Un recurso que solo vive en CX exigiría crear un archivo nuevo, y
+   esos ya están decididos como DELETE — traerlos contradiría esa decisión. */
 const CXREPO_DRIFT = [
-  {tipo:'Example',  recurso:'Ex — duelo → registro solemne',        cambio:'solo en CX, no está en el repo'},
-  {tipo:'Example',  recurso:'Ex — ocasión especial → celebracion',  cambio:'solo en CX, no está en el repo'},
-  {tipo:'Playbook', recurso:'Orquestador',                          cambio:'referencedPlaybooks: 2 referencias de más en CX'},
+  {tipo:'Example',  recurso:'Ex — duelo → registro solemne',       cambio:'solo en CX, no está en el repo', traible:false},
+  {tipo:'Example',  recurso:'Ex — ocasión especial → celebracion', cambio:'solo en CX, no está en el repo', traible:false},
+  {tipo:'Playbook', recurso:'Orquestador',                         cambio:'referencedPlaybooks: 2 referencias de más en CX', traible:true,
+   archivo:'definitions/playbooks/petal_cx_orchestrator.yaml', campo:'referencedPlaybooks',
+   antes:['Compra','Registro_Task','Handoff','Gestion_Deuda'],
+   despues:['Compra','Registro_Task','Handoff','Gestion_Deuda','Calculo_Entrega_Task','Identificacion_Task']},
 ];
 
+const traibles = () => CXREPO_DRIFT.filter(d => d.traible);
+
 let driftAccepted = false;
+let driftPulled = false;
 
 function renderCxRepoCheck() {
-  const wrap = document.getElementById('cxrepo-check');
   const gate = document.getElementById('deploy-gate');
-  wrap.style.display = 'block';
-  document.getElementById('cxrepo-clean').style.display = 'none';
-  document.getElementById('cxrepo-drift').style.display = 'none';
-  document.getElementById('cxrepo-accepted').style.display = 'none';
+  document.getElementById('cxrepo-check').style.display = 'block';
+  ['cxrepo-clean','cxrepo-drift','cxrepo-preview','cxrepo-pulled','cxrepo-accepted']
+    .forEach(id => document.getElementById(id).style.display = 'none');
 
-  if (CXREPO_DRIFT.length === 0) {
+  const pendientes = CXREPO_DRIFT.filter(d => !(driftPulled && d.traible));
+
+  if (pendientes.length === 0) {
     document.getElementById('cxrepo-clean').style.display = 'block';
+    gate.style.display = 'block';
+    return;
+  }
+  if (driftPulled) {
+    document.getElementById('cxrepo-pulled').style.display = 'block';
+    document.getElementById('cxrepo-pulled-count').textContent = traibles().length;
     gate.style.display = 'block';
     return;
   }
@@ -1251,17 +1286,49 @@ function renderCxRepoCheck() {
     return;
   }
   document.getElementById('cxrepo-rows').innerHTML = CXREPO_DRIFT.map(d =>
-    `<tr><td>${d.tipo}</td><td><code>${d.recurso}</code></td><td>${d.cambio}</td></tr>`
+    `<tr><td>${d.tipo}</td><td><code>${d.recurso}</code></td><td>${d.cambio}</td>`
+  + `<td>${d.traible ? '<span class="pill pill-new">sí</span>' : '<span class="pill pill-dim">no</span>'}</td></tr>`
   ).join('');
+  document.getElementById('cxrepo-nota-borrado').style.display =
+    CXREPO_DRIFT.some(d => !d.traible) ? 'block' : 'none';
+  const btn = document.getElementById('btn-pull-repo');
+  btn.disabled = traibles().length === 0;
+  btn.style.opacity = btn.disabled ? '.45' : '';
+  btn.style.cursor = btn.disabled ? 'not-allowed' : '';
   document.getElementById('cxrepo-drift').style.display = 'block';
   // El gate se oculta hasta que el usuario decida: continuar sin verlo sería
   // exactamente el fallo silencioso que esta comprobación existe para evitar.
   gate.style.display = 'none';
 }
 
+/* Genera los cambios y los muestra. No escribe nada: cualquier modificación
+   de definitions/ se revisa antes de guardarse (CLAUDE.md §7.4). */
 function pullToRepo() {
-  alert('Traer al repo: baja estos ' + CXREPO_DRIFT.length + ' cambios de CX a definitions/, '
-      + 'los commitea y vuelve a calcular el diff. El deploy se reinicia desde el Paso 2.');
+  const items = traibles();
+  if (items.length === 0) return;
+  document.getElementById('cxrepo-preview-body').innerHTML = items.map(d => `
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-family:'SF Mono',Menlo,monospace;color:#93c5fd;margin-bottom:2px">${d.archivo}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">campo <code style="font-size:11px">${d.campo}</code></div>
+      <div class="output-block" style="min-height:0">${
+        d.antes.map(v => `<span class="dim">  ${v}</span>`).join('\n')
+      }\n${
+        d.despues.filter(v => !d.antes.includes(v)).map(v => `<span class="ok">+ ${v}</span>`).join('\n')
+      }</div>
+    </div>`).join('');
+  document.getElementById('cxrepo-drift').style.display = 'none';
+  document.getElementById('cxrepo-preview').style.display = 'block';
+  document.getElementById('deploy-gate').style.display = 'none';
+}
+
+function savePullToRepo() {
+  driftPulled = true;
+  renderCxRepoCheck();
+}
+
+function cancelPull() {
+  document.getElementById('cxrepo-preview').style.display = 'none';
+  renderCxRepoCheck();
 }
 
 function acceptDrift() {
@@ -1396,6 +1463,7 @@ function revertDraft() {
 
 function resetDeployStep4() {
   driftAccepted = false;
+  driftPulled = false;
   renderCxRepoCheck();
   document.getElementById('deploy-log').style.display = 'none';
   document.getElementById('deploy-done').style.display = 'none';
