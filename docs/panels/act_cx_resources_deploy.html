@@ -645,7 +645,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué produce</div>
           <p>Una lista completa de los 12 tipos de recursos del agente (Playbooks, Examples, Tools, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Agent Config, Environments, Versions), con el conteo de cada uno. Esta lista es el punto de referencia que el Paso 3 usa para calcular qué ha cambiado.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Persiste en <code>docs/data/act_cx_draft_resources_inventory.json</code> (generado, en <code>.gitignore</code>). Estructura: <code>{ generated_at, agent, totals: { playbooks: N, ... }, resources: { playbooks: [...], ... } }</code></div>
+          <div class="tech-content" style="display:none">Persiste en <code>docs/data/act_cx_draft_resources_inventory_&lt;project&gt;_&lt;agent&gt;.json</code> (generado, en <code>.gitignore</code>) — el proyecto y el agente van en el nombre, nunca una ruta fija. Estructura: <code>{ generated_at, agent, totals: { playbooks: N, ... }, resources: { playbooks: [...], ... } }</code></div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Flujo del paso</div>
@@ -656,7 +656,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si cualquier LIST falla → abortar inmediatamente, no continuar con datos parciales<br>✓ Al menos un tipo devuelve recursos — el agente no está vacío<br>✓ Si draft difiere de staging (deploy anterior incompleto) → el inventario refleja el draft, no staging<br>✓ 429 (rate limit) → reintentar con backoff exponencial (máx. 3 intentos); si persiste → abortar</p>
+          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si cualquier LIST falla → abortar inmediatamente, no continuar con datos parciales<br>✓ Si todos los tipos vuelven vacíos → aviso en el log, nunca aborta (un agente recién creado puede estar legítimamente vacío — solo abortan los fallos de LIST, no un inventario vacío)<br>✓ Si draft difiere de staging (deploy anterior incompleto) → el inventario refleja el draft, no staging<br>✓ 429 (rate limit) → reintentar con backoff exponencial (máx. 3 intentos); si persiste → abortar</p>
           <div style="border-top:1px solid var(--border);margin:10px 0 8px"></div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Integridad del JSON generado</div>
           <p style="margin-bottom:6px">Antes de guardar el archivo, el sistema verifica que los datos son coherentes y completos — así el Paso 3 puede confiar en ellos sin comprobaciones adicionales.</p>
@@ -712,7 +712,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué hace</div>
           <p>Antes de tocar nada en CX, el sistema compara lo que tienes en GitHub staging con lo que hay ahora mismo en el draft del agente. El resultado es una lista exacta: qué recursos hay que crear, cuáles modificar y cuáles eliminar. Solo se opera sobre lo que ha cambiado.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Diff entre <code>definitions/</code> de GitHub staging y el inventario del Paso 1 (<code>act_cx_draft_resources_inventory.json</code>). Genera POST (nuevo), PATCH (modificado), DELETE (eliminado). Matching por campo <code>name</code>.</div>
+          <div class="tech-content" style="display:none">Diff entre <code>definitions/</code> de GitHub staging y el inventario del Paso 1 (<code>act_cx_draft_resources_inventory_&lt;project&gt;_&lt;agent&gt;.json</code>). Genera POST (nuevo), PATCH (modificado), DELETE (eliminado). Matching por campo <code>name</code>.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
@@ -722,7 +722,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué necesita</div>
           <p>El inventario generado en el Paso 1 como foto del estado actual del draft, y los archivos de definición de GitHub staging como fuente de verdad de lo que debería haber.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none"><code>act_cx_draft_resources_inventory.json</code> · <code>definitions/**/*.yaml</code> (rama <code>staging</code>)</div>
+          <div class="tech-content" style="display:none"><code>act_cx_draft_resources_inventory_&lt;project&gt;_&lt;agent&gt;.json</code> · <code>definitions/**/*.yaml</code> (rama <code>staging</code>)</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
