@@ -148,7 +148,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <span class="topbar-agent">Petal 1.0</span>
+  <span class="topbar-agent" id="topbar-agent">Petal 1.0</span>
   <span class="topbar-sep">|</span>
   <span class="topbar-env" id="topbar-env">STAGING</span>
   <span class="topbar-commit">GitHub: staging &middot; 98fcbdd</span>
@@ -174,9 +174,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El draft es el estado editable &mdash; no la versi&oacute;n que CX usa para test cases. Los cambios no se propagan hasta crear el snapshot en el Step 5.</p>
       </div>
 
-      <!-- Estado inicial: botón para iniciar -->
+      <!-- Estado inicial: selectores de proyecto / agente + botón para iniciar (región fija: europe-west1) -->
       <div id="inv-start">
-        <button class="btn btn-primary" onclick="startInventory()">Iniciar inventario &rarr;</button>
+        <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+          <div>
+            <label for="project-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Proyecto</label>
+            <select id="project-select" class="snapshot-input" style="max-width:240px" onchange="onProjectSelected()">
+              <option value="" selected disabled>Selecciona un proyecto&hellip;</option>
+              <option value="floristeria-petal-digital">floristeria-petal-digital</option>
+            </select>
+          </div>
+          <div>
+            <label for="agent-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Agente</label>
+            <select id="agent-select" class="snapshot-input" style="max-width:240px" onchange="onAgentSelected()" disabled>
+              <option value="" selected disabled>&mdash;</option>
+              <option value="petal-1.0">Petal 1.0</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
       </div>
 
       <!-- Log animado (oculto hasta pulsar) -->
@@ -321,6 +337,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
       <div class="gate-block" id="deploy-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate4-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate4-agent">Petal 1.0</strong></p>
         <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">4</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Confirmar deploy &rarr;</button>
@@ -462,6 +479,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <!-- Gate -->
       <div class="gate-block" id="prod-gate">
         <div class="gate-title">&#9995; Confirmar deploy a producci&oacute;n</div>
+        <p style="margin-bottom:14px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate8-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate8-agent">Petal 1.0</strong> &mdash; esta acci&oacute;n afecta a usuarios reales de este agente.</p>
         <div style="margin-bottom:20px">
           <div class="action-result">
             <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">1</div>
@@ -582,9 +600,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Agente de referencia</div>
-          <p>El agente es Petal 1.0 en Google Cloud. Todos los scripts leen su ID y región desde un único archivo — así si cambia, solo se toca en un sitio.</p>
+          <p>El proyecto y el agente se eligen en el panel (arriba, en el Paso 1) — Petal 1.0 es el agente de referencia con el que se prueba, pero ningún script fija su ID como constante. La región sigue fija en <code>europe-west1</code>.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Petal 1.0 — región <code>europe-west1</code>. ID y proyecto en <code>definitions/agent.yaml</code>.</div>
+          <div class="tech-content" style="display:none">Proyecto y agente recibidos como parámetro en cada llamada (nunca una constante de módulo). Región fija: <code>europe-west1</code>.</div>
         </div>
       </div>
     </div>
@@ -621,7 +639,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué necesita</div>
           <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Token de <code>gcloud auth print-access-token</code>. Configuración del agente (ID, región, proyecto) desde <code>definitions/agent.yaml</code>.</div>
+          <div class="tech-content" style="display:none">Token de <code>gcloud auth print-access-token</code>. Proyecto y agente recibidos del selector del panel (o de <code>--project</code>/<code>--agent</code> por CLI) — región fija <code>europe-west1</code>.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
@@ -979,6 +997,23 @@ const INV_LINES = [
   {cls:'ok', text:'✓ Entity Types (3) · Webhooks (1) · Generators (2) · Agent Config (1) · Environments (2) · Versions (5)'},
   {cls:'ok', text:'✓ Inventario completo — 46 recursos en 2.3s'},
 ];
+
+function onProjectSelected() {
+  const proj = document.getElementById('project-select').value;
+  const agentSel = document.getElementById('agent-select');
+  agentSel.disabled = !proj;
+  agentSel.value = '';
+  document.getElementById('btn-start-inventory').disabled = true;
+}
+
+function onAgentSelected() {
+  const agentSelect = document.getElementById('agent-select');
+  const agent = agentSelect.value;
+  document.getElementById('btn-start-inventory').disabled = !agent;
+  if (agent) {
+    document.getElementById('topbar-agent').textContent = agentSelect.options[agentSelect.selectedIndex].textContent;
+  }
+}
 
 function startInventory() {
   const v = ++animVersion;

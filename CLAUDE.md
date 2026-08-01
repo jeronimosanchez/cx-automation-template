@@ -200,6 +200,8 @@ Ejemplo:
 - **Workload Identity Provider:** `<WIF_PROVIDER>` (attribute-condition: `<GITHUB_REPO>`)
 - **GitHub Variables:** `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT`
 
+**Nota:** desde la construcción de multi-proyecto/multi-agente del pipeline ACT, estos identificadores son el destino de referencia usado para construir y probar — el pipeline ya no los trata como los únicos valores posibles. El proyecto y el agente reales de cada ejecución se seleccionan en el panel o por flags de CLI (`--project`, `--agent`).
+
 ### Protocolo de arranque de sesión
 
 1. `cd ~/cx-automation-template && claude`
