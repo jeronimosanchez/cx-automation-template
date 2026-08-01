@@ -96,9 +96,10 @@ python act/validate_api.py
 
 Reglas operativas sobre cómo cualquier cambio llega a producción.
 
-1. **El único camino a producción es `git push` → GitHub → CI/CD con QA automático.** Ningún despliegue válido ocurre fuera de este flujo.
-2. **`--dry-run` se usa solo para previsualizar cambios antes de commitear**, nunca despliega nada real.
-3. **Los scripts `push_*.py` nunca se ejecutan directamente contra producción sin pasar por el CI/CD.** El uso local se limita a `--dry-run`. La pasada real la hace `deploy.yml` tras push a `main`.
+1. **El único camino a producción es el pipeline de deploy local** (`act_cx_resources_deploy.py` vía `server.py` + panel HTML), operado por Jero desde su propio Mac. Ningún despliegue válido ocurre fuera de este flujo — no hay ejecución remota vía GitHub Actions.
+2. **Pueden existir varias skills de Claude Code que disparen distintos rangos de pasos del mismo pipeline** (por ejemplo, solo 1-3 para inspeccionar sin escribir, o 4-8 para desplegar) — todas son la misma vía, no alternativas distintas. Ninguna skill puede saltarse ni auto-aprobar un gate humano del pipeline (Pasos 4 a 8) — cada gate exige una confirmación explícita de Jero, sea por clic en el panel o por respuesta en el chat.
+3. **`--dry-run` se usa solo para previsualizar cambios antes de ejecutar el pipeline real**, nunca despliega nada real.
+4. **El pipeline nunca escribe en CX sin pasar por sus propios gates humanos** (Confirmar deploy, Crear snapshot, Validar tests, Gate QA, Aprobar producción — Pasos 4 a 8). La aprobación a producción siempre requiere una decisión explícita de Jero desde el panel, nunca automática.
 
 ---
 
