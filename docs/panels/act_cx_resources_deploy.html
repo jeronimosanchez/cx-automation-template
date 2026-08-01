@@ -171,7 +171,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-title">Inventario CX</div>
       <div class="phase-sub">
         Lee el estado actual del draft del agente desde la API de Dialogflow CX.
-        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El draft es el estado editable &mdash; no la versi&oacute;n que CX usa para test cases. Los cambios no se propagan hasta crear el snapshot en el Step 5.</p>
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El draft es el estado editable &mdash; no la versi&oacute;n que CX usa para test cases. Los cambios no se propagan hasta crear las versiones en el Step 5.</p>
       </div>
 
       <!-- Estado inicial: selectores de proyecto / agente + botón para iniciar (región fija: europe-west1) -->
@@ -339,6 +339,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate4-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate4-agent">Petal 1.0</strong></p>
         <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">4</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
+        <div id="agent-config-warning" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+          <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; Este deploy incluye cambios en Agent Config / Generators &mdash; sin staging posible</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.5">Estos dos tipos no tienen versión en la API de CX. El cambio será visible en draft, staging y producción a la vez, en el instante en que confirmes &mdash; no hay forma de probarlo en staging antes.</p>
+        </div>
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Confirmar deploy &rarr;</button>
           <button class="btn btn-ghost" onclick="cancelDeploy(false)">Cancelar</button>
@@ -375,22 +379,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- STEP 5: Snapshot del agente -->
+    <!-- STEP 5: Crear versiones -->
     <div class="step-view" id="view-5">
       <div class="phase-eyebrow">Paso 5 de 8</div>
-      <div class="phase-title">Snapshot del agente</div>
-      <div class="phase-sub">CX guarda un snapshot nuevo del agente en el entorno staging. La versi&oacute;n anterior se conserva para rollback si los tests fallan.</div>
+      <div class="phase-title">Crear versiones</div>
+      <div class="phase-sub">CX crea una versión nueva de cada artefacto con cambios (el flow y cada playbook modificado) y apunta staging a esas versiones. No es una versión única del agente — son varias versiones independientes, una por artefacto.</div>
       <div class="gate-block" id="snap-gate">
-        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
-        <p>Se crear&aacute; un snapshot nuevo del agente en CX staging. El snapshot anterior (<strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong>) se conserva para poder hacer rollback si los tests fallan.</p>
-        <p style="margin-top:0;margin-bottom:16px">CX conserva un m&aacute;ximo de <strong style="color:var(--text)">5 versiones del agente</strong>. Si ya hay 5, la m&aacute;s antigua se eliminar&aacute; autom&aacute;ticamente al crear &eacute;sta.</p>
+        <div class="gate-title">&#9995; Acción requerida</div>
+        <p>Se creará una versión nueva de cada artefacto con cambios detectados en el diff — el flow, y cada playbook modificado, por separado. Las versiones anteriores de cada uno se conservan para poder hacer rollback si los tests fallan.</p>
+        <p style="margin-top:0;margin-bottom:16px">CX conserva un máximo de <strong style="color:var(--text)">5 versiones por artefacto</strong>. Si un artefacto concreto ya tiene 5, su versión más antigua se eliminará automáticamente al crear la nueva — el límite es por artefacto, no compartido entre todos.</p>
         <div style="margin-bottom:20px">
-          <div class="slabel" style="margin-bottom:8px">Nombre del snapshot</div>
-          <input type="text" id="snapshot-name" class="snapshot-input" value="">
-          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, d&iacute;gitos, guiones y guiones bajos. M&aacute;x. 64 caracteres. Vac&iacute;o = nombre autom&aacute;tico con fecha y hora.</div>
+          <div class="slabel" style="margin-bottom:8px">Etiqueta de este lote de versiones</div>
+          <input type="text" id="version-batch-label" class="snapshot-input" value="">
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, dígitos, guiones y guiones bajos. Máx. 64 caracteres. Se usa como displayName en cada versión creada, para poder identificarlas como parte del mismo deploy. Vacío = etiqueta automática con fecha y hora.</div>
         </div>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-snapshot-confirm" onclick="confirmSnapshot()">Crear snapshot &rarr;</button>
+          <button class="btn btn-gate" id="btn-version-confirm" onclick="confirmVersions()">Crear versiones &rarr;</button>
           <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
         </div>
       </div>
@@ -398,7 +402,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
       </div>
       <div id="snap-done" style="display:none">
-        <div class="done-banner"><p>Snapshot completado &#10003;</p></div>
+        <div class="done-banner"><p>Versiones creadas &#10003;</p></div>
         <div class="action-bar">
           <button class="btn btn-primary" onclick="advance(5)">Continuar &rarr;</button>
         </div>
@@ -427,7 +431,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
           <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:14px">Si cancelas</div>
-          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Staging &rarr; conserva el snapshot actual como borrador</div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Staging &rarr; conserva las versiones actuales tal cual</div></div>
           <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Draft de CX &rarr; no se modifica</div></div>
           <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
         </div>
@@ -455,7 +459,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-sub">Valida el agente manualmente en el entorno staging de CX antes de promover a producci&oacute;n.</div>
       <div class="gate-block">
         <div class="gate-title">&#9995; Validaci&oacute;n manual requerida</div>
-        <p>El agente est&aacute; en staging con la nueva versi&oacute;n (<span class="snapshot-name-ref">—</span>). Pr&uacute;ebalo en Dialogflow CX y confirma que todo funciona antes de promover a producci&oacute;n.</p>
+        <p>Staging apunta ya a las versiones nuevas (etiqueta <span class="snapshot-name-ref">—</span>) — el flow y cada playbook con cambios, cada uno por separado. Pr&uacute;ebalo en Dialogflow CX y confirma que todo funciona antes de promover a producci&oacute;n.</p>
         <div style="margin-bottom:16px">
           <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
         </div>
@@ -492,7 +496,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">2</div>
             <div class="action-result-body">
               <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
-              <div class="action-result-desc">La versi&oacute;n de staging (<span class="snapshot-name-ref">&mdash;</span>) se asigna al entorno de producci&oacute;n. No se crea una versi&oacute;n nueva. Los usuarios ya ven los cambios.</div>
+              <div class="action-result-desc">Las versiones que hoy est&aacute;n en staging (etiqueta <span class="snapshot-name-ref">&mdash;</span>) se asignan al entorno de producci&oacute;n, artefacto por artefacto. No se crea ninguna versi&oacute;n nueva. Los usuarios ya ven los cambios.</div>
             </div>
           </div>
         </div>
@@ -524,6 +528,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
       <div class="phase-sub">Desplegado en producci&oacute;n &middot; verificado en staging.</div>
       <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; <span id="done-timestamp">2026-07-28 &middot; 09:45 UTC</span> &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
+      <div style="margin:12px 0 20px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+        <p style="font-size:12px;color:var(--text-2);line-height:1.5">&#9888; El cambio se ha aplicado, pero puede tardar unos minutos en propagarse a todos los usuarios. Si pruebas producci&oacute;n ahora mismo y ves comportamiento antiguo, espera y reintenta antes de asumir que el deploy fall&oacute;.</p>
+      </div>
 
       <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
       <div style="margin-bottom:20px">
@@ -538,7 +545,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
           <div class="action-result-body">
             <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
-            <div class="action-result-desc">Versi&oacute;n <span class="snapshot-name-ref">—</span> asignada al entorno producci&oacute;n. Los usuarios ya ven los cambios.</div>
+            <div class="action-result-desc">Versiones <span class="snapshot-name-ref">—</span> asignadas al entorno producci&oacute;n, artefacto por artefacto. Los usuarios ya ven los cambios.</div>
           </div>
         </div>
         <div class="action-result" id="done-sync-row">
@@ -957,7 +964,7 @@ const STEPS = [
 let stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
 let current = 1;
 let viewingStep = 1;
-let snapshotName = '';
+let versionLabel = '';
 let isRunning = false;
 let animVersion = 0;
 
@@ -1305,14 +1312,14 @@ function resetDeployStep4() {
   document.getElementById('deploy-log-block').innerHTML = '';
 }
 
-function generateSnapshotName() {
+function generateVersionLabel() {
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
   return now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
 }
 
-function setSnapshotName(name) {
-  snapshotName = name;
+function setVersionLabel(name) {
+  versionLabel = name;
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = name);
 }
 
@@ -1379,7 +1386,7 @@ function viewStep(id) {
   if(v) v.classList.add('visible');
   if(id === 2) renderStep2Checks();
   if(id === 3) renderStep3Diff();
-  if(id === 5) document.getElementById('snapshot-name').value = document.getElementById('snapshot-name').value || generateSnapshotName();
+  if(id === 5) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
   syncSpecsPanel(id);
   renderSidebar();
 }
@@ -1424,7 +1431,7 @@ function confirmProduction() {
   const mergeLines = [
     {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
     {cls:'ok',   text:'✓ Fast-forward merge completado'},
-    {cls:'ok',   text:'✓ main actualizado — ' + (snapshotName || '2026-07-29_1045')},
+    {cls:'ok',   text:'✓ main actualizado — ' + (versionLabel || '2026-07-29_1045')},
   ];
   const conflictLines = [
     {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
@@ -1432,9 +1439,9 @@ function confirmProduction() {
     {cls:'warn', text:'  Merge abortado — main no ha sido modificado'},
   ];
   const snapLines = [
-    {cls:'ok', text:'✓ Asignando versión "' + (snapshotName || '2026-07-29_1045') + '" al entorno de producción...'},
+    {cls:'ok', text:'✓ Asignando versión "' + (versionLabel || '2026-07-29_1045') + '" al entorno de producción...'},
     {cls:'ok', text:'✓ PATCH /environments/production — versión asignada'},
-    {cls:'ok', text:'✓ Entorno producción apuntando a "' + (snapshotName || '2026-07-29_1045') + '"'},
+    {cls:'ok', text:'✓ Entorno producción apuntando a "' + (versionLabel || '2026-07-29_1045') + '"'},
   ];
   const lines = PRODUCTION_SIMULATE_CONFLICT ? conflictLines : [...mergeLines, ...snapLines];
   let i = 0;
@@ -1504,14 +1511,14 @@ function completeAuto(idx) {
   renderSidebar();
 }
 
-function confirmSnapshot() {
-  const inputVal = document.getElementById('snapshot-name').value.trim();
+function confirmVersions() {
+  const inputVal = document.getElementById('version-batch-label').value.trim();
   if (inputVal && (inputVal.length > 64 || !/^[a-zA-Z0-9_\-\.]+$/.test(inputVal))) {
     alert('Nombre no válido. Usa solo letras, dígitos, guiones, guiones bajos o puntos. Máximo 64 caracteres.');
     return;
   }
-  const name = inputVal || generateSnapshotName();
-  setSnapshotName(name);
+  const name = inputVal || generateVersionLabel();
+  setVersionLabel(name);
   const v = ++animVersion;
   setRunning(true);
   document.getElementById('snap-gate').style.display = 'none';
@@ -1548,12 +1555,12 @@ function confirmSnapshot() {
   showLine();
 }
 
-function resetSnapshotUI() {
+function resetVersionUI() {
   document.getElementById('snap-gate').style.display = 'block';
   document.getElementById('snap-log').style.display = 'none';
   document.getElementById('snap-done').style.display = 'none';
   document.getElementById('snap-log-block').innerHTML = '';
-  document.getElementById('snapshot-name').value = generateSnapshotName();
+  document.getElementById('version-batch-label').value = generateVersionLabel();
 }
 
 function showRollbackConfirm() {
@@ -1639,11 +1646,11 @@ function resetDeploy() {
   animVersion++;
   stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
   current = 1; viewingStep = 1;
-  snapshotName = '';
+  versionLabel = '';
   CHECK_RESULTS.push.ok = false;
   resetInventoryUI();
   resetDeployStep4();
-  resetSnapshotUI();
+  resetVersionUI();
   document.getElementById('rollback-confirm').style.display = 'none';
   document.getElementById('rollback-log').style.display = 'none';
   document.getElementById('rollback-log-block').innerHTML = '';
@@ -1684,7 +1691,7 @@ function resetDeploy() {
 
 document.getElementById('specs-panel').classList.add('collapsed');
 document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
-document.getElementById('snapshot-name').value = generateSnapshotName();
+document.getElementById('version-batch-label').value = generateVersionLabel();
 viewStep(1);
 renderSidebar();
 </script>
