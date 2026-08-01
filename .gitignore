@@ -220,6 +220,10 @@ memory/
 # Reports timestamped (validate_api, audit, QA Sprint 6 runner, ...)
 reports/
 validation_report_*.txt
+
+# Generados en runtime por el pipeline ACT — nunca se committean
+docs/data/
+logs/
 audit_examples_*.txt
 
 # Node deps (qap/Promptfoo, archivado en qap/_archive/)
