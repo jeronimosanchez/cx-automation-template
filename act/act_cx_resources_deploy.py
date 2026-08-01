@@ -31,7 +31,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from act.utils import cx_client
-from act.utils.cx_payloads import AGENT_IGNORE_FIELDS, build_full_update_body
+from act.utils.cx_payloads import (
+    AGENT_IGNORE_FIELDS,
+    PLAYBOOK_IGNORE_FIELDS,
+    build_full_update_body,
+)
 
 DEFINITIONS_DIR = REPO_ROOT / "definitions"
 DATA_DIR = REPO_ROOT / "docs" / "data"
@@ -66,8 +70,7 @@ RESOURCE_TYPES = {
     "webhooks":      {"api": "webhooks",     "key": "webhooks",     "definitions": "webhooks"},
     "tools":         {"api": "tools",        "key": "tools",        "definitions": "tools"},
     "generators":    {"api": "generators",   "key": "generators",   "definitions": "generators"},
-    "playbooks":     {"api": "playbooks",    "key": "playbooks",    "definitions": "playbooks",
-                      "full_update": True},
+    "playbooks":     {"api": "playbooks",    "key": "playbooks",    "definitions": "playbooks"},
     "examples":      {"api": "examples",     "key": "examples",     "definitions": "examples",
                       "nested_under": "playbooks"},
     "flows":         {"api": "flows",        "key": "flows",        "definitions": "flows"},
@@ -539,7 +542,13 @@ DIFF_FUNCTIONS = {
 
 # ── Deploy — una función por tipo ────────────────────────────────────────────
 
-def _deploy_generic(project, agent_id, operation, full_update=False):
+# Campos read-only por tipo. Todos tienen `name`; los Playbooks añaden los
+# suyos. Se excluyen del body del Full Update porque la API los rechaza.
+IGNORE_FIELDS_BY_TYPE = {"playbooks": PLAYBOOK_IGNORE_FIELDS}
+DEFAULT_IGNORE_FIELDS = ["name"]
+
+
+def _deploy_generic(project, agent_id, operation):
     spec = RESOURCE_TYPES[operation["type"]]
     parent = cx_client.build_parent(project, agent_id)
 
@@ -549,12 +558,13 @@ def _deploy_generic(project, agent_id, operation, full_update=False):
         response = cx_client.api_post(
             project, f"{parent}/{spec['api']}", operation["local"]
         )
-    elif full_update:
-        response = _patch_full_update(project, operation)
     else:
-        response = cx_client.api_patch(
-            project, operation["remote_name"], operation["local"]
-        )
+        # Full Update siempre, no solo en Playbooks: sin updateMask la API
+        # trata el body como el objeto entero, así que mandar solo los campos
+        # del YAML borra los que gestiona el servidor. Verificado con Flows:
+        # un PATCH parcial devuelve 400 por intentar eliminar el eventHandler
+        # 'sys.no-match-default', que ningún YAML declara.
+        response = _patch_full_update(project, operation)
 
     if response.status_code not in (200, 201):
         raise PipelineError(
@@ -567,8 +577,10 @@ def _deploy_generic(project, agent_id, operation, full_update=False):
 def _patch_full_update(project, operation):
     """GET completo → merge → PATCH sin updateMask.
 
-    PATCH con updateMask falla silenciosamente en europe-west1 (bug del
-    backend, §3.8): devuelve 200 pero no aplica los cambios.
+    En Playbooks es obligatorio: el PATCH con updateMask falla en silencio
+    en europe-west1 (bug del backend, §3.8). En el resto es lo correcto por
+    otra razón — sin updateMask el body se interpreta como el objeto
+    entero, así que hay que mandarlo entero.
     """
     current = cx_client.api_get(project, operation["remote_name"])
     if current.status_code != 200:
@@ -576,7 +588,8 @@ def _patch_full_update(project, operation):
             f"GET previo a Full Update de {operation['resource']} falló: "
             f"{current.status_code} {current.text[:200]}"
         )
-    body = build_full_update_body(current.json(), operation["local"])
+    ignore = IGNORE_FIELDS_BY_TYPE.get(operation["type"], DEFAULT_IGNORE_FIELDS)
+    body = build_full_update_body(current.json(), operation["local"], ignore_fields=ignore)
     return cx_client.api_patch(project, operation["remote_name"], body)
 
 
@@ -601,7 +614,7 @@ def deploy_generators(project, agent_id, operation):
 
 
 def deploy_playbooks(project, agent_id, operation):
-    return _deploy_generic(project, agent_id, operation, full_update=True)
+    return _deploy_generic(project, agent_id, operation)
 
 
 def deploy_examples(project, agent_id, operation):
