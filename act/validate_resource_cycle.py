@@ -29,6 +29,7 @@ Uso:
 
 import argparse
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -39,6 +40,22 @@ if str(REPO_ROOT) not in sys.path:
 from act import act_cx_resources_deploy as pipeline
 from act.utils import cx_client
 from act.validate_pipeline import FAIL, PASS, SKIP, CheckRunner
+
+
+class CronometrandoCheckRunner(CheckRunner):
+    """Igual que CheckRunner, pero anota cuánto tarda cada check.
+
+    Sirve para decidir dónde optimizar con datos en vez de a ojo.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.tiempos = []
+
+    def check(self, level, name, function):
+        inicio = time.monotonic()
+        super().check(level, name, function)
+        self.tiempos.append((name, time.monotonic() - inicio))
 
 PREFIX = "TEST_FASE6_"
 AGENT_PREFIX = "zz-ciclo-"
@@ -359,7 +376,8 @@ def main(argv=None):
     if args.limpiar_huerfanos:
         return limpiar_huerfanos(args.project)
 
-    runner = CheckRunner()
+    runner = CronometrandoCheckRunner()
+    arranque = time.monotonic()
     print("Foto de Petal antes de empezar…")
     petal_antes = foto_de_petal(args.project, args.petal_agent)
     print(f"  {petal_antes}\n")
@@ -397,6 +415,15 @@ def main(argv=None):
         if not igual:
             print(f"    antes:   {petal_antes}")
             print(f"    después: {petal_despues}")
+
+    total = time.monotonic() - arranque
+    print("\nTIEMPOS por check (los más lentos primero):")
+    for nombre, segundos in sorted(runner.tiempos, key=lambda x: -x[1]):
+        print(f"  {segundos:6.1f}s  {segundos/total*100:4.1f}%  {nombre}")
+    medidos = sum(s for _, s in runner.tiempos)
+    print(f"  {total - medidos:6.1f}s  {(total-medidos)/total*100:4.1f}%  "
+          f"(agente desechable + fotos de Petal + limpieza)")
+    print(f"  {total:6.1f}s  TOTAL")
 
     counts = runner.summary()
     print(f"\nRESUMEN: {counts[PASS]} PASS · {counts[FAIL]} FAIL · {counts[SKIP]} SKIP")
