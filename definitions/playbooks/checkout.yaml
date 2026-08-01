@@ -6,6 +6,7 @@ referencedTools:
 referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/8b7e9bac-6d38-4922-90c0-906621921037
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/5a71c8f2-1272-475f-ae61-de055738764d  # Calculo_Entrega_Task
 inputParameterDefinitions:
 - name: producto
   description: Nombre del producto confirmado por el cliente
