@@ -744,6 +744,17 @@ async function conBoton(idBoton, textoEnCurso, accion) {
 
 
 
+const STEPS = [
+  {id:1, name:'Inventario CX',           sub:'',  gate:false},
+  {id:2, name:'Push a GitHub staging',   sub:'',  gate:true},
+  {id:3, name:'Diff GitHub vs CX',       sub:'',  gate:true},
+  {id:4, name:'Confirmar deploy',        sub:'',  gate:true},
+  {id:5, name:'Snapshot del agente',     sub:'',  gate:true},
+  {id:6, name:'Validación de tests',     sub:'',  gate:true},
+  {id:7, name:'Gate QA — staging',       sub:'',  gate:true},
+  {id:8, name:'Aprobar producción',      sub:'',  gate:true},
+];
+
 let stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
 let current = 1;
 let viewingStep = 1;
@@ -991,22 +1002,40 @@ let DIFF_OPS = [];
    Alcance de "Traer al repo": solo campos de recursos que YA existen en el
    repo. Un recurso que solo vive en CX exigiría crear un archivo nuevo, y
    esos ya están decididos como DELETE — traerlos contradiría esa decisión. */
-const CXREPO_DRIFT = [
-  {tipo:'Example',  recurso:'Ex — duelo → registro solemne',       cambio:'solo en CX, no está en el repo', traible:false},
-  {tipo:'Example',  recurso:'Ex — ocasión especial → celebracion', cambio:'solo en CX, no está en el repo', traible:false},
-  {tipo:'Playbook', recurso:'Orquestador',                         cambio:'referencedPlaybooks: 2 referencias de más en CX', traible:true,
-   archivo:'definitions/playbooks/petal_cx_orchestrator.yaml', campo:'referencedPlaybooks',
-   antes:['Compra','Registro_Task','Handoff','Gestion_Deuda'],
-   despues:['Compra','Registro_Task','Handoff','Gestion_Deuda','Calculo_Entrega_Task','Identificacion_Task']},
-];
+let CXREPO_DRIFT = [];
 
 const traibles = () => CXREPO_DRIFT.filter(d => d.traible);
 
 let driftAccepted = false;
+let driftCargada = false;
 let driftPulled = false;
 
-function renderCxRepoCheck() {
+async function renderCxRepoCheck() {
   const gate = document.getElementById('deploy-gate');
+  if (!driftCargada) {
+    try {
+      const respuesta = await fetch(`${SERVER}/cx-repo-check`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({project: seleccion.project, agent: seleccion.agent})});
+      const datos = await leerJson(respuesta);
+      CXREPO_DRIFT = (datos.data.drift || []).map(d => ({
+        tipo: d.tipo, recurso: d.recurso, cambio: d.cambio, traible: d.traible,
+        archivo: d.archivo, campo: d.campo,
+        antes: d.antes == null ? ['(sin declarar)'] : [String(d.antes)],
+        despues: [String(d.despues).slice(0, 120)],
+      }));
+      driftCargada = true;
+    } catch (error) {
+      CXREPO_DRIFT = [];
+      driftCargada = true;
+      document.getElementById('cxrepo-check').style.display = 'block';
+      document.getElementById('cxrepo-drift').style.display = 'none';
+      document.getElementById('cxrepo-clean').style.display = 'block';
+      document.getElementById('cxrepo-clean').querySelector('p').textContent = error.message;
+      gate.style.display = 'block';
+      return;
+    }
+  }
   document.getElementById('cxrepo-check').style.display = 'block';
   ['cxrepo-clean','cxrepo-drift','cxrepo-preview','cxrepo-pulled','cxrepo-accepted']
     .forEach(id => document.getElementById(id).style.display = 'none');
@@ -1149,6 +1178,7 @@ function revertDraft() {
 function resetDeployStep4() {
   driftAccepted = false;
   driftPulled = false;
+  driftCargada = false;
   renderCxRepoCheck();
   document.getElementById('deploy-log').style.display = 'none';
   document.getElementById('deploy-done').style.display = 'none';
@@ -1166,14 +1196,26 @@ const VERSION_PREFIX = 'deploy_';
 const VERSION_POOL_MAX = 5;
 const VERSION_CAPACITY = 20;   // medido contra la API: la 21 falla con code:9
 
-let VERSIONES = [
-  {nombre: 'ci-207',                 creada: '2026-07-22', fijadaPor: 'staging · producción'},
-  {nombre: 'fix-orquestador-routing', creada: '2026-07-24', fijadaPor: null},
-  {nombre: 'deploy_2026-07-28_0945', creada: '2026-07-28', fijadaPor: null},
-  {nombre: 'deploy_2026-07-30_1712', creada: '2026-07-30', fijadaPor: null},
-];
+let VERSIONES = [];
 
-const enPool = v => v.nombre.startsWith(VERSION_PREFIX) && !v.fijadaPor;
+async function cargarVersiones() {
+  const lista = document.getElementById('version-pool-list');
+  if (!lista || !seleccion.project || !seleccion.agent) return;
+  try {
+    const datos = await obtener(
+      `/projects/${seleccion.project}/agents/${seleccion.agent}/versions`);
+    VERSIONES = (datos.data.versions || []).map(v => ({
+      name: v.name, nombre: v.displayName,
+      creada: (v.createTime || '').slice(0, 10),
+      fijadaPor: v.fijadaPor, enPool: v.enPool,
+    }));
+    renderVersionPool();
+  } catch (error) {
+    lista.innerHTML = `<div style="padding:10px 12px;font-size:12px;color:var(--error)">${error.message}</div>`;
+  }
+}
+
+const enPool = v => v.enPool;
 
 function renderVersionPool() {
   const lista = document.getElementById('version-pool-list');
@@ -1202,13 +1244,23 @@ function renderVersionPool() {
   + (rotara ? ` · <span style="color:var(--gate)">al crear la próxima se borrará la más antigua del pool</span>` : '');
 }
 
-function toggleVersionGuardada(indice) {
-  // Marcar = renombrar. La API admite PATCH del displayName y es reversible.
+async function toggleVersionGuardada(indice) {
+  // Marcar = renombrar. Lo hace el servidor: la API admite PATCH del
+  // displayName y es reversible en los dos sentidos.
   const v = VERSIONES[indice];
-  v.nombre = enPool(v)
-    ? v.nombre.replace(VERSION_PREFIX, 'KEEP_')
-    : 'deploy_' + v.nombre.replace(/^KEEP_/, '');
-  renderVersionPool();
+  try {
+    const respuesta = await fetch(
+      `${SERVER}/projects/${seleccion.project}/agents/${seleccion.agent}/versions/protect`,
+      {method: 'POST', headers: {'Content-Type': 'application/json'},
+       body: JSON.stringify({version: v.name, protected: enPool(v)})});
+    const datos = await leerJson(respuesta);
+    if (datos.status !== 'ok') throw new Error((datos.log || []).join(' '));
+    await cargarVersiones();
+  } catch (error) {
+    document.getElementById('version-pool-summary').innerHTML =
+      `<span style="color:var(--error)">${error.message}</span>`;
+    await cargarVersiones();
+  }
 }
 
 function generateVersionLabel() {
@@ -1286,7 +1338,7 @@ function viewStep(id) {
   if(id === 2) renderStep2Checks();
   if(id === 3) renderStep3Diff();
   if(id === 4) renderCxRepoCheck();
-  if(id === 5) renderVersionPool();
+  if(id === 5) cargarVersiones();
   if(id === 5) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
   renderSidebar();
 }
@@ -1527,14 +1579,21 @@ document.getElementById('version-batch-label').value = generateVersionLabel();
    sin él, las llamadas siguientes irían a ningún agente. */
 (async () => {
   const restaurado = cargarEstado();
+  // onProjectSelected() limpia el agente a propósito — al cambiar de proyecto
+  // el anterior deja de valer. Al restaurar hay que guardarlo antes.
+  const agenteGuardado = seleccion.agent;
   await cargarProyectos();
   if (restaurado) {
     document.getElementById('project-select').value = seleccion.project;
     await onProjectSelected();
-    document.getElementById('agent-select').value = seleccion.agent;
+    document.getElementById('agent-select').value = agenteGuardado;
     onAgentSelected();
-    document.getElementById('topbar-agent').textContent =
-      seleccion.agentLabel || seleccion.agent;
+  }
+  // La etiqueta del lote se restaura después de los selectores: si se hiciera
+  // antes, generateVersionLabel() del arranque la pisaría con una nueva.
+  if (versionLabel) {
+    document.getElementById('version-batch-label').value = versionLabel;
+    document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = versionLabel);
   }
   actualizarDestinoEnGates();
   viewStep(restaurado ? viewingStep : 1);

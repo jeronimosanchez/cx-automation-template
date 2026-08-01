@@ -130,6 +130,47 @@ def list_agents(project):
         return jsonify(status="error", log=[str(error)], data={}), 200
 
 
+@app.get("/projects/<project>/agents/<agent>/versions")
+def list_versions(project, agent):
+    """Versiones con su estado de pool, para la casilla del Paso 5."""
+    try:
+        return jsonify(status="ok", log=[],
+                       data={"versions": pipeline.list_flow_versions(project, agent)}), 200
+    except (pipeline.PipelineError, cx_client.AuthError, cx_client.ApiError) as error:
+        return jsonify(status="error", log=[str(error)], data={}), 200
+
+
+@app.post("/projects/<project>/agents/<agent>/versions/protect")
+def protect_version(project, agent):
+    """Saca una versión del pool automático, o la devuelve."""
+    body = request.get_json(silent=True) or {}
+    version, protected = body.get("version"), body.get("protected")
+    if not version or protected is None:
+        return jsonify(status="error", data={},
+                       log=["Faltan 'version' y/o 'protected' en el body."]), 400
+    try:
+        resultado = pipeline.set_version_protected(project, version, bool(protected))
+        return jsonify(status="ok", data=resultado,
+                       log=[f"Versión renombrada a {resultado['displayName']}"]), 200
+    except (pipeline.PipelineError, cx_client.AuthError, cx_client.ApiError) as error:
+        return jsonify(status="error", log=[str(error)], data={}), 200
+
+
+@app.post("/cx-repo-check")
+def cx_repo_check():
+    """Qué hay en CX que definitions/ no recoge — el reverso del diff."""
+    body = request.get_json(silent=True) or {}
+    project, agent = body.get("project"), body.get("agent")
+    if not project or not agent:
+        return jsonify(status="error", data={},
+                       log=["Faltan 'project' y/o 'agent' en el body."]), 400
+    try:
+        return jsonify(status="ok", log=[],
+                       data={"drift": pipeline.cx_repo_drift(project, agent)}), 200
+    except (pipeline.PipelineError, cx_client.AuthError, cx_client.ApiError) as error:
+        return jsonify(status="error", log=[str(error)], data={}), 200
+
+
 @app.get("/health")
 def health():
     return jsonify(status="ok", log=["servidor en marcha"],

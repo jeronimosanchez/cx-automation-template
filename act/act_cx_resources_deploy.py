@@ -542,7 +542,8 @@ DIFF_FUNCTIONS = {
 
 # Campos read-only por tipo. Todos tienen `name`; los Playbooks añaden los
 # suyos. Se excluyen del body del Full Update porque la API los rechaza.
-IGNORE_FIELDS_BY_TYPE = {"playbooks": PLAYBOOK_IGNORE_FIELDS}
+IGNORE_FIELDS_BY_TYPE = {"playbooks": PLAYBOOK_IGNORE_FIELDS,
+                         "agent_config": AGENT_IGNORE_FIELDS}
 DEFAULT_IGNORE_FIELDS = ["name"]
 
 
@@ -795,6 +796,124 @@ def rotate_deploy_versions(project, agent_id, flow_name, log):
 
     if reservorio:
         log.append(f"{reservorio} versiones fuera del pool, no se tocan")
+
+
+def list_flow_versions(project, agent_id):
+    """Versiones con su estado de pool, para que el panel las pinte."""
+    fijadas = pinned_version_names(project, agent_id)
+    versiones = []
+    for flow in inventory_flows(project, agent_id):
+        for version in cx_client.list_all_pages(
+                project, f"{flow['name']}/versions", "versions"):
+            nombre = version.get("displayName", "")
+            versiones.append({
+                "name": version["name"],
+                "displayName": nombre,
+                "createTime": version.get("createTime", ""),
+                "fijadaPor": _entornos_que_la_usan(project, agent_id, version["name"]),
+                "enPool": nombre.startswith(DEPLOY_VERSION_PREFIX)
+                          and version["name"] not in fijadas,
+            })
+    return sorted(versiones, key=lambda v: v["createTime"])
+
+
+def _entornos_que_la_usan(project, agent_id, version_name):
+    nombres = [
+        environment.get("displayName")
+        for environment in inventory_environments(project, agent_id)
+        for config in environment.get("versionConfigs", [])
+        if config["version"] == version_name
+    ]
+    return " · ".join(nombres) if nombres else None
+
+
+def set_version_protected(project, version_name, protected):
+    """Saca una versión del pool automático, o la devuelve.
+
+    Marcar es renombrar: el pipeline solo rota lo que empieza por
+    DEPLOY_VERSION_PREFIX, así que cambiar el prefijo la protege o la expone.
+    """
+    current = cx_client.api_get(project, version_name)
+    if current.status_code != 200:
+        raise PipelineError(
+            f"GET de la versión falló: {current.status_code} {current.text[:200]}")
+    actual = current.json().get("displayName", "")
+    base = actual.removeprefix(DEPLOY_VERSION_PREFIX).removeprefix("KEEP_")
+    nuevo = f"KEEP_{base}" if protected else f"{DEPLOY_VERSION_PREFIX}{base}"
+
+    response = cx_client.api_patch(
+        project, version_name, {"displayName": nuevo},
+        params={"updateMask": "displayName"},
+    )
+    if response.status_code != 200:
+        raise PipelineError(
+            f"No se pudo renombrar la versión: "
+            f"{response.status_code} {response.text[:200]}")
+    cx_client.resolve_operation(project, response)
+    return {"displayName": nuevo, "protected": protected}
+
+
+# ── Comprobación CX → repo ───────────────────────────────────────────────────
+
+def cx_repo_drift(project, agent_id, ref=DEFINITIONS_REF):
+    """Qué hay en CX que definitions/ no recoge.
+
+    El diff del Paso 3 mira repo → CX: qué aplicar. Esto mira al revés, y
+    además ve algo de lo que el diff es ciego por diseño — campos con
+    contenido en CX que el YAML no declara, porque el diff solo compara los
+    campos que el local menciona.
+
+    `traible` marca lo que se puede traer al repo: solo campos de recursos
+    que ya existen ahí. Un recurso que solo vive en CX exigiría crear un
+    archivo nuevo y queda fuera del alcance acordado.
+    """
+    if not definitions_belong_to(project, agent_id, ref):
+        return []
+
+    hallazgos = []
+    inventario = load_inventory(project, agent_id)
+    for resource_type in DEPLOY_ORDER:
+        locales = load_definitions(resource_type, ref=ref)
+        remotos = inventario["resources"].get(resource_type, [])
+        ignorados = set(IGNORE_FIELDS_BY_TYPE.get(resource_type, DEFAULT_IGNORE_FIELDS))
+        ignorados.update(("createTime", "updateTime", "tokenCount"))
+
+        for remoto in remotos:
+            nombre = remoto.get("displayName")
+            if not nombre:
+                continue
+            # Los tools de la plataforma no están ni pueden estar en el repo.
+            if remoto.get("toolType") == "BUILTIN_TOOL":
+                continue
+            local = locales.get(nombre)
+            if local is None:
+                hallazgos.append({
+                    "tipo": resource_type, "recurso": nombre,
+                    "cambio": "solo en CX, no está en el repo", "traible": False,
+                })
+                continue
+            for campo, valor in remoto.items():
+                if campo in ignorados or campo in local or _is_empty(valor):
+                    continue
+                hallazgos.append({
+                    "tipo": resource_type, "recurso": nombre,
+                    "cambio": f"{campo}: con contenido en CX, sin declarar en el repo",
+                    "traible": True, "campo": campo,
+                    "archivo": _archivo_de(resource_type, nombre, ref),
+                    "antes": None, "despues": valor,
+                })
+    return hallazgos
+
+
+def _archivo_de(resource_type, display_name, ref):
+    if resource_type == "agent_config":
+        return "definitions/agent.yaml"
+    directorio = f"definitions/{RESOURCE_TYPES[resource_type]['definitions']}"
+    for path in _git_tree_files(ref, directorio):
+        documento = yaml.safe_load(_git_file_contents(ref, path))
+        if isinstance(documento, dict) and documento.get("displayName") == display_name:
+            return path
+    return f"{directorio}/(sin localizar)"
 
 
 def find_environment(project, agent_id, display_name):
