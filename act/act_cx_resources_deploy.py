@@ -222,8 +222,25 @@ def load_definitions(resource_type, ref=DEFINITIONS_REF):
             continue
         display_name = document.get("displayName")
         if display_name:
-            definitions[display_name] = document
+            definitions[display_name] = _resolve_file_references(document, ref)
     return definitions
+
+
+def _resolve_file_references(document, ref):
+    """Sustituye los punteros a otro archivo por su contenido.
+
+    Los tools guardan su especificación OpenAPI en un archivo aparte y la
+    referencian con `openapi_spec_file`. Sin resolverla, el diff compara un
+    tool al que le falta `openApiSpec` y un deploy lo mandaría sin
+    especificación — el tool se quedaría sin saber a qué API llama.
+    """
+    spec_file = document.get("openapi_spec_file")
+    if not spec_file:
+        return document
+
+    path = f"definitions/tools/{spec_file}"
+    text = (REPO_ROOT / path).read_text() if ref is None else _git_file_contents(ref, path)
+    return {**document, "openApiSpec": {"textSchema": text}}
 
 
 def _load_agent_config(ref=DEFINITIONS_REF):
@@ -429,6 +446,12 @@ def _differs(remote, local):
             continue
         if field in UNORDERED_FIELDS and _same_references(value, remote_value):
             continue
+        # Mismo criterio un nivel más abajo: si el YAML solo declara una
+        # subclave (openApiSpec.textSchema), las que no menciona se preservan
+        # del remoto (openApiSpec.authentication) y no son una diferencia.
+        if isinstance(value, dict) and isinstance(remote_value, dict):
+            if not _differs(remote_value, value):
+                continue
         return True
     return False
 

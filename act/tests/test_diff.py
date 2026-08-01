@@ -161,3 +161,28 @@ def test_las_secuencias_reales_siguen_siendo_sensibles_al_orden():
 
     remote_ex = {"actions": [{"a": 1}, {"b": 2}]}
     assert _differs(remote_ex, {"actions": [{"b": 2}, {"a": 1}]})
+
+
+def test_subclave_no_declarada_en_local_no_es_diferencia():
+    """El YAML de un tool declara openApiSpec.textSchema pero no
+    openApiSpec.authentication, que CX sí tiene. Comparar el dict entero
+    haría salir el tool como PATCH en cada ejecución."""
+    remote = {"openApiSpec": {"textSchema": "openapi: 3.0.0", "authentication": {"apiKey": "x"}}}
+    local = {"openApiSpec": {"textSchema": "openapi: 3.0.0"}}
+
+    assert not _differs(remote, local)
+
+
+def test_subclave_con_valor_distinto_si_es_diferencia():
+    remote = {"openApiSpec": {"textSchema": "viejo", "authentication": {"apiKey": "x"}}}
+    local = {"openApiSpec": {"textSchema": "nuevo"}}
+
+    assert _differs(remote, local)
+
+
+def test_anidamiento_de_mas_de_un_nivel():
+    remote = {"advancedSettings": {"speechSettings": {"noSpeechTimeout": "5s", "extra": 1}}}
+    local = {"advancedSettings": {"speechSettings": {"noSpeechTimeout": "5s"}}}
+
+    assert not _differs(remote, local)
+    assert _differs(remote, {"advancedSettings": {"speechSettings": {"noSpeechTimeout": "9s"}}})
