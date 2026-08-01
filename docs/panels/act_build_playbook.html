@@ -602,11 +602,11 @@
     <div class="topbar-progress-wrap" aria-label="Progreso general">
       <div class="topbar-progress-bar"
            role="progressbar"
-           aria-valuenow="0" aria-valuemin="0" aria-valuemax="9"
+           aria-valuenow="0" aria-valuemin="0" aria-valuemax="8"
            aria-labelledby="progressLabel">
         <div class="topbar-progress-fill" id="progressFill"></div>
       </div>
-      <div class="topbar-progress-label" id="progressLabel" aria-live="polite">0 / 9 fases</div>
+      <div class="topbar-progress-label" id="progressLabel" aria-live="polite">0 / 8 fases</div>
     </div>
   </div>
   <nav class="phase-tabs" id="phaseTabs" role="tablist" aria-label="Fases del playbook"></nav>
@@ -644,7 +644,11 @@ const PHASES = [
         'Headers obligatorios en toda llamada: Authorization: Bearer &lt;token&gt; · Content-Type: application/json · x-goog-user-project: &lt;GCP_PROJECT&gt;. Sin alguno de estos, la API rechaza la petición.',
         'Playbooks: Full Update sin updateMask — al modificar un playbook, mandar el objeto completo aunque solo haya cambiado una línea. Bug confirmado del backend de Dialogflow CX en europe-west1.',
         'WIF exclusivamente en CI/CD — la autenticación de GitHub Actions a GCP es vía Workload Identity Federation. Nunca SA keys (credenciales estáticas).',
-        'Gates de validación humana: Opus ejecuta cada fase, muestra qué produjo y espera confirmación de Jero antes de avanzar. Jero valida en el HTML marcando la fase como completada.'
+        'Gates de validación humana: Opus ejecuta cada fase, muestra qué produjo y espera confirmación de Jero antes de avanzar. Jero valida en el HTML marcando la fase como completada.',
+        'Idempotencia: patrón LIST→diff→PATCH/POST solo lo que cambió. Nunca recrear recursos existentes que ya están igual.',
+        'concurrency:1 — el servidor local rechaza una segunda operación mientras otra está en curso, sea cual sea la pestaña o navegador de origen.',
+        'displayName obligatorio en POST /versions — sin él la API devuelve 200 OK pero la operation falla silenciosamente con code:3. Incluirlo siempre.',
+        'LRO polling real: POST /versions responde 200 OK al instante pero el snapshot sigue procesando. Consultar GET /operations/{id} en bucle hasta done:true. Nunca sleep() fijo.'
       ],
       filosofia: {
         norte: 'Liberar a la persona de leer e interpretar documentación técnica.',
@@ -691,10 +695,10 @@ const PHASES = [
     └── data/                         ← JSONs generados en runtime · .gitignore`,
       operaciones: []
     },
-    val: { grupos: [{ title: "Confirmación de discovery", items: [
-      "He listado todos los archivos existentes en act/ y act/scaffolding/",
-      "He verificado que la estructura del repo coincide con la definida en Goal",
-      "He identificado qué scripts existen ya y cuáles faltan por crear"
+    val: { grupos: [{ title: "Confirmación de discovery · Automático (LLM)", items: [
+      "Ejecuta ls act/ y ls act/scaffolding/. Esperado: la lista de archivos coincide con el árbol del Goal — sin sorpresas.",
+      "Compara la estructura del repo contra el árbol de la Fase 1 (Goal). Esperado: coinciden — cualquier diferencia se reporta antes de continuar.",
+      "Identifica qué scripts de act/ ya existen y cuáles faltan por crear según Fase 3 en adelante. Esperado: lista explícita de 'ya existe' vs 'falta crear', no una afirmación genérica."
     ] }], decisions: [] } },
   { id: 3, title: "act_cx_resources_deploy.py", subtitle: "Crear act/act_cx_resources_deploy.py — pipeline completo de 8 pasos desde cero", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/act_cx_resources_deploy.py</code> desde cero — el script que ejecuta el pipeline completo de 8 pasos. Lee <code>docs/panels/act_cx_resources_deploy.html</code> antes de escribir una línea: es la fuente de verdad. Importa desde <code>cx_client.py</code> y <code>cx_payloads.py</code> — no reimplementes lo que ya está ahí.", reglas: ['El Paso 1 escribe el inventario en <code>docs/data/act_cx_draft_resources_inventory.json</code>. El Paso 3 lo lee desde ahí para calcular el diff. Añadir al <code>.gitignore</code> — es un archivo generado.', 'Arquitectura en 3 capas: <code>cx_client.py</code> (conexión) · <code>cx_payloads.py</code> (adaptación) · <code>act_cx_resources_deploy.py</code> (orquestación). Dentro de <code>act_cx_resources_deploy.py</code>, la granularidad es por función (una por recurso), no por archivo. Antes de empezar, analiza si esta división te parece correcta para el problema. Si propones otra estructura, muéstrala y espera confirmación.', '<strong>Dónde guardar cada archivo:</strong> Si durante la construcción necesitas crear un archivo auxiliar, usa esta pregunta para decidir dónde va: <strong>¿El archivo tiene alguna relación con <code>act_cx_resources_deploy.py</code> en runtime — lo importa o es importado por él?</strong> · <strong>Sí → <code>act/</code></strong> (forma parte del pipeline permanente) · <strong>No → <code>act/scaffolding/</code></strong> (artefacto de construcción, one-time). Ejemplos concretos: <code>cx_client.py</code> → <code>act_cx_resources_deploy.py</code> hace <code>from cx_client import get_headers, api_get</code> al arrancar → <code>act/</code> · <code>cx_payloads.py</code> → <code>act_cx_resources_deploy.py</code> hace <code>from cx_payloads import build_full_update_body</code> para construir el body de PATCH → <code>act/</code> · <code>validate_pipeline.py</code> → llama a <code>act_cx_resources_deploy.py --dry-run</code> para verificar que el pipeline funciona → <code>act/</code> · <code>validate_api.py</code> → script standalone creado en Sprint 1 para comprobar que la API de CX acepta los 9 patrones de llamada. Ningún import entre él y el pipeline. Una vez construido el pipeline, no se vuelve a usar → <code>act/scaffolding/</code>', 'Idempotencia: antes de subir cualquier recurso, implementa el patrón LIST→diff→PATCH/POST solo lo que cambió. Nunca recrear recursos existentes.', 'Orden del pipeline: el orden exacto de los 8 pasos está definido en <code>act_cx_resources_deploy.html</code> — lee ese archivo antes de escribir una línea de código e implementa exactamente ese orden.', 'LRO polling real: cuando llamas POST /versions, la API responde 200 OK al instante pero la versión sigue procesando. Tienes que consultar GET /operations/{id} en bucle hasta que la respuesta diga done:true. No usar sleep() fijo — es un antipatrón.', 'displayName obligatorio en POST /versions: sin él la API devuelve 200 OK pero la operation falla silenciosamente con code:3. Incluirlo siempre.', 'Para cada paso del pipeline, lee el HTML completo de <code>act_cx_resources_deploy.html</code>: el diseño UI (etiquetas, estados, botones, flujo de interacción) Y las specs técnicas (criterios de validación, llamadas API, casos de error). UI y specs deben coincidir. Si encuentras discrepancias o áreas grises entre ambas, pregunta antes de continuar — no asumas qué tiene prioridad.', 'Pages y Full Update — pendiente de verificar: <code>CLAUDE.md</code> dice que el bug de Full Update sin <code>updateMask</code> en europe-west1 afecta solo a Playbooks. El panel de referencia (<code>act_cx_resources_deploy.html</code>, TECH del Paso 4) dice que también afecta a Pages, sin que esto se haya verificado nunca contra la API real. Hoy <code>definitions/pages/</code> está vacío — Petal 1.0 usa el enfoque generativo (Playbooks), que sustituye la navegación clásica por Flow+Page, no la complementa. No es trabajo pendiente: es la pieza del otro enfoque, el que se decidió no usar. Solo aplica si en el futuro se decide cambiar de arquitectura de Playbooks a Flow-based — en ese caso, antes de implementar <code>push_pages</code> verifica contra CX si el bug realmente aplica (PATCH con <code>updateMask</code> sobre un Page real y comprobar si el cambio se refleja) y actualiza <code>CLAUDE.md</code> §3.8 con el resultado antes de decidir Full Update o PATCH normal.'], leer: ['act/utils/cx_client.py', 'act/utils/cx_payloads.py', 'docs/panels/act_cx_resources_deploy.html — fuente de verdad del pipeline. Lee los 8 pasos completos: para cada paso, lee la columna SPECS (comportamiento técnico exacto, criterios de validación, casos de error — los TECH ▼ desplegables tienen las llamadas API concretas) y la columna UI (estados de la interfaz que el script debe producir en cada momento). No basta con el orden — cada paso tiene criterios de validación específicos que el script debe respetar.', 'definitions/ — YAMLs de los 12 tipos de recursos que se despliegan a CX: playbooks/, examples/, tools/, intents/, entity_types/, webhooks/, generators/, flows/, pages/, config/ (agent config), environments/, versions/. Son la fuente de verdad local contra la que se hace el diff en el Paso 3.'], outputs: [], pasos: [] }, val: { grupos: [
       { title: "Construcción · Automático (LLM)", items: [
@@ -704,7 +708,7 @@ const PHASES = [
     ], decisions: [] } },
   { id: 4, title: "validate_pipeline", subtitle: "Smoke test del pipeline de despliegue en 3 niveles", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/validate_pipeline.py</code> — smoke test del pipeline de despliegue en 3 niveles (ver reglas). Valida que <code>act_cx_resources_deploy.py</code> (Fase 3) funciona correctamente por sí solo, antes de envolverlo en el servidor de la Fase 5.", reglas: [
         'Nivel 1 — Read-only (automático): verificar auth válido + sin 401/403, conectividad con CX (GET al agente responde), LIST completa para los 12 tipos sin errores, JSON de inventario con estructura correcta (totals == len para cada tipo), idempotencia del diff (definitions/ sin cambios → diff vacío), abortar ante LIST parcial o rate limit persistente. El script ejecuta estos checks y reporta PASS/FAIL por cada uno.',
-        'Nivel 2 — Dry-run (automático): <code>--dry-run</code> completa sin errores en los 8 pasos (exit 0), diff detecta exactamente los cambios introducidos en definitions/, push a staging sin conflictos, orden de deploy correcto en el plan generado. El script ejecuta estos checks y reporta PASS/FAIL por cada uno.',
+        'Nivel 2 — Dry-run (automático): <code>--dry-run</code> completa sin errores en los 8 pasos (exit 0), diff detecta exactamente los cambios introducidos en definitions/, push a staging sin conflictos (única acción real de este nivel — un push a git, reversible, no una simulación), orden de deploy correcto en el plan generado. El script ejecuta estos checks y reporta PASS/FAIL por cada uno.',
         'Nivel 3 — Write real (checklist manual por ahora): recorre los 8 pasos del pipeline provocando deliberadamente los casos límite de cada uno (fallo parcial, rollback, conflicto de merge) y compara el resultado contra lo esperado. El script imprime el checklist con instrucciones para que Jero los verifique manualmente — no los automatiza.'
       ], leer: [], outputs: [], pasos: [] }, val: { grupos: [
       { title: "Nivel 1 — Read-only · Automático (LLM)", items: [
@@ -734,7 +738,6 @@ const PHASES = [
         { criterio: "Cada paso supera sus criterios de validación individuales antes de avanzar al siguiente", porQue: "Los criterios globales no son suficientes — cada paso tiene condiciones específicas que el script debe respetar antes de continuar." }
       ]},
       { title: "Nivel 3 — Smoke test base · Manual (Jero)", items: [
-        { criterio: "Ejecuta un PATCH sobre un recurso de prueba (por ejemplo, un Example) usando el pipeline real, no simulado. <strong>Esperado:</strong> el recurso se actualiza en CX (verificable con GET) y el script reporta éxito sin errores.", porQue: "Es el smoke test más básico: confirma que el pipeline puede escribir en CX de verdad, no solo leer — antes de fiarte de operaciones más complejas como el snapshot." },
         { criterio: "Lanza un deploy que dispare un POST /versions (Paso 5) con el campo de nombre vacío en el panel. <strong>Esperado:</strong> el LRO termina en done:true y la versión creada tiene un displayName autogenerado — nunca un error code:3.", porQue: "Bug silencioso del backend: sin displayName la API devuelve 200 OK pero la operación falla internamente con code:3 sin mensaje visible. Esta es la única forma de confirmar en persona que el workaround se activó." },
         { criterio: "Ejecuta un PATCH /environments/staging apuntando a una versión real. <strong>Esperado:</strong> el comando devuelve éxito y GET /environments/staging confirma que el entorno quedó apuntando a esa versión.", porQue: "Confirma que la promoción de versión a un entorno funciona de extremo a extremo, no solo que la API acepta la llamada." }
       ]},
@@ -779,7 +782,8 @@ const PHASES = [
       'Los endpoints devuelven JSON con estructura <code>{status, log, data}</code> — el panel HTML espera ese formato exacto para actualizar la UI.',
       'El servidor NO gestiona estado entre pasos — cada llamada es independiente. El estado del pipeline lo mantiene el panel HTML.',
       'Arranque: <code>python act/server.py</code>. Se puede automatizar con un script <code>start.sh</code> en la raíz del repo que active el entorno virtual y arranque el servidor. No tiene coste — corre en local en el Mac.',
-      'Esta fase construye el servidor de forma aislada — la conexión real del panel HTML a estos endpoints es trabajo de la Fase 7. Aquí basta con que el servidor responda correctamente a peticiones directas (curl, requests).'
+      'Esta fase construye el servidor de forma aislada — la conexión real del panel HTML a estos endpoints es trabajo de la Fase 7. Aquí basta con que el servidor responda correctamente a peticiones directas (curl, requests).',
+      'El servidor debe rechazar una nueva petición a cualquier endpoint <code>/step/&lt;n&gt;</code> si ya hay una en curso — sea cual sea la pestaña o el navegador de origen. Devolver un error claro (por ejemplo, 409 "ya hay una operación en curso") en vez de procesar las dos a la vez. Esto es distinto de gestionar el estado del pipeline (qué paso está activo, que sigue siendo trabajo del panel) — es solo un lock simple para no ejecutar dos operaciones a la vez.'
     ], leer: [
       'act/act_cx_resources_deploy.py — importar las funciones de cada paso. Entender la firma de cada función (parámetros, retorno) antes de escribir los endpoints.',
       'docs/panels/act_cx_resources_deploy.html — ver qué datos espera cada botón en la respuesta del servidor: qué campos de <code>data</code> usa la UI para actualizar el estado del paso.'
@@ -833,7 +837,8 @@ const PHASES = [
         'El log que se muestra en cada paso pasa a ser el campo <code>log</code> devuelto por el servidor — no un array de líneas escritas de antemano en el HTML.',
         'Conservar intactos sin ninguna modificación: topbar, sidebar de navegación, panel principal de steps, todos los estados (pending/active/done) e interacciones de los 8 pasos, botones de acción y lógica de progreso.',
         'No crear un archivo nuevo — editar el existente <code>docs/panels/act_cx_resources_deploy.html</code>. Verificar que el layout del panel principal ocupa el 100% del ancho disponible después de la eliminación sin romper ningún estilo existente.',
-        'Persistir el estado del pipeline en <code>localStorage</code> (mismo patrón que <code>act_build_playbook.html</code>, clave <code>act_playbook_v5</code>): qué paso está activo y cuáles se completaron. Sin esto, cerrar la pestaña o recargar la página a mitad de una operación real (por ejemplo, un snapshot con el LRO todavía en curso) pierde todo el progreso visual sin que el usuario sepa que la operación siguió completándose en CX.'
+        'Persistir el estado del pipeline en <code>localStorage</code> (mismo patrón que <code>act_build_playbook.html</code>, clave <code>act_playbook_v5</code>): qué paso está activo y cuáles se completaron. Sin esto, cerrar la pestaña o recargar la página a mitad de una operación real (por ejemplo, un snapshot con el LRO todavía en curso) pierde todo el progreso visual sin que el usuario sepa que la operación siguió completándose en CX.',
+        'Deshabilitar el botón de acción de cada paso justo al pulsarlo, hasta que llegue la respuesta del servidor — así un doble clic no dispara dos peticiones. Volver a habilitarlo solo si la petición falla (para permitir reintentar); si tiene éxito, el paso avanza y el botón deja de ser relevante.'
       ],
       leer: [
         'docs/panels/act_cx_resources_deploy.html — leer el archivo completo antes de editar: identificar exactamente qué pertenece a specs (aside, CSS y JS) y qué pertenece al panel operativo (topbar, sidebar, steps) para no eliminar nada incorrecto.',
@@ -885,7 +890,8 @@ const PHASES = [
       ]},
       { title: "Recorrido completo · Manual (Jero)", items: [
         { criterio: "Con <code>server.py</code> arrancado, recorre los 8 pasos desde cero en el panel real (sin recargar). <strong>Esperado:</strong> cada paso muestra datos reales del agente Petal — nunca los ejemplos que tenía la versión simulada.", porQue: "Es la única verificación que confirma la experiencia real de uso — los checks automáticos validan piezas sueltas, este paso valida que la pieza completa se siente bien y hace lo que promete." },
-        { criterio: "A mitad de un paso, detén el proceso de <code>server.py</code> en la terminal. <strong>Esperado:</strong> el panel muestra un mensaje de error claro (por ejemplo, 'no se pudo conectar con el servidor') — nunca queda colgado en silencio ni simula un éxito.", porQue: "Es el escenario más probable de fallo en el día a día — Jero cierra sin querer el terminal del servidor mientras el panel sigue abierto." }
+        { criterio: "A mitad de un paso, detén el proceso de <code>server.py</code> en la terminal. <strong>Esperado:</strong> el panel muestra un mensaje de error claro (por ejemplo, 'no se pudo conectar con el servidor') — nunca queda colgado en silencio ni simula un éxito.", porQue: "Es el escenario más probable de fallo en el día a día — Jero cierra sin querer el terminal del servidor mientras el panel sigue abierto." },
+        { criterio: "Repite la prueba anterior específicamente durante el Paso 5 (Snapshot). <strong>Esperado:</strong> el mensaje de error añade una advertencia explícita — 'no se sabe si esto llegó a completarse — revisa el inventario antes de reintentar' — en vez del mensaje genérico de conexión.", porQue: "Snapshot no es idempotente: si el servidor murió justo después de que CX ya creara la versión, reintentar a ciegas puede crear una segunda duplicada. El mensaje genérico no distingue este caso de un fallo cualquiera." }
       ]}
     ], decisions: [] } }
 ];
@@ -906,7 +912,7 @@ function computeStatus(id) {
 }
 
 function updateProgress() {
-  const trackable = PHASES.filter(p => p.special !== 'goal');
+  const trackable = PHASES;
   const done = trackable.filter(p => ['done','continued'].includes((state[p.id] || {}).status)).length;
   document.getElementById('progressFill').style.width = Math.round(done / trackable.length * 100) + '%';
   document.getElementById('progressLabel').textContent = `${done} / ${trackable.length} fases`;
@@ -1072,201 +1078,6 @@ function renderGoalPhase(p, ps) {
     ├── panels/                  <span class="tree-comment">← HTMLs interactivos: playbooks y specs del pipeline · existe ✓</span>
     └── data/                    <span class="tree-comment">← JSONs generados en runtime · .gitignore · no committear</span></div>`, true)
     + makeBlock('val', '✋', 'Validación — confirmar objetivo del proyecto', 'goal-val', goalValHtml, true)
-}
-
-function renderPhase0(p, ps) {
-  const c = p.context;
-  const ctxHtml = `
-  <p style="font-size:13px;color:var(--ctx-header);font-weight:600;margin-bottom:14px">${p.llm.objetivo}</p>
-  <div class="ctx-grid">
-    <div class="ctx-card"><div class="ctx-card-title">${c.sistema.title}</div><p>${c.sistema.body}</p></div>
-    <div class="ctx-card"><div class="ctx-card-title">${c.agente.title}</div><p>${c.agente.body}</p></div>
-    <div class="ctx-card"><div class="ctx-card-title">${c.recursos.title}</div><ul>${c.recursos.items.map(i=>`<li>${i}</li>`).join('')}</ul></div>
-    <div class="ctx-card" style="grid-column:1/-1"><div class="ctx-card-title">${c.terminologia.title}</div><p>${c.terminologia.body}</p></div>
-  </div>`;
-
-  const outputsHtml = p.llm.outputs.map(o => `<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path}</div><div class="op-desc">${o.desc}</div></div></div>`).join('');
-
-  const llmHtml = `
-    <div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>
-    <div class="llm-section"><div class="llm-section-title">Qué leer antes de empezar</div>${renderList(p.llm.leer, false)}</div>
-    <div class="llm-section"><div class="llm-section-title">Outputs — crear exactamente estos archivos</div>${outputsHtml}</div>
-    ${p.llm.templates && p.llm.templates.auditoria ? `<div class="llm-section"><div class="llm-section-title">Template — fase0_auditoria.md</div>
-      <div class="template-block"><div class="template-label">Estructura esperada</div><div class="code-block">${p.llm.templates.auditoria.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>
-    </div>` : ''}
-    ${p.llm.templates && p.llm.templates.estructura ? `<div class="llm-section"><div class="llm-section-title">Template — fase0_estructura_target.md</div>
-      <div class="template-block"><div class="template-label">Árbol de carpetas target</div><div class="code-block">${p.llm.templates.estructura.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>
-    </div>` : ''}
-    <div class="llm-section"><div class="llm-section-title">Pasos de ejecución</div>${renderList(p.llm.pasos, true)}</div>`;
-
-  let checkIdx = 0;
-  let gruposHtml = p.val.grupos.map(g => {
-    const items = g.items.map(item => {
-      const i = checkIdx++;
-      const checked = (ps.checked||[])[i] === true;
-      return `<div class="check-item${checked?' checked':''}"
-                   role="checkbox"
-                   aria-checked="${checked}"
-                   tabindex="0"
-                   onclick="toggleCheck(${p.id},${i},this)">
-        <div class="check-box" aria-hidden="true">${checked?'✓':''}</div><div class="check-text">${item}</div></div>`;
-    }).join('');
-    return `<div class="checklist-group"><div class="checklist-group-title">${g.title}</div><div class="checklist" role="group" aria-label="${g.title}">${items}</div></div>`;
-  }).join('');
-
-  const decisionsHtml = `<div class="checklist-group-title" style="margin-top:18px">Decisiones pendientes</div>
-    <div class="decisions">${p.val.decisions.map((d,di) => `<div class="decision-item">
-      <div class="decision-q" id="dq-${p.id}-${di}"><span aria-hidden="true">❓</span> ${d.q}</div>
-      <div class="decision-opts" role="group" aria-labelledby="dq-${p.id}-${di}">${d.opts.map((opt,oi) => {
-        const sel = ((ps.decisions||{})[di]) === oi;
-        return `<button class="decision-opt${sel?' selected':''}" aria-pressed="${sel}" onclick="selectDecision(${p.id},${di},${oi},this)">${opt}</button>`;
-      }).join('')}</div></div>`).join('')}</div>`;
-
-  const isDone = ps.status === 'done';
-  const valHtml = gruposHtml + decisionsHtml + `
-    <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
-      Antes de que Jero confirme, escribe qué hiciste en esta fase y qué produjiste exactamente: qué archivos creaste o modificaste, qué cambios hiciste y cómo verificaste que funcionan. Luego marca los constraints que aplicaban.
-    </p>
-    <label class="notes-label" for="notesArea-${p.id}">Qué hiciste y qué produjiste — Opus</label>
-    <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Describe qué archivos creaste, qué cambios hiciste y cómo verificaste que funcionan..." style="min-height:120px">${ps.notes||''}</textarea>
-    <button class="validate-btn${isDone?' validated':''}" id="validateBtn" onclick="validatePhase(${p.id})"
-            aria-label="${isDone?'Fase ya validada':'Confirmar fase — Jero'}">
-      <span aria-hidden="true">✓</span> ${isDone?'Fase validada':'Confirmar — Jero'}</button>`;
-
-  const TARGET_TREE = `cx-automation-template/
-├── act/
-│   └── scripts/
-│       ├── push/                                                  ← NUEVO: 12 push_*.py agrupados
-│       │   ├── push_playbooks.py
-│       │   ├── push_examples.py
-│       │   ├── push_tools.py
-│       │   ├── push_intents.py
-│       │   ├── push_entity_types.py
-│       │   ├── push_webhooks.py
-│       │   ├── push_generators.py
-│       │   ├── push_flows.py
-│       │   ├── push_pages.py
-│       │   ├── push_agent_config.py
-│       │   ├── push_environments.py
-│       │   └── push_versions.py
-│       ├── pull/                                                  ← NUEVO: 12 pull_*.py agrupados
-│       │   ├── pull_playbooks.py
-│       │   └── ... (×11 mirror de push)
-│       ├── utils/                                                 ← NUEVO: utilidades compartidas
-│       │   ├── diff.py
-│       │   ├── validate_api.py
-│       │   ├── diff_pipeline.py                                   ← NUEVO
-│       │   └── generate_cx_petal_artefacts_inventory.py          ← NUEVO
-│       ├── orchestrator/                                          ← NUEVO
-│       │   └── orchestrator.py                                   ← NUEVO
-│       └── tests/
-│           ├── conftest.py
-│           ├── test_diff.py
-│           ├── test_push_*.py (×12)
-│           └── test_pull_*.py (×12)
-├── definitions/                  ← YAMLs fuente de verdad (no tocar)
-│   ├── agent.yaml
-│   ├── _legacy_placeholders/
-│   ├── playbooks/ (×9 yaml)
-│   ├── examples/ (checkout/ compra/ petal_cx_orchestrator/ registro_task/)
-│   ├── tools/, flows/, versions/, intents/
-│   ├── entity_types/, webhooks/, generators/, pages/, environments/
-│   └── intents_taxonomy.yaml
-├── qap/
-│   ├── test_qa_playbooks.py
-│   ├── tc_1_0.yaml + tc_1_1.yaml
-│   └── ... (scripts utilidad)
-├── reports/                      ← generados, no commitear
-├── docs/
-│   ├── panels/                   ← HTML panels interactivos
-│   │   ├── act_build_playbook.html
-│   │   ├── act_cx_petal_artefacts_inventory.html                 ← NUEVO
-│   │   ├── act_orchestrator.html
-│   │   ├── act_cx_resources_deploy.html
-│   │   └── qap_skills.html
-│   └── data/
-│       └── act_cx_draft_resources_inventory.json                 ← NUEVO (generado)
-├── research/
-│   ├── cx-dialogflow/
-│   ├── conversational-design/
-│   └── claude-anthropic/
-└── .github/
-    └── workflows/                ← CI/CD (obligatorio en raíz por GitHub)
-        ├── deploy.yml            ← NUEVO: usa orchestrator.py
-        └── qa.yml`;
-
-  return makeBlock('ctx','📋','Contexto del sistema — leer antes de empezar','ctx'+p.id,ctxHtml,true)
-    + makeBlock('val','✋','Validación humana — gate de Jero','val'+p.id,valHtml,true);
-}
-
-function renderOperaciones(ops) {
-  const TIPO_CFG = {
-    crear:    { label: 'CREAR',    bg: 'rgba(59,130,246,.15)',  color: '#60a5fa' },
-    mover:    { label: 'MOVER',    bg: 'rgba(100,116,139,.15)', color: 'var(--text-2)' },
-    eliminar: { label: 'ELIMINAR', bg: 'rgba(239,68,68,.15)',   color: '#f87171' },
-    verificar:{ label: 'VERIFICAR',bg: 'rgba(234,179,8,.15)',   color: '#facc15' },
-    ejecutar: { label: 'EJECUTAR', bg: 'rgba(168,85,247,.15)',  color: '#c084fc' },
-  };
-  const makePill = (tipo, customLabel) => {
-    const cfg = TIPO_CFG[tipo] || TIPO_CFG.mover;
-    const label = customLabel !== undefined ? customLabel : cfg.label;
-    return `<span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em;background:${cfg.bg};color:${cfg.color}">${label}</span>`;
-  };
-  const rows = ops.map(op => {
-    if (op.items) {
-      if (op.tipo === 'crear') {
-        const pill = makePill(op.tipo);
-        // items are strings — header row + individual sub-rows (same structure as MOVER)
-        const headerRow = `<tr style="border-top:1px solid var(--border)">
-          <td style="padding:6px 10px 4px 0;white-space:nowrap">${pill}</td>
-          <td style="padding:6px 10px 4px 0" colspan="2"></td>
-        </tr>`;
-        const subRows = op.items.map(f => `<tr>
-          <td style="padding:2px 10px 2px 0"></td>
-          <td style="padding:2px 10px 2px 16px"><code style="font-size:11px;color:var(--text)">${f}</code></td>
-          <td style="padding:2px 0"></td>
-        </tr>`).join('');
-        return headerRow + subRows;
-      } else {
-        // items are objects {archivo, nota} — header row + indented sub-rows
-        // For MOVER groups: destination goes inside the pill label
-        const pillLabel = (op.tipo === 'mover' && op.destino)
-          ? `MOVER a ${op.destino}`
-          : TIPO_CFG[op.tipo].label;
-        const pill = makePill(op.tipo, pillLabel);
-        const headerRow = `<tr style="border-top:1px solid var(--border)">
-          <td style="padding:6px 10px 4px 0;white-space:nowrap" colspan="3">${pill}</td>
-        </tr>`;
-        const subRows = op.items.map(item => {
-          const nota = item.nota ? `<span style="font-size:11px;color:var(--text-3)">${item.nota}</span>` : '';
-          return `<tr>
-            <td style="padding:2px 10px 2px 0"></td>
-            <td style="padding:2px 10px 2px 16px"><code style="font-size:11px;color:var(--text)">${item.archivo}</code></td>
-            <td style="padding:2px 0">${nota}</td>
-          </tr>`;
-        }).join('');
-        return headerRow + subRows;
-      }
-    } else {
-      // Single operation
-      // For MOVER with destino: destination goes inside the pill label
-      const pillLabel = (op.tipo === 'mover' && op.destino)
-        ? `MOVER a ${op.destino}`
-        : undefined;
-      const pill = makePill(op.tipo, pillLabel);
-      const archivo = `<code style="font-size:11px;color:var(--text)">${op.archivo}</code>`;
-      const nota = op.nota ? `<span style="font-size:11px;color:var(--text-3)">${op.nota}</span>` : '';
-      return `<tr><td style="padding:5px 10px 5px 0;white-space:nowrap">${pill}</td><td style="padding:5px 10px 5px 0">${archivo}</td><td style="padding:5px 0">${nota}</td></tr>`;
-    }
-  }).join('');
-  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums">
-    <thead><tr style="border-bottom:1px solid var(--border)">
-      <th style="text-align:left;padding:4px 10px 8px 0;font-size:11px;color:var(--text-3);font-weight:600">Tipo</th>
-      <th style="text-align:left;padding:4px 10px 8px 0;font-size:11px;color:var(--text-3);font-weight:600">Archivo</th>
-      <th style="text-align:left;padding:4px 0 8px;font-size:11px;color:var(--text-3);font-weight:600">Nota</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table></div>`;
 }
 
 function renderGenericPhase(p, ps) {
