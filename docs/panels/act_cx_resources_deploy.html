@@ -712,7 +712,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué hace</div>
           <p>Antes de tocar nada en CX, el sistema compara lo que tienes en GitHub staging con lo que hay ahora mismo en el draft del agente. El resultado es una lista exacta: qué recursos hay que crear, cuáles modificar y cuáles eliminar. Solo se opera sobre lo que ha cambiado.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Diff entre <code>definitions/</code> de GitHub staging y el inventario del Paso 1 (<code>act_cx_draft_resources_inventory_&lt;project&gt;_&lt;agent&gt;.json</code>). Genera POST (nuevo), PATCH (modificado), DELETE (eliminado). Matching por campo <code>name</code>.</div>
+          <div class="tech-content" style="display:none">Diff entre <code>definitions/</code> de GitHub staging y el inventario del Paso 1 (<code>act_cx_draft_resources_inventory_&lt;project&gt;_&lt;agent&gt;.json</code>). Genera POST (nuevo), PATCH (modificado), DELETE (eliminado). Matching por campo <code>displayName</code> — <code>name</code> lo asigna CX al crear el recurso (incluye un identificador que ningún YAML local puede conocer de antemano), así que no sirve como clave de comparación.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
@@ -782,7 +782,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué hace</div>
           <p>CX congela el estado actual del draft como una versión numerada en el entorno staging. A partir de aquí los tests tienen una referencia estable — el draft ya no importa porque el snapshot es inmutable.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none"><code>POST /versions</code> en el entorno staging → devuelve una LRO. Polling en <code>GET /operations/{id}</code> hasta <code>done:true</code>. <code>displayName</code> obligatorio en el body — sin él la API devuelve 200 pero la operation falla silenciosamente con <code>code:3</code>.</div>
+          <div class="tech-content" style="display:none">Dos llamadas, en orden — ninguna sustituye a la otra: 1) <code>POST /versions</code> sobre cada flow que tenga cambios — versions cuelga del flow, no del agente. Hoy Petal solo tiene <code>default_start_flow</code>, pero no lo fijes como constante: recorre los flows que existan de verdad. Cada llamada devuelve una LRO. Polling en <code>GET /operations/{id}</code> hasta <code>done:true</code>. <code>displayName</code> obligatorio en el body — sin él la API devuelve 200 pero la operation falla silenciosamente con <code>code:3</code>. 2) <code>PATCH /environments/staging</code> apuntando a la versión recién creada — sin este segundo paso, la versión existe pero staging sigue enseñando la anterior, y los Pasos 6-7 (que validan "lo que hay en staging") estarían probando la versión vieja, no la nueva.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
