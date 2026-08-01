@@ -39,7 +39,13 @@ Estas decisiones están validadas en producción. No cambiar sin gate humano exp
 5. **LRO polling:** `POST /versions` requiere polear `GET /operations/{id}` hasta `done=true`. No reportar éxito antes.
 6. **`displayName` obligatorio en `POST /versions`** — sin él la API devuelve 200 pero la operation falla silenciosamente con `code=3`.
 7. **`concurrency: 1`** en los workflows CI/CD. Evita races entre despliegues paralelos sobre el mismo agente.
-8. **Región `europe-west1` — bug conocido en Playbooks:** `PATCH` con `updateMask` falla. Usar **Full Update**: `GET` del objeto completo → modificar `instruction.steps` → `PATCH` del objeto completo **sin** `updateMask`. Es un bug conocido del backend de Dialogflow CX en regiones no-global. No hay workaround oficial — Full Update es la única solución validada.
+8. **Región `europe-west1` — bug conocido en Playbooks:** `PATCH` con `updateMask` falla. Usar **Full Update**: `GET` del objeto completo → modificar → `PATCH` del objeto completo **sin** `updateMask`. Bug del backend de Dialogflow CX en regiones no-global. No hay workaround oficial — Full Update es la única solución validada.
+
+   **Alcance verificado (2026-08-01):** el bug es **exclusivo de Playbooks**. Se comprobó contra la API en un agente desechable que **Pages no lo sufre** — acepta las dos formas. No generalizar el workaround por analogía.
+
+   **Pero Full Update es el patrón de todos los tipos igualmente**, por una razón distinta: sin `updateMask`, la API interpreta el body como el objeto entero, así que mandar solo los campos del YAML equivale a pedir que borre los que gestiona el servidor. Verificado con Flows (`400: "You cannot delete event handler for 'sys.no-match-default'"`) y con Agent Config (`400: "Agent start playbook or flow should be specified"`).
+
+   **La excepción es `Environments`, que va al revés: exige `updateMask`** y falla sin él con `code:3` (`"Update mask should be specified"`).
 
 ---
 
