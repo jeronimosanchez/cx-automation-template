@@ -696,7 +696,7 @@ const PHASES = [
       "He verificado que la estructura del repo coincide con la definida en Goal",
       "He identificado qué scripts existen ya y cuáles faltan por crear"
     ] }], decisions: [] } },
-  { id: 3, title: "act_cx_resources_deploy.py", subtitle: "Crear act/act_cx_resources_deploy.py — pipeline completo de 8 pasos desde cero", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/act_cx_resources_deploy.py</code> desde cero — el script que ejecuta el pipeline completo de 8 pasos. Lee <code>docs/panels/act_cx_resources_deploy.html</code> antes de escribir una línea: es la fuente de verdad. Importa desde <code>cx_client.py</code> y <code>cx_payloads.py</code> — no reimplementes lo que ya está ahí.", reglas: ['El Paso 1 escribe el inventario en <code>docs/data/act_cx_draft_resources_inventory.json</code>. El Paso 3 lo lee desde ahí para calcular el diff. Añadir al <code>.gitignore</code> — es un archivo generado.', 'Arquitectura en 3 capas: <code>cx_client.py</code> (conexión) · <code>cx_payloads.py</code> (adaptación) · <code>act_cx_resources_deploy.py</code> (orquestación). Dentro de <code>act_cx_resources_deploy.py</code>, la granularidad es por función (una por recurso), no por archivo. Antes de empezar, analiza si esta división te parece correcta para el problema. Si propones otra estructura, muéstrala y espera confirmación.', '<strong>Dónde guardar cada archivo:</strong> Si durante la construcción necesitas crear un archivo auxiliar, usa esta pregunta para decidir dónde va: <strong>¿El archivo tiene alguna relación con <code>act_cx_resources_deploy.py</code> en runtime — lo importa o es importado por él?</strong> · <strong>Sí → <code>act/</code></strong> (forma parte del pipeline permanente) · <strong>No → <code>act/scaffolding/</code></strong> (artefacto de construcción, one-time). Ejemplos concretos: <code>cx_client.py</code> → <code>act_cx_resources_deploy.py</code> hace <code>from cx_client import get_headers, api_get</code> al arrancar → <code>act/</code> · <code>cx_payloads.py</code> → <code>act_cx_resources_deploy.py</code> hace <code>from cx_payloads import build_full_update_body</code> para construir el body de PATCH → <code>act/</code> · <code>validate_pipeline.py</code> → llama a <code>act_cx_resources_deploy.py --dry-run</code> para verificar que el pipeline funciona → <code>act/</code> · <code>validate_api.py</code> → script standalone creado en Sprint 1 para comprobar que la API de CX acepta los 9 patrones de llamada. Ningún import entre él y el pipeline. Una vez construido el pipeline, no se vuelve a usar → <code>act/scaffolding/</code>', 'Idempotencia: antes de subir cualquier recurso, implementa el patrón LIST→diff→PATCH/POST solo lo que cambió. Nunca recrear recursos existentes.', 'Orden del pipeline: el orden exacto de los 8 pasos está definido en <code>act_cx_resources_deploy.html</code> — lee ese archivo antes de escribir una línea de código e implementa exactamente ese orden.', 'LRO polling real: cuando llamas POST /versions, la API responde 200 OK al instante pero la versión sigue procesando. Tienes que consultar GET /operations/{id} en bucle hasta que la respuesta diga done:true. No usar sleep() fijo — es un antipatrón.', 'displayName obligatorio en POST /versions: sin él la API devuelve 200 OK pero la operation falla silenciosamente con code:3. Incluirlo siempre.', 'Para cada paso del pipeline, lee el HTML completo de <code>act_cx_resources_deploy.html</code>: el diseño UI (etiquetas, estados, botones, flujo de interacción) Y las specs técnicas (criterios de validación, llamadas API, casos de error). UI y specs deben coincidir. Si encuentras discrepancias o áreas grises entre ambas, pregunta antes de continuar — no asumas qué tiene prioridad.'], leer: ['act/utils/cx_client.py', 'act/utils/cx_payloads.py', 'docs/panels/act_cx_resources_deploy.html — fuente de verdad del pipeline. Lee los 8 pasos completos: para cada paso, lee la columna SPECS (comportamiento técnico exacto, criterios de validación, casos de error — los TECH ▼ desplegables tienen las llamadas API concretas) y la columna UI (estados de la interfaz que el script debe producir en cada momento). No basta con el orden — cada paso tiene criterios de validación específicos que el script debe respetar.', 'definitions/ — YAMLs de los 12 tipos de recursos que se despliegan a CX: playbooks/, examples/, tools/, intents/, entity_types/, webhooks/, generators/, flows/, pages/, config/ (agent config), environments/, versions/. Son la fuente de verdad local contra la que se hace el diff en el Paso 3.'], outputs: [], pasos: [] }, val: { grupos: [
+  { id: 3, title: "act_cx_resources_deploy.py", subtitle: "Crear act/act_cx_resources_deploy.py — pipeline completo de 8 pasos desde cero", tag: "py", tagLabel: ".py", llm: { objetivo: "Crear <code>act/act_cx_resources_deploy.py</code> desde cero — el script que ejecuta el pipeline completo de 8 pasos. Lee <code>docs/panels/act_cx_resources_deploy.html</code> antes de escribir una línea: es la fuente de verdad. Importa desde <code>cx_client.py</code> y <code>cx_payloads.py</code> — no reimplementes lo que ya está ahí.", reglas: ['El Paso 1 escribe el inventario en <code>docs/data/act_cx_draft_resources_inventory.json</code>. El Paso 3 lo lee desde ahí para calcular el diff. Añadir al <code>.gitignore</code> — es un archivo generado.', 'Arquitectura en 3 capas: <code>cx_client.py</code> (conexión) · <code>cx_payloads.py</code> (adaptación) · <code>act_cx_resources_deploy.py</code> (orquestación). Dentro de <code>act_cx_resources_deploy.py</code>, la granularidad es por función (una por recurso), no por archivo. Antes de empezar, analiza si esta división te parece correcta para el problema. Si propones otra estructura, muéstrala y espera confirmación.', '<strong>Dónde guardar cada archivo:</strong> Si durante la construcción necesitas crear un archivo auxiliar, usa esta pregunta para decidir dónde va: <strong>¿El archivo tiene alguna relación con <code>act_cx_resources_deploy.py</code> en runtime — lo importa o es importado por él?</strong> · <strong>Sí → <code>act/</code></strong> (forma parte del pipeline permanente) · <strong>No → <code>act/scaffolding/</code></strong> (artefacto de construcción, one-time). Ejemplos concretos: <code>cx_client.py</code> → <code>act_cx_resources_deploy.py</code> hace <code>from cx_client import get_headers, api_get</code> al arrancar → <code>act/</code> · <code>cx_payloads.py</code> → <code>act_cx_resources_deploy.py</code> hace <code>from cx_payloads import build_full_update_body</code> para construir el body de PATCH → <code>act/</code> · <code>validate_pipeline.py</code> → llama a <code>act_cx_resources_deploy.py --dry-run</code> para verificar que el pipeline funciona → <code>act/</code> · <code>validate_api.py</code> → script standalone creado en Sprint 1 para comprobar que la API de CX acepta los 9 patrones de llamada. Ningún import entre él y el pipeline. Una vez construido el pipeline, no se vuelve a usar → <code>act/scaffolding/</code>', 'Idempotencia: antes de subir cualquier recurso, implementa el patrón LIST→diff→PATCH/POST solo lo que cambió. Nunca recrear recursos existentes.', 'Orden del pipeline: el orden exacto de los 8 pasos está definido en <code>act_cx_resources_deploy.html</code> — lee ese archivo antes de escribir una línea de código e implementa exactamente ese orden.', 'LRO polling real: cuando llamas POST /versions, la API responde 200 OK al instante pero la versión sigue procesando. Tienes que consultar GET /operations/{id} en bucle hasta que la respuesta diga done:true. No usar sleep() fijo — es un antipatrón.', 'displayName obligatorio en POST /versions: sin él la API devuelve 200 OK pero la operation falla silenciosamente con code:3. Incluirlo siempre.', 'Para cada paso del pipeline, lee el HTML completo de <code>act_cx_resources_deploy.html</code>: el diseño UI (etiquetas, estados, botones, flujo de interacción) Y las specs técnicas (criterios de validación, llamadas API, casos de error). UI y specs deben coincidir. Si encuentras discrepancias o áreas grises entre ambas, pregunta antes de continuar — no asumas qué tiene prioridad.', 'Pages y Full Update — pendiente de verificar: <code>CLAUDE.md</code> dice que el bug de Full Update sin <code>updateMask</code> en europe-west1 afecta solo a Playbooks. El panel de referencia (<code>act_cx_resources_deploy.html</code>, TECH del Paso 4) dice que también afecta a Pages, sin que esto se haya verificado nunca contra la API real. Hoy <code>definitions/pages/</code> está vacío — Petal 1.0 usa el enfoque generativo (Playbooks), que sustituye la navegación clásica por Flow+Page, no la complementa. No es trabajo pendiente: es la pieza del otro enfoque, el que se decidió no usar. Solo aplica si en el futuro se decide cambiar de arquitectura de Playbooks a Flow-based — en ese caso, antes de implementar <code>push_pages</code> verifica contra CX si el bug realmente aplica (PATCH con <code>updateMask</code> sobre un Page real y comprobar si el cambio se refleja) y actualiza <code>CLAUDE.md</code> §3.8 con el resultado antes de decidir Full Update o PATCH normal.'], leer: ['act/utils/cx_client.py', 'act/utils/cx_payloads.py', 'docs/panels/act_cx_resources_deploy.html — fuente de verdad del pipeline. Lee los 8 pasos completos: para cada paso, lee la columna SPECS (comportamiento técnico exacto, criterios de validación, casos de error — los TECH ▼ desplegables tienen las llamadas API concretas) y la columna UI (estados de la interfaz que el script debe producir en cada momento). No basta con el orden — cada paso tiene criterios de validación específicos que el script debe respetar.', 'definitions/ — YAMLs de los 12 tipos de recursos que se despliegan a CX: playbooks/, examples/, tools/, intents/, entity_types/, webhooks/, generators/, flows/, pages/, config/ (agent config), environments/, versions/. Son la fuente de verdad local contra la que se hace el diff en el Paso 3.'], outputs: [], pasos: [] }, val: { grupos: [
       { title: "Construcción · Automático (LLM)", items: [
         { criterio: "El script se importa sin errores (python -c 'import act_cx_resources_deploy')", porQue: "Confirma que la sintaxis y los imports son correctos antes de pasar a la Fase 4, donde se prueba el comportamiento real." },
         { criterio: "Las 8 funciones del pipeline existen con la firma esperada (una por paso)", porQue: "La Fase 4 (validate_pipeline.py) y la Fase 5 (server.py) importan estas funciones directamente — si falta una o cambia su firma, ambas fases fallan silenciosamente al construirse." }
@@ -1373,8 +1373,7 @@ function renderGenericPhase(p, ps) {
   const statusTableBlock = p.llm.leyenda
     ? makeBlock('ref','📊','Estado actual de componentes del repo','ref-status-'+p.id,
         (p.llm.targetTree ? `<div class="tree-view" style="margin-bottom:16px">${p.llm.targetTree}</div>` : '')
-        + `<p style="font-size:12px;color:var(--text-2);margin-bottom:12px">${p.llm.leyenda}</p>`
-        + renderStatusTable(), true)
+        + `<p style="font-size:12px;color:var(--text-2);margin-bottom:12px">${p.llm.leyenda}</p>`, true)
     : '';
 
   const criteriosBody = renderCriteriosTablas();
@@ -1525,99 +1524,6 @@ function saveValOutput(phaseId, i, value) {
   if (!state[phaseId].valOutput) state[phaseId].valOutput = [];
   state[phaseId].valOutput[i] = value;
   saveState(state);
-}
-
-/* ── Status table data para Fase 0 ── */
-const REPO_COMPONENTS = [
-  { file: 'act/push_playbooks.py',        tipo: 'push script', funcion: 'Deploy Playbooks → CX',      estado: 'ok',   nota: 'Full Update — bug europe-west1',
-    descripcion: 'Sube los playbooks del YAML local al agente Petal en Dialogflow CX',
-    mecanismo: 'LIST remoto → diff (solo needs_update) → GET objeto completo → modifica campos → PATCH sin updateMask. updateMask omitido como workaround del bug en europe-west1.' },
-  { file: 'act/push_examples.py',         tipo: 'push script', funcion: 'Deploy Examples → CX',       estado: 'ok',   nota: '',
-    descripcion: 'Sube los examples al agente Petal en Dialogflow CX',
-    mecanismo: 'LIST remoto → match por UUID (id) con fallback a displayName → diff → POST si nuevo, PATCH parcial con updateMask si hay cambios.' },
-  { file: 'act/push_tools.py',            tipo: 'push script', funcion: 'Deploy Tools → CX',          estado: 'ok',   nota: '',
-    descripcion: 'Sube las herramientas (tools) al agente Petal en Dialogflow CX',
-    mecanismo: 'LIST remoto → diff → PATCH parcial con updateMask si hay cambios, POST si es nuevo. Sin Full Update — updateMask estándar.' },
-  { file: 'act/push_intents.py',          tipo: 'push script', funcion: 'Deploy Intents → CX',        estado: 'ok',   nota: '',
-    descripcion: 'Sube los intents al agente Petal en Dialogflow CX',
-    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
-  { file: 'act/push_entity_types.py',     tipo: 'push script', funcion: 'Deploy Entity Types → CX',   estado: 'ok',   nota: '',
-    descripcion: 'Sube los tipos de entidad al agente Petal en Dialogflow CX',
-    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
-  { file: 'act/push_webhooks.py',         tipo: 'push script', funcion: 'Deploy Webhooks → CX',       estado: 'ok',   nota: '',
-    descripcion: 'Sube los webhooks al agente Petal en Dialogflow CX',
-    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
-  { file: 'act/push_generators.py',       tipo: 'push script', funcion: 'Deploy Generators → CX',     estado: 'ok',   nota: '',
-    descripcion: 'Sube los generadores al agente Petal en Dialogflow CX',
-    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
-  { file: 'act/push_flows.py',            tipo: 'push script', funcion: 'Deploy Flows → CX',          estado: 'ok',   nota: '',
-    descripcion: 'Sube los flujos de conversación al agente Petal en Dialogflow CX',
-    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
-  { file: 'act/push_pages.py',            tipo: 'push script', funcion: 'Deploy Pages → CX',          estado: 'ok',   nota: '',
-    descripcion: 'Sube las páginas de los flujos al agente Petal en Dialogflow CX',
-    mecanismo: 'Patrón LIST → diff → PATCH parcial con updateMask / POST. Espejo estructural de push_tools.py.' },
-  { file: 'act/push_agent_config.py',     tipo: 'push script', funcion: 'Deploy Agent Config → CX',   estado: 'ok',   nota: '',
-    descripcion: 'Sube la configuración general del agente Petal a Dialogflow CX',
-    mecanismo: 'GET → diff → PATCH parcial con updateMask. Sin LIST: recurso único identificado por agent_id. Único push_*.py que no hace LIST primero.' },
-  { file: 'act/push_environments.py',     tipo: 'push script', funcion: 'Mueve punteros de entorno a una versión',   estado: 'ok',   nota: 'Paso 6/7 (rollback staging) y Paso 8 (promover a producción)',
-    descripcion: 'No despliega contenido — cambia a qué snapshot apunta cada entorno. PATCH /environments/staging apunta staging a una versión anterior (rollback). PATCH /environments/production apunta producción al mismo snapshot que ya tiene staging.',
-    mecanismo: 'LIST → diff → PATCH con updateMask. El campo clave es versionConfigs[].version: apunta al resource name de la versión deseada. Sin este PATCH, el entorno sigue apuntando al snapshot anterior.' },
-  { file: 'act/push_versions.py',         tipo: 'push script', funcion: 'Crea snapshots inmutables del agente (LRO)',       estado: 'ok',   nota: 'Paso 5 — contiene wait_for_operation()',
-    descripcion: 'Distinto de todos los demás: las versiones son inmutables — no existe PATCH. Solo POST (crea snapshot del draft actual) y GET/LIST. La operación es asíncrona: POST devuelve inmediatamente, el snapshot sigue procesando en segundo plano.',
-    mecanismo: 'POST /versions → devuelve LRO al instante. Polling GET /operations/{id} hasta done:true. Si done:true pero error.code presente → fallo silencioso (code:3 sin displayName). displayName obligatorio en el body — sin él la API devuelve 200 pero falla con code:3. wait_for_operation() implementa todo esto.' },
-  { file: 'act/pull_*.py (12)',           tipo: 'pull scripts', funcion: 'Sync inversa CX → local',   estado: 'ok',   nota: 'Espejo de los push',
-    descripcion: 'Descarga todos los recursos del agente desde Dialogflow CX a archivos YAML locales',
-    mecanismo: 'GET/LIST de CX → escribe YAMLs locales. Stripea campos read-only para que el round-trip con push reporte unchanged. Nunca POST/PATCH/DELETE.' },
-  { file: 'act/diff.py',                  tipo: 'utilidad',    funcion: 'Función pura de diff campo a campo',  estado: 'ok',   nota: '',
-    descripcion: 'Compara dos versiones de un recurso (local vs remoto) campo a campo y devuelve qué ha cambiado. Es la base de la idempotencia: todos los push_*.py la importan para saber si hay que hacer PATCH o no.',
-    mecanismo: 'Recibe local+remoto (dicts) → DiffResult(needs_update, update_mask, patch_payload). Sin red, sin side effects. Los push_*.py la llaman internamente en su paso LIST→diff→PATCH.' },
-  { file: 'act/validate_api.py',          tipo: 'validación',  funcion: 'Conectividad API (9 checks)', estado: 'ok',   nota: '9/9 PASS en producción',
-    descripcion: 'Comprueba que la conexión con la API de Dialogflow CX funciona correctamente',
-    mecanismo: 'Crea Example DUMMY → ejecuta 9 pruebas sobre él (PATCH, DELETE, paginación, rate limit, retry, diff, concurrencia) → limpia via atexit. Sin side effects permanentes.' },
-  { file: 'act/scripts/deploy.py',                                           tipo: 'orquestador', funcion: 'Nuevo deploy — pipeline completo (8 pasos)', estado: 'new',  nota: 'Crear en Fase 4 — reescritura de act/deploy.py',
-    descripcion: 'Orquesta el despliegue completo del agente, paso a paso, con validaciones y gates',
-    mecanismo: 'Reescritura de deploy.py: LIST→diff→push×12→snapshot(POST→PATCH→DELETE)→QA gate→prod' },
-  { file: 'act/scripts/utils/diff_pipeline.py',                            tipo: 'utilidad',    funcion: 'Diff 3 dimensiones',          estado: 'new',  nota: 'Crear en Fase 2',
-    descripcion: 'Comparará cambios en 3 dimensiones: respecto a git, respecto a CX, y tabla completa',
-    mecanismo: 'Por crear en Fase 3. Diff en 3 dimensiones: --git (vs rama), --cx (vs API CX en vivo), --all (tabla completa). Envuelve diff.py añadiendo visión de pipeline.' },
-  { file: 'act/scripts/utils/generate_cx_petal_artefacts_inventory.py',   tipo: 'utilidad',    funcion: 'Genera inventory.json',       estado: 'new',  nota: 'Crear en Fase 4',
-    descripcion: 'Generará un inventario completo del estado actual del agente consultando la API de CX',
-    mecanismo: 'Por crear en Fase 5. Consulta la API CX → genera act_cx_draft_resources_inventory.json con estado de los 12 tipos de artefactos.' },
-  { file: 'docs/panels/act_cx_petal_artefacts_inventory.html',            tipo: 'panel',       funcion: 'Vista completa inventario',   estado: 'new',  nota: 'Crear en Fase 5',
-    descripcion: 'Panel web que mostrará el inventario de artefactos del agente con filtros interactivos',
-    mecanismo: 'Por crear en Fase 6. Consume act_cx_draft_resources_inventory.json y renderiza estado del sistema con filtros interactivos.' },
-  { file: 'docs/data/act_cx_draft_resources_inventory.json',              tipo: 'datos',       funcion: 'Estado del sistema (generado)', estado: 'new', nota: 'Crear en Fase 4',
-    descripcion: 'Archivo de datos generado automáticamente con el estado actual de los 12 tipos de recursos del agente',
-    mecanismo: 'Por crear en Fase 5. Generado por generate_cx_petal_artefacts_inventory.py. No commitear (en .gitignore).' },
-  { file: '.github/workflows/*.yml',      tipo: 'ACT CI/CD',   funcion: 'Pipeline automatizado',       estado: 'new',  nota: 'Crear en Fase 8',
-    descripcion: 'Pipelines de CI/CD que automatizarán el despliegue desde GitHub hasta Dialogflow CX',
-    mecanismo: 'Por crear en Fase 9. deploy.yml usa orchestrator.py. CI/CD con WIF (sin SA keys); concurrency: 1 para evitar deploys simultáneos.' },
-];
-
-const BADGE = { ok: ['badge-ok','✓ funciona'], warn: ['badge-warn','⚠ reemplazar'], del: ['badge-del','✗ eliminar'], new: ['badge-new','◯ nuevo'] };
-
-function renderStatusTable() {
-  const rows = REPO_COMPONENTS.map(c => {
-    const [cls, label] = BADGE[c.estado];
-    const fileHtml = c.file.replace(/\//g, '/<wbr>');
-    return `<tr>
-      <td><code>${fileHtml}</code></td>
-      <td>${c.tipo}</td>
-      <td>${c.funcion}</td>
-      <td style="font-size:11px">${c.descripcion||''}</td>
-      <td style="font-size:11px;color:var(--text-3);font-family:monospace">${c.mecanismo||''}</td>
-      <td><span class="badge ${cls}">${label}</span></td>
-      <td style="color:var(--text-3);font-size:11px">${c.nota}</td>
-    </tr>`;
-  }).join('');
-  return `<div style="overflow-x:auto">
-    <table class="st-table" aria-label="Tabla de estado de componentes del repo">
-      <thead><tr>
-        <th style="min-width:160px;max-width:220px">Archivo</th><th style="min-width:80px">Tipo</th><th style="min-width:140px">Función</th><th style="min-width:160px">Descripción</th><th style="min-width:160px">Mecanismo</th><th style="min-width:90px">Estado</th><th style="min-width:120px">Observación</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
 }
 
 function renderTreeView(text) {
