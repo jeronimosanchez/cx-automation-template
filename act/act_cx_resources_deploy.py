@@ -85,11 +85,10 @@ RESOURCE_TYPES = {
 
 # Los tipos referenciados por otros van primero: si un playbook apunta a un
 # webhook, el webhook tiene que existir antes del PATCH del playbook.
-# Pages queda fuera (Regla 9: definitions/pages/ está vacío, enfoque generativo).
 # Environments y Versions no se despliegan aquí — son los Pasos 5 a 8.
 DEPLOY_ORDER = [
     "entity_types", "intents", "webhooks", "tools", "generators",
-    "playbooks", "examples", "flows", "agent_config",
+    "playbooks", "examples", "flows", "pages", "agent_config",
 ]
 
 
@@ -407,6 +406,7 @@ def _diff_generic(resource_type, remote_items, local_definitions):
 # la API rechazara la llamada.
 LOCAL_ONLY_FIELDS = {
     "examples": ("id", "playbook"),
+    "pages": ("flow",),
     "tools": ("openapi_spec_file",),
     "agent_config": ("start_playbook_id",),
 }
@@ -505,9 +505,7 @@ def diff_flows(remote_items, local_definitions):
 
 
 def diff_pages(remote_items, local_definitions):
-    """Fuera de alcance (Regla 9): definitions/pages/ está vacío — Petal usa
-    el enfoque generativo, donde los Playbooks sustituyen la navegación."""
-    return []
+    return _diff_generic("pages", remote_items, local_definitions)
 
 
 def diff_agent_config(remote_items, local_definitions):
@@ -649,6 +647,37 @@ def deploy_flows(project, agent_id, operation):
     return _deploy_generic(project, agent_id, operation)
 
 
+def deploy_pages(project, agent_id, operation):
+    """Las pages cuelgan de su flow, no del agente.
+
+    Verificado contra la API en europe-west1: Pages NO sufre el bug de
+    updateMask que sí afecta a Playbooks (§3.8) — acepta tanto el PATCH con
+    máscara como el Full Update. Usa el Full Update como todos los demás.
+    """
+    if operation["operation"] == "POST":
+        flow_name = _resolve_flow_name(project, agent_id, operation["local"].get("flow"))
+        response = cx_client.api_post(project, f"{flow_name}/pages", operation["local"])
+        if response.status_code not in (200, 201):
+            raise PipelineError(
+                f"POST page {operation['resource']} falló: "
+                f"{response.status_code} {response.text[:200]}"
+            )
+        return response.json()
+    return _deploy_generic(project, agent_id, operation)
+
+
+def _resolve_flow_name(project, agent_id, flow_display_name):
+    flows = inventory_flows(project, agent_id)
+    if not flow_display_name:
+        return flows[0]["name"]
+    for flow in flows:
+        if flow.get("displayName") == flow_display_name:
+            return flow["name"]
+    raise PipelineError(
+        f"La page referencia el flow '{flow_display_name}', que no existe en CX."
+    )
+
+
 def deploy_agent_config(project, agent_id, operation):
     """El agente es un objeto único: siempre PATCH sobre sí mismo.
 
@@ -686,6 +715,7 @@ DEPLOY_FUNCTIONS = {
     "playbooks": deploy_playbooks,
     "examples": deploy_examples,
     "flows": deploy_flows,
+    "pages": deploy_pages,
     "agent_config": deploy_agent_config,
 }
 

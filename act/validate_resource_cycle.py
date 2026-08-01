@@ -89,10 +89,13 @@ def ciclos(nombre_playbook):
         {"tipo": "webhooks", "modificar": ("timeout", "8s"),
          "local": {"displayName": f"{PREFIX}webhook", "timeout": "5s",
                    "genericWebService": {"uri": "https://ejemplo.invalid/hook"}}},
+        # Se pasa por _resolve_file_references, como haría el repo: el YAML
+        # declara openapi_spec_file y el cargador lo convierte en openApiSpec.
         {"tipo": "tools", "modificar": ("description", "modificado"),
          "local": {"displayName": f"{PREFIX}tool", "description": "original",
                    "toolType": "CUSTOMIZED_TOOL",
-                   "openApiSpec": {"textSchema": OPENAPI_MINIMO}}},
+                   "openApiSpec": {"textSchema": OPENAPI_MINIMO}},
+         "desde_puntero": True},
         {"tipo": "generators", "modificar": ("promptText", {"text": "prompt modificado"}),
          "local": {"displayName": f"{PREFIX}generator",
                    "promptText": {"text": "prompt original"}}},
@@ -107,6 +110,9 @@ def ciclos(nombre_playbook):
                    "actions": [{"agentUtterance": {"text": "hola"}}]}},
         {"tipo": "flows", "modificar": ("description", "modificado"),
          "local": {"displayName": f"{PREFIX}flow", "description": "original"}},
+        {"tipo": "pages", "modificar": ("description", "modificado"),
+         "local": {"displayName": f"{PREFIX}page", "description": "original",
+                   "entryFulfillment": {"messages": [{"text": {"text": ["hola"]}}]}}},
     ]
 
 
@@ -186,13 +192,27 @@ def ejecutar_ciclo(project, agent_id, caso):
     if not creado:
         raise RuntimeError("POST no dejó el recurso en CX")
 
+    if caso.get("desde_puntero"):
+        # El YAML del repo no lleva el spec dentro: apunta a otro archivo con
+        # openapi_spec_file. Si el cargador no resuelve ese puntero, el tool
+        # llega a CX sin especificación y nadie se entera.
+        resuelto = (creado.get("openApiSpec") or {}).get("textSchema")
+        if resuelto != OPENAPI_MINIMO:
+            raise RuntimeError("el openApiSpec no llegó completo desde el puntero")
+
     def patch(valores):
         actual = _buscar(project, agent_id, tipo, nombre)
         deploy(project, agent_id, {"type": tipo, "resource": nombre, "operation": "PATCH",
                                    "local": {**local, **valores}, "remote_name": actual["name"]})
         return _buscar(project, agent_id, tipo, nombre)
 
+    intactos_antes = {k: creado.get(k) for k in creado
+                      if k not in ("name", campo) and not k.startswith(("create", "update", "token"))}
     modificado = patch({campo: valor_nuevo})
+    perdidos = [k for k, v in intactos_antes.items() if modificado.get(k) != v]
+    if perdidos:
+        raise RuntimeError(
+            f"el Full Update perdió campos que no tocaba: {perdidos}")
     if modificado.get(campo) != valor_nuevo:
         raise RuntimeError(
             f"PATCH no aplicó {campo}: quedó {str(modificado.get(campo))[:60]!r} "
@@ -238,6 +258,63 @@ def ciclo_version_y_entorno(project, agent_id):
     if sorted(final) != sorted(antes):
         raise RuntimeError(f"El rollback no restauró el ID exacto: {final} ≠ {antes}")
     return True, (f"v1 ({len(antes)}) → v2 ({len(segundas)}) → rollback al ID exacto de v1")
+
+
+def flow_borrado_no_deja_pages_huerfanas(project, agent_id):
+    """Nadie ha comprobado qué hace CX con las hijas al borrar el padre."""
+    flow_nombre, page_nombre = f"{PREFIX}flow_padre", f"{PREFIX}page_hija"
+    pipeline.deploy_flows(project, agent_id, {
+        "type": "flows", "resource": flow_nombre, "operation": "POST",
+        "local": {"displayName": flow_nombre, "description": "con una page dentro"}})
+    pipeline.deploy_pages(project, agent_id, {
+        "type": "pages", "resource": page_nombre, "operation": "POST",
+        "local": {"displayName": page_nombre, "flow": flow_nombre,
+                  "entryFulfillment": {"messages": [{"text": {"text": ["hija"]}}]}}})
+    if not _buscar(project, agent_id, "pages", page_nombre):
+        raise RuntimeError("la page hija no se creó")
+
+    flow = _buscar(project, agent_id, "flows", flow_nombre)
+    pipeline.deploy_flows(project, agent_id, {
+        "type": "flows", "resource": flow_nombre, "operation": "DELETE",
+        "remote_name": flow["name"]})
+
+    if _buscar(project, agent_id, "flows", flow_nombre):
+        raise RuntimeError("el flow no se borró")
+    huerfana = _buscar(project, agent_id, "pages", page_nombre)
+    return not huerfana, (
+        "al borrar el flow, su page desaparece con él" if not huerfana
+        else "la page sobrevivió al borrado del flow — quedaría huérfana")
+
+
+def borrar_lo_que_no_existe(project, agent_id):
+    """Pasa cuando alguien borró el recurso a mano y se reintenta el deploy."""
+    # No se usa 00000000-…-0000: ese es el Default Welcome Intent que CX crea
+    # en cada agente, y la API lo protege con un 400 en vez de un 404.
+    inventado = f"{cx_client.build_parent(project, agent_id)}/intents/deadbeef-1111-2222-3333-444444444444"
+    response = cx_client.api_delete(project, inventado)
+    return response.status_code == 404, f"DELETE de un ID inventado → HTTP {response.status_code}"
+
+
+def colision_de_nombre(project, agent_id):
+    """Crear algo que ya existe debe fallar limpio, nunca sobrescribir."""
+    nombre = f"{PREFIX}colision"
+    local = {"displayName": nombre, "kind": "KIND_MAP",
+             "entities": [{"value": "uno", "synonyms": ["uno"]}]}
+    op = {"type": "entity_types", "resource": nombre, "operation": "POST", "local": local}
+    pipeline.deploy_entity_types(project, agent_id, op)
+    try:
+        pipeline.deploy_entity_types(project, agent_id, op)
+        return False, "el segundo POST no falló — pudo haber sobrescrito"
+    except pipeline.PipelineError:
+        original = _buscar(project, agent_id, "entity_types", nombre)
+        intacto = [e["value"] for e in original.get("entities", [])] == ["uno"]
+        return intacto, "el duplicado falla y el original queda intacto"
+    finally:
+        actual = _buscar(project, agent_id, "entity_types", nombre)
+        if actual:
+            pipeline.deploy_entity_types(project, agent_id, {
+                "type": "entity_types", "resource": nombre, "operation": "DELETE",
+                "remote_name": actual["name"]})
 
 
 def dry_run_no_escribe(project, agent_id):
@@ -299,10 +376,14 @@ def main(argv=None):
         for caso in ciclos(nombre_playbook):
             runner.check(1, f"Ciclo completo · {caso['tipo']}",
                          lambda c=caso: ejecutar_ciclo(args.project, agent_id, c))
+        runner.check(1, "Colisión de nombre · falla limpio, no sobrescribe",
+                     lambda: colision_de_nombre(args.project, agent_id))
+        runner.check(1, "DELETE de un ID inexistente · 404, no 500",
+                     lambda: borrar_lo_que_no_existe(args.project, agent_id))
+        runner.check(1, "Borrar un flow no deja pages huérfanas",
+                     lambda: flow_borrado_no_deja_pages_huerfanas(args.project, agent_id))
         runner.check(2, "Versión + entorno · mover puntero y rollback exacto",
                      lambda: ciclo_version_y_entorno(args.project, agent_id))
-        runner.skip(1, "Ciclo completo · pages",
-                    "Fuera de alcance por la Regla 9 — no existe deploy_pages().")
         runner.skip(1, "Ciclo completo · agent_config",
                     "Recurso singular: no admite create/delete. Su Full Update ya se "
                     "verificó por separado.")
