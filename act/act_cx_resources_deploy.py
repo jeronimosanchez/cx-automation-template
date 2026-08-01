@@ -722,6 +722,81 @@ DEPLOY_FUNCTIONS = {
 
 # ── Entornos y versiones ─────────────────────────────────────────────────────
 
+# ── Rotación de versiones de deploy ──────────────────────────────────────────
+#
+# Un flow admite 20 versiones y el límite es duro: la 21 falla con code:9 y no
+# hay rotación automática por parte de CX (medido contra la API, no heredado
+# de la documentación, que decía 5 y decía que rotaban solas — las dos cosas
+# falsas).
+#
+# Política: el pipeline mantiene un pool de 5 versiones propias que rotan, y
+# no toca nada más. Solo borra lo que empieza por DEPLOY_VERSION_PREFIX, así
+# que cualquier versión con otro nombre —creada a mano, venida de CI, o
+# renombrada por el usuario— queda protegida por definición. La protección es
+# opt-out y no opt-in a propósito: olvidarse de marcar algo no puede costar
+# una versión.
+
+DEPLOY_VERSION_PREFIX = "deploy_"
+DEPLOY_VERSION_POOL = 5
+FLOW_VERSION_CAPACITY = 20
+CAPACITY_WARNING_MARGIN = 3
+
+
+def deploy_version_name(name):
+    """Toda versión creada por el pipeline entra en el pool.
+
+    Se protege después, renombrándola — no eligiendo el nombre al crearla.
+    """
+    return name if name.startswith(DEPLOY_VERSION_PREFIX) else f"{DEPLOY_VERSION_PREFIX}{name}"
+
+
+def pinned_version_names(project, agent_id):
+    """Versiones que algún entorno está sirviendo. Intocables."""
+    return {
+        config["version"]
+        for environment in inventory_environments(project, agent_id)
+        for config in environment.get("versionConfigs", [])
+    }
+
+
+def rotate_deploy_versions(project, agent_id, flow_name, log):
+    """Hace sitio antes de crear, borrando la más antigua del propio pool."""
+    todas = cx_client.list_all_pages(project, f"{flow_name}/versions", "versions")
+    fijadas = pinned_version_names(project, agent_id)
+
+    pool = sorted(
+        (v for v in todas
+         if v.get("displayName", "").startswith(DEPLOY_VERSION_PREFIX)
+         and v["name"] not in fijadas),
+        key=lambda v: v.get("createTime", ""),
+    )
+    reservorio = len(todas) - len(pool)
+
+    huecos = FLOW_VERSION_CAPACITY - len(todas)
+    if huecos <= CAPACITY_WARNING_MARGIN and len(pool) < DEPLOY_VERSION_POOL:
+        log.append(
+            f"AVISO — quedan {huecos} huecos de {FLOW_VERSION_CAPACITY} en este flow "
+            f"y {reservorio} versiones están fuera del pool automático. "
+            f"Libera alguna o el Paso 5 dejará de poder crear versiones."
+        )
+
+    while len(pool) >= DEPLOY_VERSION_POOL:
+        mas_antigua = pool.pop(0)
+        response = cx_client.api_delete(project, mas_antigua["name"])
+        if response.status_code not in (200, 204):
+            raise PipelineError(
+                f"No se pudo rotar la versión {mas_antigua.get('displayName')}: "
+                f"{response.status_code} {response.text[:200]}"
+            )
+        log.append(
+            f"Rotación: borrada {mas_antigua.get('displayName')!r} "
+            f"(creada {mas_antigua.get('createTime', '')[:19]}) — la más antigua del pool"
+        )
+
+    if reservorio:
+        log.append(f"{reservorio} versiones fuera del pool, no se tocan")
+
+
 def find_environment(project, agent_id, display_name):
     for environment in inventory_environments(project, agent_id):
         if environment.get("displayName", "").lower() == display_name.lower():
@@ -781,17 +856,21 @@ def referenced_tool_names(project, agent_id):
     return sorted(referenced)
 
 
-def create_versions_for_snapshot(project, agent_id, display_name):
+def create_versions_for_snapshot(project, agent_id, display_name, rotation_log=None):
     """Crea la cadena completa de versiones y devuelve sus rutas.
 
     Flow, playbooks y tools tienen endpoints de versión independientes. El
     entorno los necesita los tres: fijar solo una capa hace fallar el PATCH.
     """
     version_names = []
+    if rotation_log is None:
+        rotation_log = []
 
     for flow in inventory_flows(project, agent_id):
+        rotate_deploy_versions(project, agent_id, flow["name"], rotation_log)
         response = cx_client.api_post(
-            project, f"{flow['name']}/versions", {"displayName": display_name}
+            project, f"{flow['name']}/versions",
+            {"displayName": deploy_version_name(display_name)},
         )
         if response.status_code not in (200, 201):
             raise PipelineError(
@@ -1125,7 +1204,7 @@ def step_5_snapshot(project, agent_id, name=None, dry_run=False):
     previous = [
         config["version"] for config in environment.get("versionConfigs", [])
     ]
-    version_names = create_versions_for_snapshot(project, agent_id, display_name)
+    version_names = create_versions_for_snapshot(project, agent_id, display_name, log)
     log.append(f"Snapshot creado — {len(version_names)} versiones:")
     log.extend(f"  {name.rsplit('/', 3)[-3]}/{name.rsplit('/', 1)[-1]}"
                for name in version_names)
