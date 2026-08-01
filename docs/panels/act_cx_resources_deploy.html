@@ -432,7 +432,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="gate-block" id="snap-gate">
         <div class="gate-title">&#9995; Acción requerida</div>
         <p>Se creará una versión nueva de cada artefacto con cambios detectados en el diff — el flow, y cada playbook modificado, por separado. Las versiones anteriores de cada uno se conservan para poder hacer rollback si los tests fallan.</p>
-        <p style="margin-top:0;margin-bottom:16px">CX conserva un máximo de <strong style="color:var(--text)">5 versiones por artefacto</strong>. Si un artefacto concreto ya tiene 5, su versión más antigua se eliminará automáticamente al crear la nueva — el límite es por artefacto, no compartido entre todos.</p>
+        <p style="margin-top:0;margin-bottom:16px">CX admite <strong style="color:var(--text)">20 versiones por artefacto</strong> y el límite es duro: la 21 falla y <strong style="color:var(--text)">CX no borra nada por su cuenta</strong>. De esas 20, el pipeline gestiona un <strong style="color:var(--text)">pool de 5</strong> que rota solo: al crear la sexta, borra la más antigua <em>de las suyas</em>. Las demás son tu reservorio y no se tocan nunca.</p>
+
+        <!-- Reservorio: sacar una versión del pool automático -->
+        <div style="margin-bottom:20px">
+          <div class="slabel" style="margin-bottom:6px">Versiones existentes</div>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Marca una versión para <strong style="color:var(--text-2)">guardarla</strong>: sale del pool automático y la rotación deja de verla. Desmárcala para devolverla.</p>
+          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
+          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
+        </div>
         <div style="margin-bottom:20px">
           <div class="slabel" style="margin-bottom:8px">Etiqueta de este lote de versiones</div>
           <input type="text" id="version-batch-label" class="snapshot-input" value="">
@@ -863,7 +871,9 @@ Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actu
           <div class="spec-block-label">Qué produce</div>
           <p>Una nueva versión del agente en staging. La versión anterior se conserva para poder hacer rollback. El nombre del snapshot queda disponible para los Pasos 6, 7 y 8.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">CX conserva máximo 5 versiones por entorno. Si ya hay 5, la más antigua se elimina automáticamente al crear ésta. El script almacena el nombre del snapshot en memoria para propagarlo a los pasos siguientes.</div>
+          <div class="tech-content" style="display:none">Medido contra la API: un flow admite <strong>20 versiones</strong> y el límite es duro — la 21 falla con <code>code:9</code>. <strong>CX no rota nada por su cuenta</strong>; la documentación que decía 5 y decía que se borraban solas era falsa en las dos mitades.<br>
+El pipeline mantiene un pool de 5 versiones propias, reconocibles por el prefijo <code>deploy_</code>, y borra la más antigua antes de crear la sexta. No toca ninguna otra: renombrar una versión la saca del pool para siempre, y las que un entorno esté sirviendo quedan protegidas aunque lleven el prefijo. La protección es opt-out y no opt-in a propósito — olvidarse de marcar algo no puede costar una versión.<br>
+El script almacena el nombre del snapshot en memoria para propagarlo a los pasos siguientes.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Flujo del paso</div>
@@ -871,7 +881,9 @@ Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actu
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ Snapshot creado → esperar <code>done:true</code> en el LRO antes de reportar éxito — no reportar antes<br>
+          <p>✓ Pool automático de 5: al crear la sexta, se borra la más antigua de las creadas por el pipeline<br>
+          ✓ Una versión guardada (renombrada) nunca rota, y una fijada por un entorno tampoco aunque lleve el prefijo<br>
+          ✓ Snapshot creado → esperar <code>done:true</code> en el LRO antes de reportar éxito — no reportar antes<br>
           ✓ <code>displayName</code> siempre presente en el POST body — nunca omitirlo aunque el campo UI esté vacío<br>
           ✓ Si ya hay 5 versiones → la más antigua se elimina automáticamente, el snapshot se crea igualmente<br>
           ✓ El nombre del snapshot se propaga a los elementos <code>snapshot-name-ref</code> de Pasos 6, 7 y 8</p>
@@ -1471,6 +1483,61 @@ function resetDeployStep4() {
   document.getElementById('deploy-log-block').innerHTML = '';
 }
 
+/* ── Pool de versiones y reservorio ──────────────────────────────────────
+   El pipeline solo rota lo que él mismo creó: las que empiezan por
+   deploy_. Guardar una versión es renombrarla — la protección es opt-out y
+   no opt-in a propósito, porque olvidarse de marcar algo no puede costar
+   una versión. Las que un entorno está sirviendo tampoco se tocan, aunque
+   lleven el prefijo.                                                       */
+const VERSION_PREFIX = 'deploy_';
+const VERSION_POOL_MAX = 5;
+const VERSION_CAPACITY = 20;   // medido contra la API: la 21 falla con code:9
+
+let VERSIONES = [
+  {nombre: 'ci-207',                 creada: '2026-07-22', fijadaPor: 'staging · producción'},
+  {nombre: 'fix-orquestador-routing', creada: '2026-07-24', fijadaPor: null},
+  {nombre: 'deploy_2026-07-28_0945', creada: '2026-07-28', fijadaPor: null},
+  {nombre: 'deploy_2026-07-30_1712', creada: '2026-07-30', fijadaPor: null},
+];
+
+const enPool = v => v.nombre.startsWith(VERSION_PREFIX) && !v.fijadaPor;
+
+function renderVersionPool() {
+  const lista = document.getElementById('version-pool-list');
+  if (!lista) return;
+  lista.innerHTML = VERSIONES.map((v, i) => {
+    const guardada = !enPool(v);
+    const motivo = v.fijadaPor
+      ? `en uso por ${v.fijadaPor} — no puede rotar`
+      : (guardada ? 'guardada, fuera del pool' : 'en el pool automático');
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+      <input type="checkbox" ${guardada ? 'checked' : ''} ${v.fijadaPor ? 'disabled' : ''}
+             onchange="toggleVersionGuardada(${i})"
+             style="width:15px;height:15px;accent-color:var(--gate);cursor:${v.fijadaPor ? 'not-allowed' : 'pointer'}">
+      <code style="flex:1;font-size:12px;color:${guardada ? 'var(--text)' : 'var(--text-2)'}">${v.nombre}</code>
+      <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${v.creada}</span>
+      <span style="font-size:11px;color:${v.fijadaPor ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:170px;text-align:right">${motivo}</span>
+    </div>`;
+  }).join('');
+
+  const pool = VERSIONES.filter(enPool).length;
+  const huecos = VERSION_CAPACITY - VERSIONES.length;
+  const rotara = pool >= VERSION_POOL_MAX;
+  document.getElementById('version-pool-summary').innerHTML =
+    `Pool automático: <strong style="color:var(--text-2)">${pool} de ${VERSION_POOL_MAX}</strong> · `
+  + `${VERSIONES.length - pool} guardadas · ${huecos} huecos libres de ${VERSION_CAPACITY}`
+  + (rotara ? ` · <span style="color:var(--gate)">al crear la próxima se borrará la más antigua del pool</span>` : '');
+}
+
+function toggleVersionGuardada(indice) {
+  // Marcar = renombrar. La API admite PATCH del displayName y es reversible.
+  const v = VERSIONES[indice];
+  v.nombre = enPool(v)
+    ? v.nombre.replace(VERSION_PREFIX, 'KEEP_')
+    : 'deploy_' + v.nombre.replace(/^KEEP_/, '');
+  renderVersionPool();
+}
+
 function generateVersionLabel() {
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -1546,6 +1613,7 @@ function viewStep(id) {
   if(id === 2) renderStep2Checks();
   if(id === 3) renderStep3Diff();
   if(id === 4) renderCxRepoCheck();
+  if(id === 5) renderVersionPool();
   if(id === 5) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
   syncSpecsPanel(id);
   renderSidebar();
