@@ -227,6 +227,26 @@ def poll_operation(project, operation_name,
     )
 
 
+def resolve_operation(project, response, max_attempts=OPERATION_MAX_ATTEMPTS,
+                      delay=OPERATION_DELAY_SECONDS):
+    """Devuelve el recurso, poleando antes si la respuesta era una operación.
+
+    Varios endpoints (POST /versions, PATCH /environments) responden 200 OK
+    con {"name": ".../operations/..."} en lugar del recurso pedido, y el
+    fallo real llega después dentro de la operación. Sin polear, un code:3
+    queda invisible y el paso se reporta como correcto.
+
+    Centralizado aquí a propósito: si cada punto de llamada tuviera que
+    acordarse de polear, bastaría olvidarlo en uno para reabrir el agujero.
+    """
+    payload = response.json() if response.text else {}
+    operation_name = payload.get("name", "")
+    if "/operations/" not in operation_name:
+        return payload
+    operation = poll_operation(project, operation_name, max_attempts, delay)
+    return operation.get("response", operation)
+
+
 # ── Descubrimiento de proyectos y agentes ────────────────────────────────────
 
 def list_gcp_projects():

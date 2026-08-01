@@ -524,28 +524,115 @@ def default_flow_name(project, agent_id):
     return flows[0]["name"]
 
 
-def point_environment_at_version(project, environment, version_name):
-    body = dict(environment)
-    body["versionConfigs"] = [{"version": version_name}]
-    for read_only in ("name", "updateTime"):
-        body.pop(read_only, None)
-    response = cx_client.api_patch(project, environment["name"], body)
+def point_environment_at_versions(project, environment, version_names):
+    """Fija en el entorno el conjunto completo de versiones.
+
+    Tres cosas que la API exige aquí y que no son obvias:
+      - updateMask es obligatorio (al revés que en Playbooks, §3.8).
+      - la respuesta es una operación asíncrona, no el entorno.
+      - las versiones viajan juntas: un playbook fijado sin la versión del
+        tool que referencia hace fallar el PATCH entero.
+    """
+    body = {"versionConfigs": [{"version": name} for name in version_names]}
+    response = cx_client.api_patch(
+        project, environment["name"], body, params={"updateMask": "versionConfigs"}
+    )
     if response.status_code != 200:
         raise PipelineError(
             f"PATCH del entorno {environment.get('displayName')} falló: "
             f"{response.status_code} {response.text[:200]}"
         )
-    return response.json()
+    cx_client.resolve_operation(project, response)
+    return verify_environment_versions(project, environment["name"], version_names)
 
 
-def restore_draft_from_version(project, version_name):
-    response = cx_client.api_post(project, f"{version_name}:load", {})
-    if response.status_code not in (200, 201):
+def verify_environment_versions(project, environment_name, expected_names):
+    """Un 200 confirma que la petición se aceptó, no que el estado sea correcto."""
+    current = cx_client.api_get(project, environment_name)
+    if current.status_code != 200:
+        raise PipelineError(f"GET del entorno falló: {current.status_code}")
+    applied = {config["version"] for config in current.json().get("versionConfigs", [])}
+    faltan = set(expected_names) - applied
+    if faltan:
         raise PipelineError(
-            f"Restaurar el draft desde {version_name} falló: "
-            f"{response.status_code} {response.text[:200]}"
+            f"El entorno no quedó con las versiones esperadas — faltan {len(faltan)}: "
+            f"{sorted(name.rsplit('/', 3)[-3:] for name in faltan)[:3]}"
         )
-    return response.json()
+    return current.json()
+
+
+def referenced_tool_names(project, agent_id):
+    """Tools que algún playbook referencia — los que el entorno va a exigir."""
+    referenced = set()
+    for playbook in inventory_playbooks(project, agent_id):
+        referenced.update(playbook.get("referencedTools", []))
+    return sorted(referenced)
+
+
+def create_versions_for_snapshot(project, agent_id, display_name):
+    """Crea la cadena completa de versiones y devuelve sus rutas.
+
+    Flow, playbooks y tools tienen endpoints de versión independientes. El
+    entorno los necesita los tres: fijar solo una capa hace fallar el PATCH.
+    """
+    version_names = []
+
+    for flow in inventory_flows(project, agent_id):
+        response = cx_client.api_post(
+            project, f"{flow['name']}/versions", {"displayName": display_name}
+        )
+        if response.status_code not in (200, 201):
+            raise PipelineError(
+                f"POST /versions del flow {flow.get('displayName')} falló: "
+                f"{response.status_code} {response.text[:200]}"
+            )
+        created = cx_client.resolve_operation(project, response)
+        version_names.append(created["name"])
+
+    for playbook in inventory_playbooks(project, agent_id):
+        response = cx_client.api_post(
+            project, f"{playbook['name']}/versions", {"description": display_name}
+        )
+        if response.status_code not in (200, 201):
+            raise PipelineError(
+                f"POST /versions del playbook {playbook.get('displayName')} falló: "
+                f"{response.status_code} {response.text[:200]}"
+            )
+        version_names.append(cx_client.resolve_operation(project, response)["name"])
+
+    for tool_name in referenced_tool_names(project, agent_id):
+        response = cx_client.api_post(project, f"{tool_name}/versions", {})
+        # Los tools integrados de CX (code-interpreter) no son versionables:
+        # devuelven 404 y no hay nada que fijar para ellos en el entorno.
+        if response.status_code == 404:
+            continue
+        if response.status_code not in (200, 201):
+            raise PipelineError(
+                f"POST /versions del tool {tool_name} falló: "
+                f"{response.status_code} {response.text[:200]}"
+            )
+        version_names.append(cx_client.resolve_operation(project, response)["name"])
+
+    return version_names
+
+
+def restore_draft_from_versions(project, version_names):
+    """Devuelve el draft a un conjunto de versiones.
+
+    Cada tipo usa su propio verbo: los flows se cargan con :load, los
+    playbooks se restauran con :restore.
+    """
+    for version_name in version_names:
+        verb = "restore" if "/playbooks/" in version_name else "load"
+        if "/tools/" in version_name:
+            continue
+        response = cx_client.api_post(project, f"{version_name}:{verb}", {})
+        if response.status_code not in (200, 201):
+            raise PipelineError(
+                f"Restaurar el draft desde {version_name} falló: "
+                f"{response.status_code} {response.text[:200]}"
+            )
+        cx_client.resolve_operation(project, response)
 
 
 # ── Paso 1 — Inventario CX ───────────────────────────────────────────────────
@@ -788,57 +875,52 @@ def step_5_snapshot(project, agent_id, name=None, dry_run=False):
         log.append("[dry-run] No se crea la versión")
         return step_result("ok", log, {"snapshot_name": display_name, "dry_run": True})
 
-    flow_name = default_flow_name(project, agent_id)
     environment = find_environment(project, agent_id, STAGING_ENVIRONMENT)
     if environment is None:
         raise PipelineError(
             f"No existe el entorno '{STAGING_ENVIRONMENT}' en este agente."
         )
 
-    previous = environment.get("versionConfigs", [{}])[0].get("version")
-    response = cx_client.api_post(
-        project, f"{flow_name}/versions", {"displayName": display_name}
+    previous = [
+        config["version"] for config in environment.get("versionConfigs", [])
+    ]
+    version_names = create_versions_for_snapshot(project, agent_id, display_name)
+    log.append(f"Snapshot creado — {len(version_names)} versiones:")
+    log.extend(f"  {name.rsplit('/', 3)[-3]}/{name.rsplit('/', 1)[-1]}"
+               for name in version_names)
+
+    point_environment_at_versions(project, environment, version_names)
+    log.append(
+        f"Entorno {STAGING_ENVIRONMENT} fijado y verificado con las "
+        f"{len(version_names)} versiones"
     )
-    if response.status_code not in (200, 201):
-        raise PipelineError(
-            f"POST /versions falló: {response.status_code} {response.text[:200]}"
-        )
-
-    operation = response.json()
-    if operation.get("name") and not operation.get("done"):
-        log.append("Esperando a que la operación termine (done:true)…")
-        operation = cx_client.poll_operation(project, operation["name"])
-
-    version_name = operation.get("response", {}).get("name") or operation.get("name")
-    log.append(f"Snapshot creado: {version_name}")
-
-    point_environment_at_version(project, environment, version_name)
-    log.append(f"Entorno {STAGING_ENVIRONMENT} apuntando al snapshot nuevo")
     write_run_log(project, agent_id, log)
 
     return step_result("ok", log, {
         "snapshot_name": display_name,
-        "version_name": version_name,
-        "previous_version": previous,
+        "version_names": version_names,
+        "previous_versions": previous,
     })
 
 
 # ── Pasos 6 y 7 — Gates humanos ──────────────────────────────────────────────
 
-def _rollback_staging(project, agent_id, previous_version, log):
-    if not previous_version:
+def _rollback_staging(project, agent_id, previous_versions, log):
+    if not previous_versions:
         raise PipelineError(
-            "No hay versión anterior registrada — no se puede hacer rollback."
+            "No hay versiones anteriores registradas — no se puede hacer rollback."
         )
     environment = find_environment(project, agent_id, STAGING_ENVIRONMENT)
-    point_environment_at_version(project, environment, previous_version)
-    log.append(f"Entorno {STAGING_ENVIRONMENT} devuelto a {previous_version}")
-    restore_draft_from_version(project, previous_version)
-    log.append(f"Draft restaurado desde {previous_version}")
+    point_environment_at_versions(project, environment, previous_versions)
+    log.append(
+        f"Entorno {STAGING_ENVIRONMENT} devuelto a {len(previous_versions)} versiones"
+    )
+    restore_draft_from_versions(project, previous_versions)
+    log.append("Draft restaurado desde esas mismas versiones")
 
 
 def step_6_validate_tests(project, agent_id, decision="passed",
-                          previous_version=None, dry_run=False):
+                          previous_versions=None, dry_run=False):
     """Punto de decisión: no ejecuta tests ni llama a la API si se avanza."""
     log = [f"Paso 6 — Validación de tests · decisión: {decision}"]
 
@@ -854,14 +936,14 @@ def step_6_validate_tests(project, agent_id, decision="passed",
         log.append("[dry-run] No se ejecuta el rollback")
         return step_result("ok", log, {"advance": False, "dry_run": True})
 
-    _rollback_staging(project, agent_id, previous_version, log)
+    _rollback_staging(project, agent_id, previous_versions, log)
     log.append("Pipeline abortado — producción no se ha tocado")
     write_run_log(project, agent_id, log)
     return step_result("aborted", log, {"advance": False, "rolled_back": True})
 
 
 def step_7_qa_gate(project, agent_id, decision="validated",
-                   previous_version=None, dry_run=False):
+                   previous_versions=None, dry_run=False):
     log = [f"Paso 7 — Gate QA staging · decisión: {decision}"]
 
     if decision == "validated":
@@ -872,7 +954,7 @@ def step_7_qa_gate(project, agent_id, decision="validated",
         log.append("[dry-run] No se ejecuta el rollback")
         return step_result("ok", log, {"advance": False, "dry_run": True})
 
-    _rollback_staging(project, agent_id, previous_version, log)
+    _rollback_staging(project, agent_id, previous_versions, log)
     log.append("Pipeline abortado — no hay camino para continuar")
     write_run_log(project, agent_id, log)
     return step_result("aborted", log, {"advance": False, "rolled_back": True})
@@ -890,7 +972,7 @@ def merge_staging_into_main():
     return True, result.stdout.strip()
 
 
-def step_8_approve_production(project, agent_id, version_name=None, dry_run=False):
+def step_8_approve_production(project, agent_id, version_names=None, dry_run=False):
     """Merge primero, promoción después.
 
     Si la promoción fuera primero y el merge fallara, producción quedaría
@@ -912,20 +994,24 @@ def step_8_approve_production(project, agent_id, version_name=None, dry_run=Fals
     staging = find_environment(project, agent_id, STAGING_ENVIRONMENT)
     if staging is None:
         raise PipelineError(f"No existe el entorno '{STAGING_ENVIRONMENT}'.")
-    version = version_name or staging.get("versionConfigs", [{}])[0].get("version")
-    if not version:
+    versions = version_names or [
+        config["version"] for config in staging.get("versionConfigs", [])
+    ]
+    if not versions:
         raise PipelineError("El entorno staging no apunta a ninguna versión.")
 
     production = find_environment(project, agent_id, PRODUCTION_ENVIRONMENT)
     if production is None:
         raise PipelineError(f"No existe el entorno '{PRODUCTION_ENVIRONMENT}'.")
 
-    point_environment_at_version(project, production, version)
-    log.append(f"Producción promovida a {version} — la misma versión que staging")
+    point_environment_at_versions(project, production, versions)
+    log.append(
+        f"Producción promovida a las mismas {len(versions)} versiones que staging"
+    )
     write_run_log(project, agent_id, log)
 
     return step_result("ok", log, {
-        "merged": True, "promoted": True, "version_name": version,
+        "merged": True, "promoted": True, "version_names": versions,
     })
 
 
