@@ -392,6 +392,14 @@ LOCAL_ONLY_FIELDS = {
 }
 
 
+# Campos cuya lista es un conjunto de referencias, no una secuencia: declaran
+# a qué recursos puede llamar este, y el orden no significa nada. CX los
+# devuelve en un orden propio que no tiene por qué coincidir con el del YAML.
+# El resto de listas (instruction.steps, actions de los examples) sí son
+# secuencias y compararlas como conjunto ocultaría reordenaciones reales.
+UNORDERED_FIELDS = ("referencedPlaybooks", "referencedTools", "referencedFlows")
+
+
 def _is_empty(value):
     return value in (None, [], {}, "")
 
@@ -419,8 +427,17 @@ def _differs(remote, local):
             continue
         if _is_empty(value) and _is_empty(remote_value):
             continue
+        if field in UNORDERED_FIELDS and _same_references(value, remote_value):
+            continue
         return True
     return False
+
+
+def _same_references(local_value, remote_value):
+    """Si dos listas de referencias contienen lo mismo, en cualquier orden."""
+    if not isinstance(local_value, list) or not isinstance(remote_value, list):
+        return False
+    return sorted(map(str, local_value)) == sorted(map(str, remote_value))
 
 
 def diff_entity_types(remote_items, local_definitions):

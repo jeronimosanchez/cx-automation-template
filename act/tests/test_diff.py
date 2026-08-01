@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from act.act_cx_resources_deploy import (
     LOCAL_ONLY_FIELDS,
+    UNORDERED_FIELDS,
     _comparable_local,
     _differs,
     _is_empty,
@@ -127,3 +128,36 @@ def test_un_tool_propio_ausente_del_repo_si_sale_como_delete():
     operaciones = diff_tools(remote, {})
 
     assert [(o["resource"], o["operation"]) for o in operaciones] == [("OtroTool", "DELETE")]
+
+
+def test_referencias_en_distinto_orden_no_son_diferencia():
+    """referencedPlaybooks declara a quién puede llamar este playbook: es un
+    conjunto de permisos, y CX lo devuelve en su propio orden."""
+    remote = {"referencedPlaybooks": ["pb/b", "pb/a", "pb/c"]}
+    local = {"referencedPlaybooks": ["pb/a", "pb/b", "pb/c"]}
+
+    assert not _differs(remote, local)
+
+
+def test_una_referencia_de_mas_o_de_menos_si_es_diferencia():
+    remote = {"referencedPlaybooks": ["pb/a", "pb/b"]}
+
+    assert _differs(remote, {"referencedPlaybooks": ["pb/a", "pb/b", "pb/c"]})
+    assert _differs(remote, {"referencedPlaybooks": ["pb/a"]})
+
+
+@pytest.mark.parametrize("field", UNORDERED_FIELDS)
+def test_los_tres_campos_de_referencias_ignoran_el_orden(field):
+    assert not _differs({field: ["y", "x"]}, {field: ["x", "y"]})
+
+
+def test_las_secuencias_reales_siguen_siendo_sensibles_al_orden():
+    """instruction.steps y actions son secuencias: reordenarlas cambia el
+    comportamiento, así que tratarlas como conjunto ocultaría un cambio real."""
+    remote = {"instruction": {"steps": [{"text": "uno"}, {"text": "dos"}]}}
+    local = {"instruction": {"steps": [{"text": "dos"}, {"text": "uno"}]}}
+
+    assert _differs(remote, local)
+
+    remote_ex = {"actions": [{"a": 1}, {"b": 2}]}
+    assert _differs(remote_ex, {"actions": [{"b": 2}, {"a": 1}]})
