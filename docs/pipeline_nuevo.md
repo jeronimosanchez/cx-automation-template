@@ -128,6 +128,13 @@ intents        ok         1 drift    ok
 
 ## 2. Push y Pull — mantener sin cambios
 
+> **Obsoleto.** Ninguno de los `push_*.py` / `pull_*.py` que enumera esta sección
+> existe ya en el repo. Los sustituye **`act/act_cx_resources_deploy.py`**, que
+> cubre los 12 tipos de recurso con una función por tipo (`inventory_*`, `diff_*`,
+> `deploy_*`) en lugar de un script por recurso. El equivalente de un `push_<tipo>`
+> es hoy el Paso 4 del pipeline; el de un `pull_<tipo>` **no existe todavía**.
+> Lo que sigue se conserva como referencia histórica del diseño anterior.
+
 Los `push_*.py` y `pull_*.py` están en buen estado y no requieren modificaciones.
 
 **Push scripts** (`push_agent_config.py`, `push_entity_types.py`, `push_flows.py`, `push_pages.py`, `push_intents.py`, `push_webhooks.py`, `push_generators.py`, `push_tools.py`, `push_playbooks.py`, `push_examples.py`, `push_environments.py`, `push_versions.py`):
@@ -160,7 +167,7 @@ Los `push_*.py` y `pull_*.py` están en buen estado y no requieren modificacione
 | Playbooks | `push_playbooks.py` / `pull_playbooks.py` | Cubierto |
 | Examples | `push_examples.py` / `pull_examples.py` | Cubierto |
 | Environments | `push_environments.py` / `pull_environments.py` | Cubierto |
-| Versions | `push_versions.py` / `pull_versions.py` | Cubierto |
+| Versions | `act_cx_resources_deploy.py` — Paso 5 (crear) y Paso 1 (inventariar) | Cubierto |
 | Session Entity Types | — | No aplica (ver abajo) |
 | TransitionRouteGroups | — | No aplica (ver abajo) |
 | Experiments | — | Fuera de scope (ver abajo) |
@@ -293,7 +300,7 @@ El orden que nunca falla:
 - `deploy.py` ya maneja este caso: si `candidates` está vacío, no ofrece la opción de reemplazar.
 
 **Límite de 20 versiones por flow:**
-- Documentado en `push_versions.py` (`_MAX_VERSIONS_PER_FLOW = 20`).
+- Documentado en su día en `push_versions.py` (`_MAX_VERSIONS_PER_FLOW = 20`). Ese script ya no existe; el límite no está reimplementado en `act_cx_resources_deploy.py` — pendiente de verificar contra la API antes de volver a codificarlo.
 - La función `rotate_versions_if_full()` borra la más antigua por `createTime` antes del POST.
 - IMPORTANTE: la rotación automática solo borra versiones no referenciadas. Si todas las versiones están referenciadas por environments, el DELETE fallará y se aborta el create.
 - Implicación para el flujo correcto: la rotación debe ejecutarse en el PASO 1, antes del POST, no antes del DELETE del snapshot anterior.

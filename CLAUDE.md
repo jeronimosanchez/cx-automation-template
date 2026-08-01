@@ -81,8 +81,12 @@ python act/deploy.py --dry-run  # previsualizar sin ejecutar
 python act/push_playbooks.py --all --dry-run
 python act/push_playbooks.py --all
 
-# Listar versiones de un flow
-python act/push_versions.py --list --flow "Default Start Flow"
+# Listar versiones de un flow — salen en el inventario del Paso 1, junto con
+# los otros 11 tipos de recurso, en docs/data/act_cx_draft_resources_inventory_<project>_<agent>.json
+python act/act_cx_resources_deploy.py --project <project> --agent <agent> --step 1
+
+# Crear una versión nueva (snapshot) — Paso 5 del pipeline
+python act/act_cx_resources_deploy.py --project <project> --agent <agent> --step 5 --snapshot-name <nombre>
 
 # Validar credenciales y conectividad con la API
 python act/validate_api.py

@@ -1,6 +1,6 @@
 # Setup CI/CD para `cx-automation-template`
 
-Guia exhaustiva paso a paso de la **Fase B** del Sprint 4 (configuracion humana). El codigo del repo (workflows + push_versions/push_environments) ya esta listo desde Sprint 4 — esto es lo unico que falta para activar el pipeline.
+Guia exhaustiva paso a paso de la **Fase B** del Sprint 4 (configuracion humana). El codigo del repo (workflows + el pipeline de `act/act_cx_resources_deploy.py`, que sustituyo a los antiguos push_versions/push_environments) ya esta listo — esto es lo unico que falta para activar el pipeline.
 
 **Tiempo estimado:** 30-45 min siguiendo esta guia.
 
@@ -229,8 +229,10 @@ Con la configuracion ya en sitio, valida punta-a-punta sin tocar produccion.
 
 7. Comprueba que se creo una Version snapshot:
    ```
-   python act/push_versions.py --list --flow "Default Start Flow"
+   python act/act_cx_resources_deploy.py --project <project> --agent <agent> --step 1
    ```
+   Las versiones salen en el inventario que escribe el Paso 1, en
+   `docs/data/act_cx_draft_resources_inventory_<project>_<agent>.json`, bajo `resources.versions`.
    Debes ver una Version nueva con descripcion `Auto deploy <sha>`.
 
 Si todos los pasos pasan, **CI/CD esta operativo**.
