@@ -31,7 +31,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from act.utils import cx_client
-from act.utils.cx_payloads import build_full_update_body
+from act.utils.cx_payloads import AGENT_IGNORE_FIELDS, build_full_update_body
 
 DEFINITIONS_DIR = REPO_ROOT / "definitions"
 DATA_DIR = REPO_ROOT / "docs" / "data"
@@ -614,15 +614,31 @@ def deploy_flows(project, agent_id, operation):
 
 
 def deploy_agent_config(project, agent_id, operation):
-    """El agente es un objeto único: siempre PATCH sobre sí mismo."""
+    """El agente es un objeto único: siempre PATCH sobre sí mismo.
+
+    Full Update, mismo patrón que los Playbooks (§3.8): GET del objeto
+    completo → overlay de lo que declara el YAML → PATCH entero sin
+    updateMask. Mandar solo los campos locales sería destructivo — el YAML
+    no declara `startPlaybook`, y sin él en el body el agente se quedaría
+    sin playbook de arranque, que en Petal es lo que lo hace funcionar.
+    """
     parent = cx_client.build_parent(project, agent_id)
-    response = cx_client.api_patch(project, parent, operation["local"])
+    current = cx_client.api_get(project, parent)
+    if current.status_code != 200:
+        raise PipelineError(
+            f"GET previo al Full Update del agent config falló: "
+            f"{current.status_code} {current.text[:200]}"
+        )
+    body = build_full_update_body(
+        current.json(), operation["local"], ignore_fields=AGENT_IGNORE_FIELDS
+    )
+    response = cx_client.api_patch(project, parent, body)
     if response.status_code != 200:
         raise PipelineError(
             f"PATCH del agent config falló: "
             f"{response.status_code} {response.text[:200]}"
         )
-    return response.json()
+    return cx_client.resolve_operation(project, response)
 
 
 DEPLOY_FUNCTIONS = {
