@@ -294,16 +294,18 @@ def _diff_generic(resource_type, remote_items, local_definitions):
     operations = []
 
     for display_name, local in local_definitions.items():
+        comparable = _comparable_local(resource_type, local)
         remote = remote_by_name.get(display_name)
         if remote is None:
             operations.append({
                 "type": resource_type, "resource": display_name,
-                "operation": "POST", "local": local,
+                "operation": "POST", "local": comparable, "source": local,
             })
-        elif _differs(remote, local):
+        elif _differs(remote, comparable):
             operations.append({
                 "type": resource_type, "resource": display_name,
-                "operation": "PATCH", "local": local, "remote_name": remote["name"],
+                "operation": "PATCH", "local": comparable,
+                "source": local, "remote_name": remote["name"],
             })
 
     for display_name, remote in remote_by_name.items():
@@ -316,13 +318,46 @@ def _diff_generic(resource_type, remote_items, local_definitions):
     return operations
 
 
+# Campos que existen en los YAML del repo pero no en el recurso de la API
+# (verificado contra el discovery document). Comparar por ellos hacía que
+# cada recurso saliera siempre como PATCH, y mandarlos en el body haría que
+# la API rechazara la llamada.
+LOCAL_ONLY_FIELDS = {
+    "examples": ("id", "playbook"),
+    "tools": ("openapi_spec_file",),
+    "agent_config": ("start_playbook_id",),
+}
+
+
+def _is_empty(value):
+    return value in (None, [], {}, "")
+
+
+def _comparable_local(resource_type, local):
+    ignorados = LOCAL_ONLY_FIELDS.get(resource_type, ())
+    return {k: v for k, v in local.items() if k not in ignorados}
+
+
 def _differs(remote, local):
     """Si algún campo declarado en el YAML local no coincide con el remoto.
 
     Compara solo los campos que el local declara: los que no menciona se
     preservan del remoto, así que su valor no es una diferencia.
+
+    Un campo vacío en el YAML y ausente en la respuesta de la API son lo
+    mismo — CX omite los campos vacíos en lugar de devolverlos vacíos. Sin
+    esta equivalencia, `inputParameterDefinitions: []` frente a un remoto
+    que no trae el campo se lee como diferencia y el recurso sale como
+    PATCH en cada ejecución, rompiendo la idempotencia.
     """
-    return any(remote.get(field) != value for field, value in local.items())
+    for field, value in local.items():
+        remote_value = remote.get(field)
+        if remote_value == value:
+            continue
+        if _is_empty(value) and _is_empty(remote_value):
+            continue
+        return True
+    return False
 
 
 def diff_entity_types(remote_items, local_definitions):
