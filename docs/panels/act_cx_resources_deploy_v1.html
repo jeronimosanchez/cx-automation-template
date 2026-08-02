@@ -395,10 +395,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="error-block" style="margin-bottom:16px">
           <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Deploy parcial &mdash; fallo en el recurso 3</div>
           <div id="deploy-fail-summary" style="font-size:13px;color:var(--text-2);line-height:1.8;margin-bottom:14px"></div>
-          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">El draft del agente en CX tiene cambios aplicados a medias. Elige c&oacute;mo continuar:</div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">El draft del agente en CX tiene cambios aplicados a medias. <strong style="color:var(--text-2)">No hace falta revertir</strong>: el draft no lo ve ning&uacute;n usuario, y el pipeline es idempotente. Elige c&oacute;mo continuar:</div>
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:14px;line-height:1.7">
+            &middot; <strong style="color:var(--text-2)">Reintentar fallidos</strong> &mdash; solo el que fall&oacute; y los que quedaron sin intentar. Los que ya est&aacute;n OK no se tocan.<br>
+            &middot; <strong style="color:var(--text-2)">Empezar de nuevo</strong> &mdash; vuelve al Paso 1. La foto nueva de CX hace que el diff proponga solo lo que de verdad falta.<br>
+            &middot; Si quieres deshacer un cambio que s&iacute; se aplic&oacute;, corrige el YAML en el repo y despliega otra vez.
+          </div>
           <div class="action-bar">
             <button class="btn btn-gate" onclick="retryFailed()">Reintentar fallidos &rarr;</button>
-            <button class="btn btn-danger" onclick="revertDraft()">Revertir draft</button>
+            <button class="btn btn-ghost" onclick="resetDeploy()">Empezar de nuevo desde el Paso 1</button>
           </div>
         </div>
       </div>
@@ -1163,17 +1168,6 @@ async function retryFailed() {
   } finally { setRunning(false); }
 }
 
-function revertDraft() {
-  /* Sin implementar en el pipeline: revertir el draft al estado previo al
-     deploy exigiría haberlo capturado antes de empezar, y hoy no se hace.
-     Se dice en vez de simularlo — un log falso aquí haría creer que CX
-     quedó limpio cuando sigue a medias. */
-  document.getElementById('deploy-log').style.display = 'block';
-  mostrarError('deploy-log-block', new Error(
-    'Revertir draft no está implementado todavía. El draft sigue con los '
-    + 'cambios aplicados a medias: usa "Reintentar fallidos", o corrige el '
-    + 'recurso que falló y vuelve a desplegar.'));
-}
 
 function resetDeployStep4() {
   driftAccepted = false;

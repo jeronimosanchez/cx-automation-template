@@ -807,7 +807,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué hace</div>
           <p>Aplica al draft del agente en CX los cambios calculados en el Paso 3, recurso a recurso. Es el único paso que realmente muta CX — todo lo anterior era preparación.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Para cada recurso en la lista del Paso 3: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados". Orden de deploy obligatorio: Entity Types → Intents → Webhooks → Tools → Generators → Playbooks → Examples → Flows → Pages → Agent Config. Los tipos que son referenciados por otros van primero — si un playbook referencia un webhook, el webhook debe existir antes del PATCH del playbook.</div>
+          <div class="tech-content" style="display:none"><strong>Recuperación tras un fallo parcial:</strong> no existe «revertir draft» ni se necesita. Dos caminos, medidos contra la API: <em>Reintentar fallidos</em> reutiliza la lista del Paso 3 y solo toca los <code>ERROR</code> y los no intentados; <em>empezar de nuevo desde el Paso 1</em> refresca la foto de CX y el diff propone solo lo que de verdad falta. <strong>Lo que no vale es relanzar solo el Paso 3:</strong> ese paso no consulta CX, lee el JSON que escribió el Paso 1, y con la foto caducada un <code>POST</code> ya aplicado se reintenta y choca con un <code>409</code>. Para deshacer algo aplicado correctamente, se corrige el YAML y se despliega otra vez.<br><br>Para cada recurso en la lista del Paso 3: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados". Orden de deploy obligatorio: Entity Types → Intents → Webhooks → Tools → Generators → Playbooks → Examples → Flows → Pages → Agent Config. Los tipos que son referenciados por otros van primero — si un playbook referencia un webhook, el webhook debe existir antes del PATCH del playbook.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
@@ -845,7 +845,7 @@ Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actu
           ✓ Deploy completo → todos los recursos OK, banner verde, botón "Continuar →"<br>
           ✓ Deploy parcial → resumen OK/ERROR/no-intentado, dos opciones de recuperación<br>
           ✓ "Reintentar fallidos" → reintenta el recurso fallido más todos los que quedaron como "no intentado" por el fallo anterior; no reintenta los que ya completaron OK<br>
-          ✓ "Revertir draft" → restaura el draft al estado previo al deploy<br>
+          ✓ No hay opción de revertir el draft, y no hace falta: el draft no lo ve ningún usuario y el pipeline es idempotente<br>
           ✓ Simulable con <code>DEPLOY_SIMULATE_FAIL=true</code></p>
         </div>
       </div>
