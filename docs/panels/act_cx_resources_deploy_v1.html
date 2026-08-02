@@ -502,7 +502,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
         </div>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-validado-p7" onclick="this.disabled=true;this.textContent='Aprobando...';setTimeout(()=>advance(7),350)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
+          <button class="btn btn-gate" id="btn-validado-p7" onclick="validarGateQA()">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
           <button class="btn btn-danger" onclick="rollbackFromStep7()">Rollback a staging anterior</button>
         </div>
       </div>
@@ -1346,9 +1346,6 @@ function advance(fromStep) {
   if(nextIdx < STEPS.length) {
     if (stepStates[nextIdx] === 'done' || stepStates[nextIdx] === 'gate') return;
     stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
-    if(!STEPS[nextIdx].gate) {
-      setTimeout(() => completeAuto(nextIdx), 600);
-    }
     current = STEPS[nextIdx].id;
     viewStep(current);
   }
@@ -1414,18 +1411,6 @@ function advanceToDone() {
   renderSidebar();
 }
 
-function completeAuto(idx) {
-  const v = ++animVersion;
-  stepStates[idx] = 'done';
-  const nextIdx = idx + 1;
-  if(nextIdx < STEPS.length) {
-    stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
-    current = STEPS[nextIdx].id;
-    viewStep(current);
-    if(!STEPS[nextIdx].gate) setTimeout(() => { if(animVersion !== v) return; completeAuto(nextIdx); }, 800);
-  }
-  renderSidebar();
-}
 
 async function confirmVersions() {
   await conBoton('btn-version-confirm', 'Creando versiones…', async () => {
@@ -1477,6 +1462,15 @@ function hideRollbackConfirm() {
   document.getElementById('test-action-bar').style.display = 'flex';
   const tgt = document.getElementById('test-gate-title');
   if(tgt) tgt.style.display = '';
+}
+
+/* El Paso 7 no llama a la API al validar: es una decisión humana, no una
+   operación. Se avanza directamente, sin espera artificial — la animación
+   de 350ms era un resto del panel simulado. */
+function validarGateQA() {
+  const boton = document.getElementById('btn-validado-p7');
+  boton.disabled = true;
+  advance(7);
 }
 
 async function rollbackFromStep7() {
