@@ -277,6 +277,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <!-- Con cambios -->
       <div id="diff-has-changes" style="display:none">
+        <div id="diff-resumen" style="margin-bottom:16px"></div>
         <div class="diff-wrap">
           <table class="diff-table">
             <thead><tr><th>Tipo</th><th>Recurso</th><th>Operaci&oacute;n</th></tr></thead>
@@ -294,7 +295,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <span class="legend-item"><span class="pill pill-del">DELETE</span> Eliminado de CX</span>
         </div>
         <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
+          <button class="btn btn-primary" id="btn-diff-continuar" onclick="advance(3)">Revisar y confirmar &rarr;</button>
         </div>
       </div>
 
@@ -313,8 +314,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- STEP 4: Confirmar deploy -->
     <div class="step-view" id="view-4">
       <div class="phase-eyebrow">Paso 4 de 8</div>
-      <div class="phase-title">Confirmar deploy</div>
-      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
+      <div class="phase-title">Desplegar al draft</div>
+      <div class="phase-sub">Los cambios se aplican al <strong>draft</strong> del agente, recurso a recurso. El draft es el borrador editable: <strong>no lo ve ning&uacute;n usuario</strong> hasta que se cree una versi&oacute;n y se promueva. Puedes desplegar aqu&iacute; tantas veces como quieras antes de versionar.</div>
 
       <!-- Comprobación CX → repo: qué hay en CX que el repo no refleja -->
       <div id="cxrepo-check" style="display:none;margin-bottom:16px">
@@ -363,14 +364,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="gate-block" id="deploy-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate4-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate4-agent">Petal 1.0</strong></p>
-        <p>Se van a desplegar <strong style="color:var(--text)"><span id="deploy-count">4</span> recursos</strong> &mdash; 2 playbooks modificados, 1 example nuevo y 1 example eliminado. Los recursos sin cambios no se tocan.</p>
+        <p>Se van a aplicar al draft <strong style="color:var(--text)"><span id="deploy-count">—</span> operaciones</strong> &mdash; <span id="deploy-desglose">—</span>. Los recursos sin cambios no se tocan.</p>
         <div id="agent-config-warning" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
           <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; Este deploy incluye cambios en Agent Config / Generators &mdash; sin staging posible</p>
           <p style="font-size:12px;color:var(--text-2);line-height:1.5">Estos dos tipos no tienen versión en la API de CX. El cambio será visible en draft, staging y producción a la vez, en el instante en que confirmes &mdash; no hay forma de probarlo en staging antes.</p>
         </div>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Confirmar deploy &rarr;</button>
-          <button class="btn btn-ghost" onclick="cancelDeploy(false)">Cancelar</button>
+          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Desplegar al draft &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelarAntesDeDesplegar()">Cancelar</button>
         </div>
       </div>
       <div id="deploy-log" style="display:none;margin-top:4px">
@@ -384,9 +385,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <!-- Deploy OK -->
       <div id="deploy-done" style="display:none">
-        <div class="done-banner"><p>Deploy completado &#10003;</p></div>
+        <div class="done-banner"><p>Draft actualizado &#10003;</p></div>
+        <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;line-height:1.7">El draft ya tiene tus cambios y <strong style="color:var(--text-2)">no lo ve ning&uacute;n usuario</strong>. Puedes parar aqu&iacute; y seguir acumulando cambios en otro momento, o crear versiones ahora para empezar el ciclo de QA.</p>
         <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
+          <button class="btn btn-primary" onclick="advance(4)">Crear versiones &rarr;</button>
+          <button class="btn btn-ghost" onclick="terminarEnDraft()">Terminar &mdash; quedarme en draft</button>
         </div>
       </div>
 
@@ -433,7 +436,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-version-confirm" onclick="confirmVersions()">Crear versiones &rarr;</button>
-          <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
+          <button class="btn btn-ghost" onclick="terminarEnDraft()">Terminar &mdash; quedarme en draft</button>
         </div>
       </div>
       <div id="snap-log" style="display:none;margin-top:4px">
@@ -506,6 +509,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button class="btn btn-danger" onclick="rollbackFromStep7()">Rollback a staging anterior</button>
         </div>
       </div>
+      <div id="p7-rollback-log" style="display:none;margin-bottom:16px">
+        <div class="output-block" id="p7-rollback-log-block" style="min-height:60px"></div>
+      </div>
       <div class="slabel">Estado actual de entornos</div>
       <div class="output-block"><span class="dim">draft     </span> &rarr; (estado editado)  <span class="dim">&#8592; fuente de &ldquo;<span class="snapshot-name-ref">—</span>&rdquo;</span>
 <span class="info">staging   </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="ok">&#8592; nuevo</span>
@@ -540,7 +546,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="action-bar">
           <button class="btn btn-gate" onclick="confirmProduction()">Promover a producci&oacute;n &rarr;</button>
-          <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
+          <button class="btn btn-ghost" onclick="dejarloEnStaging()">Dejarlo en staging</button>
         </div>
       </div>
 
@@ -612,6 +618,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </main>
 
   <!-- SPECS PANEL -->
+
+  <!-- Confirmación propia: un confirm() del navegador es un diálogo del
+       sistema en medio del panel, y no puede explicar la consecuencia. -->
+  <div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:22px 26px;max-width:460px;margin:20px">
+      <div id="modal-titulo" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px"></div>
+      <p id="modal-texto" style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:20px"></p>
+      <div class="action-bar">
+        <button class="btn btn-gate" id="modal-aceptar"></button>
+        <button class="btn btn-ghost" onclick="cerrarModal()">Volver</button>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -753,8 +772,8 @@ const STEPS = [
   {id:1, name:'Inventario CX',           sub:'',  gate:false},
   {id:2, name:'Push a GitHub staging',   sub:'',  gate:true},
   {id:3, name:'Diff GitHub vs CX',       sub:'',  gate:true},
-  {id:4, name:'Confirmar deploy',        sub:'',  gate:true},
-  {id:5, name:'Snapshot del agente',     sub:'',  gate:true},
+  {id:4, name:'Desplegar al draft',     sub:'',  gate:true},
+  {id:5, name:'Crear versiones',        sub:'',  gate:true},
   {id:6, name:'Validación de tests',     sub:'',  gate:true},
   {id:7, name:'Gate QA — staging',       sub:'',  gate:true},
   {id:8, name:'Aprobar producción',      sub:'',  gate:true},
@@ -986,9 +1005,12 @@ async function renderStep3Diff() {
       fila.innerHTML = `<td colspan="3" style="color:var(--gate)">${aviso}</td>`;
       cuerpo.appendChild(fila);
     });
+    pintarResumenDiff(operaciones);
     (operaciones.length ? conCambios : sinCambios).style.display = 'block';
     const contador = document.getElementById('deploy-count');
     if (contador) contador.textContent = operaciones.length;
+    const desglose = document.getElementById('deploy-desglose');
+    if (desglose) desglose.textContent = describirOperaciones(operaciones);
     guardarEstado();
   } catch (error) {
     sinCambios.style.display = 'block';
@@ -997,6 +1019,42 @@ async function renderStep3Diff() {
 }
 
 let DIFF_OPS = [];
+
+/* Esta pantalla es el último sitio donde se ve qué se va a destruir. Sin un
+   resumen hay que contar filas a mano, y un DELETE pesa lo mismo que un
+   PATCH: dos pastillas en una lista larga. */
+function contarPorOperacion(operaciones) {
+  return operaciones.reduce((cuenta, o) => {
+    cuenta[o.operation] = (cuenta[o.operation] || 0) + 1;
+    return cuenta;
+  }, {});
+}
+
+function describirOperaciones(operaciones) {
+  const c = contarPorOperacion(operaciones);
+  const partes = [];
+  if (c.POST)   partes.push(`${c.POST} nuevo${c.POST > 1 ? 's' : ''}`);
+  if (c.PATCH)  partes.push(`${c.PATCH} modificado${c.PATCH > 1 ? 's' : ''}`);
+  if (c.DELETE) partes.push(`${c.DELETE} eliminado${c.DELETE > 1 ? 's' : ''}`);
+  return partes.join(' · ');
+}
+
+function pintarResumenDiff(operaciones) {
+  const c = contarPorOperacion(operaciones);
+  const borra = c.DELETE || 0;
+  const caja = document.getElementById('diff-resumen');
+  caja.style.cssText = borra
+    ? 'margin-bottom:16px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:14px 18px'
+    : 'margin-bottom:16px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 18px';
+  caja.innerHTML =
+    `<div style="font-size:13px;color:var(--text);margin-bottom:${borra ? '6px' : '0'}">`
+  + `<strong>${operaciones.length} operacion${operaciones.length === 1 ? '' : 'es'}</strong>`
+  + ` &mdash; ${describirOperaciones(operaciones) || 'ninguna'}</div>`
+  + (borra
+      ? `<div style="font-size:12px;color:#f87171">Los <strong>${borra} recurso${borra > 1 ? 's' : ''}`
+        + ` eliminado${borra > 1 ? 's' : ''}</strong> desaparece${borra > 1 ? 'n' : ''} de CX. No hay deshacer.</div>`
+      : '');
+}
 
 /* ── Comprobación CX → repo ──────────────────────────────────────────────
    El diff del Paso 3 mira repo → CX: qué hay que aplicar. Esta comprobación
@@ -1474,13 +1532,24 @@ function validarGateQA() {
 }
 
 async function rollbackFromStep7() {
+  mostrarConfirmacion(
+    'Rollback a la versión anterior',
+    'Staging vuelve a la versión anterior y el draft se restaura desde ella. '
+    + 'Producción no se toca. El pipeline queda cerrado: para volver a desplegar '
+    + 'habría que empezar de cero.',
+    'Confirmar rollback', ejecutarRollbackStep7);
+}
+
+async function ejecutarRollbackStep7() {
   setRunning(true);
+  const bloque = document.getElementById('p7-rollback-log');
+  bloque.style.display = 'block';
   try {
     const datos = await llamarPaso(7, {decision: 'rollback', previous_versions: versionesAnteriores});
-    alert((datos.log || []).join('\n'));
-    resetDeploy();
+    pintarLog('p7-rollback-log-block', datos.log);
+    document.getElementById('btn-validado-p7').disabled = true;
   } catch (error) {
-    alert(error.message);
+    mostrarError('p7-rollback-log-block', error);
   } finally { setRunning(false); }
 }
 
@@ -1499,18 +1568,46 @@ async function rollbackStaging() {
   } finally { setRunning(false); }
 }
 
-function cancelDeploy(afterDeploy) {
-  if(afterDeploy) {
-    if(confirm('El draft de CX ya tiene los cambios del deploy.\n\n¿Ir al rollback para revertirlos?')) {
-      stepStates[5] = 'gate';  // desbloquea paso 6 para que viewStep lo acepte
-      stepStates[6] = 'pending'; // bloquea paso 7
-      renderSidebar();
-      viewStep(6);
-      setTimeout(() => showRollbackConfirm(), 100);
-    }
-  } else {
-    if(confirm('¿Cancelar el deploy?\n\nEl inventario local no se ha modificado.')) resetDeploy();
-  }
+function mostrarConfirmacion(titulo, texto, etiquetaAceptar, alAceptar) {
+  document.getElementById('modal-titulo').textContent = titulo;
+  document.getElementById('modal-texto').textContent = texto;
+  const aceptar = document.getElementById('modal-aceptar');
+  aceptar.textContent = etiquetaAceptar;
+  aceptar.onclick = () => { cerrarModal(); alAceptar(); };
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function cerrarModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+/* Tres salidas distintas, una por momento. Antes había un único
+   cancelDeploy() que en los Pasos 5 y 8 llevaba al rollback — una acción
+   destructiva detrás de un botón que ponía «Cancelar». */
+
+function cancelarAntesDeDesplegar() {
+  // Nada se ha escrito en CX todavía: reiniciar es gratis.
+  mostrarConfirmacion(
+    'Cancelar el deploy',
+    'Todavía no se ha aplicado nada en CX. El pipeline vuelve al Paso 1 y el repo no se toca.',
+    'Cancelar el deploy', () => resetDeploy());
+}
+
+function terminarEnDraft() {
+  mostrarConfirmacion(
+    'Terminar y quedarse en draft',
+    'Los cambios se quedan en el draft del agente, donde no los ve ningún usuario. '
+    + 'Puedes seguir acumulando y crear versiones más adelante.',
+    'Terminar', () => resetDeploy());
+}
+
+function dejarloEnStaging() {
+  mostrarConfirmacion(
+    'Dejarlo en staging',
+    'Las versiones se quedan activas en staging y producción no cambia. '
+    + 'Puedes volver a promover más adelante. Si lo que quieres es deshacer, '
+    + 'usa el rollback del Paso 7.',
+    'Dejarlo en staging', () => resetDeploy());
 }
 
 function resetDeploy() {

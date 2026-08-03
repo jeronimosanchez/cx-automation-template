@@ -259,10 +259,14 @@ def list_gcp_projects():
     Tampoco manda x-goog-user-project: el proyecto es justamente lo que
     todavía no se ha elegido cuando se llama a esta función.
     """
-    headers = {
-        "Authorization": f"Bearer {get_token()}",
-        "Content-Type": "application/json",
-    }
+    def pedir(params, force_refresh=False):
+        return requests.get(
+            f"{RESOURCE_MANAGER_BASE}/projects",
+            headers={"Authorization": f"Bearer {get_token(force_refresh)}",
+                     "Content-Type": "application/json"},
+            params=params,
+        )
+
     projects = []
     next_token = None
 
@@ -270,9 +274,12 @@ def list_gcp_projects():
         params = {"pageSize": 200}
         if next_token:
             params["pageToken"] = next_token
-        response = requests.get(
-            f"{RESOURCE_MANAGER_BASE}/projects", headers=headers, params=params
-        )
+        response = pedir(params)
+        if response.status_code == 401:
+            # Esta llamada no pasa por api_request, así que el refresco ante
+            # token caducado hay que hacerlo aquí: es el primer endpoint que
+            # toca el panel y un 401 dejaría los selectores vacíos.
+            response = pedir(params, force_refresh=True)
         if response.status_code == 403:
             raise ProjectListPermissionError(
                 "Sin permiso para listar proyectos GCP: falta "
