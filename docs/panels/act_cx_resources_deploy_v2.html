@@ -273,41 +273,65 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- STEP 3: Diff GitHub vs CX -->
+    <!-- STEP 2: Qué cambia -->
     <div class="step-view" id="view-2">
-      <div class="phase-eyebrow">Paso 2 de 7</div>
-      <div class="phase-title">Diff GitHub vs CX</div>
-      <div class="phase-sub">Compara la rama <strong>staging de GitHub</strong> contra el entorno <strong>staging de CX</strong>.</div>
+      <div class="phase-eyebrow">Paso 2 de 7<span class="escribe-badge read">solo lectura</span></div>
+      <div class="phase-title">Qué cambia</div>
+      <div class="phase-sub">Abre cada pareja del mapa y compara el contenido. El Paso 1 dijo <em>dónde está cada cosa</em>; este dice <em>qué ha cambiado</em>.</div>
 
       <!-- Con cambios -->
       <div id="diff-has-changes" style="display:none">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px">Se va a aplicar en CX</div>
         <div class="diff-wrap">
           <table class="diff-table">
-            <thead><tr><th>Tipo</th><th>Recurso</th><th>Operaci&oacute;n</th></tr></thead>
+            <thead><tr><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
             <tbody>
-              <tr><td>Playbook</td><td><code>Compra</code></td><td><span class="pill pill-mod">PATCH</span></td></tr>
-              <tr><td>Playbook</td><td><code>Orquestador</code></td><td><span class="pill pill-mod">PATCH</span></td></tr>
-              <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><span class="pill pill-new">POST</span></td></tr>
-              <tr><td>Example</td><td><code>compra_tulipanes_002</code></td><td><span class="pill pill-del">DELETE</span></td></tr>
+              <tr><td>Playbook</td><td><code>Compra</code></td><td><code style="color:var(--text-3)">compra.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+              <tr><td>Playbook</td><td><code>Orquestador</code></td><td><code style="color:var(--text-3)">petal_cx_orchestrator.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+              <tr><td>Example</td><td><code>compra_rosas_001</code></td><td><code style="color:var(--text-3)">ex_compra_01.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
             </tbody>
           </table>
         </div>
-        <div class="legend" style="margin-bottom:20px">
-          <span class="legend-item"><span class="pill pill-new">POST</span> Nuevo en CX</span>
-          <span class="legend-item"><span class="pill pill-mod">PATCH</span> Modificado en CX</span>
-          <span class="legend-item"><span class="pill pill-del">DELETE</span> Eliminado de CX</span>
+        <div class="legend" style="margin-bottom:24px">
+          <span class="legend-item"><span class="pill pill-new">Crear</span> A&uacute;n no existe en CX</span>
+          <span class="legend-item"><span class="pill pill-mod">Modificar</span> Existe y el archivo dice otra cosa</span>
         </div>
+
+        <!-- Deriva: lo que está en CX y nadie reclama -->
+        <div style="border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:16px 18px;margin-bottom:24px;background:rgba(245,158,11,.05)">
+          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:4px">4 resources en CX sin respaldo en el repositorio</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 14px;line-height:1.6">
+            Alguien los cre&oacute; directamente en la consola de CX. El deploy no los toca &mdash; decide qu&eacute; hacer con ellos.</p>
+          <div class="diff-wrap" style="margin-bottom:14px">
+            <table class="diff-table">
+              <tbody>
+                <tr><td style="width:32px"><input type="checkbox" checked></td><td>Example</td><td><code>compra_tulipanes_002</code></td></tr>
+                <tr><td><input type="checkbox" checked></td><td>Example</td><td><code>despedida_larga</code></td></tr>
+                <tr><td><input type="checkbox" checked></td><td>Generator</td><td><code>resumen_pedido</code></td></tr>
+                <tr><td><input type="checkbox"></td><td>Tool</td><td><code>code-interpreter</code> <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-primary" onclick="alert('Se traen los seleccionados al repositorio.')">Traer al repositorio &rarr;</button>
+            <button class="btn btn-ghost" onclick="alert('Siguen en CX y el deploy no los toca.')">Ignorar</button>
+            <button class="btn btn-danger" onclick="alert('Pide una confirmación adicional antes de borrar nada.')">Eliminar de CX</button>
+            <span style="font-size:11px;color:var(--text-3);margin-left:auto">Traer al repositorio es lo recomendado</span>
+          </div>
+        </div>
+
         <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
+          <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
         </div>
       </div>
 
       <!-- Sin cambios -->
       <div id="diff-no-changes" style="display:none">
         <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:18px 20px;margin-bottom:20px">
-          <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">Sin cambios detectados</div>
-          <p style="font-size:13px;color:var(--text-2);margin:0">El agente en CX staging ya est&aacute; al d&iacute;a con la rama staging de GitHub. No hay nada que desplegar.</p>
+          <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">Nada que desplegar</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">Los resources emparejados tienen el mismo contenido en el repositorio y en CX.</p>
         </div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">Aun as&iacute;, hay <strong style="color:var(--gate)">4 resources en CX sin respaldo en el repositorio</strong>.</div>
         <div class="action-bar">
           <button class="btn btn-ghost" onclick="resetDeploy()">Cerrar</button>
         </div>
@@ -390,7 +414,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="deploy-done" style="display:none">
         <div class="done-banner"><p>Deploy completado &#10003;</p></div>
         <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
+          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
         </div>
       </div>
 
@@ -441,7 +465,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="snap-done" style="display:none">
         <div class="done-banner"><p>Versiones creadas &#10003;</p></div>
         <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(5)">Continuar &rarr;</button>
+          <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
         </div>
       </div>
     </div>
@@ -454,7 +478,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="gate-block">
         <div class="gate-title" id="test-gate-title">&#9995; Acci&oacute;n requerida</div>
         <div class="action-bar" id="test-action-bar">
-          <button class="btn btn-gate" onclick="advance(6)">Tests superados &rarr;</button>
+          <button class="btn btn-gate" onclick="advance(5)">Tests superados &rarr;</button>
           <button class="btn btn-danger" onclick="showRollbackConfirm()">Tests fallidos</button>
         </div>
       </div>
@@ -501,7 +525,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
         </div>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-validado-p7" onclick="this.disabled=true;this.textContent='Aprobando...';setTimeout(()=>advance(7),350)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
+          <button class="btn btn-gate" id="btn-validado-p7" onclick="this.disabled=true;this.textContent='Aprobando...';setTimeout(()=>advance(6),350)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
           <button class="btn btn-danger" onclick="rollbackFromStep7()">Rollback a staging anterior</button>
         </div>
       </div>
@@ -721,51 +745,75 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ Agente sin repositorio → el paso no arranca y ofrece vincular, en vez de fallar con un error de red<br>
-          ✓ Ningún agente del proyecto con repositorio → aviso al elegir proyecto<br>
-          ✓ Un archivo sin tipo → parada con error que nombre el archivo<br>
-          ✓ Dos archivos con el mismo identificador → parada con error que nombre los dos<br>
-          ✓ Los tres grupos suman el total de resources leídos<br>
-          ✓ Repositorio sin rama <code>staging</code> → mensaje que lo diga con esas palabras, no un 404 genérico<br>
-          ✓ Fallo de GitHub a mitad de la lectura → abortar sin mapa, nunca con el repositorio a medio leer<br>
-          ✓ Fallo de una lectura de CX → abortar de inmediato, sin datos parciales<br>
-          ✓ Agente vacío → aviso en el log, nunca aborta: un agente recién creado puede estarlo legítimamente<br>
-          ✓ Límite de peticiones alcanzado → reintentar con espera creciente; si persiste, abortar</p>
+          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
+          <p>✓ Si elijo un agente que no tiene repositorio, no me deja iniciar el inventario y me ofrece vincularlo ahí mismo<br>
+          ✓ Si ningún agente del proyecto tiene repositorio, me avisa nada más elegir el proyecto — no tengo que ir uno por uno para descubrirlo<br>
+          ✓ El log me deja distinguir las tres fases: la comprobación de conexión, lo que lee de CX y lo que lee del repositorio<br>
+          ✓ Al terminar veo tres grupos con su número, y los tres números suman el total que aparece debajo<br>
+          ✓ Puedo desplegar cualquiera de los tres grupos y ver la lista entera, no solo los primeros<br>
+          ✓ Cada elemento de "solo en el repositorio" me dice por qué está ahí: porque es nuevo, o porque lo que le correspondía en CX ya no está<br>
+          ✓ Si un archivo del repositorio no dice qué tipo de resource es, el inventario se para y me dice cuál es el archivo<br>
+          ✓ Si dos archivos apuntan al mismo resource de CX, se para y me dice cuáles son los dos<br>
+          ✓ Si el repositorio no tiene la rama que el pipeline usa, me lo dice con esas palabras — no con un error genérico<br>
+          ✓ Si falla la lectura de CX o la del repositorio, no me deja continuar con un mapa a medias<br>
+          ✓ Si el agente está vacío me lo dice, pero me deja seguir: un agente recién creado puede estar vacío legítimamente<br>
+          ✓ La cabecera dice "solo lectura", y al recorrer el paso entero no cambia nada ni en CX ni en el repositorio</p>
         </div>
       </div>
       <div id="spec-step-2" style="display:none">
-        <div class="spec-step-title">Paso 2 — Diff GitHub vs CX</div>
+        <div class="spec-step-title">Paso 2 — Qué cambia</div>
+
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
-          <p>Antes de tocar nada en CX, el sistema compara lo que tienes en GitHub staging con lo que hay ahora mismo en el draft del agente. El resultado es una lista exacta: qué recursos hay que crear, cuáles modificar y cuáles eliminar. Solo se opera sobre lo que ha cambiado.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Diff entre <code>definitions/</code> de GitHub staging y el inventario del Paso 1 (<code>act_cx_draft_resources_inventory_&lt;project&gt;_&lt;agent&gt;.json</code>). Genera POST (nuevo), PATCH (modificado), DELETE (eliminado). Matching por campo <code>displayName</code> — <code>name</code> lo asigna CX al crear el recurso (incluye un identificador que ningún YAML local puede conocer de antemano), así que no sirve como clave de comparación.</div>
+          <p>Abre cada pareja del mapa que produjo el Paso 1 y compara el contenido campo a campo. De ahí sale la lista de lo que se va a crear y lo que se va a modificar en CX. Y aparte, la lista de lo que está en CX sin respaldo en el repositorio, con la decisión de qué hacer con ello.</p>
         </div>
+
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
-          <p>Si desplegaras todo siempre estarías machacando recursos que no han cambiado, arriesgando inconsistencias. El diff es lo que hace que el pipeline sea idempotente: ejecutarlo dos veces seguidas sin cambios no hace nada.</p>
+          <p>El Paso 1 contesta <em>dónde está cada cosa</em>; este contesta <em>qué ha cambiado</em>. Son preguntas distintas: de dos resources emparejados, puede que ninguno haya cambiado. Y es la última pantalla antes de escribir en CX, así que es donde se decide.</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué necesita</div>
-          <p>El inventario generado en el Paso 1 como foto del estado actual del draft, y los archivos de definición de GitHub staging como fuente de verdad de lo que debería haber.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none"><code>act_cx_draft_resources_inventory_&lt;project&gt;_&lt;agent&gt;.json</code> · <code>definitions/**/*.yaml</code> (rama <code>staging</code>)</div>
-        </div>
+
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>Una lista de operaciones por recurso: POST · PATCH · DELETE. Si no hay diferencias, el pipeline termina aquí — no hay nada que desplegar.</p>
+          <p>La lista de cambios a aplicar, y la decisión tomada sobre la deriva.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">No vuelve a leer ni CX ni el repositorio: trabaja sobre el mapa del Paso 1. Releer arriesgaría comparar contra una foto distinta de la que el usuario tiene delante.</div>
         </div>
+
         <div class="spec-block">
-          <div class="spec-block-label">Flujo del paso</div>
-          <p>1. <strong>Con cambios</strong> — tabla con Tipo · Recurso · Operación + leyenda POST/PATCH/DELETE + botón "Continuar →"<br>
-          2. <strong>Sin cambios</strong> — aviso "Sin cambios detectados" + botón "Cerrar" → pipeline termina</p>
+          <div class="spec-block-label">Qué escribe y dónde</div>
+          <p><strong>Nada por sí solo.</strong> Comparar no escribe. Lo que sí escribe es el botón de traer al repositorio —crea archivos en el repositorio— y el de eliminar de CX, que además pide una confirmación aparte. Ninguno de los dos aplica el deploy: eso es el paso siguiente.</p>
         </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">2.1 — Lo que se va a aplicar</div>
+          <p>Una fila por resource que cambia, con su tipo, su nombre, el archivo del que sale y qué se le va a hacer: <strong>crear</strong> si aún no existe en CX, <strong>modificar</strong> si existe y el archivo dice otra cosa.</p>
+          <p><strong>No hay una tercera operación.</strong> El deploy nunca borra nada por su cuenta: lo que está en CX y no en el repositorio se trata aparte, y siempre por decisión explícita.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">2.2 — La deriva</div>
+          <p>Los resources que existen en CX y ningún archivo reclama. Aparecen siempre, con su número, aunque se decida no hacer nada con ellos.</p>
+          <p>Tres salidas: <strong>traer al repositorio</strong> —lo recomendado, y lo que mantiene el repositorio como retrato fiel del agente—, <strong>ignorar</strong>, que los deja donde están sin que el deploy los toque, y <strong>eliminar de CX</strong>, que es destructivo y pide una confirmación adicional.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Ignorar no es lo mismo que no ver: por eso el número aparece siempre, incluso cuando no hay ningún cambio que desplegar. Sin ese recordatorio, el repositorio se aleja del agente sin que nada lo señale.<br>
+Los resources nativos de la plataforma aparecen marcados y no se pueden traer — no tienen definición que guardar.</div>
+        </div>
+
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ Diff completado para los 12 tipos de recursos<br>
-          ✓ POST/PATCH/DELETE mutuamente excluyentes por recurso<br>
-          ✓ Tabla coherente con el inventario del Paso 1<br>
-          ✓ Si sin cambios → pipeline termina limpiamente, no continúa al Paso 3</p>
+          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
+          <p>✓ Cada fila me dice de qué archivo sale el cambio, no solo el nombre del resource<br>
+          ✓ Solo veo dos operaciones: crear y modificar. Nunca aparece un borrado dentro de lo que se va a aplicar<br>
+          ✓ Los resources en CX sin respaldo aparecen aparte, en su propio bloque, no mezclados con los cambios<br>
+          ✓ Ese bloque me dice cuántos son aunque decida no tocarlos<br>
+          ✓ El número sigue apareciendo aunque no haya ningún cambio que desplegar<br>
+          ✓ Puedo elegir uno por uno cuáles traer, no es todo o nada<br>
+          ✓ La opción recomendada viene marcada de entrada, y se ve cuál es<br>
+          ✓ Lo que no se puede traer al repositorio aparece marcado y me explica por qué<br>
+          ✓ Eliminar de CX me pide una confirmación más, aparte de haberlo pulsado<br>
+          ✓ Si no hay nada que cambiar me lo dice claramente, y aun así me recuerda la deriva<br>
+          ✓ La cabecera dice "solo lectura": comparar no cambia nada. Traer o eliminar son acciones que pulso yo, no efectos de entrar en el paso</p>
         </div>
       </div>
       <div id="spec-step-3" style="display:none">
@@ -906,7 +954,7 @@ El script almacena el nombre del snapshot en memoria para propagarlo a los pasos
           <div class="spec-block-label">Qué produce</div>
           <p>Dos salidas posibles: si el usuario valida, el pipeline avanza al Paso 7 sin ninguna llamada a la API. Si el usuario revierte, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta — misma secuencia que el rollback del Paso 5.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">"Validado" → <code>advance(7)</code> sin ninguna llamada a API. "Rollback a staging anterior" → <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Misma secuencia que <code>rollbackStaging()</code> del Paso 5.</div>
+          <div class="tech-content" style="display:none">"Validado" → <code>advance(6)</code> sin ninguna llamada a API. "Rollback a staging anterior" → <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Misma secuencia que <code>rollbackStaging()</code> del Paso 5.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Flujo del paso</div>
@@ -1465,7 +1513,7 @@ function renderSidebar() {
     </div>`;
     html += '<div class="step-connector"></div>';
   });
-  if (stepStates[7] === 'done') {
+  if (stepStates[6] === 'done') {
     const active = viewingStep === 'done' ? ' active' : '';
     html += `<div class="step-item s-done${active}" onclick="viewDone()">
       <div class="step-badge">★</div>
@@ -1492,10 +1540,10 @@ function viewStep(id) {
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   const v = document.getElementById('view-'+id);
   if(v) v.classList.add('visible');
-  if(id === 3) renderStep3Diff();
-  if(id === 4) renderCxRepoCheck();
-  if(id === 5) renderVersionPool();
-  if(id === 5) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
+  if(id === 2) renderStep3Diff();
+  if(id === 3) renderCxRepoCheck();
+  if(id === 4) renderVersionPool();
+  if(id === 4) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
   syncSpecsPanel(id);
   renderSidebar();
 }
@@ -1591,8 +1639,8 @@ function abortProduction() {
 }
 
 function advanceToDone() {
-  if (stepStates[7] !== 'gate') return;
-  stepStates[7] = 'done';
+  if (stepStates[6] !== 'gate') return;
+  stepStates[6] = 'done';
   viewingStep = 'done';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   document.getElementById('view-done').classList.add('visible');
@@ -1693,7 +1741,7 @@ const ROLLBACK_LINES = [
 function rollbackFromStep7() {
   if(isRunning) return;
   if(!confirm('¿Revertir staging al estado anterior?')) return;
-  stepStates[6] = 'pending'; // SM-03: bloquea paso 6 mientras el rollback está en curso
+  stepStates[5] = 'pending'; // SM-03: bloquea el paso siguiente mientras el rollback está en curso
   renderSidebar();
   viewStep(5);
   setTimeout(() => showRollbackConfirm(), 100);
@@ -1716,9 +1764,9 @@ function rollbackStaging() {
     if (i >= ROLLBACK_LINES.length) {
       setTimeout(() => {
         document.getElementById('rollback-done-banner').style.display = 'block';
-        stepStates[5] = 'error';
+        stepStates[4] = 'error';
+        stepStates[5] = 'pending';
         stepStates[6] = 'pending';
-        stepStates[7] = 'pending';
         renderSidebar();
         setRunning(false);
       }, 300);
@@ -1739,8 +1787,8 @@ function rollbackStaging() {
 function cancelDeploy(afterDeploy) {
   if(afterDeploy) {
     if(confirm('El draft de CX ya tiene los cambios del deploy.\n\n¿Ir al rollback para revertirlos?')) {
-      stepStates[5] = 'gate';  // desbloquea paso 5 para que viewStep lo acepte
-      stepStates[6] = 'pending'; // bloquea paso 6
+      stepStates[4] = 'gate';  // desbloquea el paso del snapshot para que viewStep lo acepte
+      stepStates[5] = 'pending'; // bloquea el siguiente
       renderSidebar();
       viewStep(5);
       setTimeout(() => showRollbackConfirm(), 100);
