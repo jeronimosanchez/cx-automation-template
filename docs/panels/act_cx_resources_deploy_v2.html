@@ -414,8 +414,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate4-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate4-agent">Petal 1.0</strong></p>
         <p>Se van a aplicar <strong style="color:var(--text)"><span id="deploy-count">0</span> resources</strong> de los marcados arriba. Los recursos sin cambios no se tocan.</p>
         <div id="agent-config-warning" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
-          <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; Este deploy incluye cambios en Agent Config / Generators &mdash; sin staging posible</p>
-          <p style="font-size:12px;color:var(--text-2);line-height:1.5">Estos dos tipos no tienen versión en la API de CX. El cambio será visible en draft, staging y producción a la vez, en el instante en que confirmes &mdash; no hay forma de probarlo en staging antes.</p>
+          <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; Este deploy incluye cambios que no admiten versi&oacute;n</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.5">Estos tipos no se pueden congelar en una versi&oacute;n, as&iacute; que el cambio lo ver&aacute;n los usuarios en el mismo instante en que lo apliques &mdash; sin pasar por los tests del paso siguiente.</p>
         </div>
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Aplicar en CX &rarr;</button>
@@ -594,8 +594,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
 
       <div class="slabel">Estado final de entornos</div>
-      <div class="output-block"><span class="ok">&#10003;</span> staging    &rarr; <span class="snapshot-name-ref">—</span>
-<span class="ok">&#10003;</span> producci&oacute;n &rarr; <span class="snapshot-name-ref">—</span>  <span class="info">&#8592; nuevo</span></div>
+      <div class="output-block"><span class="ok">&#10003;</span> producci&oacute;n &rarr; <span class="snapshot-name-ref">&mdash;</span>  <span class="info">&#8592; nuevo</span></div>
 
       <div style="margin-top:4px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
     </div>
@@ -837,7 +836,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
         <div class="spec-block">
           <div class="spec-block-label">3.4 — Qué escribe y dónde</div>
-          <p>En el draft del agente, y solo al pulsar. No toca staging ni producción — eso es el paso siguiente — ni el repositorio.</p>
+          <p>En el draft del agente, y solo al pulsar. No toca producción —eso es el paso siguiente— ni el repositorio.</p>
           <p>El draft es el estado editable del agente: ningún usuario ve lo que se escribe aquí hasta que se publique.</p>
         </div>
 
@@ -860,7 +859,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">3.8 — El aviso sin staging</div>
+          <div class="spec-block-label">3.8 — El aviso de los cambios que no admiten versión</div>
           <p>Hay unos pocos tipos de resource que no admiten versión. Si entre lo marcado hay alguno, se avisa antes de confirmar: ese cambio no se queda en el draft — lo verán los usuarios en el mismo instante en que lo apliques, sin pasar por los tests.</p>
           <p>El aviso no bloquea, pero es el único caso del pipeline en el que el Paso 4 no protege nada.</p>
         </div>
@@ -888,7 +887,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           ✓ El botón de aplicar está dentro del cuadro; "Continuar sin modificar" está fuera y nunca se bloquea<br>
           ✓ Una vez he aplicado algo, "continuar sin modificar" desaparece: ya he modificado<br>
           ✓ Este paso y el anterior se leen igual: misma tarjeta, mismo cuadro, misma salida<br>
-          ✓ Si hay cambios que no se pueden probar en staging, me avisa antes de confirmar<br>
+          ✓ Si hay cambios que no admiten versión, me avisa antes de confirmar<br>
           ✓ Mientras se aplica veo el avance recurso a recurso, no una barra sin detalle<br>
           ✓ En el registro solo aparecen los resources que marqué, y aparecen todos<br>
           ✓ Si algo falla, me dice qué se aplicó y qué no, y puedo reintentar solo lo fallido<br>
@@ -913,7 +912,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
         <div class="spec-block">
           <div class="spec-block-label">4.3 — Qué produce</div>
-          <p>Una decisión: seguir o volver atrás. Nada más — no crea ni modifica ningún artefacto.</p>
+          <p>Una decisión: seguir o volver atrás. Nada más — no crea ni modifica ningún resource.</p>
         </div>
 
         <div class="spec-block">
@@ -1610,7 +1609,7 @@ function resetDeployStep4() {
 const VERSION_PREFIX = 'deploy_';
 
 let VERSIONES = [
-  {nombre: 'ci-207',                 creada: '2026-07-22', fijadaPor: 'staging · producción'},
+  {nombre: 'ci-207',                 creada: '2026-07-22', fijadaPor: 'producción'},
   {nombre: 'fix-orquestador-routing', creada: '2026-07-24', fijadaPor: null},
   {nombre: 'deploy_2026-07-28_0945', creada: '2026-07-28', fijadaPor: null},
   {nombre: 'deploy_2026-07-30_1712', creada: '2026-07-30', fijadaPor: null},
@@ -1658,7 +1657,7 @@ function stateText(state) {
   if(state==='gate') return 'Esperando confirmación';
   if(state==='active') return 'En progreso...';
   if(state==='pending') return 'Pendiente';
-  if(state==='error') return 'Rollback';
+  if(state==='error') return 'Fallido';
   return '';
 }
 function badgeContent(state, n) {
