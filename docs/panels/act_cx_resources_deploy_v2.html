@@ -12,11 +12,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* TOP BAR */
 .topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
-.step-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+.escribe-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   border-radius:4px;padding:1px 7px;margin-left:12px;white-space:nowrap}
-.step-badge.read{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
-.step-badge.write-cx{background:rgba(245,158,11,.12);color:var(--gate);border:1px solid rgba(245,158,11,.35)}
-.step-badge.write-gh{background:rgba(59,130,246,.12);color:var(--accent-light);border:1px solid rgba(59,130,246,.35)}
+.escribe-badge.read{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+.escribe-badge.write-cx{background:rgba(245,158,11,.12);color:var(--gate);border:1px solid rgba(245,158,11,.35)}
+.escribe-badge.write-gh{background:rgba(59,130,246,.12);color:var(--accent-light);border:1px solid rgba(59,130,246,.35)}
 .repo-resuelto{display:flex;align-items:center;gap:8px;background:var(--bg-2);border:1px solid var(--border);
   border-radius:6px;padding:8px 12px;font-size:12px;min-height:34px}
 .grupo-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;flex:1;min-width:200px}
@@ -188,7 +188,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 1: Inventario CX -->
     <div class="step-view" id="view-1">
-      <div class="phase-eyebrow">Paso 1 de 7<span class="step-badge read">solo lectura</span></div>
+      <div class="phase-eyebrow">Paso 1 de 7<span class="escribe-badge read">solo lectura</span></div>
       <div class="phase-title">Inventario CX</div>
       <div class="phase-sub">
         Lee el estado actual del draft del agente desde la API de Dialogflow CX.
@@ -657,83 +657,82 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <div id="spec-step-1">
         <div class="spec-step-title">Paso 1 — Inventario CX</div>
-        <div class="spec-block">
-          <div class="spec-block-label">1.0 — Resolución del repositorio (automático)</div>
-          <p>Al seleccionar el agente, el servidor busca en Firestore el repositorio de GitHub asociado. No hay selector de repositorio: lo determina el agente. Si ese agente no tiene ninguno registrado, el inventario no arranca — el panel ofrece abrir el asistente de la pestaña Proyectos.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Consulta el mapeo <code>agente → repositorio</code> en Firestore. Un agente tiene como máximo un repositorio, y eso es lo que impide que dos repositorios reclamen el mismo agente.<br>
-Si no hay entrada, devolver un error tipado que el panel distinga de un fallo de red — así puede ofrecer el asistente en lugar de un mensaje genérico.</div>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">1.1 — Pre-flight check (automático)</div>
-          <p>Antes de lanzar las 12 llamadas LIST, el script verifica que la autenticación y la conectividad con CX funcionan. Si falla aquí, el error es inmediato y claro — no a mitad del inventario.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Antes de llamar a cualquier función <code>inventory_*()</code>, ejecutar:<br>
-1. <code>get_headers()</code> — obtiene el token por ADC (<code>google.auth.default()</code>) y añade la cabecera <code>x-goog-user-project</code> con el proyecto del agente.<br>
-&nbsp;&nbsp;&nbsp;Si falla → error claro que distinga las dos causas: sin credenciales ADC, o sin el permiso <code>serviceusage.services.use</code> sobre ese proyecto.<br>
-2. <code>GET {PARENT}</code> — un GET al endpoint del agente para verificar conectividad y permisos.<br>
-&nbsp;&nbsp;&nbsp;Si falla → error claro con status code y mensaje de la API.<br>
-Sin este check, un fallo de auth produce errores HTTP 401 a mitad de las 12 llamadas,<br>
-sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y explícito.</div>
-        </div>
+
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
-          <p>Antes de desplegar nada, necesitamos saber qué hay ahora mismo en el draft del agente Petal. El draft es el estado editable de CX — no la versión que está corriendo en staging para test cases. Este paso hace una foto de ese borrador: cuántos playbooks, examples, tools y demás recursos existen en CX en este momento.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Llama a las 12 funciones <code>inventory_*()</code> de <code>act_cx_resources_deploy.py</code> (READ-ONLY, una función por tipo de recurso). Si algún LIST falla → abortar inmediatamente, sin datos parciales.</div>
+          <p>Construye el punto de partida del pipeline, y hace tres cosas: averigua qué repositorio corresponde al agente elegido, fotografía el draft de CX y lee el repositorio entero para emparejar cada resource con su archivo. Lo que sale no es una lista de lo que hay en CX, sino el mapa de qué está en los dos sitios, qué solo en CX y qué solo en el repositorio.</p>
         </div>
+
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
-          <p>Si desplegamos sin saber el estado actual, no podemos comparar qué ha cambiado. Esta foto es el punto de partida de todo el pipeline — sin ella, el diff no tiene contra qué comparar.</p>
+          <p>Sin saber el estado actual no hay nada contra qué comparar. Pero una foto de CX a secas tampoco basta: hasta que cada resource no está emparejado con su archivo, no se puede distinguir un cambio de un resource nuevo, ni un renombrado de un borrado más una creación. El emparejamiento se hace aquí para que el paso siguiente solo tenga que comparar contenidos.</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">1.3 — Lectura del repositorio</div>
-          <p>El servidor lee <strong>todos</strong> los YAML del repositorio, no solo los de unas carpetas concretas. La estructura de carpetas es libre y no significa nada: cada archivo declara en su metadata qué tipo de resource es, de quién cuelga y a qué resource de CX corresponde.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Git Trees API con <code>recursive=1</code> sobre la rama <code>staging</code>, y descarga de cada blob YAML. La Contents API no sirve: sobre un directorio devuelve solo el primer nivel, y <code>definitions/examples/</code> tiene subcarpetas.<br>
-De cada archivo se leen <code>tipo</code>, <code>padre</code> y <code>cx_id</code>.<br>
-<strong>Dos fallos paran el paso con error explícito, nunca en silencio:</strong><br>
-&nbsp;&nbsp;· Un YAML sin <code>tipo</code> — sería invisible para el pipeline.<br>
-&nbsp;&nbsp;· Dos YAML con el mismo <code>cx_id</code> — dos archivos reclamando el mismo resource de CX. Ocurre al duplicar un archivo y olvidar vaciar el identificador.</div>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">1.4 — Emparejamiento</div>
-          <p>Cada resource encontrado en CX se empareja con su archivo del repositorio <strong>por <code>cx_id</code></strong>, no por nombre ni por ubicación. El resultado clasifica cada resource en tres grupos:</p>
-          <p><strong>Emparejado</strong> — está en CX y tiene archivo. Se muestra la ruta.<br>
-<strong>Solo en CX</strong> — existe en el agente y ningún archivo lo reclama. Es lo que el Paso 2 ofrece traer al repositorio.<br>
-<strong>Solo en el repositorio</strong> — tiene archivo pero sin <code>cx_id</code>, o con uno que ya no existe en CX. Sin <code>cx_id</code> es un resource nuevo pendiente de crear; con un <code>cx_id</code> fantasma, alguien lo borró en la consola.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none"><strong>Por qué por identificador y no por nombre:</strong> yendo por nombre, renombrar un resource en CX parece un recurso borrado más uno creado. Por identificador es un simple cambio de campo.<br>
-Los tres grupos alimentan directamente los tres botones del Paso 2 — Traer al repositorio, Ignorar y Eliminar de CX.</div>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué necesita</div>
-          <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Token de <code>gcloud auth print-access-token</code>. Proyecto y agente recibidos del selector del panel (o de <code>--project</code>/<code>--agent</code> por CLI) — región fija <code>europe-west1</code>.</div>
-        </div>
+
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>La foto del agente con cada resource ya emparejado con su archivo. Lleva dentro el proyecto, el agente, el repositorio, el commit de <code>staging</code> desde el que se leyó y la marca de tiempo. El Paso 2 la usa para el diff.</p>
+          <p>El mapa del agente en tres grupos —emparejados, solo en CX, solo en el repositorio— con el archivo de cada uno. Lleva dentro el proyecto, el agente, el repositorio, el commit de <code>staging</code> del que se leyó y la marca de tiempo.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">El Paso 2 no vuelve a leer nada: trabaja sobre este mismo mapa. Releer arriesgaría comparar contra una foto distinta de la que el usuario aprobó.</div>
         </div>
+
         <div class="spec-block">
-          <div class="spec-block-label">Flujo del paso</div>
-          <p>1. <strong>Inicial</strong> — botón "Iniciar inventario →"<br>
-  2. <strong>Corriendo</strong> — log animado con las llamadas LIST a la API (12 tipos de recursos)<br>
-  3. <strong>Completado</strong> — banner ✓ + cuadrícula de 12 stat-cards con conteos + botón "Continuar →"<br>
-  4. <strong>Error</strong> — si algún LIST falla → paso en error, no continúa al Paso 2</p>
+          <div class="spec-block-label">Qué escribe y dónde</div>
+          <p><strong>Nada.</strong> Consulta el mapeo agente-repositorio, lee CX y lee GitHub, pero no modifica ninguno de los tres. Es lo que declara la etiqueta <em>solo lectura</em> de la cabecera.</p>
         </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">1.1 — Resolución del repositorio</div>
+          <p>Al elegir el agente aparece su repositorio. No hay selector: el mapeo lo guarda el servidor, y un agente tiene como máximo un repositorio — eso es lo que impide que dos repositorios reclamen el mismo agente.</p>
+          <p>Si el agente no tiene ninguno, se muestra el aviso y el botón de iniciar queda deshabilitado. Si <strong>ningún</strong> agente del proyecto lo tiene, el aviso aparece arriba al elegir proyecto, para no tener que recorrerlos uno a uno para descubrirlo.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">El mapeo vive fuera del ciclo de vida del servidor, así que sobrevive a que el contenedor se recicle.<br>
+Cuando no hay entrada, devolver un error tipado que el panel distinga de un fallo de red — solo así puede ofrecer el enlace a vincular en lugar de un mensaje genérico.</div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">1.2 — Comprobación de conexión</div>
+          <p>Primera línea del log. Verifica credenciales y acceso al agente antes de lanzar ninguna lectura. Si falla aquí, el error es inmediato y distingue las dos causas —sin credenciales, o sin permiso sobre ese proyecto— en vez de aparecer a mitad del inventario como un 401 sin contexto.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">1.3 — Foto de CX</div>
+          <p>Una lectura por cada tipo de resource declarado, sobre el <strong>draft</strong> — el estado editable, no lo que corre en staging. Los tipos salen del registro, así que el número no es fijo.</p>
+          <p>Si una lectura falla, se aborta. Mejor sin datos que con datos parciales: un inventario incompleto produce un diff que propone crear lo que ya existe.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">1.4 — Lectura del repositorio</div>
+          <p>Se leen <strong>todos</strong> los YAML del repositorio, de forma recursiva. La estructura de carpetas es libre y no significa nada: cada archivo declara en su metadata qué tipo de resource es, de quién cuelga y a qué resource de CX corresponde.</p>
+          <p>Dos situaciones paran el paso con error explícito, nunca en silencio: un archivo <strong>sin tipo</strong> —sería invisible para el pipeline— y dos archivos con el <strong>mismo identificador de CX</strong>, que es lo que ocurre al duplicar un archivo y olvidar vaciarlo.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">La lectura tiene que ser recursiva de verdad: un listado que solo devuelva el primer nivel de cada carpeta deja fuera todo lo anidado, y eso incluye los examples, que cuelgan de su playbook.<br>
+La rama es <code>staging</code>, y el commit del que se leyó viaja en el resultado.</div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">1.5 — Emparejamiento</div>
+          <p>Cada resource de CX se empareja con su archivo <strong>por identificador</strong>, no por nombre ni por ubicación. El resultado son los tres grupos, cada uno desplegable para ver la lista completa.</p>
+          <p><strong>Emparejado</strong> — está en CX y tiene archivo.<br>
+          <strong>Solo en CX</strong> — existe en el agente y ningún archivo lo reclama.<br>
+          <strong>Solo en el repositorio</strong> — tiene archivo pero aún no existe en CX, o su identificador ya no está allí.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Por identificador y no por nombre: yendo por nombre, renombrar algo en CX parecería un recurso borrado más uno creado, y el pipeline propondría destruir y recrear en vez de cambiar un campo.</div>
+        </div>
+
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si cualquier LIST falla → abortar inmediatamente, no continuar con datos parciales<br>✓ Si todos los tipos vuelven vacíos → aviso en el log, nunca aborta (un agente recién creado puede estar legítimamente vacío — solo abortan los fallos de LIST, no un inventario vacío)<br>✓ Si draft difiere de staging (deploy anterior incompleto) → el inventario refleja el draft, no staging<br>✓ 429 (rate limit) → reintentar con backoff exponencial (máx. 3 intentos); si persiste → abortar</p>
-          <div style="border-top:1px solid var(--border);margin:10px 0 8px"></div>
-          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Integridad del JSON generado</div>
-          <p style="margin-bottom:6px">Antes de guardar el archivo, el sistema verifica que los datos son coherentes y completos — así el Paso 2 puede confiar en ellos sin comprobaciones adicionales.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">✓ Los 12 tipos presentes en <code>resources</code> como arrays (<code>null</code> ≠ <code>[]</code> — null = fallo, [] = tipo inexistente)<br>✓ <code>totals[tipo] == len(resources[tipo])</code> para cada tipo — detecta paginación incompleta<br>✓ Todos los ítems con count > 0 tienen <code>name</code> no vacío — el diff usa <code>name</code> como clave<br>✓ <code>generated_at</code>, <code>agent</code> y <code>totals</code> presentes y válidos; <code>agent</code> no es un placeholder</div>
+          <p>✓ Agente sin repositorio → el paso no arranca y ofrece vincular, en vez de fallar con un error de red<br>
+          ✓ Ningún agente del proyecto con repositorio → aviso al elegir proyecto<br>
+          ✓ Un archivo sin tipo → parada con error que nombre el archivo<br>
+          ✓ Dos archivos con el mismo identificador → parada con error que nombre los dos<br>
+          ✓ Los tres grupos suman el total de resources leídos<br>
+          ✓ Repositorio sin rama <code>staging</code> → mensaje que lo diga con esas palabras, no un 404 genérico<br>
+          ✓ Fallo de GitHub a mitad de la lectura → abortar sin mapa, nunca con el repositorio a medio leer<br>
+          ✓ Fallo de una lectura de CX → abortar de inmediato, sin datos parciales<br>
+          ✓ Agente vacío → aviso en el log, nunca aborta: un agente recién creado puede estarlo legítimamente<br>
+          ✓ Límite de peticiones alcanzado → reintentar con espera creciente; si persiste, abortar</p>
         </div>
       </div>
-
       <div id="spec-step-2" style="display:none">
         <div class="spec-step-title">Paso 2 — Diff GitHub vs CX</div>
         <div class="spec-block">
