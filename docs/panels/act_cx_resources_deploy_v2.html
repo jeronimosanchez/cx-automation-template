@@ -457,44 +457,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 4: Validar tests contra el draft -->
     <div class="step-view" id="view-4">
-      <div class="phase-eyebrow">Paso 4 de 5<span class="escribe-badge read">solo lectura</span></div>
+      <div class="phase-eyebrow">Paso 4 de 5</div>
       <div class="phase-title">Validar tests</div>
-      <div class="phase-sub">Los tests corren contra el <strong>draft</strong>, que es donde acabas de aplicar los cambios. Nada llega a producci&oacute;n sin pasar por aqu&iacute;.</div>
+      <div class="phase-sub">El paso siguiente sube a producci&oacute;n. Antes hay que comprobar que el draft se comporta como debe.</div>
 
-      <div id="tests-start">
+      <div id="tests-gate">
         <div class="gate-block">
-          <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
-          <p>Se lanzar&aacute; la suite completa contra el draft del agente. No hace falta crear ninguna versi&oacute;n: la API permite probar el draft directamente.</p>
-          <div class="action-bar">
-            <button class="btn btn-gate" onclick="lanzarTests()">Lanzar tests &rarr;</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="tests-log" style="display:none;margin-top:16px">
-        <div class="output-block" id="tests-log-block" style="height:200px;overflow-y:auto"></div>
-      </div>
-
-      <div id="tests-ok" style="display:none;margin-top:16px">
-        <div class="done-banner"><p>24 de 24 casos superados &#10003;</p></div>
-        <div class="gate-block" style="margin-top:16px">
-          <div class="gate-title">&#9995; Validaci&oacute;n manual</div>
-          <p>Los tests autom&aacute;ticos cubren lo que cubren. Antes de promover, pru&eacute;balo t&uacute; en el draft del agente y confirma que se comporta como esperas.</p>
+          <div class="gate-title">&#9995; Validaci&oacute;n manual requerida</div>
+          <p style="margin-bottom:10px">Lanza t&uacute; la suite de QA contra el <strong>draft</strong> del agente y comprueba el resultado. Cuando lo tengas, dilo aqu&iacute;.</p>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:14px">El panel no lanza los tests ni conoce su resultado: lo que marques aqu&iacute; es una declaraci&oacute;n tuya.</p>
           <div class="action-bar">
             <a class="btn btn-ghost" href="https://dialogflow.cloud.google.com/cx" target="_blank" rel="noopener">Abrir el agente en CX &#8599;</a>
-            <button class="btn btn-gate" onclick="advance(4)">Validado &mdash; continuar &rarr;</button>
+            <button class="btn btn-gate" onclick="advance(4)">Tests superados &mdash; continuar &rarr;</button>
+            <button class="btn btn-danger" onclick="marcarTestsFallidos()">Tests fallidos</button>
           </div>
         </div>
       </div>
 
       <div id="tests-fail" style="display:none;margin-top:16px">
         <div style="border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px">
-          <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; 3 de 24 casos han fallado</div>
+          <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Tests fallidos</div>
           <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
-            No hay nada que revertir: los cambios est&aacute;n en el draft, que es tu espacio de trabajo. Corrige los archivos en el repositorio y vuelve a aplicar.</p>
+            No hay nada que revertir: los cambios est&aacute;n en el draft, que es tu espacio de trabajo y no lo ve ning&uacute;n usuario. Corrige los archivos en el repositorio y vuelve a aplicar.</p>
           <div class="action-bar">
-            <button class="btn btn-ghost" onclick="viewStep(3)">Volver a aplicar en CX &rarr;</button>
-            <button class="btn btn-ghost" onclick="lanzarTests()">Repetir tests</button>
+            <button class="btn btn-gate" onclick="viewStep(3)">Volver a aplicar en CX &rarr;</button>
+            <button class="btn btn-ghost" onclick="volverAValidar()">He vuelto a probar</button>
           </div>
         </div>
       </div>
@@ -526,6 +513,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <strong style="color:var(--text)">1.</strong> El c&oacute;digo validado se fusiona a la rama principal del repositorio.<br>
             <strong style="color:var(--text)">2.</strong> Se crea la versi&oacute;n con el estado actual del draft.<br>
             <strong style="color:var(--text)">3.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:14px">Al terminar, haz <code>git pull</code> en local: la fusi&oacute;n la hace el servidor y tu copia se queda un commit por detr&aacute;s.</p>
           <div class="action-bar">
             <button class="btn btn-gate" onclick="confirmProduction()">Publicar en producci&oacute;n &rarr;</button>
             <button class="btn btn-ghost" onclick="resetDeploy()">Cancelar</button>
@@ -885,55 +873,53 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block">
           <div class="spec-block-label">4.1 — Qué hace</div>
-          <p>Al entrar hay un cuadro de acción con un solo botón. Al pulsarlo, la suite de tests corre contra el draft y el resultado se va escribiendo en una caja de tamaño fijo, caso por caso.</p>
-          <p>Si pasan todos, aparece debajo un segundo cuadro pidiendo la comprobación manual. Si falla alguno, aparece un aviso rojo con las salidas para corregir.</p>
+          <p>Al entrar hay un cuadro que pide lanzar la suite de QA por tu cuenta contra el draft y volver aquí a decir cómo ha ido. Dos salidas: superados, que sigue al paso siguiente, o fallidos, que abre un aviso rojo con las opciones para corregir.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">4.2 — Por qué existe</div>
-          <p>Es la puerta a producción. Su función no es probar por probar: es que <strong>no se propague nada que no haya pasado los tests</strong>. Sin este paso, el último gate sería un botón sin nada detrás.</p>
+          <p>El paso siguiente sube a producción. Este es el último punto donde alguien mira antes de que los cambios los vean usuarios reales.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">4.3 — Qué produce</div>
-          <p>Un resultado —pasan o no pasan— y el registro de qué caso ha fallado. No produce ningún artefacto: nada que se cree aquí viaja al paso siguiente salvo la certeza de haberlo probado.</p>
+          <p>Una decisión: seguir o volver atrás. Nada más — no crea ni modifica ningún artefacto.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">4.4 — Qué escribe y dónde</div>
-          <p><strong>Nada.</strong> Los tests conversan con el agente, pero no modifican su definición. Por eso la cabecera dice <em>solo lectura</em>.</p>
+          <p><strong>Nada.</strong> Es un punto de decisión, no una operación.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">4.5 — Se prueba contra el draft</div>
-          <p>No hace falta crear ninguna versión ni publicar en ningún entorno intermedio para probar: se prueba directamente el draft, que es donde acabas de aplicar los cambios.</p>
+          <div class="spec-block-label">4.5 — Es una declaración, no una comprobación</div>
+          <p>El panel <strong>no lanza los tests ni conoce su resultado</strong>. Los lanzas tú fuera y aquí dices lo que ha pasado. La pantalla lo dice con esas palabras, para que nadie confunda el botón con una verificación.</p>
+          <p><strong>Es la limitación conocida del paso:</strong> pulsar "superados" sin haberlos lanzado lleva directo al gate de producción y nada lo detecta. Se asume mientras el runner de QA viva fuera del panel; el día que se pueda invocar desde aquí, este paso pasa a comprobar en vez de preguntar.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">4.6 — Se prueba contra el draft</div>
+          <p>No hace falta crear ninguna versión ni publicar en ningún entorno intermedio: se prueba el draft, que es donde acabas de aplicar los cambios.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Verificado en la documentación de la API: el entorno es un campo opcional tanto al lanzar test cases como al abrir una conversación, y cuando no se indica se asume el draft. La misma documentación advierte de lo contrario para el tráfico real: producción debe apuntar siempre a una versión, y eso es lo que hace el Paso 5.</div>
+          <div class="tech-content" style="display:none">Verificado en la documentación de la API: el entorno es opcional tanto al lanzar test cases como al abrir una conversación, y sin él se asume el draft. La misma documentación advierte de lo contrario para el tráfico real: producción debe apuntar siempre a una versión, y eso es lo que hace el Paso 5.</div>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">4.6 — Si fallan, no se revierte nada</div>
-          <p>Los cambios están en el draft, que es tu espacio de trabajo y no lo ve ningún usuario. Así que ante un fallo no hay nada que deshacer: se corrigen los archivos y se vuelve a aplicar.</p>
-          <p><strong>Por qué esto importa:</strong> revertir el draft sería destructivo y a ciegas — se llevaría por delante todo lo acumulado, no solo lo que ha fallado, y no hay forma de saber qué estado anterior era bueno. Arreglar hacia delante es la única salida que no pierde trabajo.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">4.7 — La comprobación manual</div>
-          <p>Solo aparece si los tests pasan. Los automáticos cubren lo que cubren, así que antes de promover hay un segundo cuadro que pide abrir el agente y probarlo a mano, con un enlace directo.</p>
+          <div class="spec-block-label">4.7 — Si fallan, no se revierte nada</div>
+          <p>Los cambios están en el draft, que es tu espacio de trabajo y no lo ve ningún usuario. Ante un fallo no hay nada que deshacer: se corrigen los archivos y se vuelve a aplicar.</p>
+          <p><strong>Por qué no hay botón de revertir:</strong> revertir el draft sería destructivo y a ciegas — se llevaría todo lo acumulado, no solo lo que ha fallado, y no hay forma de saber qué estado anterior era bueno. Arreglar hacia delante es la única salida que no pierde trabajo.</p>
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">4.8 — Criterios de validación</div>
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
-          <p>✓ Solo hay un botón al entrar, y no tengo que crear nada antes de lanzar los tests<br>
-          ✓ Mientras corren veo los casos uno a uno, no una barra sin detalle<br>
-          ✓ La caja del log tiene tamaño fijo y no empuja lo de abajo<br>
-          ✓ Si pasan todos, me lo dice con el número y aparece la comprobación manual<br>
-          ✓ La comprobación manual no aparece si algo ha fallado<br>
-          ✓ Si algo falla, me dice cuántos y cuál, y me ofrece volver a aplicar o repetir los tests<br>
-          ✓ Si algo falla, no se me ofrece revertir nada — y el texto explica por qué<br>
-          ✓ No puedo llegar a producción sin haber pasado por aquí<br>
-          ✓ La cabecera dice "solo lectura" y al recorrer el paso el agente no cambia</p>
+          <p>✓ Me dice que el paso siguiente sube a producción, antes de pedirme nada<br>
+          ✓ Me dice con todas las letras que el panel no lanza los tests y que lo que marque es una declaración mía<br>
+          ✓ Tengo un enlace para abrir el agente y probarlo<br>
+          ✓ Hay dos salidas claras, superados y fallidos, y ninguna viene elegida de antemano<br>
+          ✓ Si marco fallidos, no se me ofrece revertir nada — y el texto explica por qué<br>
+          ✓ Si marco fallidos, puedo volver a aplicar o volver a marcar cuando haya reprobado<br>
+          ✓ No puedo llegar a producción sin pasar por aquí</p>
         </div>
       </div>
 
@@ -989,6 +975,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           ✓ Si he tocado el draft después de los tests, me avisa — y aun así me deja seguir<br>
           ✓ Mientras se publica veo cada acción a medida que ocurre<br>
           ✓ Si el merge falla, no se promueve nada<br>
+          ✓ Me recuerda hacer git pull en local, porque la fusión la hace el servidor<br>
           ✓ Al terminar entiendo que esto ya lo están viendo los usuarios</p>
         </div>
       </div>
@@ -1262,38 +1249,14 @@ function confirmarEliminarDeCx() {
   actualizarPies();
 }
 
-const TESTS_FALLAN = false;
+function marcarTestsFallidos() {
+  document.getElementById('tests-gate').style.display = 'none';
+  document.getElementById('tests-fail').style.display = 'block';
+}
 
-function lanzarTests() {
-  setRunning(true);
-  ['tests-start','tests-ok','tests-fail'].forEach(id => document.getElementById(id).style.display = 'none');
-  const caja = document.getElementById('tests-log');
-  const bloque = document.getElementById('tests-log-block');
-  caja.style.display = 'block';
-  bloque.innerHTML = '';
-  const lineas = [
-    {cls:'dim', text:'· Lanzando la suite contra el draft del agente'},
-    {cls:'ok',  text:'✓ TC-COMPRA-01 · compra simple'},
-    {cls:'ok',  text:'✓ TC-COMPRA-02 · multiproducto'},
-    {cls:'ok',  text:'✓ TC-REGISTRO-01 · alta de cliente'},
-    {cls:'ok',  text:'✓ TC-DEVOLUCION-01 · política'},
-    {cls:'dim', text:'· … 20 casos más'},
-  ].concat(TESTS_FALLAN
-    ? [{cls:'del', text:'✗ TC-URGENCIA-01 · no detecta la restricción temporal'},
-       {cls:'del', text:'✗ 3 de 24 casos fallidos'}]
-    : [{cls:'ok', text:'✓ 24 de 24 casos superados'}]);
-  let i = 0;
-  (function siguiente() {
-    if (i >= lineas.length) {
-      document.getElementById(TESTS_FALLAN ? 'tests-fail' : 'tests-ok').style.display = 'block';
-      setRunning(false);
-      return;
-    }
-    const l = lineas[i++];
-    bloque.insertAdjacentHTML('beforeend', `<div class="log-line ${l.cls}">${l.text}</div>`);
-    bloque.scrollTop = bloque.scrollHeight;
-    setTimeout(siguiente, 380);
-  })();
+function volverAValidar() {
+  document.getElementById('tests-fail').style.display = 'none';
+  document.getElementById('tests-gate').style.display = 'block';
 }
 
 function renderStep3Diff() {
