@@ -2,7 +2,7 @@
 
 **Qué es:** el diseño del servicio que sustituye a `act/server.py` y pasa el pipeline ACT de correr en el Mac de Jero a correr en Cloud Run, con soporte multi-repo y multi-agente.
 
-**Estado:** cerrado salvo tres mediciones (§7). Es la base para redactar la Fase 5 del `act_build_playbook_v2.html` y las specs del `act_cx_resources_deploy_v2.html`.
+**Estado:** las 17 decisiones de §2 están tomadas, pero **no se puede redactar la Fase 5 todavía**. Una revisión adversarial de tres lentes (§8) encontró que el diseño no cubre el modelo de confianza entre panel y servidor, más cuatro decisiones factualmente incorrectas. Leer §8 antes que nada.
 
 **Fecha:** 2026-08-03 · **Rama:** `build/intento-2`
 
@@ -192,3 +192,45 @@ Registrados para que no se vuelvan a discutir de memoria.
 | "El `pull` solo necesita completarse" | **No basta.** Los recursos que solo existen en CX están marcados `"traible": False` (línea 892): el botón se niega a traerlos por diseño. Hay que levantar la restricción explícitamente |
 | `cx_client.py:77` — "ADC causó problemas en Sprint 1" | **Sin medir.** Afirmación heredada. Ver §5 |
 | Nombres de los entornos | `staging` y `production`, verificado en `definitions/environments/` |
+
+---
+
+## 8. Revisión adversarial — hallazgos abiertos (2026-08-03)
+
+Tres revisores independientes en paralelo, cada uno con una lente distinta (modos de fallo externos · el tercer proyecto · superficie de escritura), sobre este documento y el código real. Regla impuesta: cada hallazgo con `archivo:línea` o marcado como no verificado.
+
+**Los tres convergieron por su cuenta en el mismo hallazgo de fondo.**
+
+### 8.1 El hallazgo de fondo — el modelo de confianza
+
+Las decisiones de §2 tratan panel y servidor como una sola pieza. Dejan de serlo en cuanto el servidor tiene una URL pública.
+
+| Qué | Evidencia |
+|---|---|
+| `POST /step/8` promociona **producción** sin haber pasado por ningún paso anterior. `run_step` despacha cada paso de forma independiente; solo exige `project` y `agent` | `act/server.py:67` |
+| El Paso 4 ejecuta el array de `operations` que recibe **sin recalcular nada**, incluidos los DELETE, usando la ruta absoluta de cada operación. La decisión *"el diff nunca propone DELETE"* está en la capa equivocada: quitarlo del diff no lo quita del ejecutor | `act_cx_resources_deploy.py:554` · `server.py:54` |
+| Una petición puede convertir el token de la cuenta de servicio en una llamada a **cualquier URL**: `url = path if path.startswith("http") else …`, y `path` llega del cliente en cuatro sitios | `act/utils/cx_client.py:108` |
+| `previous_versions` (Pasos 6/7) y `version_names` (Paso 8) viajan por el mismo canal, con rutas absolutas | `server.py:58`, `:63` |
+| `/versions/protect` escribe en CX **sin coger el lock** ni validar la ruta | `server.py:143-152` |
+
+**Por qué no era un problema antes:** el servidor escuchaba en `127.0.0.1`, el cliente era el mismo Mac y el token era la sesión de `gcloud` de Jero. Nada de eso sobrevive a Cloud Run.
+
+**Consecuencia:** el candado de §2 protege el Paso 3, que es el único que **no escribe**. Falta una decisión que hoy no existe en el documento: **qué recomprueba el servidor y qué se cree**. Responderla de una vez cierra la mayoría de los hallazgos de arriba.
+
+### 8.2 Cuatro decisiones de §2 que son incorrectas
+
+1. **`agent` vs `agent_id`.** §2 fija `agent: ""`, pero el código lee `config.get("agent_id")` y el archivo real usa `agent_id`. Con el nombre decidido, la Regla 11 da **siempre falso** y el Paso 3 devuelve `ok` con cero operaciones — indistinguible de un paso superado. `act_cx_resources_deploy.py:157` · `definitions/agent.yaml:11`
+2. **La Contents API no es recursiva.** `definitions/examples/` tiene cuatro subdirectorios (`checkout`, `compra`, `petal_cx_orchestrator`, `registro_task`). `git ls-tree -r` los recorre; la Contents API sobre un directorio devuelve solo el primer nivel. Los 28 examples desaparecerían a ojos del servidor y el `pull` los reescribiría encima. Hace falta la Git Trees API con `recursive=1`, o el tarball.
+3. **El Paso 8 hace `gh pr merge` y `merge_staging_into_main()` no recibe ningún parámetro de repo** (`:1404`). Con multi-repo no es que le falte el binario: estructuralmente no sabe de qué repo habla. Y la GitHub App solo tiene `Contents: write` — el merge por API necesita permiso de pull requests, no concedido.
+4. **`write_run_log` escribe en disco efímero** (`:119-128`), igual que el inventario. Es el único rastro forense de las cinco operaciones que escriben en CX. §2 solo resolvió el inventario. Lo mismo `cx_repo_drift`, que sigue leyendo `docs/data/...json` (`:874`): el contador de deriva se queda sin fuente.
+
+### 8.3 Cuatro huecos
+
+- **Dos repos pueden reclamar el mismo agente.** La Regla 11 valida repo→agente; nunca agente→repos. El desplegable lista los agentes sin marcar cuáles ya tienen repo. Con *Traer al repo* de opción por defecto, un repo nuevo mal vinculado se lleva el agente ajeno entero. `cx_client.py:309-321`
+- **El `pull` no sabe dónde escribir un recurso que solo existe en CX.** La única función que resuelve rutas devuelve `"definitions/<tipo>/(sin localizar)"` (`:916`). Es justo el caso del onboarding.
+- **Perder `previous_versions` deja el rollback imposible y no se regenera con nada.** El inventario perdido se rehace con el Paso 1; esto no. `:1347-1350`
+- **El Paso 5 puede pasar de 60 minutos.** Una LRO por cada flow, playbook y tool, con 300 s de tope cada una. Con 10 playbooks y 2 flows son 65 min potenciales, más el PATCH del entorno.
+
+### 8.4 Choque con una decisión cerrada
+
+**`x-goog-user-project` es la cabecera de cuota** (`cx_client.py:89`). Con ADC exige `serviceusage.services.use` sobre ese proyecto, permiso que `roles/dialogflow.admin` **no incluye**. §2 decidió "cero pasos de IAM" precisamente para no chocar con CLAUDE.md §7.1. Entra en la medición pendiente de ADC (§5).
