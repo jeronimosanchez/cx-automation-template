@@ -274,7 +274,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | ID | Decisión | Por qué | Estado |
 |---|---|---|---|
 | **S1** | El servidor **recalcula el diff** en el Paso 4 y no acepta el array de `operations` del panel | El panel valida para dar buena UX; el servidor valida para garantizar que no pasa nada malo pase lo que pase en el panel | ✅ |
-| **S1b** | Recalcula y **aplica sin comparar** contra lo aprobado | Solo trabaja Jero y el lock impide deploys en paralelo | ⏸ ver §10.1 |
+| **S1b** | Recalcula y **aplica sin comparar** contra lo aprobado | Solo trabaja Jero y el lock impide deploys en paralelo | ✅ riesgo asumido |
 | **S1c** | El servidor acepta `project` y `agent` del panel | Con S1 y C3, lo peor que puede hacer un valor erróneo es apuntar a otro agente, y eso lo caza el candado | ✅ |
 | **C3** | El servidor **construye todas las URLs** desde `project`/`agent`. Nunca acepta rutas del panel | Hoy `cx_client.py:108` acepta URLs completas del cliente: podría apuntar a otro agente, otro proyecto o un host externo | ✅ |
 | **S2** | El campo de `agent.yaml` se llama **`agent_id`**, no `agent` | Con `agent` el código no lo encuentra, el Paso 3 devuelve OK con cero operaciones y el deploy no aplica nada sin avisar | ✅ |
@@ -283,7 +283,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S5** | Leer los YAML con **Git Trees API `recursive=1`**, no Contents API | Contents API solo devuelve el primer nivel; `definitions/examples/` tiene 4 subdirectorios | ✅ |
 | **S6** | Paso 8: **merge directo de ramas por API**, no `gh pr merge` | Solo necesita `contents:write`, que la GitHub App ya tiene. Sin permiso nuevo | ✅ |
 | **S6b** | El servidor **no concede IAM**. El panel muestra el comando exacto y Jero lo ejecuta una vez | Conceder permisos automáticamente exige un privilegio muy alto sobre proyectos ajenos, y CLAUDE.md §7.1 pide aprobación explícita | ✅ |
-| **S7** | El `pull` deduce la ruta del **nombre del recurso CX**, resolviendo los UUID a `displayName` | La jerarquía completa está en el nombre: `playbooks/{id}/examples/{id}` ya dice carpeta y padre | ⏸ ver §10.1 |
+| ~~S7~~ | ~~Deducir la ruta del nombre del recurso CX~~ | **Sustituida por S18+S19** — la correspondencia es por `cx_id`, no por ruta | ❌ |
 | **S7b** | **Prueba obligatoria de punta a punta** antes de dar el `pull` por bueno: traer un recurso real y confirmar que aparece en la ruta correcta | Si falla en silencio, el recurso llega al sitio equivocado sin que nadie lo sepa | ✅ |
 | **S8** | `previous_versions` se guarda en **Firestore** | No se regenera con nada: perderlo hace el rollback imposible | ✅ |
 | **S9** | El servidor corre en **`cloud-run-multiproyecto`**, separado de los proyectos CX | Lo hace agnóstico: puede gestionar cualquier agente de cualquier proyecto | ✅ |
@@ -292,11 +292,11 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S12** | Log de auditoría en **Firestore con timestamp** | El disco de Cloud Run es efímero: sin esto no queda rastro forense de qué se escribió en producción | ✅ |
 | **S13** | **Todos** los endpoints que escriben en CX pasan por el lock, sin excepción | `/versions/protect` y `/cx-repo-check` lo saltaban: se podía renombrar una versión mientras el Paso 5 la rotaba | ✅ |
 | **S13b** | El lock vive en **Firestore**, no `threading.Lock` | `threading.Lock` es por proceso: con más de una instancia no protege nada | ✅ |
-| **S14** | Los **nombres de carpeta son convención fija** (= tipo de recurso); el contenido dentro es libre | El servidor necesita el tipo para llamar al endpoint correcto | ⏸ ver §10.1 |
+| ~~S14~~ | ~~Nombres de carpeta como convención fija~~ | **Sustituida por S19** — la estructura es libre y el tipo lo declara el propio YAML | ❌ |
 | **S15** | 12 tipos built-in; los **tipos adicionales se declaran en `cx-deploy.yaml`** con su endpoint | CX tiene más tipos que los 12 actuales — voz, NLU, telefonía. El sistema debe cubrirlos sin reescribirse | ✅ |
 | **S15b** | Cada tipo nuevo exige **medir si acepta `updateMask` o requiere Full Update** | CLAUDE.md §3.8: varía por recurso y solo se sabe midiendo contra la API real | ✅ |
 | **S16** | La pestaña Proyectos guía el discovery de un tipo nuevo: endpoint, campos, comportamiento POST/PATCH. Una vez por tipo | Flexibilidad y cobertura para cualquier proyecto futuro | ✅ |
-| **H4** | El Paso 5 versiona **solo los recursos que el diff tocó** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ⏸ ver §10.1 |
+| **H4** | El Paso 5 versiona **solo los recursos que el diff tocó** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ✅ **hay que construirlo** |
 
 ### 10.1 Los cuatro puntos abiertos
 
@@ -307,3 +307,75 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 **Simplificación que abre S1.** Si el servidor recalcula en el Paso 4, el Paso 3 también puede. Entonces el inventario no necesita viajar al navegador, y desaparecen cuatro piezas: el inventario en `localStorage`, el candado de proyecto/agente/repo, el umbral de antigüedad y la mitad de D4. Coste: un LIST más de CX por Paso 3 — lo que ya hace el Paso 1.
 
 **S7 + S14 — falta una línea.** Dentro de `definitions/examples/` hay subcarpetas por playbook. Cuando el `pull` trae un example nuevo, ¿va a `examples/<playbook>/` o directo a `examples/`? El servidor conoce el padre, así que puede hacer lo primero — solo hay que decidirlo.
+
+---
+
+## 11. Segunda ronda de decisiones (S17–S23)
+
+Acordadas el 2026-08-04, después de §10. **Sustituyen a S7 y S14.**
+
+| ID | Decisión | Por qué | Estado |
+|---|---|---|---|
+| **S17** | Renombrar "artefactos" → **"resources"** en todo el sistema | Es el término oficial de la API de CX | ✅ |
+| **S18** | Cada YAML lleva **metadata: tipo, padre y `cx_id`**. El servidor escribe el `cx_id` al subirlo por primera vez | La correspondencia repo↔CX pasa a ser por `cx_id`, no por nombre de archivo ni por carpeta | ⏸ ver §11.1 |
+| **S19** | **La estructura de carpetas es libre.** El servidor la ignora — va por `cx_id` | Resuelve la contradicción entre S7 y S14 | ⏸ ver §11.1 |
+| **S20** | El servidor puede **desplegar un resource concreto** bajo demanda leyendo su `cx_id` | Permite iterar rápido sin pasar por el pipeline completo | ⏸ ver §11.1 |
+| **S21** | **Templates YAML en `/templates`** dentro de la imagen Docker, descargables desde el panel o invocables por un LLM | Agnóstico de cualquier repo y siempre disponibles | ⏸ ver §11.1 |
+| **S22** | **Wizard de onboarding** en la pestaña Proyectos: ID de agente + URL de repo → el servidor crea la estructura, muestra el comando IAM, registra en Firestore y hace el `pull` inicial | Reduce el onboarding a dos datos y un comando manual | ✅ |
+| **S23** | `cx-deploy.yaml` lo **crea el servidor** en el paso 3 del wizard | Marcador que identifica el repo como proyecto CX. Jero no lo toca | ✅ |
+
+### 11.1 Consecuencias y puntos abiertos
+
+**S18 y S19 cambian el mecanismo central del diff.** Hoy la correspondencia
+es por `displayName`: `load_definitions()` indexa por ese campo y recorre
+`definitions/<tipo>/` carpeta por carpeta. Con la estructura libre, el
+servidor tiene que leer **todos** los YAML del repo recursivamente y agrupar
+por el `tipo` declarado dentro de cada archivo. Consecuencia: un YAML sin
+ese campo, o con él mal escrito, se vuelve invisible para el pipeline —
+merece un error explícito, no un silencio.
+
+**Lo que S18 mejora:** renombrar un resource en CX pasa a ser un simple
+PATCH del `displayName`. Hoy, al ir por nombre, un renombrado parece un
+recurso borrado más uno creado.
+
+**Riesgo de S18 — dos YAML con el mismo `cx_id`.** Duplicar un archivo para
+crear una variante es lo más natural del mundo, y renombrar el `displayName`
+sin acordarse de vaciar el `cx_id` deja dos archivos reclamando el mismo
+resource de CX. El servidor debe detectar `cx_id` duplicados y parar.
+
+**El `pull` sigue sin saber dónde escribir un archivo nuevo.** S19 resuelve
+el caso de los resources que ya existen en el repo —se localizan por
+`cx_id`— pero un resource que solo existe en CX no tiene YAML ni carpeta, y
+con la estructura libre el servidor no puede deducirla. Hace falta una regla
+por defecto para los archivos nuevos.
+
+**El servidor pasa a escribir en el repo de forma sistemática.** Ya no son
+"dos excepciones" como decía §2: escribe `agent.yaml`, el `cx_id` de cada
+resource nuevo, los artefactos del `pull`, la estructura inicial del wizard
+y el `cx-deploy.yaml`. **El principio de flujo unidireccional de §2 queda
+anulado**, y el aviso de hacer `git pull` deja de ser una excepción para
+convertirse en parte del funcionamiento normal. Además, con S18 un deploy
+deja de ser de solo lectura hacia GitHub: al subir un resource nuevo,
+commitea.
+
+**S20 debe acotarse a draft.** Desplegar un resource suelto es una escritura
+en CX fuera de los pasos numerados y sus gates. Mientras solo toque el draft
+el riesgo es bajo; si pudiera alcanzar staging o producción, se saltaría
+todo el modelo de aprobación.
+
+**S21 — "sin intervención manual" choca con CLAUDE.md §6.** Ver §11.2.
+
+### 11.2 El punto que hay que resolver antes de redactar
+
+S21 dice que un LLM puede *"descargar, rellenar y desplegar sin intervención
+manual"*. CLAUDE.md §6 dice lo contrario, y es una regla de las no
+negociables: *"El pipeline nunca escribe en CX sin pasar por sus propios
+gates humanos (Pasos 4 a 8) … La aprobación a producción siempre requiere
+una decisión explícita de Jero desde el panel, nunca automática."*
+
+Las dos lecturas posibles son muy distintas:
+
+- **Un LLM prepara el YAML y Jero lo despliega.** No hay conflicto: el LLM
+  es una ayuda de redacción y el gate sigue en su sitio.
+- **Un LLM despliega de verdad.** Entonces hay que modificar CLAUDE.md §6,
+  que es una decisión de gobierno del sistema, no un detalle de diseño.
