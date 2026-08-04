@@ -343,7 +343,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
       </div>
 
-      <div class="action-bar" style="margin-top:16px">
+      <div id="traer-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="traer-log-block" style="height:150px;overflow-y:auto"></div>
+      </div>
+
+      <div id="traer-done" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>Repositorio actualizado &#10003;</p></div>
+        <p style="font-size:12px;color:var(--text-3);margin:10px 0 14px">Haz <code>git pull</code> en local antes de seguir trabajando &mdash; tu copia est&aacute; un commit por detr&aacute;s.</p>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
+        </div>
+      </div>
+
+      <div class="action-bar" id="sin-modificar-2" style="margin-top:16px">
         <button class="btn btn-ghost" onclick="advance(2)">Continuar sin modificar &rarr;</button>
       </div>
       </div>
@@ -408,7 +420,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           </div>
       </div>
 
-      <div class="action-bar" style="margin-top:16px">
+      <div class="action-bar" id="sin-modificar-3" style="margin-top:16px">
         <button class="btn btn-ghost" onclick="advance(3)">Continuar sin modificar &rarr;</button>
       </div>
 
@@ -446,30 +458,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- STEP 5: Crear versiones -->
     <div class="step-view" id="view-4">
       <div class="phase-eyebrow">Paso 4 de 7</div>
-      <div class="phase-title">Crear versiones</div>
+      <div class="phase-title">Publicar en staging</div>
       <div class="phase-sub">CX crea una versión nueva de cada artefacto con cambios (el flow y cada playbook modificado) y apunta staging a esas versiones. No es una versión única del agente — son varias versiones independientes, una por artefacto.</div>
       <div class="gate-block" id="snap-gate">
         <div class="gate-title">&#9995; Acción requerida</div>
         <p>Se creará una versión nueva de cada artefacto con cambios detectados en el diff — el flow, y cada playbook modificado, por separado. Las versiones anteriores de cada uno se conservan para poder hacer rollback si los tests fallan.</p>
-        <p style="margin-top:0;margin-bottom:16px">CX admite <strong style="color:var(--text)">20 versiones por artefacto</strong> y el límite es duro: la 21 falla y <strong style="color:var(--text)">CX no borra nada por su cuenta</strong>. De esas 20, el pipeline gestiona un <strong style="color:var(--text)">pool de 5</strong> que rota solo: al crear la sexta, borra la más antigua <em>de las suyas</em>. Las demás son tu reservorio y no se tocan nunca.</p>
-
-        <!-- Reservorio: sacar una versión del pool automático -->
         <div style="margin-bottom:20px">
-          <div class="slabel" style="margin-bottom:6px">Versiones existentes</div>
-          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Marca una versión para <strong style="color:var(--text-2)">guardarla</strong>: sale del pool automático y la rotación deja de verla. Desmárcala para devolverla.</p>
-          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
-          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
-        </div>
-        <div style="margin-bottom:20px">
-          <div class="slabel" style="margin-bottom:8px">Etiqueta de este lote de versiones</div>
+          <div class="slabel" style="margin-bottom:8px">Nombre de la versi&oacute;n</div>
           <input type="text" id="version-batch-label" class="snapshot-input" value="">
           <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, dígitos, guiones y guiones bajos. Máx. 64 caracteres. Se usa como displayName en cada versión creada, para poder identificarlas como parte del mismo deploy. Vacío = etiqueta automática con fecha y hora.</div>
         </div>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-version-confirm" onclick="confirmVersions()">Crear versiones &rarr;</button>
+          <button class="btn btn-gate" id="btn-version-confirm" onclick="confirmVersions()">Crear versi&oacute;n &rarr;</button>
           <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
         </div>
       </div>
+      <div style="margin-top:18px">
+        <button class="btn btn-ghost" id="btn-ver-versiones" onclick="toggleVersiones()">Ver versiones existentes &#9662;</button>
+        <div id="panel-versiones" style="display:none;margin-top:12px;border:1px solid var(--border);border-radius:8px;padding:14px 16px">
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Las versiones que ya existen en el agente. M&aacute;rcalas para eliminarlas.</p>
+          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
+          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
+          <div class="action-bar" style="margin-top:12px">
+            <button class="btn btn-danger" id="btn-borrar-versiones" onclick="borrarVersiones()" disabled>Eliminar versiones marcadas</button>
+          </div>
+        </div>
+      </div>
+
       <div id="snap-log" style="display:none;margin-top:4px">
         <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
       </div>
@@ -816,12 +831,21 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.3 — Continuar sin modificar</div>
-          <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado. Pasar sin traer nada es una salida legítima, no un callejón — y con nada marcado por defecto, es la que más se va a usar. Está fuera del cuadro a propósito: no es una de las acciones, es la alternativa a todas ellas.</p>
+          <div class="spec-block-label">2.3 — La traída</div>
+          <p>Al pulsar, el sistema escribe de verdad y lo va contando en una caja de tamaño fijo: qué archivo crea, en qué repositorio y en qué rama, y con qué commit queda.</p>
+          <p>Al terminar, confirma que <strong>el repositorio está actualizado</strong> y recuerda hacer <code>git pull</code> en local, porque la copia de trabajo se ha quedado un commit por detrás. Las filas traídas desaparecen de la lista y el contador de deriva baja.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Una acción que escribe fuera no puede terminar en un aviso y ya: hace falta ver qué se escribió y en qué estado queda el repositorio después.</div>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.4 — Eliminar de CX</div>
+          <div class="spec-block-label">2.4 — Continuar sin modificar</div>
+          <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado mientras esté. Pasar sin traer nada es una salida legítima, no un callejón — y con nada marcado por defecto, es la que más se va a usar. Está fuera del cuadro a propósito: no es una de las acciones, es la alternativa a todas ellas.</p>
+          <p><strong>Desaparece en cuanto se ejecuta la acción.</strong> Una vez traído algo, ya se ha modificado, y ofrecer "continuar sin modificar" sería mentir. En su lugar aparece un continuar normal.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">2.5 — Eliminar de CX</div>
           <p>La otra salida para la deriva, y la única acción destructiva. Sobre lo marcado, abre un panel que <strong>enseña la lista concreta de lo que se va a borrar</strong> antes de pedir confirmación, y avisa de que no se deshace desde el panel.</p>
           <p>Al confirmar, esos resources dejan de ser deriva y pasan al Paso 3 marcados como <em>eliminar</em>. El contador de aquí baja.</p>
         </div>
@@ -843,6 +867,10 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           ✓ Ese cuadro me dice cuántos van y qué pasa con los que no marco<br>
           ✓ Los botones de traer y de eliminar están dentro del cuadro, y desactivados hasta que marco algo<br>
           ✓ "Continuar sin modificar" está fuera del cuadro y nunca se bloquea<br>
+          ✓ Al pulsar traer, veo lo que se está escribiendo, no un aviso y ya<br>
+          ✓ Al terminar me confirma que el repositorio está actualizado y me recuerda hacer git pull<br>
+          ✓ Lo traído desaparece de la lista y el contador de deriva baja<br>
+          ✓ Una vez he traído algo, "continuar sin modificar" desaparece y en su sitio hay un continuar normal<br>
           ✓ Este paso y el siguiente se leen igual: misma tarjeta, mismo cuadro, misma salida</p>
         </div>
       </div>
@@ -886,7 +914,8 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block">
           <div class="spec-block-label">3.3 — Continuar sin modificar</div>
-          <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado. Se puede pasar sin aplicar nada — por ejemplo si solo se quería traer cosas al repositorio.</p>
+          <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado mientras esté. Se puede pasar sin aplicar nada — por ejemplo si solo se quería traer cosas al repositorio.</p>
+          <p><strong>Desaparece al aplicar.</strong> Igual que en el Paso 2: una vez modificado, ofrecer no modificar sería mentir.</p>
         </div>
 
         <div class="spec-block">
@@ -905,6 +934,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           ✓ Las eliminaciones que decidí en el paso anterior aparecen aquí<br>
           ✓ Debajo de la tarjeta hay un cuadro de acción que me recuerda sobre qué proyecto y qué agente voy a escribir<br>
           ✓ El botón de aplicar está dentro del cuadro; "Continuar sin modificar" está fuera y nunca se bloquea<br>
+          ✓ Una vez he aplicado algo, "continuar sin modificar" desaparece: ya he modificado<br>
           ✓ Este paso y el anterior se leen igual: misma tarjeta, mismo cuadro, misma salida<br>
           ✓ Si hay cambios que no se pueden probar en staging, me avisa antes de confirmar<br>
           ✓ Mientras se aplica veo el avance recurso a recurso, no una barra sin detalle<br>
@@ -916,45 +946,66 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
       </div>
 
       <div id="spec-step-4" style="display:none">
-        <div class="spec-step-title">Paso 4 — Snapshot del agente</div>
+        <div class="spec-step-title">Paso 4 — Publicar en staging</div>
+
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
-          <p>CX congela el estado actual del draft como una versión numerada en el entorno staging. A partir de aquí los tests tienen una referencia estable — el draft ya no importa porque el snapshot es inmutable.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Dos llamadas, en orden — ninguna sustituye a la otra: 1) <code>POST /versions</code> sobre cada flow que tenga cambios — versions cuelga del flow, no del agente. Hoy Petal solo tiene <code>default_start_flow</code>, pero no lo fijes como constante: recorre los flows que existan de verdad. Cada llamada devuelve una LRO. Polling en <code>GET /operations/{id}</code> hasta <code>done:true</code>. <code>displayName</code> obligatorio en el body — sin él la API devuelve 200 pero la operation falla silenciosamente con <code>code:3</code>. 2) <code>PATCH /environments/staging</code> apuntando a la versión recién creada — sin este segundo paso, la versión existe pero staging sigue enseñando la anterior, y los Pasos 6-7 (que validan "lo que hay en staging") estarían probando la versión vieja, no la nueva.</div>
+          <p>Congela el estado actual del draft en una versión y apunta <strong>staging</strong> a ella. A partir de ahí se pueden lanzar los tests contra algo que no se mueve.</p>
         </div>
+
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
-          <p>El draft es mutable y puede cambiar en cualquier momento. El snapshot congela el estado para que los tests tengan una referencia fija y es el punto de rollback si los tests fallan en el Paso 5.</p>
+          <p>El draft cambia cada vez que se aplica algo. Probar contra el draft sería probar contra un suelo móvil: si mientras corren los tests alguien toca un playbook, no se sabe qué se ha probado. La versión es la foto estable contra la que se prueba.</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué necesita</div>
-          <p>Conexión activa con CX. El nombre del snapshot es opcional — si el usuario lo deja vacío, el script genera uno automático.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Nombre → campo <code>displayName</code> en el POST body. Máx. 64 chars, letras/dígitos/guiones/guiones bajos. Si vacío → el script genera un nombre automático con fecha y hora; el campo nunca se omite del body.</div>
-        </div>
+
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>Una nueva versión del agente en staging. La versión anterior se conserva para poder hacer rollback. El nombre del snapshot queda disponible para los Pasos 6, 7 y 8.</p>
+          <p>Una versión con nombre, y el entorno de staging apuntando a ella.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Medido contra la API: un flow admite <strong>20 versiones</strong> y el límite es duro — la 21 falla con <code>code:9</code>. <strong>CX no rota nada por su cuenta</strong>; la documentación que decía 5 y decía que se borraban solas era falsa en las dos mitades.<br>
-El pipeline mantiene un pool de 5 versiones propias, reconocibles por el prefijo <code>deploy_</code>, y borra la más antigua antes de crear la sexta. No toca ninguna otra: renombrar una versión la saca del pool para siempre, y las que un entorno esté sirviendo quedan protegidas aunque lleven el prefijo. La protección es opt-out y no opt-in a propósito — olvidarse de marcar algo no puede costar una versión.<br>
-El script almacena el nombre del snapshot en memoria para propagarlo a los pasos siguientes.</div>
+          <div class="tech-content" style="display:none">Por debajo no es una sola versión sino varias, una por cada resource que la necesita, porque la API versiona por recurso y no por agente. Eso es mecánica interna: para quien usa el panel es una versión del agente, con un nombre, y no hay ninguna decisión que tomar al respecto.</div>
         </div>
+
         <div class="spec-block">
-          <div class="spec-block-label">Flujo del paso</div>
-          <p>El nombre que el usuario introduce (o vacío) se envía como <code>displayName</code> en el POST. Si está vacío, el script genera el nombre automáticamente — el campo nunca se omite. El resultado del LRO confirma el nombre final asignado por CX.</p>
+          <div class="spec-block-label">Qué escribe y dónde</div>
+          <p>En CX: crea la versión y mueve el entorno de staging. No toca producción ni el repositorio.</p>
         </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">4.1 — Solo se versiona lo que ha cambiado</div>
+          <p>No se vuelve a versionar todo el agente cada vez: solo los resources que el deploy ha tocado. Los que no han cambiado conservan la versión que ya tenían, y el entorno los sigue apuntando ahí.</p>
+          <p><strong>Por qué importa aunque no se vea:</strong> versionar todo cada vez gasta capacidad de versiones a cambio de nada, y el agente tiene un tope. Versionando solo lo que cambia, el tiempo del paso es proporcional a lo que has tocado, no al tamaño del agente.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Ojo con la distinción: <strong>un resource se modifica entero</strong>. Aunque solo cambie un campo de un archivo, ese resource se sube completo con el campo nuevo — no se parchea el campo suelto. Lo que se evita es tocar los resources que no han cambiado en nada.</div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">4.2 — El nombre de la versión</div>
+          <p>Viene propuesto uno y se puede cambiar. Es lo único que hay que decidir en este paso.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">4.3 — Ver versiones existentes</div>
+          <p>Debajo del cuadro de acción, plegado por defecto. <strong>No hace falta abrirlo para crear una versión</strong> — está ahí para consultar y para limpiar.</p>
+          <p>Al abrirlo se ven las versiones que ya existen, con su fecha. Marcar una sirve para <strong>una sola cosa: eliminarla</strong>. El botón de eliminar arranca desactivado y dice cuántas se van a borrar. Las que un entorno está usando salen deshabilitadas: borrarlas dejaría staging o producción apuntando a nada.</p>
+        </div>
+
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ Pool automático de 5: al crear la sexta, se borra la más antigua de las creadas por el pipeline<br>
-          ✓ Una versión guardada (renombrada) nunca rota, y una fijada por un entorno tampoco aunque lleve el prefijo<br>
-          ✓ Snapshot creado → esperar <code>done:true</code> en el LRO antes de reportar éxito — no reportar antes<br>
-          ✓ <code>displayName</code> siempre presente en el POST body — nunca omitirlo aunque el campo UI esté vacío<br>
-          ✓ Si ya hay 5 versiones → la más antigua se elimina automáticamente, el snapshot se crea igualmente<br>
-          ✓ El nombre del snapshot se propaga a los elementos <code>snapshot-name-ref</code> de Pasos 6, 7 y 8</p>
+          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
+          <p>✓ El paso me dice que voy a publicar en staging para poder lanzar tests, no cómo lo hace por dentro<br>
+          ✓ El botón habla de una versión, en singular<br>
+          ✓ Me propone un nombre y puedo cambiarlo<br>
+          ✓ No tengo que marcar nada para crear la versión<br>
+          ✓ Las versiones existentes están plegadas y no estorban<br>
+          ✓ Al desplegarlas veo las que hay con su fecha<br>
+          ✓ Marcar una versión sirve solo para eliminarla, y el botón me dice cuántas<br>
+          ✓ El botón de eliminar está desactivado si no he marcado ninguna<br>
+          ✓ Las versiones que un entorno está usando no me dejan marcarlas, y me dice cuál las usa<br>
+          ✓ Eliminar me pide confirmación antes de borrar nada<br>
+          ✓ Al terminar entiendo que staging ya sirve la versión nueva y que puedo lanzar los tests</p>
         </div>
       </div>
+
       <div id="spec-step-5" style="display:none">
         <div class="spec-step-title">Paso 5 — Validación de tests</div>
         <div class="spec-block">
@@ -1269,8 +1320,39 @@ function filasMarcadas(tablaId) {
 
 function traerAlRepo() {
   const filas = filasMarcadas('tabla-repo');
-  if (!filas.length) { alert('No hay nada marcado.'); return; }
-  alert(filas.length + ' resources se traerán al repositorio como archivos nuevos.');
+  if (!filas.length) return;
+  const nombres = filas.map(f => f.cells[2].querySelector('code').textContent);
+  setRunning(true);
+  document.getElementById('btn-traer').disabled = true;
+  document.getElementById('btn-eliminar').disabled = true;
+  // Una acción que escribe fuera no puede terminar en un aviso y ya: hace
+  // falta ver qué se escribió y dónde queda el repositorio después.
+  const caja = document.getElementById('traer-log');
+  const bloque = document.getElementById('traer-log-block');
+  caja.style.display = 'block';
+  bloque.innerHTML = '';
+  const lineas = [{cls:'dim', text:'· Escribiendo en jeronimosanchez/cx-automation-template · staging'}]
+    .concat(nombres.map(n => ({cls:'ok', text:'✓ ' + n + '.yaml creado'})))
+    .concat([{cls:'ok', text:'✓ commit 4a91c02 · ' + nombres.length + ' archivos nuevos'}]);
+  let i = 0;
+  (function siguiente() {
+    if (i >= lineas.length) {
+      filas.forEach(f => f.remove());
+      const quedan = document.querySelectorAll('#tabla-repo tbody tr').length;
+      document.getElementById('num-deriva').textContent = quedan;
+      if (!quedan) document.getElementById('aviso-deriva').innerHTML =
+        '<span style="color:var(--success)">✓ Ya no queda nada en CX sin respaldo en el repositorio</span>';
+      document.getElementById('traer-done').style.display = 'block';
+      document.getElementById('sin-modificar-2').style.display = 'none';
+      actualizarPies();
+      setRunning(false);
+      return;
+    }
+    const l = lineas[i++];
+    bloque.insertAdjacentHTML('beforeend', `<div class="log-line ${l.cls}">${l.text}</div>`);
+    bloque.scrollTop = bloque.scrollHeight;
+    setTimeout(siguiente, 420);
+  })();
 }
 
 // Borrar es la única acción destructiva del paso: se enseña qué se borra
@@ -1319,6 +1401,8 @@ const DEPLOY_RESOURCES = [
 function confirmDeploy() {
   const v = ++animVersion;
   setRunning(true);
+  // Al elegir modificar, la salida "sin modificar" deja de tener sentido
+  document.getElementById('sin-modificar-3').style.display = 'none';
   document.getElementById('deploy-gate').style.display = 'none';
   document.getElementById('deploy-log').style.display = 'block';
   document.getElementById('deploy-fail').style.display = 'none';
@@ -1448,8 +1532,6 @@ function resetDeployStep4() {
    una versión. Las que un entorno está sirviendo tampoco se tocan, aunque
    lleven el prefijo.                                                       */
 const VERSION_PREFIX = 'deploy_';
-const VERSION_POOL_MAX = 5;
-const VERSION_CAPACITY = 20;   // medido contra la API: la 21 falla con code:9
 
 let VERSIONES = [
   {nombre: 'ci-207',                 creada: '2026-07-22', fijadaPor: 'staging · producción'},
@@ -1458,42 +1540,51 @@ let VERSIONES = [
   {nombre: 'deploy_2026-07-30_1712', creada: '2026-07-30', fijadaPor: null},
 ];
 
-const enPool = v => v.nombre.startsWith(VERSION_PREFIX) && !v.fijadaPor;
 
+function toggleVersiones() {
+  const panel = document.getElementById('panel-versiones');
+  const boton = document.getElementById('btn-ver-versiones');
+  const abierto = panel.style.display !== 'none';
+  panel.style.display = abierto ? 'none' : 'block';
+  boton.innerHTML = abierto ? 'Ver versiones existentes &#9662;' : 'Ocultar versiones existentes &#9652;';
+  if (!abierto) renderVersionPool();
+}
+
+// Marcar aquí sirve para una sola cosa: eliminar. No hay que marcar nada
+// para crear una versión nueva.
 function renderVersionPool() {
   const lista = document.getElementById('version-pool-list');
   if (!lista) return;
-  lista.innerHTML = VERSIONES.map((v, i) => {
-    const guardada = !enPool(v);
-    const motivo = v.fijadaPor
-      ? `en uso por ${v.fijadaPor} — no puede rotar`
-      : (guardada ? 'guardada, fuera del pool' : 'en el pool automático');
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
-      <input type="checkbox" ${guardada ? 'checked' : ''} ${v.fijadaPor ? 'disabled' : ''}
-             onchange="toggleVersionGuardada(${i})"
-             style="width:15px;height:15px;accent-color:var(--gate);cursor:${v.fijadaPor ? 'not-allowed' : 'pointer'}">
-      <code style="flex:1;font-size:12px;color:${guardada ? 'var(--text)' : 'var(--text-2)'}">${v.nombre}</code>
+  lista.innerHTML = VERSIONES.map((v, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+      <input type="checkbox" class="chk-version" ${v.fijadaPor ? 'disabled' : ''} onchange="actualizarBorrarVersiones()"
+             style="width:15px;height:15px;accent-color:var(--error);cursor:${v.fijadaPor ? 'not-allowed' : 'pointer'}">
+      <code style="flex:1;font-size:12px;color:var(--text-2)">${v.nombre}</code>
       <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${v.creada}</span>
-      <span style="font-size:11px;color:${v.fijadaPor ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:170px;text-align:right">${motivo}</span>
-    </div>`;
-  }).join('');
-
-  const pool = VERSIONES.filter(enPool).length;
-  const huecos = VERSION_CAPACITY - VERSIONES.length;
-  const rotara = pool >= VERSION_POOL_MAX;
+      <span style="font-size:11px;color:${v.fijadaPor ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:150px;text-align:right">${v.fijadaPor ? 'en uso por ' + v.fijadaPor : ''}</span>
+    </div>`).join('');
   document.getElementById('version-pool-summary').innerHTML =
-    `Pool automático: <strong style="color:var(--text-2)">${pool} de ${VERSION_POOL_MAX}</strong> · `
-  + `${VERSIONES.length - pool} guardadas · ${huecos} huecos libres de ${VERSION_CAPACITY}`
-  + (rotara ? ` · <span style="color:var(--gate)">al crear la próxima se borrará la más antigua del pool</span>` : '');
+    `${VERSIONES.length} versiones guardadas. Las que est&aacute;n en uso por un entorno no se pueden eliminar.`;
+  actualizarBorrarVersiones();
 }
 
-function toggleVersionGuardada(indice) {
-  // Marcar = renombrar. La API admite PATCH del displayName y es reversible.
-  const v = VERSIONES[indice];
-  v.nombre = enPool(v)
-    ? v.nombre.replace(VERSION_PREFIX, 'KEEP_')
-    : 'deploy_' + v.nombre.replace(/^KEEP_/, '');
-  renderVersionPool();
+function actualizarBorrarVersiones() {
+  const marcadas = document.querySelectorAll('.chk-version:checked').length;
+  const boton = document.getElementById('btn-borrar-versiones');
+  if (boton) {
+    boton.disabled = marcadas === 0;
+    boton.textContent = marcadas ? `Eliminar ${marcadas} ${marcadas === 1 ? 'versi\u00f3n' : 'versiones'}` : 'Eliminar versiones marcadas';
+  }
+}
+
+function borrarVersiones() {
+  const marcadas = [...document.querySelectorAll('.chk-version:checked')];
+  if (!marcadas.length) return;
+  if (!confirm(`Se van a eliminar ${marcadas.length} versiones del agente. No se puede deshacer.`)) return;
+  marcadas.forEach(c => c.closest('div').remove());
+  document.getElementById('version-pool-summary').innerHTML =
+    `${document.querySelectorAll('#version-pool-list > div').length} versiones guardadas.`;
+  actualizarBorrarVersiones();
 }
 
 function generateVersionLabel() {
