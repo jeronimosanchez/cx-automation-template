@@ -1501,7 +1501,7 @@ function confirmDeploy() {
     if (i >= acciones.length) {
       setTimeout(() => {
         if (failAt === -1) {
-          appendLogLine(logBlock, 'ok', `✓ Deploy completado — ${acciones.length} recursos en 3.1s`);
+          appendLogLine(logBlock, 'ok', `✓ Deploy completado — ${acciones.length} ${acciones.length === 1 ? 'resource' : 'resources'} en 3.1s`);
           cerrarTablaCx(acciones);
           setTimeout(() => {
             document.getElementById('deploy-done').style.display = 'block';
@@ -1567,7 +1567,7 @@ function retryFailed() {
     retryLines.push({cls:'warn', text:'↻ Reintentando ' + r.label + '...'});
     retryLines.push({cls:'ok',   text:'✓ ' + r.label + ' → OK'});
   });
-  retryLines.push({cls:'ok', text:'✓ Deploy completado — todos los recursos marcados aplicados'});
+  retryLines.push({cls:'ok', text:'✓ Deploy completado — todos los resources marcados aplicados'});
   let i = 0;
   function showLine() {
     if (animVersion !== v) return;
