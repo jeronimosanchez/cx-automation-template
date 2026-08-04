@@ -13,7 +13,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* TOP BAR */
 .topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
 .step-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  border-radius:4px;padding:2px 7px;margin-left:10px;vertical-align:3px;white-space:nowrap}
+  border-radius:4px;padding:1px 7px;margin-left:12px;white-space:nowrap}
 .step-badge.read{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
 .step-badge.write-cx{background:rgba(245,158,11,.12);color:var(--gate);border:1px solid rgba(245,158,11,.35)}
 .step-badge.write-gh{background:rgba(59,130,246,.12);color:var(--accent-light);border:1px solid rgba(59,130,246,.35)}
@@ -22,6 +22,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .grupo-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;flex:1;min-width:200px}
 .grupo-card .grupo-num{font-size:26px;font-weight:700;line-height:1.1}
 .grupo-card .grupo-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.grupo-card{cursor:pointer;transition:border-color .15s}
+.grupo-card:hover{border-color:var(--accent)}
+.grupo-card .grupo-toggle{font-size:11px;color:var(--accent-light);margin-top:10px;display:inline-block}
 .grupo-card .grupo-desc{font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.5}
 .grupo-card.emp{border-left:3px solid var(--success)}
 .grupo-card.cx{border-left:3px solid var(--gate)}
@@ -185,8 +188,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 1: Inventario CX -->
     <div class="step-view" id="view-1">
-      <div class="phase-eyebrow">Paso 1 de 7</div>
-      <div class="phase-title">Inventario CX<span class="step-badge read">solo lectura</span></div>
+      <div class="phase-eyebrow">Paso 1 de 7<span class="step-badge read">solo lectura</span></div>
+      <div class="phase-title">Inventario CX</div>
       <div class="phase-sub">
         Lee el estado actual del draft del agente desde la API de Dialogflow CX.
         <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El draft es el estado editable &mdash; no la versi&oacute;n que CX usa para test cases. Los cambios no se propagan hasta crear las versiones en el Step 5.</p>
@@ -194,6 +197,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <!-- Estado inicial: selectores de proyecto / agente + botón para iniciar (región fija: europe-west1) -->
       <div id="inv-start">
+        <div id="aviso-sin-repos" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
+          <strong style="color:var(--gate)">&#9888; Ning&uacute;n agente de este proyecto tiene repositorio vinculado.</strong><br>
+          <span style="color:var(--text-2)">El pipeline compara CX contra un repositorio de GitHub, as&iacute; que sin vincular al menos uno no hay nada que desplegar.</span>
+          <button class="btn btn-gate" style="margin-top:10px;font-size:12px;padding:5px 12px" onclick="alert('Abre la pestaña Proyectos para vincular un repositorio.')">Vincular un repositorio &rarr;</button>
+        </div>
         <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap">
           <div>
             <label for="project-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Proyecto</label>
@@ -230,23 +238,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="done-banner"><p>Inventario completado &#10003;</p></div>
 
         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
-          <div class="grupo-card emp">
+          <div class="grupo-card emp" onclick="toggleGrupo(this)">
             <div class="grupo-label">Emparejados</div>
             <div class="grupo-num" style="color:var(--success)">42</div>
             <div class="grupo-desc">Est&aacute;n en CX y tienen archivo en el repositorio.</div>
-            <div class="grupo-lista">petal_cx_orchestrator.yaml<br>compra.yaml<br>checkout.yaml<br><span style="color:var(--text-3)">&hellip; y 39 m&aacute;s</span></div>
+            <div class="grupo-lista">petal_cx_orchestrator.yaml<br>compra.yaml<br>checkout.yaml
+              <span class="grupo-extra" style="display:none"><br>registro_task.yaml<br>gestion_deuda.yaml<br>handoff.yaml<br>calculo_entrega_task.yaml<br>identificacion_task.yaml<br>petaldatatool.yaml<br>agent.yaml<br><span style="color:var(--text-3)">&hellip; y 32 m&aacute;s</span></span>
+            </div>
+            <div class="grupo-toggle">Ver los 42 &#9662;</div>
           </div>
-          <div class="grupo-card cx">
+          <div class="grupo-card cx" onclick="toggleGrupo(this)">
             <div class="grupo-label">Solo en CX</div>
             <div class="grupo-num" style="color:var(--gate)">4</div>
             <div class="grupo-desc">Existen en el agente y ning&uacute;n archivo los reclama.</div>
-            <div class="grupo-lista">Example &middot; compra_tulipanes_002<br>Example &middot; despedida_larga<br>Generator &middot; resumen_pedido<br>Tool &middot; code-interpreter</div>
+            <div class="grupo-lista">Example &middot; compra_tulipanes_002<br>Example &middot; despedida_larga<br>Generator &middot; resumen_pedido
+              <span class="grupo-extra" style="display:none"><br>Tool &middot; code-interpreter <span style="color:var(--text-3)">(nativo de CX)</span></span>
+            </div>
+            <div class="grupo-toggle">Ver los 4 &#9662;</div>
           </div>
-          <div class="grupo-card repo">
+          <div class="grupo-card repo" onclick="toggleGrupo(this)">
             <div class="grupo-label">Solo en el repositorio</div>
             <div class="grupo-num" style="color:var(--accent-light)">2</div>
             <div class="grupo-desc">Tienen archivo pero a&uacute;n no existen en CX, o su <code>cx_id</code> ya no est&aacute;.</div>
-            <div class="grupo-lista">devoluciones.yaml <span style="color:var(--text-3)">&middot; sin cx_id</span><br>ex_registro_04.yaml <span style="color:var(--text-3)">&middot; cx_id fantasma</span></div>
+            <div class="grupo-lista">devoluciones.yaml <span style="color:var(--text-3)">&middot; sin cx_id</span>
+              <span class="grupo-extra" style="display:none"><br>ex_registro_04.yaml <span style="color:var(--text-3)">&middot; cx_id fantasma</span></span>
+            </div>
+            <div class="grupo-toggle">Ver los 2 &#9662;</div>
           </div>
         </div>
         <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">48 resources en total &middot; le&iacute;dos de <code>staging</code> &middot; commit <code>98fcbdd</code></div>
@@ -1020,6 +1037,13 @@ const INV_LINES = [
 
 function onProjectSelected() {
   const proj = document.getElementById('project-select').value;
+  // Si ningún agente del proyecto tiene repositorio, el paso es inútil:
+  // más vale decirlo antes de que Jero recorra los selectores uno a uno.
+  const agentes = [...document.getElementById('agent-select').options]
+    .map(o => o.value).filter(Boolean);
+  const alguno = agentes.some(a => REPOS_POR_AGENTE[a]);
+  document.getElementById('aviso-sin-repos').style.display =
+    (proj && agentes.length && !alguno) ? 'block' : 'none';
   const agentSel = document.getElementById('agent-select');
   agentSel.disabled = !proj;
   agentSel.value = '';
@@ -1093,6 +1117,14 @@ function resetInventoryUI() {
   document.getElementById('inv-done').style.display = 'none';
   document.getElementById('inv-log-block').innerHTML = '';
   document.getElementById('repo-resuelto').innerHTML = '<span style="color:var(--text-3)">&mdash;</span>';
+}
+
+function toggleGrupo(card) {
+  const extra  = card.querySelector('.grupo-extra');
+  const toggle = card.querySelector('.grupo-toggle');
+  const abierto = extra.style.display !== 'none';
+  extra.style.display = abierto ? 'none' : 'inline';
+  toggle.innerHTML = toggle.innerHTML.replace(abierto ? '▴' : '▾', abierto ? '▾' : '▴');
 }
 
 function renderStep3Diff() {
