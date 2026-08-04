@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>act_cx_resources_deploy_v2 — Deploy Petal 1.0 (intento 2)</title>
+<title>act_cx_resources_deploy_v2.py — Deploy Petal 1.0 (intento 2)</title>
 <style>
 :root {
   --bg:#0d1117;--bg-2:#1a2030;--bg-3:#252d3a;--border:#3d4755;
@@ -12,6 +12,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* TOP BAR */
 .topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.topbar-tool{font-family:monospace;font-size:12px;color:var(--text-3);letter-spacing:.02em}
 .topbar-agent{font-weight:700;font-size:15px}
 .topbar-sep{color:var(--border);font-size:18px}
 .topbar-env{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;transition:background .3s,color .3s,border-color .3s}
@@ -128,7 +129,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* SECTION LABEL */
 .slabel{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
 
-/* SNAPSHOT GATE (Paso 4) */
+/* SNAPSHOT GATE (Paso 3) */
 .snapshot-input{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'SF Mono',Menlo,monospace;width:100%;outline:none;transition:border-color .15s}
 .snapshot-input:focus{border-color:var(--gate)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
@@ -148,10 +149,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- TOP BAR -->
 <div class="topbar">
+  <span class="topbar-tool">act_cx_resources_deploy_v2.py</span>
+  <span class="topbar-sep">|</span>
   <span class="topbar-agent" id="topbar-agent">Petal 1.0</span>
   <span class="topbar-sep">|</span>
   <span class="topbar-env" id="topbar-env">STAGING</span>
-  <span class="topbar-commit">GitHub: staging &middot; 98fcbdd</span>
+  <span class="topbar-commit">GitHub: staging &middot; 98fcbdd &middot; <span id="topbar-commit-time">—</span></span>
   <div class="topbar-meta">
     <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
     <button id="btn-reset" class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
@@ -167,7 +170,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 1: Inventario CX -->
     <div class="step-view" id="view-1">
-      <div class="phase-eyebrow">Paso 1 de 8</div>
+      <div class="phase-eyebrow">Paso 1 de 7</div>
       <div class="phase-title">Inventario CX</div>
       <div class="phase-sub">
         Lee el estado actual del draft del agente desde la API de Dialogflow CX.
@@ -262,36 +265,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- STEP 2: Push a GitHub staging -->
-    <div class="step-view" id="view-2">
-      <div class="phase-eyebrow">Paso 2 de 8</div>
-      <div class="phase-title">Push a GitHub staging</div>
-      <div class="phase-sub">Sube los commits locales a la rama <strong>staging de GitHub</strong> antes de calcular el diff con CX.</div>
-
-      <!-- Status header — actualiza en los 3 estados -->
-      <div id="push-status" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px 8px 0 0;border-bottom:none">
-        <div id="push-status-icon" style="width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--error)">✗</div>
-        <div>
-          <div id="push-status-label" style="font-size:13px;font-weight:600;color:var(--text)">Commits pendientes de push</div>
-          <div id="push-status-detail" style="font-size:11px;color:var(--text-3);margin-top:1px">origin/staging está 2 commits por detrás</div>
-        </div>
-      </div>
-
-      <!-- Lista de commits — siempre visible -->
-      <div id="push-commit-list" style="border:1px solid var(--border);border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:16px"></div>
-
-      <!-- Log — aparece durante el push, debajo de la lista -->
-      <div id="push-log" style="display:none;margin-bottom:16px">
-        <div class="output-block" id="push-log-block" style="min-height:60px"></div>
-      </div>
-
-      <!-- Acción — botón push o continuar -->
-      <div id="push-action"></div>
-    </div>
-
     <!-- STEP 3: Diff GitHub vs CX -->
-    <div class="step-view" id="view-3">
-      <div class="phase-eyebrow">Paso 3 de 8</div>
+    <div class="step-view" id="view-2">
+      <div class="phase-eyebrow">Paso 2 de 7</div>
       <div class="phase-title">Diff GitHub vs CX</div>
       <div class="phase-sub">Compara la rama <strong>staging de GitHub</strong> contra el entorno <strong>staging de CX</strong>.</div>
 
@@ -331,8 +307,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- STEP 4: Confirmar deploy -->
-    <div class="step-view" id="view-4">
-      <div class="phase-eyebrow">Paso 4 de 8</div>
+    <div class="step-view" id="view-3">
+      <div class="phase-eyebrow">Paso 3 de 7</div>
       <div class="phase-title">Confirmar deploy</div>
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
 
@@ -352,7 +328,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <tbody id="cxrepo-rows"></tbody>
             </table>
           </div>
-          <p id="cxrepo-nota-borrado" style="display:none;font-size:12px;color:var(--text-3);margin-bottom:14px">Los marcados <strong style="color:var(--text-2)">no</strong> son recursos que solo existen en CX. Traerlos exigir&iacute;a crear archivos nuevos en <code style="font-size:11px">definitions/</code>, y est&aacute; decidido que se borren &mdash; ya salen como <span class="pill pill-del">DELETE</span> en el diff del Paso 3.</p>
+          <p id="cxrepo-nota-borrado" style="display:none;font-size:12px;color:var(--text-3);margin-bottom:14px">Los marcados <strong style="color:var(--text-2)">no</strong> son recursos que solo existen en CX. Traerlos exigir&iacute;a crear archivos nuevos en <code style="font-size:11px">definitions/</code>, y est&aacute; decidido que se borren &mdash; ya salen como <span class="pill pill-del">DELETE</span> en el diff del Paso 2.</p>
           <div class="action-bar">
             <button class="btn btn-gate" id="btn-pull-repo" onclick="pullToRepo()">&#8595; Traer al repo primero</button>
             <button class="btn btn-ghost" onclick="acceptDrift()">Continuar sin traerlos</button>
@@ -425,8 +401,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- STEP 5: Crear versiones -->
-    <div class="step-view" id="view-5">
-      <div class="phase-eyebrow">Paso 5 de 8</div>
+    <div class="step-view" id="view-4">
+      <div class="phase-eyebrow">Paso 4 de 7</div>
       <div class="phase-title">Crear versiones</div>
       <div class="phase-sub">CX crea una versión nueva de cada artefacto con cambios (el flow y cada playbook modificado) y apunta staging a esas versiones. No es una versión única del agente — son varias versiones independientes, una por artefacto.</div>
       <div class="gate-block" id="snap-gate">
@@ -463,8 +439,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- STEP 6: Validación de tests -->
-    <div class="step-view" id="view-6">
-      <div class="phase-eyebrow">Paso 6 de 8</div>
+    <div class="step-view" id="view-5">
+      <div class="phase-eyebrow">Paso 5 de 7</div>
       <div class="phase-title">Validaci&oacute;n de tests</div>
       <div class="phase-sub">Confirma que has ejecutado la suite de tests QA y que todos los casos han pasado correctamente en el entorno staging.</div>
       <div class="gate-block">
@@ -506,8 +482,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- STEP 7: Gate QA — staging -->
-    <div class="step-view" id="view-7">
-      <div class="phase-eyebrow">Paso 7 de 8</div>
+    <div class="step-view" id="view-6">
+      <div class="phase-eyebrow">Paso 6 de 7</div>
       <div class="phase-title">Gate QA &mdash; staging</div>
       <div class="phase-sub">Valida el agente manualmente en el entorno staging de CX antes de promover a producci&oacute;n.</div>
       <div class="gate-block">
@@ -528,8 +504,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- STEP 8: Aprobar subida a producción -->
-    <div class="step-view" id="view-8">
-      <div class="phase-eyebrow">Paso 8 de 8</div>
+    <div class="step-view" id="view-7">
+      <div class="phase-eyebrow">Paso 7 de 7</div>
       <div class="phase-title">Aprobar subida a producci&oacute;n</div>
       <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se ejecutan dos acciones en orden.</div>
 
@@ -674,12 +650,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="spec-step-1">
         <div class="spec-step-title">Paso 1 — Inventario CX</div>
         <div class="spec-block">
+          <div class="spec-block-label">1.0 — Resolución del repositorio (automático)</div>
+          <p>Al seleccionar el agente, el servidor busca en Firestore el repositorio de GitHub asociado. No hay selector de repositorio: lo determina el agente. Si ese agente no tiene ninguno registrado, el inventario no arranca — el panel ofrece abrir el asistente de la pestaña Proyectos.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Consulta el mapeo <code>agente → repositorio</code> en Firestore. Un agente tiene como máximo un repositorio, y eso es lo que impide que dos repositorios reclamen el mismo agente.<br>
+Si no hay entrada, devolver un error tipado que el panel distinga de un fallo de red — así puede ofrecer el asistente en lugar de un mensaje genérico.</div>
+        </div>
+        <div class="spec-block">
           <div class="spec-block-label">1.1 — Pre-flight check (automático)</div>
           <p>Antes de lanzar las 12 llamadas LIST, el script verifica que la autenticación y la conectividad con CX funcionan. Si falla aquí, el error es inmediato y claro — no a mitad del inventario.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">Antes de llamar a cualquier función <code>inventory_*()</code>, ejecutar:<br>
-1. <code>get_headers()</code> — verifica que gcloud está autenticado y genera token fresco.<br>
-&nbsp;&nbsp;&nbsp;Si falla → RuntimeError claro: "gcloud no autenticado. Ejecuta <code>gcloud auth login</code>."<br>
+1. <code>get_headers()</code> — obtiene el token por ADC (<code>google.auth.default()</code>) y añade la cabecera <code>x-goog-user-project</code> con el proyecto del agente.<br>
+&nbsp;&nbsp;&nbsp;Si falla → error claro que distinga las dos causas: sin credenciales ADC, o sin el permiso <code>serviceusage.services.use</code> sobre ese proyecto.<br>
 2. <code>GET {PARENT}</code> — un GET al endpoint del agente para verificar conectividad y permisos.<br>
 &nbsp;&nbsp;&nbsp;Si falla → error claro con status code y mensaje de la API.<br>
 Sin este check, un fallo de auth produce errores HTTP 401 a mitad de las 12 llamadas,<br>
@@ -696,6 +679,26 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <p>Si desplegamos sin saber el estado actual, no podemos comparar qué ha cambiado. Esta foto es el punto de partida de todo el pipeline — sin ella, el diff no tiene contra qué comparar.</p>
         </div>
         <div class="spec-block">
+          <div class="spec-block-label">1.3 — Lectura del repositorio</div>
+          <p>El servidor lee <strong>todos</strong> los YAML del repositorio, no solo los de unas carpetas concretas. La estructura de carpetas es libre y no significa nada: cada archivo declara en su metadata qué tipo de resource es, de quién cuelga y a qué resource de CX corresponde.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Git Trees API con <code>recursive=1</code> sobre la rama <code>staging</code>, y descarga de cada blob YAML. La Contents API no sirve: sobre un directorio devuelve solo el primer nivel, y <code>definitions/examples/</code> tiene subcarpetas.<br>
+De cada archivo se leen <code>tipo</code>, <code>padre</code> y <code>cx_id</code>.<br>
+<strong>Dos fallos paran el paso con error explícito, nunca en silencio:</strong><br>
+&nbsp;&nbsp;· Un YAML sin <code>tipo</code> — sería invisible para el pipeline.<br>
+&nbsp;&nbsp;· Dos YAML con el mismo <code>cx_id</code> — dos archivos reclamando el mismo resource de CX. Ocurre al duplicar un archivo y olvidar vaciar el identificador.</div>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">1.4 — Emparejamiento</div>
+          <p>Cada resource encontrado en CX se empareja con su archivo del repositorio <strong>por <code>cx_id</code></strong>, no por nombre ni por ubicación. El resultado clasifica cada resource en tres grupos:</p>
+          <p><strong>Emparejado</strong> — está en CX y tiene archivo. Se muestra la ruta.<br>
+<strong>Solo en CX</strong> — existe en el agente y ningún archivo lo reclama. Es lo que el Paso 2 ofrece traer al repositorio.<br>
+<strong>Solo en el repositorio</strong> — tiene archivo pero sin <code>cx_id</code>, o con uno que ya no existe en CX. Sin <code>cx_id</code> es un resource nuevo pendiente de crear; con un <code>cx_id</code> fantasma, alguien lo borró en la consola.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none"><strong>Por qué por identificador y no por nombre:</strong> yendo por nombre, renombrar un resource en CX parece un recurso borrado más uno creado. Por identificador es un simple cambio de campo.<br>
+Los tres grupos alimentan directamente los tres botones del Paso 2 — Traer al repositorio, Ignorar y Eliminar de CX.</div>
+        </div>
+        <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
           <p>Credenciales válidas para conectar con CX. Si no hay conexión o las credenciales han expirado, el paso falla aquí y no continúa.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
@@ -703,9 +706,7 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>Una lista completa de los 12 tipos de recursos del agente (Playbooks, Examples, Tools, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Agent Config, Environments, Versions), con el conteo de cada uno. Esta lista es el punto de referencia que el Paso 3 usa para calcular qué ha cambiado.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Persiste en <code>docs/data/act_cx_draft_resources_inventory_&lt;project&gt;_&lt;agent&gt;.json</code> (generado, en <code>.gitignore</code>) — el proyecto y el agente van en el nombre, nunca una ruta fija. Estructura: <code>{ generated_at, agent, totals: { playbooks: N, ... }, resources: { playbooks: [...], ... } }</code></div>
+          <p>La foto del agente con cada resource ya emparejado con su archivo. Lleva dentro el proyecto, el agente, el repositorio, el commit de <code>staging</code> desde el que se leyó y la marca de tiempo. El Paso 2 la usa para el diff.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Flujo del paso</div>
@@ -719,55 +720,14 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <p>✓ LIST completado para los 12 tipos de recursos<br>✓ Token de auth válido — sin errores 401/403<br>✓ Si cualquier LIST falla → abortar inmediatamente, no continuar con datos parciales<br>✓ Si todos los tipos vuelven vacíos → aviso en el log, nunca aborta (un agente recién creado puede estar legítimamente vacío — solo abortan los fallos de LIST, no un inventario vacío)<br>✓ Si draft difiere de staging (deploy anterior incompleto) → el inventario refleja el draft, no staging<br>✓ 429 (rate limit) → reintentar con backoff exponencial (máx. 3 intentos); si persiste → abortar</p>
           <div style="border-top:1px solid var(--border);margin:10px 0 8px"></div>
           <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Integridad del JSON generado</div>
-          <p style="margin-bottom:6px">Antes de guardar el archivo, el sistema verifica que los datos son coherentes y completos — así el Paso 3 puede confiar en ellos sin comprobaciones adicionales.</p>
+          <p style="margin-bottom:6px">Antes de guardar el archivo, el sistema verifica que los datos son coherentes y completos — así el Paso 2 puede confiar en ellos sin comprobaciones adicionales.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">✓ Los 12 tipos presentes en <code>resources</code> como arrays (<code>null</code> ≠ <code>[]</code> — null = fallo, [] = tipo inexistente)<br>✓ <code>totals[tipo] == len(resources[tipo])</code> para cada tipo — detecta paginación incompleta<br>✓ Todos los ítems con count > 0 tienen <code>name</code> no vacío — el diff usa <code>name</code> como clave<br>✓ <code>generated_at</code>, <code>agent</code> y <code>totals</code> presentes y válidos; <code>agent</code> no es un placeholder</div>
         </div>
       </div>
 
       <div id="spec-step-2" style="display:none">
-        <div class="spec-step-title">Paso 2 — Push a GitHub staging</div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
-          <p>Tienes cambios en tu rama staging local que todavía no están en GitHub. Este paso los sube a GitHub staging para que el pipeline pueda comparar contra CX.</p>
-          <div style="border-top:1px solid var(--border);margin:8px 0"></div>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">El script ejecuta <code>git push origin staging</code>, empujando los commits de staging local a <code>origin/staging</code> en GitHub. El usuario ve el log del resultado.</div>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
-          <p>El diff del Paso 3 compara GitHub staging contra el draft de CX. Si los commits no están en GitHub todavía, el diff estaría comparando contra código desactualizado.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué necesita</div>
-          <p>Acceso a GitHub con commits pendientes de push. Sin conflictos con el remoto.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Sin conflictos con <code>origin/staging</code>. Si el remoto está adelantado → abortar; resolver con pull antes de continuar.</div>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
-          <p>La rama <code>staging</code> de GitHub actualizada. A partir de aquí el Paso 3 ya tiene contra qué comparar.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Detalle técnico</div>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none"><code>git push origin staging</code> — si ya está al día ("Everything up-to-date") el paso completa. Si hay conflicto con <code>origin/staging</code> → abortar; el usuario resuelve antes de continuar.</div>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Flujo del paso</div>
-          <p>1. <strong>Inicial</strong> — status ✗ con commits pendientes, lista de commits, botón "Hacer push →"<br>
-  2. <strong>Ya al día</strong> — si 0 commits pendientes: status ✓, botón "Continuar →" directamente<br>
-  3. <strong>Corriendo</strong> — log animado del push en curso<br>
-  4. <strong>Éxito</strong> — status ✓, botón "Continuar →"<br>
-  5. <strong>Error</strong> — mensaje de fallo (conflicto o red), botón "Reintentar"</p>
-        </div>
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ Push exitoso — sin errores de red ni de permisos<br>✓ <code>origin/staging</code> al día con staging local<br>✓ Si hay conflicto → abortar, no continuar<br>✓ Path de error validado con <code>PUSH_SIMULATE_FAIL=true</code> — el sistema detecta el fallo, muestra el error y no continúa al Paso 3<br>✓ Si ya está al día (0 commits pendientes) → el paso completa sin error — no bloquea el pipeline</p>
-        </div>
-      </div>
-      <div id="spec-step-3" style="display:none">
-        <div class="spec-step-title">Paso 3 — Diff GitHub vs CX</div>
+        <div class="spec-step-title">Paso 2 — Diff GitHub vs CX</div>
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
           <p>Antes de tocar nada en CX, el sistema compara lo que tienes en GitHub staging con lo que hay ahora mismo en el draft del agente. El resultado es una lista exacta: qué recursos hay que crear, cuáles modificar y cuáles eliminar. Solo se opera sobre lo que ha cambiado.</p>
@@ -798,16 +758,16 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <p>✓ Diff completado para los 12 tipos de recursos<br>
           ✓ POST/PATCH/DELETE mutuamente excluyentes por recurso<br>
           ✓ Tabla coherente con el inventario del Paso 1<br>
-          ✓ Si sin cambios → pipeline termina limpiamente, no continúa al Paso 4</p>
+          ✓ Si sin cambios → pipeline termina limpiamente, no continúa al Paso 3</p>
         </div>
       </div>
-      <div id="spec-step-4" style="display:none">
-        <div class="spec-step-title">Paso 4 — Confirmar deploy</div>
+      <div id="spec-step-3" style="display:none">
+        <div class="spec-step-title">Paso 3 — Confirmar deploy</div>
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
-          <p>Aplica al draft del agente en CX los cambios calculados en el Paso 3, recurso a recurso. Es el único paso que realmente muta CX — todo lo anterior era preparación.</p>
+          <p>Aplica al draft del agente en CX los cambios calculados en el Paso 2, recurso a recurso. Es el único paso que realmente muta CX — todo lo anterior era preparación.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none"><strong>Recuperación tras un fallo parcial:</strong> no existe «revertir draft» ni se necesita. Dos caminos, medidos contra la API: <em>Reintentar fallidos</em> reutiliza la lista del Paso 3 y solo toca los <code>ERROR</code> y los no intentados; <em>empezar de nuevo desde el Paso 1</em> refresca la foto de CX y el diff propone solo lo que de verdad falta. <strong>Lo que no vale es relanzar solo el Paso 3:</strong> ese paso no consulta CX, lee el JSON que escribió el Paso 1, y con la foto caducada un <code>POST</code> ya aplicado se reintenta y choca con un <code>409</code>. Para deshacer algo aplicado correctamente, se corrige el YAML y se despliega otra vez.<br><br>Para cada recurso en la lista del Paso 3: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados". Orden de deploy obligatorio: Entity Types → Intents → Webhooks → Tools → Generators → Playbooks → Examples → Flows → Pages → Agent Config. Los tipos que son referenciados por otros van primero — si un playbook referencia un webhook, el webhook debe existir antes del PATCH del playbook.</div>
+          <div class="tech-content" style="display:none"><strong>Recuperación tras un fallo parcial:</strong> no existe «revertir draft» ni se necesita. Dos caminos, medidos contra la API: <em>Reintentar fallidos</em> reutiliza la lista del Paso 2 y solo toca los <code>ERROR</code> y los no intentados; <em>empezar de nuevo desde el Paso 1</em> refresca la foto de CX y el diff propone solo lo que de verdad falta. <strong>Lo que no vale es relanzar solo el Paso 2:</strong> ese paso no consulta CX, lee el JSON que escribió el Paso 1, y con la foto caducada un <code>POST</code> ya aplicado se reintenta y choca con un <code>409</code>. Para deshacer algo aplicado correctamente, se corrige el YAML y se despliega otra vez.<br><br>Para cada recurso en la lista del Paso 2: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados". Orden de deploy obligatorio: Entity Types → Intents → Webhooks → Tools → Generators → Playbooks → Examples → Flows → Pages → Agent Config. Los tipos que son referenciados por otros van primero — si un playbook referencia un webhook, el webhook debe existir antes del PATCH del playbook.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
@@ -819,15 +779,15 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <p style="margin-top:8px">Si hay diferencias, el gate de confirmación <strong>no se muestra</strong> hasta que el usuario elija: traerlas al repo primero, o continuar aceptando que se pierden. Si no hay ninguna, se indica y el gate aparece con normalidad.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH &#9660;</button>
           <div class="tech-content" style="display:none">Recorre el inventario del Paso 1 y, por cada tipo, marca: recursos presentes en CX y ausentes de <code>definitions/</code> (los que el diff propone como <code>DELETE</code>), y campos con contenido en CX que el YAML no declara — estos últimos el diff no los ve, porque solo compara los campos que el local menciona.<br>
-No usa el diff del Paso 3 como fuente: ese mira repo &rarr; CX y por diseño es ciego a lo que el repo no nombra.<br>
+No usa el diff del Paso 2 como fuente: ese mira repo &rarr; CX y por diseño es ciego a lo que el repo no nombra.<br>
 &laquo;Traer al repo&raquo; tiene un alcance acotado: <strong>solo actualiza campos de recursos que ya existen en <code>definitions/</code></strong> (por ejemplo a&ntilde;adir referencias que faltan a un playbook). Un recurso que solo vive en CX exigir&iacute;a crear un archivo nuevo y queda fuera &mdash; esos ya salen como <code>DELETE</code> en el diff, y traerlos contradir&iacute;a esa decisi&oacute;n. El bot&oacute;n se deshabilita si no hay nada actualizable.<br>
 Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actual y l&iacute;neas a a&ntilde;adir) y espera confirmaci&oacute;n, como cualquier modificaci&oacute;n de <code>definitions/</code> (CLAUDE.md &sect;7.4). Al guardar, el diff se recalcula contra el repo ya actualizado.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
-          <p>La lista de operaciones del Paso 3 y conexión activa con CX.</p>
+          <p>La lista de operaciones del Paso 2 y conexión activa con CX.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Lista POST/PATCH/DELETE del Paso 3. Token de <code>gcloud auth print-access-token</code>. Headers obligatorios (ver Specs generales).</div>
+          <div class="tech-content" style="display:none">Lista POST/PATCH/DELETE del Paso 2. Token de <code>gcloud auth print-access-token</code>. Headers obligatorios (ver Specs generales).</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
@@ -835,7 +795,7 @@ Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actu
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Flujo del paso</div>
-          <p>El recuento y descripción de recursos (X modificados, Y nuevos, Z eliminados) viene del diff del Paso 3 — el script lo pasa a la UI antes de mostrar el gate de confirmación. El log de ejecución se emite línea a línea, una por recurso, de forma progresiva — no como resumen final. El resto de estados y botones son derivables del HTML.</p>
+          <p>El recuento y descripción de recursos (X modificados, Y nuevos, Z eliminados) viene del diff del Paso 2 — el script lo pasa a la UI antes de mostrar el gate de confirmación. El log de ejecución se emite línea a línea, una por recurso, de forma progresiva — no como resumen final. El resto de estados y botones son derivables del HTML.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
@@ -849,8 +809,8 @@ Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actu
           ✓ Simulable con <code>DEPLOY_SIMULATE_FAIL=true</code></p>
         </div>
       </div>
-      <div id="spec-step-5" style="display:none">
-        <div class="spec-step-title">Paso 5 — Snapshot del agente</div>
+      <div id="spec-step-4" style="display:none">
+        <div class="spec-step-title">Paso 4 — Snapshot del agente</div>
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
           <p>CX congela el estado actual del draft como una versión numerada en el entorno staging. A partir de aquí los tests tienen una referencia estable — el draft ya no importa porque el snapshot es inmutable.</p>
@@ -859,7 +819,7 @@ Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actu
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
-          <p>El draft es mutable y puede cambiar en cualquier momento. El snapshot congela el estado para que los tests tengan una referencia fija y es el punto de rollback si los tests fallan en el Paso 6.</p>
+          <p>El draft es mutable y puede cambiar en cualquier momento. El snapshot congela el estado para que los tests tengan una referencia fija y es el punto de rollback si los tests fallan en el Paso 5.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
@@ -889,8 +849,8 @@ El script almacena el nombre del snapshot en memoria para propagarlo a los pasos
           ✓ El nombre del snapshot se propaga a los elementos <code>snapshot-name-ref</code> de Pasos 6, 7 y 8</p>
         </div>
       </div>
-      <div id="spec-step-6" style="display:none">
-        <div class="spec-step-title">Paso 6 — Validación de tests</div>
+      <div id="spec-step-5" style="display:none">
+        <div class="spec-step-title">Paso 5 — Validación de tests</div>
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
           <p>Este paso no ejecuta tests — es el punto de decisión donde el usuario declara si los tests QA han pasado o fallado en staging. Según la respuesta, el pipeline avanza o revierte.</p>
@@ -901,11 +861,11 @@ El script almacena el nombre del snapshot en memoria para propagarlo a los pasos
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
-          <p>El snapshot creado en el Paso 5, necesario para poder hacer rollback si los tests fallan. El usuario habrá ejecutado la suite QA externamente antes de llegar aquí.</p>
+          <p>El snapshot creado en el Paso 4, necesario para poder hacer rollback si los tests fallan. El usuario habrá ejecutado la suite QA externamente antes de llegar aquí.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>Dos salidas posibles: si los tests pasan, el pipeline avanza al Paso 7. Si se confirma rollback, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta.</p>
+          <p>Dos salidas posibles: si los tests pasan, el pipeline avanza al Paso 6. Si se confirma rollback, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">Rollback: <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Si el usuario cancela el rollback: ninguna llamada a la API — staging y draft quedan sin cambios.</div>
         </div>
@@ -915,31 +875,31 @@ El script almacena el nombre del snapshot en memoria para propagarlo a los pasos
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ "Tests superados" → avanza al Paso 7 sin ninguna llamada a la API<br>
+          <p>✓ "Tests superados" → avanza al Paso 6 sin ninguna llamada a la API<br>
           ✓ Rollback confirmado → staging apunta a la versión anterior + draft restaurado desde esa versión<br>
           ✓ Rollback cancelado → staging y draft no se modifican<br>
           ✓ Producción no se toca en ningún caso durante este paso</p>
         </div>
       </div>
-      <div id="spec-step-7" style="display:none">
-        <div class="spec-step-title">Paso 7 — Gate QA staging</div>
+      <div id="spec-step-6" style="display:none">
+        <div class="spec-step-title">Paso 6 — Gate QA staging</div>
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
           <p>El usuario valida directamente el agente en el entorno staging de CX. La UI muestra el estado actual de los tres entornos (draft, staging, producción) para dar contexto completo. Cuando el usuario confirma, el pipeline avanza a producción. Si algo falla en las pruebas, puede revertir staging a la versión anterior desde este mismo paso.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
-          <p>Antes de impactar a usuarios reales, este paso ofrece una última barrera de validación humana con el snapshot real activo en staging — no en simulación. El Paso 6 valida con tests automatizados; este paso valida con exploración manual directa en CX.</p>
+          <p>Antes de impactar a usuarios reales, este paso ofrece una última barrera de validación humana con el snapshot real activo en staging — no en simulación. El Paso 5 valida con tests automatizados; este paso valida con exploración manual directa en CX.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
-          <p>El snapshot del Paso 5 activo en el entorno staging. El usuario habrá probado el agente en CX antes de pulsar "Validado".</p>
+          <p>El snapshot del Paso 4 activo en el entorno staging. El usuario habrá probado el agente en CX antes de pulsar "Validado".</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>Dos salidas posibles: si el usuario valida, el pipeline avanza al Paso 8 sin ninguna llamada a la API. Si el usuario revierte, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta — misma secuencia que el rollback del Paso 6.</p>
+          <p>Dos salidas posibles: si el usuario valida, el pipeline avanza al Paso 7 sin ninguna llamada a la API. Si el usuario revierte, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta — misma secuencia que el rollback del Paso 5.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">"Validado" → <code>advance(7)</code> sin ninguna llamada a API. "Rollback a staging anterior" → <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Misma secuencia que <code>rollbackStaging()</code> del Paso 6.</div>
+          <div class="tech-content" style="display:none">"Validado" → <code>advance(7)</code> sin ninguna llamada a API. "Rollback a staging anterior" → <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Misma secuencia que <code>rollbackStaging()</code> del Paso 5.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Flujo del paso</div>
@@ -947,14 +907,14 @@ El script almacena el nombre del snapshot en memoria para propagarlo a los pasos
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ "Validado" → avanza al Paso 8 sin llamadas a la API<br>
+          <p>✓ "Validado" → avanza al Paso 7 sin llamadas a la API<br>
           ✓ Rollback → <code>PATCH /environments/staging</code> a versión anterior + draft restaurado desde esa versión<br>
           ✓ Producción no se modifica en ningún caso durante este paso<br>
           ✓ Tras rollback, el pipeline queda abortado — no pausado</p>
         </div>
       </div>
-      <div id="spec-step-8" style="display:none">
-        <div class="spec-step-title">Paso 8 — Aprobar subida a producción</div>
+      <div id="spec-step-7" style="display:none">
+        <div class="spec-step-title">Paso 7 — Aprobar subida a producción</div>
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
           <p>Ejecuta las dos acciones que llevan los cambios a producción: merge de la rama staging a main en GitHub, y promoción del snapshot activo al entorno de producción en CX. Se ejecutan en secuencia: si el merge falla, la promoción no se intenta.</p>
@@ -965,7 +925,7 @@ El script almacena el nombre del snapshot en memoria para propagarlo a los pasos
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
-          <p>El snapshot del Paso 5 activo en staging. La rama staging sin conflictos con main en GitHub — si los hay, el merge falla y el paso lo indica.</p>
+          <p>El snapshot del Paso 4 activo en staging. La rama staging sin conflictos con main en GitHub — si los hay, el merge falla y el paso lo indica.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
@@ -1006,32 +966,20 @@ El script almacena el nombre del snapshot en memoria para propagarlo a los pasos
 const DIFF_COUNT = 4;
 const DEPLOY_COUNT = 4;
 const TEST_COUNT = 42;
-const PUSH_SIMULATE_FAIL           = false;
 const DEPLOY_SIMULATE_FAIL         = false;
 const PRODUCTION_SIMULATE_CONFLICT = false;
 
-const CHECK_RESULTS = {
-  push: {
-    ok: false,
-    pending: [
-      { hash: 'c4f2a1b', msg: 'fix: deploy panel mejoras' },
-      { hash: 'a3b1c2d', msg: 'feat: añadir example compra_rosas_001' },
-    ],
-  },
-};
-
 const STEPS = [
   {id:1, name:'Inventario CX',           sub:'',  gate:false},
-  {id:2, name:'Push a GitHub staging',   sub:'',  gate:true},
-  {id:3, name:'Diff GitHub vs CX',       sub:'',  gate:true},
-  {id:4, name:'Confirmar deploy',        sub:'',  gate:true},
-  {id:5, name:'Snapshot del agente',     sub:'',  gate:true},
-  {id:6, name:'Validación de tests',     sub:'',  gate:true},
-  {id:7, name:'Gate QA — staging',       sub:'',  gate:true},
-  {id:8, name:'Aprobar producción',      sub:'',  gate:true},
+  {id:2, name:'Diff GitHub vs CX',       sub:'',  gate:true},
+  {id:3, name:'Confirmar deploy',        sub:'',  gate:true},
+  {id:4, name:'Snapshot del agente',     sub:'',  gate:true},
+  {id:5, name:'Validación de tests',     sub:'',  gate:true},
+  {id:6, name:'Gate QA — staging',       sub:'',  gate:true},
+  {id:7, name:'Aprobar producción',      sub:'',  gate:true},
 ];
 
-let stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
+let stepStates = ['active','pending','pending','pending','pending','pending','pending'];
 let current = 1;
 let viewingStep = 1;
 let versionLabel = '';
@@ -1128,129 +1076,13 @@ function resetInventoryUI() {
   document.getElementById('inv-log-block').innerHTML = '';
 }
 
-function renderStep2Checks() {
-  const r = CHECK_RESULTS.push;
-  const commitRows = r.pending.map((c, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;${i < r.pending.length - 1 ? 'border-bottom:1px solid var(--bg-3);' : ''}">
-      <span style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-3);flex-shrink:0">${c.hash}</span>
-      <span style="font-size:13px;color:var(--text-2)">${c.msg}</span>
-    </div>`).join('');
-  document.getElementById('push-commit-list').innerHTML = commitRows;
-
-  if (r.ok) {
-    document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
-    document.getElementById('push-status-label').textContent = r.pending.length > 0
-      ? `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`
-      : 'origin/staging ya está al día con HEAD';
-    document.getElementById('push-status-detail').textContent = r.pending.length > 0
-      ? 'origin/staging al día con HEAD'
-      : 'Nada que pushear — continúa al diff';
-    if (r.pending.length > 0) {
-      document.getElementById('push-log').style.display = 'block';
-      document.getElementById('push-log').style.opacity = '0.6';
-    }
-    document.getElementById('push-action').innerHTML =
-      '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
-  } else {
-    document.getElementById('push-action').innerHTML =
-      `<button class="btn btn-primary" onclick="executePush()">Ejecutar push &mdash; ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} &rarr;</button>`;
-  }
-}
-
-function executePush() {
-  const r = CHECK_RESULTS.push;
-  setRunning(true);
-  document.getElementById('push-status-icon').innerHTML = '<div style="width:14px;height:14px;border:2px solid var(--accent-light);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>';
-  document.getElementById('push-status-label').textContent = 'Enviando commits a origin/staging...';
-  document.getElementById('push-status-detail').textContent = '';
-  document.getElementById('push-action').innerHTML = '';
-  const logWrap = document.getElementById('push-log');
-  const logBlock = document.getElementById('push-log-block');
-  logWrap.style.display = 'block';
-  logBlock.innerHTML = '';
-
-  if (PUSH_SIMULATE_FAIL) {
-    const failLines = [
-      {cls:'ok',  text:'✓ Conectando con origin/staging...'},
-      {cls:'del', text:'✗ remote: error: push rejected (non-fast-forward)'},
-      {cls:'del', text:'✗ Updates were rejected because the remote contains work'},
-      {cls:'dim', text:'  you do not have locally. Pull before pushing.'},
-    ];
-    let i = 0;
-    function showFailLine() {
-      if (i >= failLines.length) {
-        setTimeout(() => {
-          document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:16px">✗</span>';
-          document.getElementById('push-status-label').textContent = 'Push rechazado — remoto adelantado';
-          document.getElementById('push-status-detail').textContent = 'origin/staging tiene commits que no tienes en local';
-          document.getElementById('push-action').innerHTML = `
-            <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">Para resolver, ejecuta en tu terminal y vuelve a intentar:</div>
-            <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:12px">
-              <code style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace">git pull --rebase origin staging</code>
-              <button onclick="navigator.clipboard.writeText('git pull --rebase origin staging').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copiar',1500)})" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
-            </div>
-            <button class="btn btn-ghost" onclick="retryPush()">Reintentar push</button>`;
-          setRunning(false);
-        }, 300);
-        return;
-      }
-      appendLogLine(logBlock, failLines[i].cls, failLines[i].text);
-      i++;
-      setTimeout(showFailLine, 400);
-    }
-    showFailLine();
-    return;
-  }
-
-  const pushLines = [
-    {cls:'ok',  text:'✓ Conectando con origin/staging...'},
-    ...r.pending.map(c => ({cls:'ok', text:`✓ ${c.hash}  ${c.msg}`})),
-    {cls:'ok',  text:`✓ Push completado — ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} en origin/staging`},
-  ];
-  let i = 0;
-  function showLine() {
-    if (i >= pushLines.length) {
-      setTimeout(() => {
-        document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--success);font-size:16px">✓</span>';
-        document.getElementById('push-status-label').textContent = `Pushed ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} a origin/staging`;
-        document.getElementById('push-status-detail').textContent = 'origin/staging al día con HEAD';
-        logWrap.style.opacity = '0.6';
-        document.getElementById('push-action').innerHTML =
-          '<button class="btn btn-primary" onclick="advance(2)">Continuar al diff &rarr;</button>';
-        CHECK_RESULTS.push.ok = true;
-        setRunning(false);
-      }, 300);
-      return;
-    }
-    const line = pushLines[i];
-    const span = document.createElement('span');
-    span.className = line.cls;
-    span.textContent = line.text;
-    logBlock.appendChild(span);
-    logBlock.appendChild(document.createTextNode('\n'));
-    i++;
-    setTimeout(showLine, 400);
-  }
-  showLine();
-}
-
-function retryPush() {
-  const r = CHECK_RESULTS.push;
-  document.getElementById('push-log').style.display = 'none';
-  document.getElementById('push-log-block').innerHTML = '';
-  document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:14px">✗</span>';
-  document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
-  document.getElementById('push-status-detail').textContent = `origin/staging está ${r.pending.length} commit${r.pending.length > 1 ? 's' : ''} por detrás`;
-  renderStep2Checks();
-}
-
 function renderStep3Diff() {
   document.getElementById('diff-has-changes').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
   document.getElementById('diff-no-changes').style.display  = DIFF_COUNT > 0 ? 'none'  : 'block';
 }
 
 /* ── Comprobación CX → repo ──────────────────────────────────────────────
-   El diff del Paso 3 mira repo → CX: qué hay que aplicar. Esta comprobación
+   El diff del Paso 2 mira repo → CX: qué hay que aplicar. Esta comprobación
    mira al revés — qué existe en CX que definitions/ no recoge. Sin ella, el
    deploy borra en silencio el trabajo hecho desde la consola de CX, porque
    el repo es la fuente de verdad y lo que no está en él se elimina.
@@ -1610,7 +1442,6 @@ function viewStep(id) {
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   const v = document.getElementById('view-'+id);
   if(v) v.classList.add('visible');
-  if(id === 2) renderStep2Checks();
   if(id === 3) renderStep3Diff();
   if(id === 4) renderCxRepoCheck();
   if(id === 5) renderVersionPool();
@@ -1812,9 +1643,9 @@ const ROLLBACK_LINES = [
 function rollbackFromStep7() {
   if(isRunning) return;
   if(!confirm('¿Revertir staging al estado anterior?')) return;
-  stepStates[6] = 'pending'; // SM-03: bloquea paso 7 mientras el rollback está en curso
+  stepStates[6] = 'pending'; // SM-03: bloquea paso 6 mientras el rollback está en curso
   renderSidebar();
-  viewStep(6);
+  viewStep(5);
   setTimeout(() => showRollbackConfirm(), 100);
 }
 
@@ -1858,10 +1689,10 @@ function rollbackStaging() {
 function cancelDeploy(afterDeploy) {
   if(afterDeploy) {
     if(confirm('El draft de CX ya tiene los cambios del deploy.\n\n¿Ir al rollback para revertirlos?')) {
-      stepStates[5] = 'gate';  // desbloquea paso 6 para que viewStep lo acepte
-      stepStates[6] = 'pending'; // bloquea paso 7
+      stepStates[5] = 'gate';  // desbloquea paso 5 para que viewStep lo acepte
+      stepStates[6] = 'pending'; // bloquea paso 6
       renderSidebar();
-      viewStep(6);
+      viewStep(5);
       setTimeout(() => showRollbackConfirm(), 100);
     }
   } else {
@@ -1872,10 +1703,9 @@ function cancelDeploy(afterDeploy) {
 function resetDeploy() {
   setRunning(false);
   animVersion++;
-  stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
+  stepStates = ['active','pending','pending','pending','pending','pending','pending'];
   current = 1; viewingStep = 1;
   versionLabel = '';
-  CHECK_RESULTS.push.ok = false;
   resetInventoryUI();
   resetDeployStep4();
   resetVersionUI();
@@ -1886,12 +1716,6 @@ function resetDeploy() {
   document.getElementById('test-action-bar').style.display = 'flex';
   const tgtReset = document.getElementById('test-gate-title');
   if(tgtReset) tgtReset.style.display = '';
-  document.getElementById('push-log').style.display = 'none';
-  document.getElementById('push-log').style.opacity = '1';
-  document.getElementById('push-log-block').innerHTML = '';
-  document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:14px">✗</span>';
-  document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
-  document.getElementById('push-status-detail').textContent = 'origin/staging está 2 commits por detrás';
   document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
   document.getElementById('done-timestamp').textContent = '— · — UTC';
   const badge = document.getElementById('topbar-env');
@@ -1920,6 +1744,9 @@ function resetDeploy() {
 document.getElementById('specs-panel').classList.add('collapsed');
 document.getElementById('deploy-count').textContent = DEPLOY_COUNT;
 document.getElementById('version-batch-label').value = generateVersionLabel();
+document.getElementById('topbar-commit-time').textContent =
+  new Date().toLocaleString('es-ES', {timeZone:'Europe/Madrid', day:'numeric', month:'short',
+                                      hour:'2-digit', minute:'2-digit'}).replace(',', '');
 viewStep(1);
 renderSidebar();
 </script>
