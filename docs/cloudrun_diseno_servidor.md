@@ -234,3 +234,30 @@ Las decisiones de §2 tratan panel y servidor como una sola pieza. Dejan de serl
 ### 8.4 Choque con una decisión cerrada
 
 **`x-goog-user-project` es la cabecera de cuota** (`cx_client.py:89`). Con ADC exige `serviceusage.services.use` sobre ese proyecto, permiso que `roles/dialogflow.admin` **no incluye**. §2 decidió "cero pasos de IAM" precisamente para no chocar con CLAUDE.md §7.1. Entra en la medición pendiente de ADC (§5).
+
+---
+
+## 9. Seguimiento de los hallazgos
+
+Estado de los 14 hallazgos de §8. Se completa a medida que Jero decide.
+**Abierto** = sin solución · **Standby** = solución propuesta con dudas
+pendientes · **Resuelto** = cerrado, listo para redactar.
+
+| ID | Hallazgo | Estado | Solución |
+|---|---|---|---|
+| **C1** | `POST /step/8` promociona producción sin haber pasado por ningún paso previo · `server.py:67` | Abierto | — |
+| **C2** | El Paso 4 ejecuta el array de `operations` recibido sin recalcular, incluidos DELETE, con rutas absolutas · `:554` | Abierto | — |
+| **C3** | Una petición puede dirigir el token de la cuenta de servicio a cualquier URL · `cx_client.py:108` | Abierto | — |
+| **C4** | `previous_versions` y `version_names` viajan por el mismo canal, con rutas absolutas · `server.py:58`, `:63` | Abierto | — |
+| **C5** | `/versions/protect` escribe en CX sin coger el lock ni validar la ruta · `server.py:143` | Abierto | — |
+| **D1** | §2 fija `agent: ""` pero el código lee `agent_id` — la Regla 11 daría siempre falso y el Paso 3 devolvería `ok` con cero operaciones | Abierto | — |
+| **D2** | La Contents API no es recursiva y `definitions/examples/` tiene 4 subdirectorios | Abierto | — |
+| **D3** | `merge_staging_into_main()` no recibe parámetro de repo, usa `gh`, y la GitHub App no tiene permiso de pull requests · `:1404` | Abierto | — |
+| **D4** | `write_run_log` y `cx_repo_drift` siguen usando el disco efímero · `:119`, `:874` | Abierto | — |
+| **H1** | Dos repos pueden reclamar el mismo agente — la Regla 11 solo valida repo→agente | Abierto | — |
+| **H2** | El `pull` no sabe dónde escribir un recurso que solo existe en CX · `:916` | Abierto | — |
+| **H3** | Perder `previous_versions` deja el rollback imposible, y no se regenera · `:1347` | Abierto | — |
+| **H4** | El Paso 5 puede pasar de 60 minutos: una LRO por flow, playbook y tool | Abierto | — |
+| **X1** | `x-goog-user-project` exige `serviceusage.services.use`, que `dialogflow.admin` no incluye — choca con la decisión de "cero IAM" | Abierto | — |
+
+**Cuando los 14 estén resueltos, se lanza una segunda ronda de adversariales** antes de redactar la Fase 5.
