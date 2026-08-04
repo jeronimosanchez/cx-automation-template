@@ -317,65 +317,70 @@ Acordadas el 2026-08-04, después de §10. **Sustituyen a S7 y S14.**
 | ID | Decisión | Por qué | Estado |
 |---|---|---|---|
 | **S17** | Renombrar "artefactos" → **"resources"** en todo el sistema | Es el término oficial de la API de CX | ✅ |
-| **S18** | Cada YAML lleva **metadata: tipo, padre y `cx_id`**. El servidor escribe el `cx_id` al subirlo por primera vez | La correspondencia repo↔CX pasa a ser por `cx_id`, no por nombre de archivo ni por carpeta | ⏸ ver §11.1 |
-| **S19** | **La estructura de carpetas es libre.** El servidor la ignora — va por `cx_id` | Resuelve la contradicción entre S7 y S14 | ⏸ ver §11.1 |
-| **S20** | El servidor puede **desplegar un resource concreto** bajo demanda leyendo su `cx_id` | Permite iterar rápido sin pasar por el pipeline completo | ⏸ ver §11.1 |
-| **S21** | **Templates YAML en `/templates`** dentro de la imagen Docker, descargables desde el panel o invocables por un LLM | Agnóstico de cualquier repo y siempre disponibles | ⏸ ver §11.1 |
+| **S18** | Cada YAML lleva **metadata: tipo, padre y `cx_id`**. El servidor escribe el `cx_id` al subirlo por primera vez | La correspondencia repo↔CX pasa a ser por `cx_id`, no por nombre de archivo ni por carpeta | ✅ |
+| **S19** | **La estructura de carpetas es libre.** El servidor la ignora — va por `cx_id` | Resuelve la contradicción entre S7 y S14 | ✅ |
+| **S20** | El servidor puede **desplegar un resource concreto** bajo demanda leyendo su `cx_id` | Permite iterar rápido sin pasar por el pipeline completo | ✅ |
+| **S21** | **Templates YAML en `/templates`** dentro de la imagen Docker, descargables desde el panel o invocables por un LLM | Agnóstico de cualquier repo y siempre disponibles | ✅ |
 | **S22** | **Wizard de onboarding** en la pestaña Proyectos: ID de agente + URL de repo → el servidor crea la estructura, muestra el comando IAM, registra en Firestore y hace el `pull` inicial | Reduce el onboarding a dos datos y un comando manual | ✅ |
 | **S23** | `cx-deploy.yaml` lo **crea el servidor** en el paso 3 del wizard | Marcador que identifica el repo como proyecto CX. Jero no lo toca | ✅ |
 
-### 11.1 Consecuencias y puntos abiertos
+---
 
-**S18 y S19 cambian el mecanismo central del diff.** Hoy la correspondencia
-es por `displayName`: `load_definitions()` indexa por ese campo y recorre
-`definitions/<tipo>/` carpeta por carpeta. Con la estructura libre, el
-servidor tiene que leer **todos** los YAML del repo recursivamente y agrupar
-por el `tipo` declarado dentro de cada archivo. Consecuencia: un YAML sin
-ese campo, o con él mal escrito, se vuelve invisible para el pipeline —
-merece un error explícito, no un silencio.
+## 12. Notas para quien implemente
 
-**Lo que S18 mejora:** renombrar un resource en CX pasa a ser un simple
-PATCH del `displayName`. Hoy, al ir por nombre, un renombrado parece un
-recurso borrado más uno creado.
+No son decisiones pendientes: son consecuencias de lo acordado que hay que
+tener delante al construir.
 
-**Riesgo de S18 — dos YAML con el mismo `cx_id`.** Duplicar un archivo para
-crear una variante es lo más natural del mundo, y renombrar el `displayName`
-sin acordarse de vaciar el `cx_id` deja dos archivos reclamando el mismo
-resource de CX. El servidor debe detectar `cx_id` duplicados y parar.
+**El diff cambia de mecanismo.** Hoy la correspondencia va por `displayName`
+y `load_definitions()` recorre `definitions/<tipo>/` carpeta por carpeta.
+Con S18 y S19 el servidor lee **todos** los YAML del repo recursivamente y
+agrupa por el `tipo` declarado dentro de cada archivo. Un YAML sin ese campo
+se vuelve invisible para el pipeline — que dé error explícito, no silencio.
 
-**El `pull` sigue sin saber dónde escribir un archivo nuevo.** S19 resuelve
-el caso de los resources que ya existen en el repo —se localizan por
-`cx_id`— pero un resource que solo existe en CX no tiene YAML ni carpeta, y
-con la estructura libre el servidor no puede deducirla. Hace falta una regla
-por defecto para los archivos nuevos.
+**Detectar `cx_id` duplicados y parar.** Duplicar un archivo para crear una
+variante es natural; olvidarse de vaciar el `cx_id` deja dos YAML
+reclamando el mismo resource de CX.
 
-**El servidor pasa a escribir en el repo de forma sistemática.** Ya no son
-"dos excepciones" como decía §2: escribe `agent.yaml`, el `cx_id` de cada
-resource nuevo, los artefactos del `pull`, la estructura inicial del wizard
-y el `cx-deploy.yaml`. **El principio de flujo unidireccional de §2 queda
-anulado**, y el aviso de hacer `git pull` deja de ser una excepción para
-convertirse en parte del funcionamiento normal. Además, con S18 un deploy
-deja de ser de solo lectura hacia GitHub: al subir un resource nuevo,
-commitea.
+**H4 hay que construirlo.** `create_versions_for_snapshot` (`:978`) hoy
+recorre todos los flows, todos los playbooks y todos los tools referenciados
+— no los que tocó el diff. Al cambiarlo, el entorno debe fijar versión nueva
+para lo que cambió y la existente para lo que no (Regla 16 exige la cadena
+completa).
 
-**S20 debe acotarse a draft.** Desplegar un resource suelto es una escritura
-en CX fuera de los pasos numerados y sus gates. Mientras solo toque el draft
-el riesgo es bajo; si pudiera alcanzar staging o producción, se saltaría
-todo el modelo de aprobación.
+**El servidor escribe en el repo de forma sistemática.** `agent.yaml`, el
+`cx_id` de cada resource nuevo, los artefactos del `pull`, la estructura del
+wizard y el `cx-deploy.yaml`. El flujo unidireccional de §2 queda anulado, y
+con S18 un deploy deja de ser de solo lectura hacia GitHub. El aviso de
+hacer `git pull` es parte del funcionamiento normal, no una excepción.
 
-**S21 — "sin intervención manual" choca con CLAUDE.md §6.** Ver §11.2.
+**S1b — riesgo asumido.** El servidor recalcula y aplica sin comparar contra
+lo aprobado. Si CX cambia entre el Paso 3 y el Paso 4 —edición directa en
+consola, o tiempo transcurrido— se aplican operaciones que nadie revisó.
+Acotado porque el diff ya no propone DELETE.
 
-### 11.2 El punto que hay que resolver antes de redactar
+**Cambiar un template exige reconstruir la imagen**, al vivir en `/templates`
+dentro del contenedor (S21).
 
-S21 dice que un LLM puede *"descargar, rellenar y desplegar sin intervención
-manual"*. CLAUDE.md §6 dice lo contrario, y es una regla de las no
-negociables: *"El pipeline nunca escribe en CX sin pasar por sus propios
-gates humanos (Pasos 4 a 8) … La aprobación a producción siempre requiere
-una decisión explícita de Jero desde el panel, nunca automática."*
+---
 
-Las dos lecturas posibles son muy distintas:
+## 13. Dudas abiertas
 
-- **Un LLM prepara el YAML y Jero lo despliega.** No hay conflicto: el LLM
-  es una ayuda de redacción y el gate sigue en su sitio.
-- **Un LLM despliega de verdad.** Entonces hay que modificar CLAUDE.md §6,
-  que es una decisión de gobierno del sistema, no un detalle de diseño.
+Cuatro. Ninguna bloquea seguir avanzando; la primera sí bloquea redactar.
+
+1. **S21 y CLAUDE.md §6.** S21 dice que un LLM puede *"descargar, rellenar y
+   desplegar sin intervención manual"*. §6 dice que el pipeline nunca
+   escribe en CX sin pasar por sus gates humanos. ¿El LLM prepara el YAML y
+   Jero despliega (sin conflicto), o el LLM despliega de verdad (y hay que
+   modificar §6)?
+
+2. **Dónde escribe el `pull` un archivo nuevo.** Por `cx_id` se localizan los
+   resources que ya están en el repo. Uno que solo existe en CX no tiene
+   YAML ni carpeta, y con la estructura libre el servidor no puede deducirla.
+   Falta la regla por defecto — y es justo el caso del onboarding.
+
+3. **¿S20 se acota a draft?** Desplegar un resource suelto es una escritura
+   en CX fuera de los pasos numerados. En draft el riesgo es bajo; si
+   alcanzara staging o producción se saltaría el modelo de aprobación.
+
+4. **Alcance de S17.** Renombrar "artefactos" → "resources": ¿solo texto de
+   cara al usuario, o también identificadores en el código y en los YAML?
