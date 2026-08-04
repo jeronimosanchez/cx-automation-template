@@ -510,7 +510,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div id="rollback-confirm" class="error-block" style="display:none;margin-top:20px">
         <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tests fallidos &mdash; rollback de staging</div>
-        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, el sistema revertir&aacute; el entorno staging de CX al estado anterior.</p>
+        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, staging vuelve a apuntar a <strong>una versi&oacute;n anterior</strong>.</p>
         <div class="slabel" style="margin-bottom:8px">Qu&eacute; va a ocurrir</div>
         <div style="margin-bottom:16px">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:4px">Si confirmas rollback</div>
@@ -709,29 +709,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-step-title">Paso 1 — Inventario CX</div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
+          <div class="spec-block-label">1.1 — Qué hace</div>
           <p>Construye el punto de partida del pipeline, y hace tres cosas: averigua qué repositorio corresponde al agente elegido, fotografía el draft de CX y lee el repositorio entero para emparejar cada resource con su archivo. Lo que sale no es una lista de lo que hay en CX, sino el mapa de qué está en los dos sitios, qué solo en CX y qué solo en el repositorio.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
+          <div class="spec-block-label">1.2 — Por qué existe</div>
           <p>Sin saber el estado actual no hay nada contra qué comparar. Pero una foto de CX a secas tampoco basta: hasta que cada resource no está emparejado con su archivo, no se puede distinguir un cambio de un resource nuevo, ni un renombrado de un borrado más una creación. El emparejamiento se hace aquí para que el paso siguiente solo tenga que comparar contenidos.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
+          <div class="spec-block-label">1.3 — Qué produce</div>
           <p>El mapa del agente en tres grupos —emparejados, solo en CX, solo en el repositorio— con el archivo de cada uno. Lleva dentro el proyecto, el agente, el repositorio, el commit de <code>staging</code> del que se leyó y la marca de tiempo.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">El Paso 2 no vuelve a leer nada: trabaja sobre este mismo mapa. Releer arriesgaría comparar contra una foto distinta de la que el usuario aprobó.</div>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué escribe y dónde</div>
+          <div class="spec-block-label">1.4 — Qué escribe y dónde</div>
           <p><strong>Nada.</strong> Consulta el mapeo agente-repositorio, lee CX y lee GitHub, pero no modifica ninguno de los tres. Cada paso lleva en la cabecera una etiqueta que dice qué toca: aquí es <em>solo lectura</em>; en el Paso 2, <em>escribe en el repositorio</em>; en el 3, <em>escribe en CX</em>.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.1 — Resolución del repositorio</div>
+          <div class="spec-block-label">1.5 — Resolución del repositorio</div>
           <p>Al elegir el agente aparece su repositorio. No hay selector: el mapeo lo guarda el servidor, y un agente tiene como máximo un repositorio — eso es lo que impide que dos repositorios reclamen el mismo agente.</p>
           <p>Si el agente no tiene ninguno, se muestra el aviso y el botón de iniciar queda deshabilitado. Si <strong>ningún</strong> agente del proyecto lo tiene, el aviso aparece arriba al elegir proyecto, para no tener que recorrerlos uno a uno para descubrirlo.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
@@ -740,24 +740,24 @@ Cuando no hay entrada, devolver un error tipado que el panel distinga de un fall
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.2 — La caja donde el sistema va contando</div>
+          <div class="spec-block-label">1.6 — La caja donde el sistema va contando</div>
           <p>Todo lo que el sistema hace mientras trabaja se escribe dentro de <strong>una caja de tamaño fijo</strong>, reservado desde el principio. No crece con el contenido ni empuja lo de abajo: si se escriben más líneas de las que caben, se desplazan dentro de la propia caja.</p>
           <p>Así la pantalla no se reorganiza mientras miras, y el botón de continuar sigue estando donde estaba.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.3 — Comprobación de conexión</div>
+          <div class="spec-block-label">1.7 — Comprobación de conexión</div>
           <p>Primera línea del log. Verifica credenciales y acceso al agente antes de lanzar ninguna lectura. Si falla aquí, el error es inmediato y distingue las dos causas —sin credenciales, o sin permiso sobre ese proyecto— en vez de aparecer a mitad del inventario como un 401 sin contexto.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.4 — Foto de CX</div>
+          <div class="spec-block-label">1.8 — Foto de CX</div>
           <p>Una lectura por cada tipo de resource declarado, sobre el <strong>draft</strong> — el estado editable, no lo que corre en staging. Los tipos salen del registro, así que el número no es fijo.</p>
           <p>Si una lectura falla, se aborta. Mejor sin datos que con datos parciales: un inventario incompleto produce un diff que propone crear lo que ya existe.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.5 — Lectura del repositorio</div>
+          <div class="spec-block-label">1.9 — Lectura del repositorio</div>
           <p>Se leen <strong>todos</strong> los YAML del repositorio, de forma recursiva. La estructura de carpetas es libre y no significa nada: cada archivo declara en su metadata qué tipo de resource es, de quién cuelga y a qué resource de CX corresponde.</p>
           <p>Dos situaciones paran el paso con error explícito, nunca en silencio: un archivo <strong>sin tipo</strong> —sería invisible para el pipeline— y dos archivos con el <strong>mismo identificador de CX</strong>, que es lo que ocurre al duplicar un archivo y olvidar vaciarlo.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
@@ -766,7 +766,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.6 — Emparejamiento</div>
+          <div class="spec-block-label">1.10 — Emparejamiento</div>
           <p>Cada resource de CX se empareja con su archivo <strong>por identificador</strong>, no por nombre ni por ubicación. El resultado son los tres grupos, cada uno desplegable para ver la lista completa.</p>
           <p><strong>Emparejado</strong> — está en CX y tiene archivo.<br>
           <strong>Solo en CX</strong> — existe en el agente y ningún archivo lo reclama.<br>
@@ -776,7 +776,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">1.11 — Criterios de validación</div>
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
           <p>✓ Si elijo un agente que no tiene repositorio, no me deja iniciar el inventario y me ofrece vincularlo ahí mismo<br>
           ✓ Si ningún agente del proyecto tiene repositorio, me avisa nada más elegir el proyecto — no tengo que ir uno por uno para descubrirlo<br>
@@ -796,38 +796,38 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         <div class="spec-step-title">Paso 2 — Traer al repositorio <span style="color:var(--text-3);font-weight:400;font-size:13px">· CX → repositorio</span></div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
+          <div class="spec-block-label">2.1 — Qué hace</div>
           <p>Al entrar se ve una tarjeta ámbar con la lista de lo que hay en CX y no está en el repositorio. Se marca lo que se quiera traer, y debajo un cuadro de acción dice cuántos van y a qué repositorio. Al pulsar, el sistema los escribe y confirma que el repositorio ha quedado actualizado.</p>
           <p>La cabecera del paso lleva la etiqueta <em>escribe en el repositorio</em>, porque eso es lo que hace.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
+          <div class="spec-block-label">2.2 — Por qué existe</div>
           <p>Va antes del deploy a propósito. Si primero te traes lo que falta, el repositorio queda completo y lo que despliegues después sale de un retrato fiel del agente. Al revés, desplegarías desde un repositorio al que le faltan piezas.</p>
           <p>El número en naranja está para eso: recordar que cada cosa que no te traigas es un trozo del agente que el repositorio deja de conocer.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
+          <div class="spec-block-label">2.3 — Qué produce</div>
           <p>Archivos nuevos en el repositorio. En pantalla queda el registro de cuáles se crearon y con qué commit, un mensaje de <strong>repositorio actualizado</strong>, y el recordatorio de hacer <code>git pull</code> en local.</p>
           <p>La lista de arriba se queda con lo que no te llevaste, y el número en naranja baja.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué escribe y dónde</div>
+          <div class="spec-block-label">2.4 — Qué escribe y dónde</div>
           <p>En el repositorio, y solo al pulsar el botón: entrar en el paso y marcar casillas no escribe nada.</p>
           <p>También puede escribir en CX, pero solo por la otra salida: eliminar. Esa va con su propia confirmación, y hasta que no se confirma no se toca nada.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.1 — La deriva</div>
+          <div class="spec-block-label">2.5 — La deriva</div>
           <p>El número en naranja encabeza el bloque: es la señal de que el repositorio se está separando del agente. Aparece siempre, aunque se decida no traer nada.</p>
           <p><strong>Nada viene marcado.</strong> Traer archivos al repositorio es una escritura, y ninguna escritura debería ocurrir por inercia. Lo que no marques se queda como está — por eso no hace falta un botón de ignorar.</p>
           <p>Los resources nativos de la plataforma salen deshabilitados y con el motivo: no tienen definición que guardar.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.2 — El cuadro de acción</div>
+          <div class="spec-block-label">2.6 — El cuadro de acción</div>
           <p>Debajo de la tarjeta, un cuadro de <strong>acción requerida</strong> que recuerda a qué repositorio y a qué rama se va a escribir, cuántos resources van de los marcados, y qué pasa con los que no: se quedan solo en CX, y el repositorio deja de retratar el agente entero.</p>
           <p>Los botones de acción viven dentro de ese cuadro. Los dos arrancan desactivados y se activan al marcar algo.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
@@ -835,7 +835,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.3 — La traída</div>
+          <div class="spec-block-label">2.7 — La traída</div>
           <p>Al pulsar, el sistema escribe de verdad y lo va contando en una caja de tamaño fijo: qué archivo crea, en qué repositorio y en qué rama, y con qué commit queda.</p>
           <p>Al terminar, confirma que <strong>el repositorio está actualizado</strong> y recuerda hacer <code>git pull</code> en local, porque la copia de trabajo se ha quedado un commit por detrás. Las filas traídas desaparecen de la lista y el contador de deriva baja.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
@@ -843,19 +843,19 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.4 — Continuar sin modificar</div>
+          <div class="spec-block-label">2.8 — Continuar sin modificar</div>
           <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado mientras esté. Pasar sin traer nada es una salida legítima, no un callejón — y con nada marcado por defecto, es la que más se va a usar. Está fuera del cuadro a propósito: no es una de las acciones, es la alternativa a todas ellas.</p>
           <p><strong>Desaparece en cuanto se ejecuta la acción.</strong> Una vez traído algo, ya se ha modificado, y ofrecer "continuar sin modificar" sería mentir. En su lugar aparece un continuar normal.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.5 — Eliminar de CX</div>
+          <div class="spec-block-label">2.9 — Eliminar de CX</div>
           <p>La otra salida para la deriva, y la única acción destructiva. Sobre lo marcado, abre un panel que <strong>enseña la lista concreta de lo que se va a borrar</strong> antes de pedir confirmación, y avisa de que no se deshace desde el panel.</p>
           <p>Al confirmar, esos resources dejan de ser deriva y pasan al Paso 3 marcados como <em>eliminar</em>. El contador de aquí baja.</p>
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">2.10 — Criterios de validación</div>
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
           <p>✓ La cabecera dice de dónde a dónde va el dato: de CX al repositorio<br>
           ✓ Al entrar, no hay nada marcado<br>
@@ -883,55 +883,55 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         <div class="spec-step-title">Paso 3 — Aplicar en CX <span style="color:var(--text-3);font-weight:400;font-size:13px">· repositorio → CX</span></div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
+          <div class="spec-block-label">3.1 — Qué hace</div>
           <p>Al entrar se ve una tarjeta azul con la lista de lo que va a cambiar en el agente: qué resource, de qué archivo sale y si se va a crear, modificar o eliminar. Se marca lo que se quiera aplicar, y el cuadro de acción de debajo recuerda sobre qué proyecto y agente se va a escribir.</p>
           <p>Al pulsar, la lista deja paso a un registro que va contando resource por resource cómo ha ido.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
+          <div class="spec-block-label">3.2 — Por qué existe</div>
           <p>Es el primer paso que toca el agente, así que es donde se decide de verdad. Todo lo anterior era leer, ordenar y traer.</p>
           <p>Por eso nada viene marcado y el botón arranca apagado: hay que decir explícitamente qué se aplica.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
+          <div class="spec-block-label">3.3 — Qué produce</div>
           <p>El <strong>draft</strong> del agente actualizado. En pantalla queda el registro de qué se aplicó y qué falló, y si algo falla se puede reintentar solo lo fallido sin repetir lo que ya salió bien.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">El draft es el estado editable: ningún usuario lo ve. Por eso terminar aquí es un final legítimo del pipeline — se pueden acumular cambios en draft durante días y decidir más adelante si se publican.</div>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué escribe y dónde</div>
+          <div class="spec-block-label">3.4 — Qué escribe y dónde</div>
           <p>En el draft del agente, y solo al pulsar. No toca staging ni producción — eso es el paso siguiente — ni el repositorio.</p>
           <p>El draft es el estado editable del agente: ningún usuario ve lo que se escribe aquí hasta que se publique.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">3.1 — Lo que se va a aplicar</div>
+          <div class="spec-block-label">3.5 — Lo que se va a aplicar</div>
           <p>Una fila por resource, con su tipo, su nombre, el archivo del que sale y qué se le va a hacer: <strong>crear</strong> lo que aún no existe, <strong>modificar</strong> lo que existe y el archivo dice distinto, <strong>eliminar</strong> lo que se decidió borrar en el paso anterior.</p>
           <p><strong>Nada viene marcado</strong>, y el botón de aplicar está bloqueado hasta que se marque algo. Escribir en el agente no debería poder ocurrir por inercia.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">3.2 — El cuadro de acción</div>
+          <div class="spec-block-label">3.6 — El cuadro de acción</div>
           <p>Debajo de la tarjeta, un cuadro de <strong>acción requerida</strong> que recuerda sobre qué proyecto y qué agente se va a escribir, y cuántos resources van de los marcados. El botón de aplicar vive dentro y arranca bloqueado.</p>
           <p>Misma estructura que el Paso 2 en sentido contrario: tarjeta, cuadro de acción, y fuera la salida sin modificar.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">3.3 — Continuar sin modificar</div>
+          <div class="spec-block-label">3.7 — Continuar sin modificar</div>
           <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado mientras esté. Se puede pasar sin aplicar nada — por ejemplo si solo se quería traer cosas al repositorio.</p>
           <p><strong>Desaparece al aplicar.</strong> Igual que en el Paso 2: una vez modificado, ofrecer no modificar sería mentir.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">3.4 — El aviso sin staging</div>
+          <div class="spec-block-label">3.8 — El aviso sin staging</div>
           <p>Si entre lo marcado hay tipos que la API no versiona, se avisa antes de confirmar: ese cambio será visible en draft, staging y producción a la vez, en el instante en que se aplique. No hay forma de probarlo en staging primero.</p>
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">3.9 — Criterios de validación</div>
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
           <p>✓ La cabecera dice de dónde a dónde va el dato: del repositorio a CX<br>
           ✓ Al entrar, no hay nada marcado y el botón de aplicar está bloqueado<br>
@@ -956,32 +956,32 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         <div class="spec-step-title">Paso 4 — Publicar en staging</div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
+          <div class="spec-block-label">4.1 — Qué hace</div>
           <p>Al entrar hay un cuadro de acción con un nombre de versión ya propuesto y un botón. No hay nada que marcar ni que elegir: se acepta el nombre o se cambia, y se pulsa.</p>
           <p>Debajo, plegado, un desplegable con las versiones que ya existen. Al terminar, staging pasa a servir la versión nueva y se pueden lanzar los tests.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
+          <div class="spec-block-label">4.2 — Por qué existe</div>
           <p>El draft cambia cada vez que se aplica algo. Probar contra el draft sería probar contra un suelo móvil: si mientras corren los tests alguien toca un playbook, al terminar no se sabe qué se ha probado.</p>
           <p>La versión es una foto que ya no se mueve, y staging apuntando a ella es lo que hace que los tests midan algo.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
+          <div class="spec-block-label">4.3 — Qué produce</div>
           <p>Una versión con el nombre que se le haya puesto, y staging sirviéndola. Aparece en la lista de versiones existentes, y desde ese momento los tests del paso siguiente corren contra ella.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">Por debajo no es una sola versión sino varias, una por cada resource que la necesita, porque la API versiona por recurso y no por agente. Eso es mecánica interna: para quien usa el panel es una versión del agente, con un nombre, y no hay ninguna decisión que tomar al respecto.</div>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">Qué escribe y dónde</div>
+          <div class="spec-block-label">4.4 — Qué escribe y dónde</div>
           <p>En CX, y solo al pulsar: crea la versión y mueve staging. No toca producción ni el repositorio.</p>
           <p>El desplegable de versiones existentes también escribe, pero solo por su botón de eliminar y tras confirmar.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">4.1 — Solo se versiona lo que ha cambiado</div>
+          <div class="spec-block-label">4.5 — Solo se versiona lo que ha cambiado</div>
           <p>No se vuelve a versionar todo el agente cada vez: solo los resources que el deploy ha tocado. Los que no han cambiado conservan la versión que ya tenían, y el entorno los sigue apuntando ahí.</p>
           <p><strong>Por qué importa aunque no se vea:</strong> versionar todo cada vez gasta capacidad de versiones a cambio de nada, y el agente tiene un tope. Versionando solo lo que cambia, el tiempo del paso es proporcional a lo que has tocado, no al tamaño del agente.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
@@ -989,18 +989,18 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">4.2 — El nombre de la versión</div>
+          <div class="spec-block-label">4.6 — El nombre de la versión</div>
           <p>Viene propuesto uno y se puede cambiar. Es lo único que hay que decidir en este paso.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">4.3 — Ver versiones existentes</div>
+          <div class="spec-block-label">4.7 — Ver versiones existentes</div>
           <p>Debajo del cuadro de acción, plegado por defecto. <strong>No hace falta abrirlo para crear una versión</strong> — está ahí para consultar y para limpiar.</p>
           <p>Al abrirlo se ven las versiones que ya existen, con su fecha. Marcar una sirve para <strong>una sola cosa: eliminarla</strong>. El botón de eliminar arranca desactivado y dice cuántas se van a borrar. Las que un entorno está usando salen deshabilitadas: borrarlas dejaría staging o producción apuntando a nada.</p>
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">4.8 — Criterios de validación</div>
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
           <p>✓ El paso me dice que voy a publicar en staging para poder lanzar tests, no cómo lo hace por dentro<br>
           ✓ El botón habla de una versión, en singular<br>
@@ -1019,29 +1019,29 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
       <div id="spec-step-5" style="display:none">
         <div class="spec-step-title">Paso 5 — Validación de tests</div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
+          <div class="spec-block-label">5.1 — Qué hace</div>
           <p>Este paso no ejecuta tests — es el punto de decisión donde el usuario declara si los tests QA han pasado o fallado en staging. Según la respuesta, el pipeline avanza o revierte.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
+          <div class="spec-block-label">5.2 — Por qué existe</div>
           <p>El pipeline no puede ejecutar los tests QA por sí solo — requieren un runner externo. Este gate obliga a verificar los resultados antes de permitir el avance a producción.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué necesita</div>
+          <div class="spec-block-label">5.5 — Qué necesita</div>
           <p>El snapshot creado en el Paso 4, necesario para poder hacer rollback si los tests fallan. El usuario habrá ejecutado la suite QA externamente antes de llegar aquí.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
+          <div class="spec-block-label">5.3 — Qué produce</div>
           <p>Dos salidas posibles: si los tests pasan, el pipeline avanza al Paso 6. Si se confirma rollback, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">Rollback: <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Si el usuario cancela el rollback: ninguna llamada a la API — staging y draft quedan sin cambios.</div>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Flujo del paso</div>
+          <div class="spec-block-label">5.6 — Flujo del paso</div>
           <p>La decisión del usuario (superados / fallidos) determina el camino. Si rollback confirmado: el script hace PATCH sobre staging y restaura el draft — el pipeline queda abortado. Si rollback cancelado: el pipeline queda en pausa con el snapshot actual intacto.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">5.5 — Criterios de validación</div>
           <p>✓ "Tests superados" → avanza al Paso 6 sin ninguna llamada a la API<br>
           ✓ Rollback confirmado → staging apunta a la versión anterior + draft restaurado desde esa versión<br>
           ✓ Rollback cancelado → staging y draft no se modifican<br>
@@ -1051,29 +1051,29 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
       <div id="spec-step-6" style="display:none">
         <div class="spec-step-title">Paso 6 — Gate QA staging</div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
+          <div class="spec-block-label">6.1 — Qué hace</div>
           <p>El usuario valida directamente el agente en el entorno staging de CX. La UI muestra el estado actual de los tres entornos (draft, staging, producción) para dar contexto completo. Cuando el usuario confirma, el pipeline avanza a producción. Si algo falla en las pruebas, puede revertir staging a la versión anterior desde este mismo paso.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
+          <div class="spec-block-label">6.2 — Por qué existe</div>
           <p>Antes de impactar a usuarios reales, este paso ofrece una última barrera de validación humana con el snapshot real activo en staging — no en simulación. El Paso 5 valida con tests automatizados; este paso valida con exploración manual directa en CX.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué necesita</div>
+          <div class="spec-block-label">6.5 — Qué necesita</div>
           <p>El snapshot del Paso 4 activo en el entorno staging. El usuario habrá probado el agente en CX antes de pulsar "Validado".</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
+          <div class="spec-block-label">6.3 — Qué produce</div>
           <p>Dos salidas posibles: si el usuario valida, el pipeline avanza al Paso 7 sin ninguna llamada a la API. Si el usuario revierte, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta — misma secuencia que el rollback del Paso 5.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">"Validado" → <code>advance(6)</code> sin ninguna llamada a API. "Rollback a staging anterior" → <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Misma secuencia que <code>rollbackStaging()</code> del Paso 5.</div>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Flujo del paso</div>
+          <div class="spec-block-label">6.6 — Flujo del paso</div>
           <p>El bloque de estado de entornos muestra las tres filas (draft, staging, producción) con la versión activa en cada una, para que el usuario tenga el contexto completo antes de decidir. El enlace abre directamente el agente en CX staging. No hay lógica automática en este paso.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">6.5 — Criterios de validación</div>
           <p>✓ "Validado" → avanza al Paso 7 sin llamadas a la API<br>
           ✓ Rollback → <code>PATCH /environments/staging</code> a versión anterior + draft restaurado desde esa versión<br>
           ✓ Producción no se modifica en ningún caso durante este paso<br>
@@ -1083,29 +1083,29 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
       <div id="spec-step-7" style="display:none">
         <div class="spec-step-title">Paso 7 — Aprobar subida a producción</div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué hace</div>
+          <div class="spec-block-label">7.1 — Qué hace</div>
           <p>Ejecuta las dos acciones que llevan los cambios a producción: merge de la rama staging a main en GitHub, y promoción del snapshot activo al entorno de producción en CX. Se ejecutan en secuencia: si el merge falla, la promoción no se intenta.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Por qué existe</div>
+          <div class="spec-block-label">7.2 — Por qué existe</div>
           <p>Separa la aprobación definitiva del resto del pipeline. En este punto el usuario tiene toda la información necesaria — staging validado manualmente, snapshot conocido — antes de tomar la decisión que impacta a usuarios reales.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué necesita</div>
+          <div class="spec-block-label">7.5 — Qué necesita</div>
           <p>El snapshot del Paso 4 activo en staging. La rama staging sin conflictos con main en GitHub — si los hay, el merge falla y el paso lo indica.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Qué produce</div>
+          <div class="spec-block-label">7.3 — Qué produce</div>
           <p>Si ambas acciones tienen éxito: el snapshot queda asignado a producción, staging mergeado a main, pipeline completado. Si el merge falla por conflicto: el pipeline se detiene y el usuario resuelve en GitHub antes de reintentar — la promoción a CX no se ejecuta hasta que el merge complete.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">Acción 1: merge <code>staging → main</code> vía GitHub API (o <code>gh pr merge</code>). Si el merge devuelve conflicto, mostrar panel y detener. Acción 2: <code>PATCH /environments/production</code> apuntando al mismo snapshot que ya tiene staging — no se crea una versión nueva, solo se reasigna el entorno. Si la rama staging diverge o hay conflictos, el merge falla antes de tocar CX producción. Si el merge falla → main no ha sido modificado. El abort es limpio — no requiere acción de recuperación en GitHub.</div>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">Flujo del paso</div>
+          <div class="spec-block-label">7.6 — Flujo del paso</div>
           <p>Las dos acciones se emiten progresivamente en el log, una tras otra. Si el merge falla por conflicto, el panel de conflicto reemplaza el log y muestra el enlace a GitHub para resolverlo — el usuario puede reintentar desde el mismo estado. "Abortar" en ese panel solo cancela el intento de merge; staging y su snapshot quedan intactos y el gate inicial reaparece.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">7.5 — Criterios de validación</div>
           <p>✓ Merge primero, promoción después — nunca en paralelo ni al revés<br>
           ✓ Si merge falla → <code>PATCH /environments/production</code> no se ejecuta<br>
           ✓ "Abortar" en conflicto no inicia rollback — solo restaura el gate inicial<br>
@@ -1116,7 +1116,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
       <div id="spec-step-done" style="display:none">
         <div class="spec-step-title">Pipeline completado</div>
         <div class="spec-block">
-          <div class="spec-block-label">Estado final</div>
+          <div class="spec-block-label">7.7 — Estado final</div>
           <p>Staging y producción apuntan al mismo snapshot. El código validado está en main. El deploy queda registrado con timestamp.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">Estado final de entornos: <code>staging → &lt;snapshot&gt;</code> · <code>production → &lt;snapshot&gt;</code>. La rama main tiene el commit de merge. El checkbox "Sincronizar main local" recuerda al operador hacer <code>git fetch origin main:main</code> en su copia local — es manual, no lo hace el script.</div>
