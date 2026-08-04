@@ -314,9 +314,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="diff-wrap" style="margin-bottom:14px">
               <table class="diff-table" id="tabla-repo">
                 <tbody>
-                  <tr><td style="width:34px"><input type="checkbox" onchange="actualizarPies()"></td><td>Example</td><td><code>compra_tulipanes_002</code></td></tr>
-                  <tr><td><input type="checkbox" onchange="actualizarPies()"></td><td>Example</td><td><code>despedida_larga</code></td></tr>
-                  <tr><td><input type="checkbox" onchange="actualizarPies()"></td><td>Generator</td><td><code>resumen_pedido</code></td></tr>
+                  <tr><td style="width:34px"><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Example</td><td><code>compra_tulipanes_002</code></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Example</td><td><code>despedida_larga</code></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Generator</td><td><code>resumen_pedido</code></td></tr>
                   <tr><td><input type="checkbox" disabled></td><td>Tool</td><td><code>code-interpreter</code> <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span></td></tr>
                 </tbody>
               </table>
@@ -395,11 +395,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <table class="diff-table" id="tabla-cx">
                 <thead><tr><th style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
                 <tbody>
-                  <tr><td><input type="checkbox" onchange="actualizarPies()"></td><td>Playbook</td><td><code>Compra</code></td><td><code style="color:var(--text-3)">compra.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
-                  <tr><td><input type="checkbox" onchange="actualizarPies()"></td><td>Playbook</td><td><code>Orquestador</code></td><td><code style="color:var(--text-3)">petal_cx_orchestrator.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
-                  <tr><td><input type="checkbox" onchange="actualizarPies()"></td><td>Agent Config</td><td><code>Petal 1.0</code></td><td><code style="color:var(--text-3)">agent.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
-                  <tr><td><input type="checkbox" onchange="actualizarPies()"></td><td>Playbook</td><td><code>Devoluciones</code></td><td><code style="color:var(--text-3)">devoluciones.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
-                  <tr><td><input type="checkbox" onchange="actualizarPies()"></td><td>Example</td><td><code>registro_04</code></td><td><code style="color:var(--text-3)">ex_registro_04.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Playbook</td><td><code>Compra</code></td><td><code style="color:var(--text-3)">compra.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Playbook</td><td><code>Orquestador</code></td><td><code style="color:var(--text-3)">petal_cx_orchestrator.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Agent Config</td><td><code>Petal 1.0</code></td><td><code style="color:var(--text-3)">agent.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Playbook</td><td><code>Devoluciones</code></td><td><code style="color:var(--text-3)">devoluciones.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Example</td><td><code>registro_04</code></td><td><code style="color:var(--text-3)">ex_registro_04.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -1219,6 +1219,40 @@ function toggleGrupo(card) {
 
 // El pie de cada tarjeta confirma cuántos van y hacia dónde, sin pedir un
 // clic extra. Cambia al marcar y desmarcar.
+// Tras traer o encolar un borrado hay que recalcular tres cosas a la vez:
+// el contador, el mensaje y la casilla de marcar todos. Hacerlo en un solo
+// sitio evita que se queden desincronizados entre sí.
+function refrescarDeriva() {
+  const filas = document.querySelectorAll('#tabla-repo tbody tr');
+  const traibles = document.querySelectorAll('#tabla-repo tbody input:not(:disabled)');
+  const aviso = document.getElementById('aviso-deriva');
+  const num = document.getElementById('num-deriva');
+
+  if (!filas.length) {
+    aviso.innerHTML = '<span style="color:var(--success)">&#10003; Ya no queda nada en CX sin respaldo en el repositorio</span>';
+  } else if (!traibles.length) {
+    // Lo que queda existe en CX y no tiene archivo, pero no se puede traer:
+    // no es deriva que se pueda resolver, así que deja de avisar en ámbar.
+    aviso.innerHTML = '<span style="color:var(--text-3)">Solo queda lo que no se puede traer al repositorio</span>';
+  } else if (num) {
+    num.textContent = traibles.length;
+    aviso.innerHTML = '&#9888; <span id="num-deriva">' + traibles.length + '</span> resource' +
+      (traibles.length === 1 ? '' : 's') + ' en CX sin respaldo en el repositorio';
+  }
+
+  const todos = document.getElementById('sel-todos-repo');
+  if (todos) {
+    todos.disabled = !traibles.length;
+    todos.checked = traibles.length > 0 &&
+      [...traibles].every(c => c.checked);
+  }
+  const todosCx = document.getElementById('sel-todos-cx');
+  if (todosCx) {
+    const cx = [...document.querySelectorAll('#tabla-cx tbody input:not(:disabled)')];
+    todosCx.checked = cx.length > 0 && cx.every(c => c.checked);
+  }
+}
+
 function actualizarPies() {
   const cuenta = id => ({
     marcadas: document.querySelectorAll('#' + id + ' tbody input[type=checkbox]:checked:not(:disabled)').length,
@@ -1242,8 +1276,11 @@ function actualizarPies() {
   if (pieCx && !paso3Cerrado) pieCx.innerHTML = cx.marcadas
     ? `<strong style="color:#93c5fd">${cx.marcadas} de ${cx.total}</strong> se aplicar&aacute;n en CX al continuar`
     : '<span style="color:var(--text-3)">Nada marcado &mdash; no se tocar&aacute; CX</span>';
+  const filasRepo = document.querySelectorAll('#tabla-repo tbody tr').length;
   if (pieRepo) pieRepo.innerHTML = repo.total === 0
-    ? '<span style="color:var(--success)">&#10003; No queda nada suelto en CX</span>'
+    ? (filasRepo === 0
+        ? '<span style="color:var(--success)">&#10003; No queda nada suelto en CX</span>'
+        : '<span style="color:var(--text-3)">Nada que traer &mdash; lo que queda no se puede llevar al repositorio</span>')
     : (repo.marcadas
       ? `<strong style="color:var(--gate)">${repo.marcadas} de ${repo.total}</strong> se traer&aacute;n al repositorio al pulsar el bot&oacute;n`
       : '<span style="color:var(--text-3)">Nada marcado &mdash; todos se quedan solo en CX</span>');
@@ -1263,6 +1300,7 @@ function marcarTodos(tablaId, marcado) {
   document.querySelectorAll('#' + tablaId + ' tbody input[type=checkbox]:not(:disabled)')
     .forEach(c => c.checked = marcado);
   actualizarPies();
+  refrescarDeriva();
 }
 
 function filasMarcadas(tablaId) {
@@ -1291,9 +1329,7 @@ function traerAlRepo() {
     if (i >= lineas.length) {
       filas.forEach(f => f.remove());
       const quedan = document.querySelectorAll('#tabla-repo tbody tr').length;
-      document.getElementById('num-deriva').textContent = quedan;
-      if (!quedan) document.getElementById('aviso-deriva').innerHTML =
-        '<span style="color:var(--success)">✓ Ya no queda nada en CX sin respaldo en el repositorio</span>';
+      refrescarDeriva();
       document.getElementById('traer-done').style.display = 'block';
       document.getElementById('sin-modificar-2').style.display = 'none';
       actualizarPies();
@@ -1325,15 +1361,13 @@ function confirmarEliminarDeCx() {
     // más de las que se aplican en CX — así todo lo que se escribe está en
     // una sola lista.
     cuerpoCx.insertAdjacentHTML('beforeend',
-      `<tr><td><input type="checkbox" onchange="actualizarPies()"></td><td>${tipo}</td><td><code>${nombre}</code></td>` +
+      `<tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>${tipo}</td><td><code>${nombre}</code></td>` +
       `<td><code style="color:var(--text-3)">&mdash;</code></td><td><span class="pill pill-del">Eliminar</span></td></tr>`);
     f.remove();
   });
   document.getElementById('confirmar-borrado').style.display = 'none';
   const quedan = document.querySelectorAll('#tabla-repo tbody tr').length;
-  document.getElementById('num-deriva').textContent = quedan;
-  if (!quedan) document.getElementById('aviso-deriva').innerHTML =
-    '<span style="color:var(--success)">&#10003; Ya no queda nada en CX sin respaldo en el repositorio</span>';
+  refrescarDeriva();
   actualizarPies();
 }
 
@@ -1710,7 +1744,7 @@ function viewStep(id) {
   // Un paso ya ejecutado se puede volver a mirar, no a repetir: se ve tal y
   // como quedó, sin los botones que lo volverían a ejecutar.
   if(v) v.classList.toggle('paso-cerrado', idx >= 0 && stepStates[idx] === 'done');
-  if(id === 2) renderStep3Diff();
+  if(id === 2) { renderStep3Diff(); refrescarDeriva(); }
   if(id === 3) actualizarPies();
   if(id === 5) {
     const campo = document.getElementById('version-batch-label');
