@@ -245,7 +245,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <!-- Log animado (oculto hasta pulsar) -->
       <div id="inv-log" style="display:none;margin-top:4px">
-        <div class="output-block" id="inv-log-block" style="min-height:80px"></div>
+        <div class="output-block" id="inv-log-block" style="height:210px;overflow-y:auto"></div>
       </div>
 
       <!-- Estado completado con inventario (oculto hasta finalizar) -->
@@ -290,7 +290,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 2: Qué cambia -->
     <div class="step-view" id="view-2">
-      <div class="phase-eyebrow">Paso 2 de 7<span class="escribe-badge read">solo lectura</span></div>
+      <div class="phase-eyebrow">Paso 2 de 7<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
       <div class="phase-title">Traer al repositorio</div>
       <div class="phase-sub">Lo que existe en CX y ning&uacute;n archivo del repositorio reclama. Decide qu&eacute; te llevas antes de desplegar.</div>
 
@@ -319,8 +319,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               </table>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-primary" onclick="traerAlRepo()">Traer al repositorio &rarr;</button>
-              <button class="btn btn-danger" onclick="pedirEliminarDeCx()">Eliminar de CX</button>
+              <button class="btn btn-primary" id="btn-traer" onclick="traerAlRepo()" disabled>Traer al repositorio &rarr;</button>
+              <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
             </div>
 
             <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
@@ -338,7 +338,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
 
         <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
+          <button class="btn btn-ghost" onclick="advance(2)">Continuar sin modificar &rarr;</button>
         </div>
       </div>
 
@@ -357,7 +357,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 4: Confirmar deploy -->
     <div class="step-view" id="view-3">
-      <div class="phase-eyebrow">Paso 3 de 7</div>
+      <div class="phase-eyebrow">Paso 3 de 7<span class="escribe-badge write-cx">escribe en CX</span></div>
       <div class="phase-title">Aplicar en CX</div>
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
 
@@ -399,6 +399,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Aplicar en CX &rarr;</button>
           <button class="btn btn-ghost" onclick="cancelDeploy(false)">Cancelar</button>
+          </div>
+        <div class="action-bar" style="margin-top:14px">
+          <button class="btn btn-ghost" onclick="advance(3)">Continuar sin modificar &rarr;</button>
         </div>
       </div>
       <div id="deploy-log" style="display:none;margin-top:4px">
@@ -701,7 +704,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
         <div class="spec-block">
           <div class="spec-block-label">Qué escribe y dónde</div>
-          <p><strong>Nada.</strong> Consulta el mapeo agente-repositorio, lee CX y lee GitHub, pero no modifica ninguno de los tres. Es lo que declara la etiqueta <em>solo lectura</em> de la cabecera.</p>
+          <p><strong>Nada.</strong> Consulta el mapeo agente-repositorio, lee CX y lee GitHub, pero no modifica ninguno de los tres. Cada paso lleva en la cabecera una etiqueta que dice qué toca: aquí es <em>solo lectura</em>; en el Paso 2, <em>escribe en el repositorio</em>; en el 3, <em>escribe en CX</em>.</p>
         </div>
 
         <div class="spec-block">
@@ -714,18 +717,24 @@ Cuando no hay entrada, devolver un error tipado que el panel distinga de un fall
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.2 — Comprobación de conexión</div>
+          <div class="spec-block-label">1.2 — La caja donde el sistema va contando</div>
+          <p>Todo lo que el sistema hace mientras trabaja se escribe dentro de <strong>una caja de tamaño fijo</strong>, reservado desde el principio. No crece con el contenido ni empuja lo de abajo: si se escriben más líneas de las que caben, se desplazan dentro de la propia caja.</p>
+          <p>Así la pantalla no se reorganiza mientras miras, y el botón de continuar sigue estando donde estaba.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">1.3 — Comprobación de conexión</div>
           <p>Primera línea del log. Verifica credenciales y acceso al agente antes de lanzar ninguna lectura. Si falla aquí, el error es inmediato y distingue las dos causas —sin credenciales, o sin permiso sobre ese proyecto— en vez de aparecer a mitad del inventario como un 401 sin contexto.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.3 — Foto de CX</div>
+          <div class="spec-block-label">1.4 — Foto de CX</div>
           <p>Una lectura por cada tipo de resource declarado, sobre el <strong>draft</strong> — el estado editable, no lo que corre en staging. Los tipos salen del registro, así que el número no es fijo.</p>
           <p>Si una lectura falla, se aborta. Mejor sin datos que con datos parciales: un inventario incompleto produce un diff que propone crear lo que ya existe.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.4 — Lectura del repositorio</div>
+          <div class="spec-block-label">1.5 — Lectura del repositorio</div>
           <p>Se leen <strong>todos</strong> los YAML del repositorio, de forma recursiva. La estructura de carpetas es libre y no significa nada: cada archivo declara en su metadata qué tipo de resource es, de quién cuelga y a qué resource de CX corresponde.</p>
           <p>Dos situaciones paran el paso con error explícito, nunca en silencio: un archivo <strong>sin tipo</strong> —sería invisible para el pipeline— y dos archivos con el <strong>mismo identificador de CX</strong>, que es lo que ocurre al duplicar un archivo y olvidar vaciarlo.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
@@ -734,7 +743,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">1.5 — Emparejamiento</div>
+          <div class="spec-block-label">1.6 — Emparejamiento</div>
           <p>Cada resource de CX se empareja con su archivo <strong>por identificador</strong>, no por nombre ni por ubicación. El resultado son los tres grupos, cada uno desplegable para ver la lista completa.</p>
           <p><strong>Emparejado</strong> — está en CX y tiene archivo.<br>
           <strong>Solo en CX</strong> — existe en el agente y ningún archivo lo reclama.<br>
@@ -809,8 +818,8 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           ✓ Al pulsar eliminar me enseña la lista concreta antes de que confirme, y puedo cancelar<br>
           ✓ Al confirmar la eliminación, el contador baja y esos resources aparecen en el paso siguiente<br>
           ✓ Si me quedo sin deriva, el aviso naranja se convierte en confirmación de que no queda nada suelto<br>
-          ✓ Puedo continuar sin traer nada: el botón de continuar nunca está bloqueado<br>
-          ✓ Si pulso un botón sin nada marcado, me avisa en vez de no hacer nada</p>
+          ✓ Los botones de traer y de eliminar aparecen desactivados hasta que marco algo<br>
+          ✓ Puedo continuar sin traer nada: hay un botón que lo dice con esas palabras y nunca está bloqueado</p>
         </div>
       </div>
 
@@ -864,6 +873,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           ✓ Mientras se aplica veo el avance recurso a recurso, no una barra sin detalle<br>
           ✓ Si algo falla, me dice qué se aplicó y qué no, y puedo reintentar solo lo fallido<br>
           ✓ Al terminar entiendo que he cambiado el draft, no lo que ven los usuarios<br>
+          ✓ Puedo continuar sin aplicar nada: hay un botón que lo dice con esas palabras y nunca está bloqueado<br>
           ✓ Puedo quedarme aquí: terminar en draft es un final válido, no un pipeline a medias</p>
         </div>
       </div>
@@ -1192,6 +1202,11 @@ function actualizarPies() {
   if (contadorGate) contadorGate.textContent = cx.marcadas;
   const botonAplicar = document.getElementById('btn-confirm-deploy');
   if (botonAplicar) botonAplicar.disabled = cx.marcadas === 0;
+  // Un botón que no puede hacer nada no debe parecer que puede
+  ['btn-traer', 'btn-eliminar'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = repo.marcadas === 0;
+  });
   if (pieCx) pieCx.innerHTML = cx.marcadas
     ? `<strong style="color:#93c5fd">${cx.marcadas} de ${cx.total}</strong> se aplicar&aacute;n en CX al continuar`
     : '<span style="color:var(--text-3)">Nada marcado &mdash; no se tocar&aacute; CX</span>';
