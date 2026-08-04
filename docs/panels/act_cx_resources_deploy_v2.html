@@ -510,10 +510,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="gate-block">
           <div class="gate-title">&#9995; Confirmar subida a producci&oacute;n</div>
           <p style="margin-bottom:10px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)">Petal 1.0</strong> &mdash; esta acci&oacute;n <strong style="color:var(--gate)">afecta a usuarios reales</strong>.</p>
-          <p style="margin-bottom:6px">Al confirmar ocurren dos cosas, en este orden:</p>
+          <p style="margin-bottom:6px">Al confirmar ocurren tres cosas, en este orden:</p>
           <p style="font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px">
-            <strong style="color:var(--text)">1.</strong> Se crea una versi&oacute;n con el estado actual del draft.<br>
-            <strong style="color:var(--text)">2.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
+            <strong style="color:var(--text)">1.</strong> <code>staging</code> se fusiona en <code>main</code>, que pasa a retratar lo que hay en producci&oacute;n.<br>
+            <strong style="color:var(--text)">2.</strong> Se crea una versi&oacute;n con el estado actual del draft.<br>
+            <strong style="color:var(--text)">3.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
           <div class="action-bar">
             <button class="btn btn-gate" onclick="confirmProduction()">Publicar en producci&oacute;n &rarr;</button>
             <button class="btn btn-ghost" onclick="resetDeploy()">Cancelar</button>
@@ -568,11 +569,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <input type="checkbox" id="check-sync-local" onchange="toggleSyncCheck()" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">
           </div>
           <div class="action-result-body">
-            <div class="action-result-title" id="done-sync-title" style="color:var(--text-2)">Sincronizar main local <span style="font-size:11px;font-weight:400;color:var(--text-3)">(recomendado)</span></div>
-            <div class="action-result-desc">Copia y ejecuta manualmente en tu terminal:<br>
-              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
-                <code style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace">git fetch origin main:main</code>
-                <button onclick="navigator.clipboard.writeText('git fetch origin main:main').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copiar',1500)})" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+            <div class="action-result-title" id="done-sync-title" style="color:var(--text-2)">Actualizar tu <code>main</code> local <span style="font-size:11px;font-weight:400;color:var(--text-3)">(recomendado)</span></div>
+            <div class="action-result-desc">
+              La fusi&oacute;n la ha hecho el servidor, as&iacute; que tu copia local a&uacute;n no la tiene.
+              <div style="margin-top:10px;margin-bottom:8px">
+                <label style="display:block;font-size:11px;color:var(--text-3);margin-bottom:4px">Ruta de tu copia local de <strong style="color:var(--text-2)">jeronimosanchez/cx-automation-template</strong></label>
+                <input type="text" id="ruta-local" class="snapshot-input" placeholder="~/cx-automation-template" oninput="actualizarComandoSync()" style="max-width:100%">
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
+                <code id="comando-sync" style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;word-break:break-all">git -C ~/cx-automation-template fetch origin main:main</code>
+                <button onclick="copiarComandoSync(this)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:8px;line-height:1.6">
+                Lleva la ruta dentro para que no dependa de d&oacute;nde tengas abierto el terminal. No cambia de rama ni toca tu trabajo: solo adelanta <code>main</code>, y si no pudiera hacerlo limpiamente aborta sin tocar nada.
               </div>
             </div>
           </div>
@@ -950,19 +959,19 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block">
           <div class="spec-block-label">5.3 — Qué produce</div>
-          <p>Una versión con el nombre que le hayas puesto, y producción sirviéndola.</p>
+          <p>Una versión con el nombre que le hayas puesto, producción sirviéndola, y <code>main</code> al día con lo publicado.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">5.4 — Qué escribe y dónde</div>
-          <p>Solo en CX, y solo al confirmar. Es la escritura más consecuente del pipeline: la cabecera lo dice con la etiqueta <em>escribe en producción</em>.</p>
+          <p>En CX y en <code>main</code>, y solo al confirmar. Es la escritura más consecuente del pipeline: la cabecera lo dice con la etiqueta <em>escribe en producción</em>.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">5.5 — Las dos acciones, en orden</div>
-          <p>Se crea una versión con el estado actual del draft, y después producción pasa a apuntar a ella. Nada más.</p>
-          <p><strong>El repositorio no se toca aquí.</strong> Lo que se publica ya está en <code>staging</code> desde que lo aplicaste en el Paso 3, así que no hay nada que subir ni que fusionar: el código y el agente ya coinciden antes de llegar a este paso.</p>
-          <p><strong>El orden importa:</strong> si producción apuntara antes de existir la versión, apuntaría a nada. Y la versión se crea aquí, no antes, para que no haya hueco entre lo que validaste y lo que se publica.</p>
+          <div class="spec-block-label">5.5 — Las tres acciones, en orden</div>
+          <p>Primero <code>staging</code> se fusiona en <code>main</code>, después se crea la versión con el draft actual, y solo entonces producción pasa a apuntar a ella.</p>
+          <p><strong>Para qué sirve <code>main</code>:</strong> una versión de CX es una foto dentro de Google — no se puede leer, ni comparar, ni abrir en un editor. <code>main</code> es el único retrato legible de lo que hay en producción. <code>staging</code> es donde trabajas; <code>main</code> es lo que está publicado.</p>
+          <p><strong>El orden importa:</strong> si se promoviera antes de fusionar y el merge fallara, producción estaría sirviendo algo cuyo código no está en <code>main</code>, y nadie podría reconstruir después qué se está ejecutando. Y la versión se crea aquí, no antes, para que no haya hueco entre lo que validaste y lo que se publica.</p>
         </div>
 
         <div class="spec-block">
@@ -983,12 +992,14 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
           <p>✓ Me recuerda que esto afecta a usuarios reales, y se ve antes que el botón<br>
           ✓ Me dice sobre qué proyecto y qué agente voy a escribir<br>
-          ✓ Me enumera las dos acciones y en qué orden ocurren, antes de confirmar<br>
+          ✓ Me enumera las tres acciones y en qué orden ocurren, antes de confirmar<br>
           ✓ Me propone un nombre de versión y puedo cambiarlo<br>
           ✓ Si he tocado el draft después de los tests, me avisa — y aun así me deja seguir<br>
           ✓ Mientras se publica veo cada acción a medida que ocurre<br>
 
-          ✓ Me dice que el repositorio no se toca en este paso<br>
+          ✓ Al terminar me da el comando para actualizar mi main local, con la ruta de mi repositorio dentro<br>
+          ✓ Ese comando no depende de dónde tenga abierto el terminal<br>
+          ✓ La ruta que escriba se recuerda para la próxima vez<br>
           ✓ Cancelar me devuelve al principio sin haber tocado nada<br>
           ✓ Al terminar entiendo que esto ya lo están viendo los usuarios</p>
         </div>
@@ -1571,6 +1582,26 @@ function advance(fromStep) {
   }
 }
 
+// La ruta se recuerda: el comando tiene que apuntar al repositorio correcto,
+// no a la carpeta donde por casualidad esté abierto el terminal.
+function comandoSync() {
+  const campo = document.getElementById('ruta-local');
+  const ruta = (campo && campo.value.trim()) || '~/cx-automation-template';
+  return `git -C ${ruta} fetch origin main:main`;
+}
+
+function actualizarComandoSync() {
+  document.getElementById('comando-sync').textContent = comandoSync();
+  try { localStorage.setItem('act_ruta_local', document.getElementById('ruta-local').value); } catch (e) {}
+}
+
+function copiarComandoSync(boton) {
+  navigator.clipboard.writeText(comandoSync()).then(() => {
+    boton.textContent = '\u2713';
+    setTimeout(() => boton.textContent = 'Copiar', 1500);
+  });
+}
+
 function toggleSyncCheck() {
   const checked = document.getElementById('check-sync-local').checked;
   const title = document.getElementById('done-sync-title');
@@ -1723,6 +1754,10 @@ document.getElementById('version-batch-label').value = generateVersionLabel();
 document.getElementById('topbar-commit-time').textContent =
   new Date().toLocaleString('es-ES', {timeZone:'Europe/Madrid', day:'numeric', month:'short',
                                       hour:'2-digit', minute:'2-digit'}).replace(',', '');
+try {
+  const guardada = localStorage.getItem('act_ruta_local');
+  if (guardada) { document.getElementById('ruta-local').value = guardada; actualizarComandoSync(); }
+} catch (e) {}
 viewStep(1);
 renderSidebar();
 </script>
