@@ -75,9 +75,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .spec-block-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .spec-block p{font-size:12px;color:var(--text-2);line-height:1.6}
 .spec-block code{font-size:11px;font-family:'SF Mono',Menlo,monospace;color:var(--text);background:var(--bg-2);padding:1px 4px;border-radius:3px}
-.tech-toggle{margin-top:8px;display:inline-flex;align-items:center;gap:4px;background:none;border:1px solid var(--border);border-radius:3px;color:var(--text-3);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;cursor:pointer;font-family:'SF Mono',Menlo,monospace;transition:color .15s,border-color .15s}
-.tech-toggle:hover{color:var(--text-2);border-color:var(--text-3)}
-.tech-content{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);line-height:1.8}
 .spec-step-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px}
 .spec-empty{font-size:12px;color:var(--text-3);font-style:italic}
 
@@ -628,20 +625,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-block">
           <div class="spec-block-label">Auth</div>
           <p>CX exige identificación antes de cualquier llamada. Usamos gcloud en lugar de una clave de servicio fija porque es más seguro — el token expira, no hay credenciales que robar.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none"><code>gcloud auth print-access-token</code> — se obtiene una vez al inicio y se reutiliza en todas las llamadas. Si expira, el Paso 1 falla con <code>401</code>.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Cabeceras obligatorias</div>
           <p>Google necesita saber quién eres, en qué formato hablas y a qué proyecto cargar el uso. Sin estas tres cabeceras la API rechaza la llamada aunque el token sea válido.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none"><code>Authorization: Bearer &lt;token&gt;</code><br><code>Content-Type: application/json</code><br><code>x-goog-user-project: &lt;GCP_PROJECT&gt;</code></div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Agente de referencia</div>
           <p>El proyecto y el agente se eligen en el panel (arriba, en el Paso 1) — Petal 1.0 es el agente de referencia con el que se prueba, pero ningún script fija su ID como constante. La región sigue fija en <code>europe-west1</code>.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Proyecto y agente recibidos como parámetro en cada llamada (nunca una constante de módulo). Región fija: <code>europe-west1</code>.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">La caja donde el sistema va contando</div>
@@ -681,8 +672,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-block">
           <div class="spec-block-label">1.3 — Qué produce</div>
           <p>El mapa del agente en tres grupos —emparejados, solo en CX, solo en el repositorio— con el archivo de cada uno. Lleva dentro el proyecto, el agente, el repositorio, el commit de <code>staging</code> del que se leyó y la marca de tiempo.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">El Paso 2 no vuelve a leer nada: trabaja sobre este mismo mapa. Releer arriesgaría comparar contra una foto distinta de la que el usuario aprobó.</div>
         </div>
 
         <div class="spec-block">
@@ -694,9 +683,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">1.5 — Resolución del repositorio</div>
           <p>Al elegir el agente aparece su repositorio. No hay selector: el mapeo lo guarda el servidor, y un agente tiene como máximo un repositorio — eso es lo que impide que dos repositorios reclamen el mismo agente.</p>
           <p>Si el agente no tiene ninguno, se muestra el aviso y el botón de iniciar queda deshabilitado. Si <strong>ningún</strong> agente del proyecto lo tiene, el aviso aparece arriba al elegir proyecto, para no tener que recorrerlos uno a uno para descubrirlo.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">El mapeo vive fuera del ciclo de vida del servidor, así que sobrevive a que el contenedor se recicle.<br>
-Cuando no hay entrada, devolver un error tipado que el panel distinga de un fallo de red — solo así puede ofrecer el enlace a vincular en lugar de un mensaje genérico.</div>
         </div>
 
         <div class="spec-block">
@@ -713,20 +699,17 @@ Cuando no hay entrada, devolver un error tipado que el panel distinga de un fall
         <div class="spec-block">
           <div class="spec-block-label">1.8 — Lectura del repositorio</div>
           <p>Se leen <strong>todos</strong> los YAML del repositorio, de forma recursiva. La estructura de carpetas es libre y no significa nada: cada archivo declara en su metadata qué tipo de resource es, de quién cuelga y a qué resource de CX corresponde.</p>
+          <p>La lectura entra en todas las carpetas, por hondas que sean. Si se quedara en el primer nivel dejaría fuera todo lo anidado, y ahí es donde viven los examples, que cuelgan de su playbook.</p>
           <p>Dos situaciones paran el paso con error explícito, nunca en silencio: un archivo <strong>sin tipo</strong> —sería invisible para el pipeline— y dos archivos con el <strong>mismo identificador de CX</strong>, que es lo que ocurre al duplicar un archivo y olvidar vaciarlo.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">La lectura tiene que ser recursiva de verdad: un listado que solo devuelva el primer nivel de cada carpeta deja fuera todo lo anidado, y eso incluye los examples, que cuelgan de su playbook.<br>
-La rama es <code>staging</code>, y el commit del que se leyó viaja en el resultado.</div>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">1.9 — Emparejamiento</div>
           <p>Cada resource de CX se empareja con su archivo <strong>por identificador</strong>, no por nombre ni por ubicación. El resultado son los tres grupos, cada uno desplegable para ver la lista completa.</p>
+          <p>Yendo por nombre, renombrar algo en CX parecería un recurso borrado más uno creado, y el pipeline propondría destruir y recrear en vez de cambiar un campo.</p>
           <p><strong>Emparejado</strong> — está en CX y tiene archivo.<br>
           <strong>Solo en CX</strong> — existe en el agente y ningún archivo lo reclama.<br>
           <strong>Solo en el repositorio</strong> — tiene archivo pero aún no existe en CX, o su identificador ya no está allí.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Por identificador y no por nombre: yendo por nombre, renombrar algo en CX parecería un recurso borrado más uno creado, y el pipeline propondría destruir y recrear en vez de cambiar un campo.</div>
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
@@ -784,16 +767,13 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           <div class="spec-block-label">2.6 — El cuadro de acción</div>
           <p>Debajo de la tarjeta, un cuadro de <strong>acción requerida</strong> que recuerda a qué repositorio y a qué rama se va a escribir, cuántos resources van de los marcados, y qué pasa con los que no: se quedan solo en CX, y el repositorio deja de retratar el agente entero.</p>
           <p>Los botones de acción viven dentro de ese cuadro. Los dos arrancan desactivados y se activan al marcar algo.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Es la misma estructura que el paso siguiente: tarjeta con la dirección, cuadro de acción con los botones, y fuera del cuadro la salida sin modificar. Dos pasos que hacen lo mismo en sentidos contrarios deben leerse igual.</div>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">2.7 — La traída</div>
           <p>Al pulsar, el sistema escribe de verdad y lo va contando en una caja de tamaño fijo: qué archivo crea, en qué repositorio y en qué rama, y con qué commit queda.</p>
+          <p>Una acción que escribe fuera no puede terminar en un aviso y ya: hace falta ver qué se escribió y en qué estado queda el repositorio después.</p>
           <p>Al terminar, confirma que <strong>el repositorio está actualizado</strong> y recuerda hacer <code>git pull</code> en local, porque la copia de trabajo se ha quedado un commit por detrás. Las filas traídas desaparecen de la lista y el contador de deriva baja.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Una acción que escribe fuera no puede terminar en un aviso y ya: hace falta ver qué se escribió y en qué estado queda el repositorio después.</div>
         </div>
 
         <div class="spec-block">
@@ -852,8 +832,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         <div class="spec-block">
           <div class="spec-block-label">3.3 — Qué produce</div>
           <p>El <strong>draft</strong> del agente actualizado. En pantalla queda el registro de qué se aplicó y qué falló, y si algo falla se puede reintentar solo lo fallido sin repetir lo que ya salió bien.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">El draft es el estado editable: ningún usuario lo ve. Por eso terminar aquí es un final legítimo del pipeline — se pueden acumular cambios en draft durante días y decidir más adelante si se publican.</div>
+          <p>El draft es el estado editable del agente: ningún usuario lo ve. Por eso terminar aquí es un final legítimo del pipeline — se pueden acumular cambios durante días y decidir más adelante si se publican.</p>
         </div>
 
         <div class="spec-block">
@@ -951,8 +930,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         <div class="spec-block">
           <div class="spec-block-label">4.6 — Se prueba contra el draft</div>
           <p>No hace falta crear ninguna versión ni publicar en ningún entorno intermedio: se prueba el draft, que es donde acabas de aplicar los cambios.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Verificado en la documentación de la API: el entorno es opcional tanto al lanzar test cases como al abrir una conversación, y sin él se asume el draft. La misma documentación advierte de lo contrario para el tráfico real: producción debe apuntar siempre a una versión, y eso es lo que hace el Paso 5.</div>
+          <p>Es una propiedad del agente, comprobada: se le puede conversar y se le pueden lanzar casos de prueba sin decirle contra qué versión, y entonces responde con el draft. Lo contrario vale para el tráfico real — eso siempre debe apuntar a una versión, y de eso se encarga el Paso 5.</p>
         </div>
 
         <div class="spec-block">
@@ -1014,8 +992,7 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         <div class="spec-block">
           <div class="spec-block-label">5.7 — La versión se crea aquí</div>
           <p>No antes. Se crea con el draft ya probado, en el mismo gesto que la publica, para que no haya hueco entre lo que se validó y lo que se sube.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Solo se versiona lo que ha cambiado; lo que no se ha tocado conserva la versión que ya tenía. Y ojo con la distinción: un resource se sube <strong>entero</strong> aunque solo cambie un campo — lo que se evita es tocar los que no han cambiado en nada.</div>
+          <p>Solo se versiona lo que ha cambiado; lo que no se ha tocado conserva la versión que ya tenía. Con un matiz que conviene no confundir: <strong>un resource se sube entero</strong> aunque solo cambie un campo suyo — lo que se evita es tocar los que no han cambiado en nada.</p>
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
@@ -1067,13 +1044,6 @@ let paso3Cerrado = false;  // el Paso 3 ya se ejecutó: la tabla deja de editars
 // Tipos que no tienen versión en CX: lo que se les aplique se ve en el acto,
 // sin pasar por los tests del Paso 4.
 const TIPOS_SIN_VERSION = ['Agent Config', 'Generator'];
-
-function toggleTech(btn) {
-  const content = btn.nextElementSibling;
-  const open = content.style.display !== 'none';
-  content.style.display = open ? 'none' : 'block';
-  btn.textContent = open ? 'TECH ▼' : 'TECH ▲';
-}
 
 function toggleGeneralSpecs() {
   const content = document.getElementById('general-specs-content');
