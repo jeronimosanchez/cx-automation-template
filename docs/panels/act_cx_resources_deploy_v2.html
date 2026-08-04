@@ -12,6 +12,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* TOP BAR */
 .topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.dir-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:22px}
+.dir-card.hacia-cx{border-color:rgba(59,130,246,.4)}
+.dir-card.hacia-repo{border-color:rgba(245,158,11,.4)}
+.dir-head{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:12px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase}
+.hacia-cx .dir-head{background:rgba(59,130,246,.12);color:#93c5fd;border-bottom:1px solid rgba(59,130,246,.25)}
+.hacia-repo .dir-head{background:rgba(245,158,11,.12);color:var(--gate);border-bottom:1px solid rgba(245,158,11,.25)}
+.dir-flecha{font-family:'SF Mono',Menlo,monospace;font-size:12px;opacity:.8;letter-spacing:0;text-transform:none;margin-left:auto;white-space:nowrap}
+.dir-body{padding:14px 16px}
+.dir-pie{padding:10px 16px;font-size:12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.hacia-cx .dir-pie{background:rgba(59,130,246,.05)}
+.hacia-repo .dir-pie{background:rgba(245,158,11,.05)}
 .bloque-titulo{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
 .sel-todos{font-size:12px;color:var(--text-2);margin-bottom:8px}
 .sel-todos label{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
@@ -285,54 +297,70 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <!-- Con cambios -->
       <div id="diff-has-changes" style="display:none">
 
-        <div class="bloque-titulo">Se va a aplicar en CX</div>
-        <div class="sel-todos"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)" checked> Seleccionar todos</label></div>
-        <div class="diff-wrap">
-          <table class="diff-table" id="tabla-cx">
-            <thead><tr><th style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
-            <tbody>
-              <tr><td><input type="checkbox" checked></td><td>Playbook</td><td><code>Compra</code></td><td><code style="color:var(--text-3)">compra.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
-              <tr><td><input type="checkbox" checked></td><td>Playbook</td><td><code>Orquestador</code></td><td><code style="color:var(--text-3)">petal_cx_orchestrator.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
-              <tr><td><input type="checkbox" checked></td><td>Example</td><td><code>compra_rosas_001</code></td><td><code style="color:var(--text-3)">ex_compra_01.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="legend" style="margin-bottom:26px">
-          <span class="legend-item"><span class="pill pill-new">Crear</span> A&uacute;n no existe en CX</span>
-          <span class="legend-item"><span class="pill pill-mod">Modificar</span> Existe y el archivo dice otra cosa</span>
-          <span class="legend-item"><span class="pill pill-del">Eliminar</span> Se ha decidido borrarlo de CX</span>
-        </div>
-
-        <div class="bloque-titulo">Se va a aplicar al repositorio</div>
-        <div id="aviso-deriva" style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:10px">
-          &#9888; <span id="num-deriva">4</span> resources en CX sin respaldo en el repositorio
-        </div>
-        <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Alguien los cre&oacute; directamente en la consola de CX. Elige cu&aacute;les traer al repositorio; los que no marques se quedan como est&aacute;n.</p>
-        <div class="sel-todos"><label><input type="checkbox" id="sel-todos-repo" onchange="marcarTodos('tabla-repo', this.checked)" checked> Seleccionar todos</label></div>
-        <div class="diff-wrap" style="margin-bottom:14px">
-          <table class="diff-table" id="tabla-repo">
-            <tbody>
-              <tr><td style="width:34px"><input type="checkbox" checked></td><td>Example</td><td><code>compra_tulipanes_002</code></td></tr>
-              <tr><td><input type="checkbox" checked></td><td>Example</td><td><code>despedida_larga</code></td></tr>
-              <tr><td><input type="checkbox" checked></td><td>Generator</td><td><code>resumen_pedido</code></td></tr>
-              <tr><td><input type="checkbox" disabled></td><td>Tool</td><td><code>code-interpreter</code> <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px">
-          <button class="btn btn-primary" onclick="traerAlRepo()">Traer al repositorio &rarr;</button>
-          <button class="btn btn-danger" onclick="pedirEliminarDeCx()">Eliminar de CX</button>
-        </div>
-
-        <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-bottom:26px">
-          <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Confirmar eliminaci&oacute;n en CX</div>
-          <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
-            Se van a eliminar del agente los resources de abajo. <strong>No se puede deshacer desde el panel</strong> &mdash; solo recuperando una versi&oacute;n anterior.</p>
-          <div id="lista-borrado" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
-          <div style="display:flex;gap:10px">
-            <button class="btn btn-danger" onclick="confirmarEliminarDeCx()">S&iacute;, eliminar de CX</button>
-            <button class="btn btn-ghost" onclick="document.getElementById('confirmar-borrado').style.display='none'">Cancelar</button>
+        <!-- Dirección 1: del repositorio hacia CX -->
+        <div class="dir-card hacia-cx">
+          <div class="dir-head">
+            Se va a aplicar en CX <span class="dir-flecha">repositorio &rarr; CX</span>
           </div>
+          <div class="dir-body">
+            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)" checked> Seleccionar todos</label></div>
+            <div class="diff-wrap">
+              <table class="diff-table" id="tabla-cx">
+                <thead><tr><th style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
+                <tbody>
+                  <tr><td><input type="checkbox" onchange="actualizarPies()" checked></td><td>Playbook</td><td><code>Compra</code></td><td><code style="color:var(--text-3)">compra.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies()" checked></td><td>Playbook</td><td><code>Orquestador</code></td><td><code style="color:var(--text-3)">petal_cx_orchestrator.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies()" checked></td><td>Example</td><td><code>compra_rosas_001</code></td><td><code style="color:var(--text-3)">ex_compra_01.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="legend" style="margin-bottom:0">
+              <span class="legend-item"><span class="pill pill-new">Crear</span> A&uacute;n no existe en CX</span>
+              <span class="legend-item"><span class="pill pill-mod">Modificar</span> Existe y el archivo dice otra cosa</span>
+              <span class="legend-item"><span class="pill pill-del">Eliminar</span> Se ha decidido borrarlo</span>
+            </div>
+          </div>
+          <div class="dir-pie"><span id="pie-cx">&mdash;</span></div>
+        </div>
+
+        <!-- Dirección 2: de CX hacia el repositorio -->
+        <div class="dir-card hacia-repo">
+          <div class="dir-head">
+            Se va a traer al repositorio <span class="dir-flecha">CX &rarr; repositorio</span>
+          </div>
+          <div class="dir-body">
+            <div id="aviso-deriva" style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:8px">
+              &#9888; <span id="num-deriva">4</span> resources en CX sin respaldo en el repositorio
+            </div>
+            <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Alguien los cre&oacute; directamente en la consola de CX. Lo que no marques se queda como est&aacute;.</p>
+            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-repo" onchange="marcarTodos('tabla-repo', this.checked)" checked> Seleccionar todos</label></div>
+            <div class="diff-wrap" style="margin-bottom:14px">
+              <table class="diff-table" id="tabla-repo">
+                <tbody>
+                  <tr><td style="width:34px"><input type="checkbox" onchange="actualizarPies()" checked></td><td>Example</td><td><code>compra_tulipanes_002</code></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies()" checked></td><td>Example</td><td><code>despedida_larga</code></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies()" checked></td><td>Generator</td><td><code>resumen_pedido</code></td></tr>
+                  <tr><td><input type="checkbox" disabled></td><td>Tool</td><td><code>code-interpreter</code> <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="traerAlRepo()">Traer al repositorio &rarr;</button>
+              <button class="btn btn-danger" onclick="pedirEliminarDeCx()">Eliminar de CX</button>
+            </div>
+
+            <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
+              <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Confirmar eliminaci&oacute;n en CX</div>
+              <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
+                Se van a eliminar del agente los resources de abajo. <strong>No se puede deshacer desde el panel</strong> &mdash; solo recuperando una versi&oacute;n anterior.</p>
+              <div id="lista-borrado" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-danger" onclick="confirmarEliminarDeCx()">S&iacute;, eliminar de CX</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('confirmar-borrado').style.display='none'">Cancelar</button>
+              </div>
+            </div>
+          </div>
+          <div class="dir-pie"><span id="pie-repo">&mdash;</span></div>
         </div>
 
         <div class="action-bar">
@@ -801,16 +829,24 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.1 — Se va a aplicar en CX</div>
+          <div class="spec-block-label">2.1 — Se va a aplicar en CX <span style="color:var(--text-3);font-weight:400">· repositorio → CX</span></div>
           <p>Todo lo que va a escribirse en el agente, en una sola lista: <strong>crear</strong> lo que aún no existe, <strong>modificar</strong> lo que existe y el archivo dice distinto, y <strong>eliminar</strong> lo que se haya decidido borrar. Cada fila con su casilla, y una casilla arriba para marcarlas todas de una vez.</p>
           <p>Las eliminaciones no salen del diff: solo aparecen aquí cuando se deciden abajo. El deploy nunca borra por su cuenta.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.2 — Se va a aplicar al repositorio</div>
+          <div class="spec-block-label">2.2 — Se va a traer al repositorio <span style="color:var(--text-3);font-weight:400">· CX → repositorio</span></div>
           <p>Los resources que existen en CX y ningún archivo reclama. Encabeza el bloque el número en naranja, porque es la señal de que el repositorio se está separando del agente.</p>
           <p>Se marca lo que se quiere traer y se pulsa <strong>traer al repositorio</strong>. Lo que no se marque se queda como está — no hace falta un botón para ignorar, basta con no marcarlo.</p>
           <p>Los resources nativos de la plataforma aparecen deshabilitados y con el motivo: no tienen definición que guardar.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">2.0 — Las dos direcciones</div>
+          <p>Los dos bloques mueven datos en sentidos contrarios, así que se presentan como <strong>dos tarjetas separadas</strong>, cada una con su color y con el origen y el destino escritos en la cabecera: <em>repositorio → CX</em> y <em>CX → repositorio</em>.</p>
+          <p>Al pie de cada una, un resumen que cambia al marcar y desmarcar: cuántos van, de cuántos, y hacia dónde. Confirma la selección sin pedir un clic más.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Sin la separación, las dos listas se leen como una sola tabla larga y es fácil creer que todo va al mismo sitio. El color por sí solo no bastaría: la dirección tiene que estar escrita, no solo insinuada.</div>
         </div>
 
         <div class="spec-block">
@@ -822,7 +858,10 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
-          <p>✓ Los dos bloques se titulan igual de claro: uno dice lo que va a CX y el otro lo que va al repositorio<br>
+          <p>✓ Los dos bloques son dos tarjetas distintas, cada una con su color — no se leen como una sola lista<br>
+          ✓ Cada cabecera dice de dónde a dónde va el dato, con la flecha<br>
+          ✓ El pie de cada tarjeta me dice cuántos van de cuántos, y cambia al marcar o desmarcar<br>
+          ✓ Si desmarco todo, el pie me lo dice con esas palabras en vez de quedarse en cero<br>
           ✓ Cada fila de los dos bloques tiene su casilla, y arriba de cada uno hay una para marcarlas todas<br>
           ✓ Cada fila de CX me dice de qué archivo sale el cambio, no solo el nombre del resource<br>
           ✓ Veo tres operaciones posibles en CX —crear, modificar, eliminar— y la leyenda me explica cada una<br>
@@ -1195,9 +1234,30 @@ function toggleGrupo(card) {
   toggle.innerHTML = toggle.innerHTML.replace(abierto ? '▴' : '▾', abierto ? '▾' : '▴');
 }
 
+// El pie de cada tarjeta confirma cuántos van y hacia dónde, sin pedir un
+// clic extra. Cambia al marcar y desmarcar.
+function actualizarPies() {
+  const cuenta = id => ({
+    marcadas: document.querySelectorAll('#' + id + ' tbody input[type=checkbox]:checked:not(:disabled)').length,
+    total:    document.querySelectorAll('#' + id + ' tbody input[type=checkbox]:not(:disabled)').length,
+  });
+  const cx = cuenta('tabla-cx'), repo = cuenta('tabla-repo');
+  const pieCx = document.getElementById('pie-cx');
+  const pieRepo = document.getElementById('pie-repo');
+  if (pieCx) pieCx.innerHTML = cx.marcadas
+    ? `<strong style="color:#93c5fd">${cx.marcadas} de ${cx.total}</strong> se aplicar&aacute;n en CX al continuar`
+    : '<span style="color:var(--text-3)">Nada marcado &mdash; no se tocar&aacute; CX</span>';
+  if (pieRepo) pieRepo.innerHTML = repo.total === 0
+    ? '<span style="color:var(--success)">&#10003; No queda nada suelto en CX</span>'
+    : (repo.marcadas
+      ? `<strong style="color:var(--gate)">${repo.marcadas} de ${repo.total}</strong> se traer&aacute;n al repositorio al pulsar el bot&oacute;n`
+      : '<span style="color:var(--text-3)">Nada marcado &mdash; todos se quedan solo en CX</span>');
+}
+
 function marcarTodos(tablaId, marcado) {
   document.querySelectorAll('#' + tablaId + ' tbody input[type=checkbox]:not(:disabled)')
     .forEach(c => c.checked = marcado);
+  actualizarPies();
 }
 
 function filasMarcadas(tablaId) {
@@ -1229,7 +1289,7 @@ function confirmarEliminarDeCx() {
     // más de las que se aplican en CX — así todo lo que se escribe está en
     // una sola lista.
     cuerpoCx.insertAdjacentHTML('beforeend',
-      `<tr><td><input type="checkbox" checked></td><td>${tipo}</td><td><code>${nombre}</code></td>` +
+      `<tr><td><input type="checkbox" onchange="actualizarPies()" checked></td><td>${tipo}</td><td><code>${nombre}</code></td>` +
       `<td><code style="color:var(--text-3)">&mdash;</code></td><td><span class="pill pill-del">Eliminar</span></td></tr>`);
     f.remove();
   });
@@ -1238,9 +1298,11 @@ function confirmarEliminarDeCx() {
   document.getElementById('num-deriva').textContent = quedan;
   if (!quedan) document.getElementById('aviso-deriva').innerHTML =
     '<span style="color:var(--success)">&#10003; Ya no queda nada en CX sin respaldo en el repositorio</span>';
+  actualizarPies();
 }
 
 function renderStep3Diff() {
+  actualizarPies();
   document.getElementById('diff-has-changes').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
   document.getElementById('diff-no-changes').style.display  = DIFF_COUNT > 0 ? 'none'  : 'block';
 }
