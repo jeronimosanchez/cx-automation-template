@@ -797,22 +797,26 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
-          <p>Enseña lo que existe en CX y ningún archivo del repositorio reclama, y deja elegir qué traerse. Es el único paso que escribe en el repositorio.</p>
+          <p>Al entrar se ve una tarjeta ámbar con la lista de lo que hay en CX y no está en el repositorio. Se marca lo que se quiera traer, y debajo un cuadro de acción dice cuántos van y a qué repositorio. Al pulsar, el sistema los escribe y confirma que el repositorio ha quedado actualizado.</p>
+          <p>La cabecera del paso lleva la etiqueta <em>escribe en el repositorio</em>, porque eso es lo que hace.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
-          <p>Va antes del deploy a propósito. Si primero traes lo que falta, el repositorio queda completo y lo que despliegues después sale de un retrato fiel del agente. Al revés, desplegarías desde un repositorio al que le faltan piezas.</p>
+          <p>Va antes del deploy a propósito. Si primero te traes lo que falta, el repositorio queda completo y lo que despliegues después sale de un retrato fiel del agente. Al revés, desplegarías desde un repositorio al que le faltan piezas.</p>
+          <p>El número en naranja está para eso: recordar que cada cosa que no te traigas es un trozo del agente que el repositorio deja de conocer.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>Archivos nuevos en el repositorio, y un aviso de hacer <code>git pull</code> en local para no quedarse por detrás.</p>
+          <p>Archivos nuevos en el repositorio. En pantalla queda el registro de cuáles se crearon y con qué commit, un mensaje de <strong>repositorio actualizado</strong>, y el recordatorio de hacer <code>git pull</code> en local.</p>
+          <p>La lista de arriba se queda con lo que no te llevaste, y el número en naranja baja.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Qué escribe y dónde</div>
-          <p>En el repositorio, y solo al pulsar el botón. Y en CX si se decide eliminar, que es la acción destructiva del paso y va con confirmación aparte.</p>
+          <p>En el repositorio, y solo al pulsar el botón: entrar en el paso y marcar casillas no escribe nada.</p>
+          <p>También puede escribir en CX, pero solo por la otra salida: eliminar. Esa va con su propia confirmación, y hasta que no se confirma no se toca nada.</p>
         </div>
 
         <div class="spec-block">
@@ -880,24 +884,27 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
-          <p>Enseña lo que el repositorio va a escribir en el agente y lo aplica, recurso a recurso, con su log.</p>
+          <p>Al entrar se ve una tarjeta azul con la lista de lo que va a cambiar en el agente: qué resource, de qué archivo sale y si se va a crear, modificar o eliminar. Se marca lo que se quiera aplicar, y el cuadro de acción de debajo recuerda sobre qué proyecto y agente se va a escribir.</p>
+          <p>Al pulsar, la lista deja paso a un registro que va contando resource por resource cómo ha ido.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
-          <p>Es el primer paso que toca el agente, así que es donde se decide de verdad. Todo lo anterior era leer y ordenar.</p>
+          <p>Es el primer paso que toca el agente, así que es donde se decide de verdad. Todo lo anterior era leer, ordenar y traer.</p>
+          <p>Por eso nada viene marcado y el botón arranca apagado: hay que decir explícitamente qué se aplica.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>El <strong>draft</strong> del agente actualizado, y el registro de qué se aplicó y qué falló.</p>
+          <p>El <strong>draft</strong> del agente actualizado. En pantalla queda el registro de qué se aplicó y qué falló, y si algo falla se puede reintentar solo lo fallido sin repetir lo que ya salió bien.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">El draft es el estado editable: ningún usuario lo ve. Por eso terminar aquí es un final legítimo del pipeline — se pueden acumular cambios en draft durante días y decidir más adelante si se publican.</div>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Qué escribe y dónde</div>
-          <p>En el draft del agente, y solo al pulsar. No toca staging ni producción: eso es el paso siguiente.</p>
+          <p>En el draft del agente, y solo al pulsar. No toca staging ni producción — eso es el paso siguiente — ni el repositorio.</p>
+          <p>El draft es el estado editable del agente: ningún usuario ve lo que se escribe aquí hasta que se publique.</p>
         </div>
 
         <div class="spec-block">
@@ -950,24 +957,27 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block">
           <div class="spec-block-label">Qué hace</div>
-          <p>Congela el estado actual del draft en una versión y apunta <strong>staging</strong> a ella. A partir de ahí se pueden lanzar los tests contra algo que no se mueve.</p>
+          <p>Al entrar hay un cuadro de acción con un nombre de versión ya propuesto y un botón. No hay nada que marcar ni que elegir: se acepta el nombre o se cambia, y se pulsa.</p>
+          <p>Debajo, plegado, un desplegable con las versiones que ya existen. Al terminar, staging pasa a servir la versión nueva y se pueden lanzar los tests.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
-          <p>El draft cambia cada vez que se aplica algo. Probar contra el draft sería probar contra un suelo móvil: si mientras corren los tests alguien toca un playbook, no se sabe qué se ha probado. La versión es la foto estable contra la que se prueba.</p>
+          <p>El draft cambia cada vez que se aplica algo. Probar contra el draft sería probar contra un suelo móvil: si mientras corren los tests alguien toca un playbook, al terminar no se sabe qué se ha probado.</p>
+          <p>La versión es una foto que ya no se mueve, y staging apuntando a ella es lo que hace que los tests midan algo.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Qué produce</div>
-          <p>Una versión con nombre, y el entorno de staging apuntando a ella.</p>
+          <p>Una versión con el nombre que se le haya puesto, y staging sirviéndola. Aparece en la lista de versiones existentes, y desde ese momento los tests del paso siguiente corren contra ella.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
           <div class="tech-content" style="display:none">Por debajo no es una sola versión sino varias, una por cada resource que la necesita, porque la API versiona por recurso y no por agente. Eso es mecánica interna: para quien usa el panel es una versión del agente, con un nombre, y no hay ninguna decisión que tomar al respecto.</div>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">Qué escribe y dónde</div>
-          <p>En CX: crea la versión y mueve el entorno de staging. No toca producción ni el repositorio.</p>
+          <p>En CX, y solo al pulsar: crea la versión y mueve staging. No toca producción ni el repositorio.</p>
+          <p>El desplegable de versiones existentes también escribe, pero solo por su botón de eliminar y tras confirmar.</p>
         </div>
 
         <div class="spec-block">
