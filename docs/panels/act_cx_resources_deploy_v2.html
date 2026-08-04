@@ -12,6 +12,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* TOP BAR */
 .topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.step-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  border-radius:4px;padding:2px 7px;margin-left:10px;vertical-align:3px;white-space:nowrap}
+.step-badge.read{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+.step-badge.write-cx{background:rgba(245,158,11,.12);color:var(--gate);border:1px solid rgba(245,158,11,.35)}
+.step-badge.write-gh{background:rgba(59,130,246,.12);color:var(--accent-light);border:1px solid rgba(59,130,246,.35)}
+.repo-resuelto{display:flex;align-items:center;gap:8px;background:var(--bg-2);border:1px solid var(--border);
+  border-radius:6px;padding:8px 12px;font-size:12px;min-height:34px}
+.grupo-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;flex:1;min-width:200px}
+.grupo-card .grupo-num{font-size:26px;font-weight:700;line-height:1.1}
+.grupo-card .grupo-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.grupo-card .grupo-desc{font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.5}
+.grupo-card.emp{border-left:3px solid var(--success)}
+.grupo-card.cx{border-left:3px solid var(--gate)}
+.grupo-card.repo{border-left:3px solid var(--accent)}
+.grupo-lista{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-2);margin-top:10px;line-height:1.7}
 .topbar-tool{font-family:monospace;font-size:12px;color:var(--text-3);letter-spacing:.02em}
 .topbar-agent{font-weight:700;font-size:15px}
 .topbar-sep{color:var(--border);font-size:18px}
@@ -171,7 +186,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- STEP 1: Inventario CX -->
     <div class="step-view" id="view-1">
       <div class="phase-eyebrow">Paso 1 de 7</div>
-      <div class="phase-title">Inventario CX</div>
+      <div class="phase-title">Inventario CX<span class="step-badge read">solo lectura</span></div>
       <div class="phase-sub">
         Lee el estado actual del draft del agente desde la API de Dialogflow CX.
         <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El draft es el estado editable &mdash; no la versi&oacute;n que CX usa para test cases. Los cambios no se propagan hasta crear las versiones en el Step 5.</p>
@@ -192,7 +207,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <select id="agent-select" class="snapshot-input" style="max-width:240px" onchange="onAgentSelected()" disabled>
               <option value="" selected disabled>&mdash;</option>
               <option value="petal-1.0">Petal 1.0</option>
+              <option value="petal-voz">Petal Voz (sin vincular)</option>
             </select>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;max-width:520px">
+          <label style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Repositorio</label>
+          <div class="repo-resuelto" id="repo-resuelto">
+            <span style="color:var(--text-3)">&mdash;</span>
           </div>
         </div>
         <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
@@ -207,58 +229,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="inv-done" style="display:none">
         <div class="done-banner"><p>Inventario completado &#10003;</p></div>
 
-        <!-- Cuadrícula de 12 tipos de recursos -->
-        <div class="cards-grid" style="margin-bottom:24px">
-          <div class="stat-card">
-            <div class="stat-label">Playbooks</div>
-            <div class="stat-value">4</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
+          <div class="grupo-card emp">
+            <div class="grupo-label">Emparejados</div>
+            <div class="grupo-num" style="color:var(--success)">42</div>
+            <div class="grupo-desc">Est&aacute;n en CX y tienen archivo en el repositorio.</div>
+            <div class="grupo-lista">petal_cx_orchestrator.yaml<br>compra.yaml<br>checkout.yaml<br><span style="color:var(--text-3)">&hellip; y 39 m&aacute;s</span></div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">Examples</div>
-            <div class="stat-value">11</div>
+          <div class="grupo-card cx">
+            <div class="grupo-label">Solo en CX</div>
+            <div class="grupo-num" style="color:var(--gate)">4</div>
+            <div class="grupo-desc">Existen en el agente y ning&uacute;n archivo los reclama.</div>
+            <div class="grupo-lista">Example &middot; compra_tulipanes_002<br>Example &middot; despedida_larga<br>Generator &middot; resumen_pedido<br>Tool &middot; code-interpreter</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">Tools</div>
-            <div class="stat-value">2</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Flows</div>
-            <div class="stat-value">1</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Pages</div>
-            <div class="stat-value">6</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Intents</div>
-            <div class="stat-value">8</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Entity Types</div>
-            <div class="stat-value">3</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Webhooks</div>
-            <div class="stat-value">1</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Generators</div>
-            <div class="stat-value">2</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Agent Config</div>
-            <div class="stat-value">1</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Environments</div>
-            <div class="stat-value">2</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Versions</div>
-            <div class="stat-value">5</div>
+          <div class="grupo-card repo">
+            <div class="grupo-label">Solo en el repositorio</div>
+            <div class="grupo-num" style="color:var(--accent-light)">2</div>
+            <div class="grupo-desc">Tienen archivo pero a&uacute;n no existen en CX, o su <code>cx_id</code> ya no est&aacute;.</div>
+            <div class="grupo-lista">devoluciones.yaml <span style="color:var(--text-3)">&middot; sin cx_id</span><br>ex_registro_04.yaml <span style="color:var(--text-3)">&middot; cx_id fantasma</span></div>
           </div>
         </div>
-
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">48 resources en total &middot; le&iacute;dos de <code>staging</code> &middot; commit <code>98fcbdd</code></div>
         <div class="action-bar">
           <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
         </div>
@@ -1015,13 +1006,17 @@ function setRunning(val) {
 }
 
 const INV_LINES = [
-  {cls:'ok', text:'✓ Conectando con Dialogflow CX...'},
-  {cls:'ok', text:'✓ Leyendo recursos del agente (12 tipos)...'},
-  {cls:'ok', text:'✓ Playbooks (4) · Examples (11) · Tools (2)'},
-  {cls:'ok', text:'✓ Flows (1) · Pages (6) · Intents (8)'},
-  {cls:'ok', text:'✓ Entity Types (3) · Webhooks (1) · Generators (2) · Agent Config (1) · Environments (2) · Versions (5)'},
-  {cls:'ok', text:'✓ Inventario completo — 46 recursos en 2.3s'},
+  {cls:'dim', text:'· Comprobando conexión'},
+  {cls:'ok',  text:'✓ Credenciales válidas · acceso al agente confirmado'},
+  {cls:'dim', text:'· Leyendo Dialogflow CX'},
+  {cls:'ok',  text:'✓ Playbooks (4) · Examples (11) · Tools (2) · Flows (1) · Pages (6)'},
+  {cls:'ok',  text:'✓ Intents (8) · Entity Types (3) · Webhooks (1) · Generators (2) · Config (1) · Environments (2) · Versions (5)'},
+  {cls:'ok',  text:'✓ 46 resources en el draft'},
+  {cls:'dim', text:'· Leyendo el repositorio'},
+  {cls:'ok',  text:'✓ staging · commit 98fcbdd · 44 archivos YAML'},
+  {cls:'ok',  text:'✓ Emparejados 42 · solo en CX 4 · solo en el repositorio 2'},
 ];
+
 
 function onProjectSelected() {
   const proj = document.getElementById('project-select').value;
@@ -1031,10 +1026,33 @@ function onProjectSelected() {
   document.getElementById('btn-start-inventory').disabled = true;
 }
 
+// Un agente tiene como máximo un repositorio, y el mapeo lo guarda el
+// servidor. Por eso no hay selector de repositorio: elegir agente lo resuelve.
+const REPOS_POR_AGENTE = {
+  'petal-1.0': 'jeronimosanchez/cx-automation-template',
+  'petal-voz': null,          // registrado en CX pero aún sin vincular
+};
+
 function onAgentSelected() {
   const agentSelect = document.getElementById('agent-select');
   const agent = agentSelect.value;
-  document.getElementById('btn-start-inventory').disabled = !agent;
+  const caja = document.getElementById('repo-resuelto');
+  const repo = REPOS_POR_AGENTE[agent];
+
+  if (!agent) {
+    caja.innerHTML = '<span style="color:var(--text-3)">&mdash;</span>';
+  } else if (repo) {
+    caja.innerHTML = `<span style="color:var(--success)">&#10003;</span>
+      <code style="color:var(--text-2)">${repo}</code>
+      <span style="color:var(--text-3);margin-left:auto">rama staging</span>`;
+  } else {
+    // Sin repositorio no hay contra qué comparar: el paso no puede arrancar.
+    caja.innerHTML = `<span style="color:var(--gate)">&#9888;</span>
+      <span style="color:var(--text-2)">Este agente no tiene repositorio vinculado</span>
+      <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 10px"
+              onclick="alert('Abre la pestaña Proyectos para vincularlo.')">Vincular &rarr;</button>`;
+  }
+  document.getElementById('btn-start-inventory').disabled = !agent || !repo;
   if (agent) {
     document.getElementById('topbar-agent').textContent = agentSelect.options[agentSelect.selectedIndex].textContent;
   }
@@ -1074,6 +1092,7 @@ function resetInventoryUI() {
   document.getElementById('inv-log').style.display = 'none';
   document.getElementById('inv-done').style.display = 'none';
   document.getElementById('inv-log-block').innerHTML = '';
+  document.getElementById('repo-resuelto').innerHTML = '<span style="color:var(--text-3)">&mdash;</span>';
 }
 
 function renderStep3Diff() {
