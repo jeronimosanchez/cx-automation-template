@@ -245,19 +245,65 @@ pendientes · **Resuelto** = cerrado, listo para redactar.
 
 | ID | Hallazgo | Estado | Solución |
 |---|---|---|---|
-| **C1** | `POST /step/8` promociona producción sin haber pasado por ningún paso previo · `server.py:67` | Abierto | — |
-| **C2** | El Paso 4 ejecuta el array de `operations` recibido sin recalcular, incluidos DELETE, con rutas absolutas · `:554` | Abierto | — |
-| **C3** | Una petición puede dirigir el token de la cuenta de servicio a cualquier URL · `cx_client.py:108` | Abierto | — |
-| **C4** | `previous_versions` y `version_names` viajan por el mismo canal, con rutas absolutas · `server.py:58`, `:63` | Abierto | — |
-| **C5** | `/versions/protect` escribe en CX sin coger el lock ni validar la ruta · `server.py:143` | Abierto | — |
-| **D1** | §2 fija `agent: ""` pero el código lee `agent_id` — la Regla 11 daría siempre falso y el Paso 3 devolvería `ok` con cero operaciones | Abierto | — |
-| **D2** | La Contents API no es recursiva y `definitions/examples/` tiene 4 subdirectorios | Abierto | — |
-| **D3** | `merge_staging_into_main()` no recibe parámetro de repo, usa `gh`, y la GitHub App no tiene permiso de pull requests · `:1404` | Abierto | — |
-| **D4** | `write_run_log` y `cx_repo_drift` siguen usando el disco efímero · `:119`, `:874` | Abierto | — |
-| **H1** | Dos repos pueden reclamar el mismo agente — la Regla 11 solo valida repo→agente | Abierto | — |
-| **H2** | El `pull` no sabe dónde escribir un recurso que solo existe en CX · `:916` | Abierto | — |
-| **H3** | Perder `previous_versions` deja el rollback imposible, y no se regenera · `:1347` | Abierto | — |
-| **H4** | El Paso 5 puede pasar de 60 minutos: una LRO por flow, playbook y tool | Abierto | — |
-| **X1** | `x-goog-user-project` exige `serviceusage.services.use`, que `dialogflow.admin` no incluye — choca con la decisión de "cero IAM" | Abierto | — |
+| **C1** | `POST /step/8` promociona producción sin paso previo | ✅ | S1 — el servidor no acepta el array del panel |
+| **C2** | El Paso 4 ejecuta el array de `operations` recibido | ✅ | S1 + S1b — recalcula y aplica sin comparar (decisión de Jero) |
+| **C3** | Una petición puede dirigir el token a cualquier URL | ✅ | C3 — el servidor construye todas las URLs desde `project`/`agent` |
+| **C4** | `previous_versions` y `version_names` por el mismo canal | ✅ | S8 — Firestore |
+| **C5** | `/versions/protect` escribe sin lock | ✅ | S13 + S13b — lock en Firestore, todos los endpoints que escriben |
+| **D1** | §2 fija `agent: ""` pero el código lee `agent_id` | ✅ | S2 |
+| **D2** | La Contents API no es recursiva | ✅ | S5 — Git Trees API con `recursive=1` |
+| **D3** | `merge_staging_into_main()` sin repo, usa `gh` | ✅ | S6 — merge directo de ramas por API, sin permiso nuevo |
+| **D4** | `write_run_log` y `cx_repo_drift` usan disco efímero | ✅ | S12 — Firestore con timestamp |
+| **H1** | Dos repos pueden reclamar el mismo agente | ✅ | S4 — mapeo agente→repo en Firestore |
+| **H2** | El `pull` no sabe dónde escribir un recurso nuevo | ✅ | S7 + S14 — carpeta = tipo (fija), nombre desde `displayName` |
+| **H3** | Perder `previous_versions` impide el rollback | ✅ | S8 |
+| **H4** | El Paso 5 puede pasar de 60 minutos | ⏸ | Versionar solo lo que el diff tocó — **hoy versiona todo, hay que construirlo** |
+| **X1** | `x-goog-user-project` exige `serviceusage.services.use` | ✅ | S10 + S6b — permiso manual, el panel muestra el comando |
+
+**13 resueltos · 1 pendiente de matizar (H4).**
 
 **Cuando los 14 estén resueltos, se lanza una segunda ronda de adversariales** antes de redactar la Fase 5.
+
+---
+
+## 10. Decisiones de la ronda de soluciones
+
+Respuestas a los 14 hallazgos de §8, acordadas el 2026-08-04. Sustituyen o
+matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
+
+| ID | Decisión | Por qué | Estado |
+|---|---|---|---|
+| **S1** | El servidor **recalcula el diff** en el Paso 4 y no acepta el array de `operations` del panel | El panel valida para dar buena UX; el servidor valida para garantizar que no pasa nada malo pase lo que pase en el panel | ✅ |
+| **S1b** | Recalcula y **aplica sin comparar** contra lo aprobado | Solo trabaja Jero y el lock impide deploys en paralelo | ⏸ ver §10.1 |
+| **S1c** | El servidor acepta `project` y `agent` del panel | Con S1 y C3, lo peor que puede hacer un valor erróneo es apuntar a otro agente, y eso lo caza el candado | ✅ |
+| **C3** | El servidor **construye todas las URLs** desde `project`/`agent`. Nunca acepta rutas del panel | Hoy `cx_client.py:108` acepta URLs completas del cliente: podría apuntar a otro agente, otro proyecto o un host externo | ✅ |
+| **S2** | El campo de `agent.yaml` se llama **`agent_id`**, no `agent` | Con `agent` el código no lo encuentra, el Paso 3 devuelve OK con cero operaciones y el deploy no aplica nada sin avisar | ✅ |
+| **S3** | El panel tiene **dos pestañas**: Deploy (por defecto) y Proyectos (onboarding y sincronización) | Separa el flujo habitual del de configuración | ✅ |
+| **S4** | El **mapeo agente→repo vive en Firestore**. Al elegir agente, el repo se asigna solo | Elimina el selector manual de repo y el caso de dos repos reclamando el mismo agente | ✅ |
+| **S5** | Leer los YAML con **Git Trees API `recursive=1`**, no Contents API | Contents API solo devuelve el primer nivel; `definitions/examples/` tiene 4 subdirectorios | ✅ |
+| **S6** | Paso 8: **merge directo de ramas por API**, no `gh pr merge` | Solo necesita `contents:write`, que la GitHub App ya tiene. Sin permiso nuevo | ✅ |
+| **S6b** | El servidor **no concede IAM**. El panel muestra el comando exacto y Jero lo ejecuta una vez | Conceder permisos automáticamente exige un privilegio muy alto sobre proyectos ajenos, y CLAUDE.md §7.1 pide aprobación explícita | ✅ |
+| **S7** | El `pull` deduce la ruta del **nombre del recurso CX**, resolviendo los UUID a `displayName` | La jerarquía completa está en el nombre: `playbooks/{id}/examples/{id}` ya dice carpeta y padre | ⏸ ver §10.1 |
+| **S7b** | **Prueba obligatoria de punta a punta** antes de dar el `pull` por bueno: traer un recurso real y confirmar que aparece en la ruta correcta | Si falla en silencio, el recurso llega al sitio equivocado sin que nadie lo sepa | ✅ |
+| **S8** | `previous_versions` se guarda en **Firestore** | No se regenera con nada: perderlo hace el rollback imposible | ✅ |
+| **S9** | El servidor corre en **`cloud-run-multiproyecto`**, separado de los proyectos CX | Lo hace agnóstico: puede gestionar cualquier agente de cualquier proyecto | ✅ |
+| **S10** | Mantener `x-goog-user-project` y añadir **`serviceusage.services.use`** al SA | Con servidor y agentes en proyectos distintos, Google exige ese permiso para cargar la cuota al proyecto correcto | ✅ |
+| **S11** | Proyecto nuevo: crear en GCP → registrar en la pestaña Proyectos → ejecutar el comando IAM que muestra el panel | Libertad para añadir proyectos con **un solo paso manual**, documentado y bajo control de Jero | ✅ |
+| **S12** | Log de auditoría en **Firestore con timestamp** | El disco de Cloud Run es efímero: sin esto no queda rastro forense de qué se escribió en producción | ✅ |
+| **S13** | **Todos** los endpoints que escriben en CX pasan por el lock, sin excepción | `/versions/protect` y `/cx-repo-check` lo saltaban: se podía renombrar una versión mientras el Paso 5 la rotaba | ✅ |
+| **S13b** | El lock vive en **Firestore**, no `threading.Lock` | `threading.Lock` es por proceso: con más de una instancia no protege nada | ✅ |
+| **S14** | Los **nombres de carpeta son convención fija** (= tipo de recurso); el contenido dentro es libre | El servidor necesita el tipo para llamar al endpoint correcto | ⏸ ver §10.1 |
+| **S15** | 12 tipos built-in; los **tipos adicionales se declaran en `cx-deploy.yaml`** con su endpoint | CX tiene más tipos que los 12 actuales — voz, NLU, telefonía. El sistema debe cubrirlos sin reescribirse | ✅ |
+| **S15b** | Cada tipo nuevo exige **medir si acepta `updateMask` o requiere Full Update** | CLAUDE.md §3.8: varía por recurso y solo se sabe midiendo contra la API real | ✅ |
+| **S16** | La pestaña Proyectos guía el discovery de un tipo nuevo: endpoint, campos, comportamiento POST/PATCH. Una vez por tipo | Flexibilidad y cobertura para cualquier proyecto futuro | ✅ |
+| **H4** | El Paso 5 versiona **solo los recursos que el diff tocó** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ⏸ ver §10.1 |
+
+### 10.1 Los cuatro puntos abiertos
+
+**H4 — hay que construirlo, hoy no es así.** Verificado: `create_versions_for_snapshot` (`:978`) recorre **todos** los flows, **todos** los playbooks y **todos** los tools referenciados, no los que tocó el diff. Beneficio extra no previsto: hoy cada deploy quema un hueco de versión en los 10 playbooks contra un límite de 20. Al construirlo, el entorno debe fijar **versión nueva para lo que cambió y la existente para lo que no** (Regla 16 exige la cadena completa) — el snapshot deja de ser una foto atómica, pero el rollback sigue funcionando porque `previous_versions` registra lo que estaba fijado.
+
+**S1b — el supuesto no se sostiene.** "No puede haber cambios en CX entre el Paso 3 y el Paso 4" falla por dos vías: editar el agente directamente en la consola de CX (el caso normal, es por lo que existe la comprobación de deriva) y el tiempo, porque el flujo declarado de Jero es quedarse en el Paso 4 acumulando cambios en draft. Consecuencia acotada —sin DELETE automático, lo peor es un POST o PATCH no revisado— pero rompe el gate por el otro lado. Comparar cuesta casi nada: el servidor ya tiene las dos listas.
+
+**Simplificación que abre S1.** Si el servidor recalcula en el Paso 4, el Paso 3 también puede. Entonces el inventario no necesita viajar al navegador, y desaparecen cuatro piezas: el inventario en `localStorage`, el candado de proyecto/agente/repo, el umbral de antigüedad y la mitad de D4. Coste: un LIST más de CX por Paso 3 — lo que ya hace el Paso 1.
+
+**S7 + S14 — falta una línea.** Dentro de `definitions/examples/` hay subcarpetas por playbook. Cuando el `pull` trae un example nuevo, ¿va a `examples/<playbook>/` o directo a `examples/`? El servidor conoce el padre, así que puede hacer lo primero — solo hay que decidirlo.
