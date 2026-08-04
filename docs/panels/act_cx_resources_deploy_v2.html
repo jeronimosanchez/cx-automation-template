@@ -864,7 +864,8 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block">
           <div class="spec-block-label">3.8 — El aviso sin staging</div>
-          <p>Si entre lo marcado hay tipos que la API no versiona, se avisa antes de confirmar: ese cambio será visible en draft, staging y producción a la vez, en el instante en que se aplique. No hay forma de probarlo en staging primero.</p>
+          <p>Hay unos pocos tipos de resource que no admiten versión. Si entre lo marcado hay alguno, se avisa antes de confirmar: ese cambio no se queda en el draft — lo verán los usuarios en el mismo instante en que lo apliques, sin pasar por los tests.</p>
+          <p>El aviso no bloquea, pero es el único caso del pipeline en el que el Paso 4 no protege nada.</p>
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
