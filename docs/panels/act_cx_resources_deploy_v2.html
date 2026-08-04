@@ -508,12 +508,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="gate-block">
           <div class="gate-title">&#9995; Confirmar subida a producci&oacute;n</div>
           <p style="margin-bottom:10px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)">Petal 1.0</strong> &mdash; esta acci&oacute;n <strong style="color:var(--gate)">afecta a usuarios reales</strong>.</p>
-          <p style="margin-bottom:6px">Al confirmar ocurren tres cosas, en este orden:</p>
+          <p style="margin-bottom:6px">Al confirmar ocurren dos cosas, en este orden:</p>
           <p style="font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px">
-            <strong style="color:var(--text)">1.</strong> El c&oacute;digo validado se fusiona a la rama principal del repositorio.<br>
-            <strong style="color:var(--text)">2.</strong> Se crea la versi&oacute;n con el estado actual del draft.<br>
-            <strong style="color:var(--text)">3.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
-          <p style="font-size:12px;color:var(--text-3);margin-bottom:14px">Al terminar, haz <code>git pull</code> en local: la fusi&oacute;n la hace el servidor y tu copia se queda un commit por detr&aacute;s.</p>
+            <strong style="color:var(--text)">1.</strong> Se crea una versi&oacute;n con el estado actual del draft.<br>
+            <strong style="color:var(--text)">2.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:14px">El repositorio no se toca: lo que se publica ya est&aacute; en <code>staging</code> desde que lo aplicaste en el Paso 3.</p>
           <div class="action-bar">
             <button class="btn btn-gate" onclick="confirmProduction()">Publicar en producci&oacute;n &rarr;</button>
             <button class="btn btn-ghost" onclick="resetDeploy()">Cancelar</button>
@@ -938,18 +937,19 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
 
         <div class="spec-block">
           <div class="spec-block-label">5.3 — Qué produce</div>
-          <p>Una versión con el nombre que le hayas puesto, producción sirviéndola, y el código fusionado en la rama principal del repositorio.</p>
+          <p>Una versión con el nombre que le hayas puesto, y producción sirviéndola.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">5.4 — Qué escribe y dónde</div>
-          <p>En CX y en el repositorio, y solo al confirmar. Es la escritura más consecuente del pipeline: la cabecera lo dice con la etiqueta <em>escribe en producción</em>.</p>
+          <p>Solo en CX, y solo al confirmar. Es la escritura más consecuente del pipeline: la cabecera lo dice con la etiqueta <em>escribe en producción</em>.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">5.5 — Las tres acciones, en orden</div>
-          <p>Primero el código se fusiona a la rama principal, después se crea la versión, y solo entonces producción pasa a apuntar a ella.</p>
-          <p><strong>El orden no es decorativo:</strong> si se promoviera antes de fusionar y el merge fallara, producción estaría sirviendo algo cuyo código no está en la rama principal — y nadie podría reconstruir después qué está corriendo ahí fuera.</p>
+          <div class="spec-block-label">5.5 — Las dos acciones, en orden</div>
+          <p>Se crea una versión con el estado actual del draft, y después producción pasa a apuntar a ella. Nada más.</p>
+          <p><strong>El repositorio no se toca aquí.</strong> Lo que se publica ya está en <code>staging</code> desde que lo aplicaste en el Paso 3, así que no hay nada que subir ni que fusionar: el código y el agente ya coinciden antes de llegar a este paso.</p>
+          <p><strong>El orden importa:</strong> si producción apuntara antes de existir la versión, apuntaría a nada. Y la versión se crea aquí, no antes, para que no haya hueco entre lo que validaste y lo que se publica.</p>
         </div>
 
         <div class="spec-block">
@@ -970,12 +970,13 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
           <p>✓ Me recuerda que esto afecta a usuarios reales, y se ve antes que el botón<br>
           ✓ Me dice sobre qué proyecto y qué agente voy a escribir<br>
-          ✓ Me enumera las tres acciones y en qué orden ocurren, antes de confirmar<br>
+          ✓ Me enumera las dos acciones y en qué orden ocurren, antes de confirmar<br>
           ✓ Me propone un nombre de versión y puedo cambiarlo<br>
           ✓ Si he tocado el draft después de los tests, me avisa — y aun así me deja seguir<br>
           ✓ Mientras se publica veo cada acción a medida que ocurre<br>
-          ✓ Si el merge falla, no se promueve nada<br>
-          ✓ Me recuerda hacer git pull en local, porque la fusión la hace el servidor<br>
+
+          ✓ Me dice que el repositorio no se toca en este paso<br>
+          ✓ Cancelar me devuelve al principio sin haber tocado nada<br>
           ✓ Al terminar entiendo que esto ya lo están viendo los usuarios</p>
         </div>
       </div>
@@ -1640,41 +1641,26 @@ function cancelDeploy(afterDeploy) {
 function resetDeploy() {
   setRunning(false);
   animVersion++;
-  stepStates = ['active','pending','pending','pending','pending','pending','pending'];
+  stepStates = ['active','pending','pending','pending','pending'];
   current = 1; viewingStep = 1;
   versionLabel = '';
   resetInventoryUI();
   resetDeployStep4();
-  resetVersionUI();
-  document.getElementById('rollback-confirm').style.display = 'none';
-  document.getElementById('rollback-log').style.display = 'none';
-  document.getElementById('rollback-log-block').innerHTML = '';
-  document.getElementById('rollback-done-banner').style.display = 'none';
-  document.getElementById('test-action-bar').style.display = 'flex';
-  const tgtReset = document.getElementById('test-gate-title');
-  if(tgtReset) tgtReset.style.display = '';
-  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
-  document.getElementById('done-timestamp').textContent = '— · — UTC';
+  ['tests-fail','prod-log','aviso-draft-movido'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = 'none';
+  });
+  ['tests-gate','prod-gate'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = 'block';
+  });
+  const logProd = document.getElementById('prod-log-block');
+  if (logProd) logProd.innerHTML = '';
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '\u2014');
   const badge = document.getElementById('topbar-env');
-  badge.textContent = 'STAGING';
+  badge.textContent = 'DRAFT';
   badge.style.background = 'rgba(59,130,246,.15)';
   badge.style.color = '#60a5fa';
   badge.style.borderColor = 'rgba(59,130,246,.3)';
-  document.getElementById('last-deploy-time').textContent = 'hace 3 días';
-  document.getElementById('prod-gate').style.display = 'block';
-  document.getElementById('prod-log').style.display = 'none';
-  document.getElementById('prod-log-block').innerHTML = '';
-  document.getElementById('prod-conflict').style.display = 'none';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
-  // P1-A: restaurar btn-validado-p7 para el segundo ciclo
-  const btnP7 = document.getElementById('btn-validado-p7');
-  if (btnP7) { btnP7.disabled = false; btnP7.textContent = 'Validado — aprobar producción →'; }
-  // P2-F: resetear checkbox "Sincronizar main local"
-  const syncCb = document.getElementById('check-sync-local');
-  if (syncCb) {
-    syncCb.checked = false;
-    document.getElementById('done-sync-title').style.color = 'var(--text-2)';
-  }
   viewStep(1);
 }
 
