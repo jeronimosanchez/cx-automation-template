@@ -467,22 +467,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <p style="margin-bottom:10px">Lanza t&uacute; la suite de QA contra el <strong>draft</strong> del agente y comprueba el resultado. Cuando lo tengas, dilo aqu&iacute;.</p>
           <p style="font-size:12px;color:var(--text-3);margin-bottom:14px">El panel no lanza los tests ni conoce su resultado: lo que marques aqu&iacute; es una declaraci&oacute;n tuya.</p>
           <div class="action-bar">
-            <a class="btn btn-ghost" href="https://dialogflow.cloud.google.com/cx" target="_blank" rel="noopener">Abrir el agente en CX &#8599;</a>
             <button class="btn btn-gate" onclick="advance(4)">Tests superados &mdash; continuar &rarr;</button>
             <button class="btn btn-danger" onclick="marcarTestsFallidos()">Tests fallidos</button>
           </div>
+        </div>
+        <div class="action-bar" style="margin-top:16px">
+          <a class="btn btn-ghost" href="https://dialogflow.cloud.google.com/cx" target="_blank" rel="noopener">Abrir el agente en CX &#8599;</a>
         </div>
       </div>
 
       <div id="tests-fail" style="display:none;margin-top:16px">
         <div style="border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px">
-          <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Tests fallidos</div>
-          <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
-            No hay nada que revertir: los cambios est&aacute;n en el draft, que es tu espacio de trabajo y no lo ve ning&uacute;n usuario. Corrige los archivos en el repositorio y vuelve a aplicar.</p>
-          <div class="action-bar">
-            <button class="btn btn-gate" onclick="viewStep(3)">Volver a aplicar en CX &rarr;</button>
-            <button class="btn btn-ghost" onclick="volverAValidar()">He vuelto a probar</button>
-          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Tests fallidos &mdash; no se publica nada</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0;line-height:1.6">
+            Los cambios se quedan en el draft, que no ve ning&uacute;n usuario, y producci&oacute;n sigue sirviendo lo de antes. No hay nada que revertir.<br><br>
+            Corrige los archivos en tu repositorio, vuelve a subirlos y arranca el pipeline otra vez desde el principio.</p>
+        </div>
+        <div class="action-bar" style="margin-top:16px">
+          <button class="btn btn-gate" onclick="resetDeploy()">Terminar</button>
         </div>
       </div>
     </div>
@@ -512,10 +514,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <p style="font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px">
             <strong style="color:var(--text)">1.</strong> Se crea una versi&oacute;n con el estado actual del draft.<br>
             <strong style="color:var(--text)">2.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
-          <p style="font-size:12px;color:var(--text-3);margin-bottom:14px">El repositorio no se toca: lo que se publica ya est&aacute; en <code>staging</code> desde que lo aplicaste en el Paso 3.</p>
           <div class="action-bar">
             <button class="btn btn-gate" onclick="confirmProduction()">Publicar en producci&oacute;n &rarr;</button>
             <button class="btn btn-ghost" onclick="resetDeploy()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <button class="btn btn-ghost" id="btn-ver-versiones" onclick="toggleVersiones()">Ver versiones existentes &#9662;</button>
+        <div id="panel-versiones" style="display:none;margin-top:12px;border:1px solid var(--border);border-radius:8px;padding:14px 16px">
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Las versiones que ya existen en el agente. M&aacute;rcalas para eliminarlas y no acumular.</p>
+          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
+          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
+          <div class="action-bar" style="margin-top:12px">
+            <button class="btn btn-danger" id="btn-borrar-versiones" onclick="borrarVersiones()" disabled>Eliminar versiones marcadas</button>
           </div>
         </div>
       </div>
@@ -528,7 +541,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-done">
       <div class="phase-eyebrow">Deploy completado</div>
       <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
-      <div class="phase-sub">Desplegado en producci&oacute;n &middot; verificado en staging.</div>
+      <div class="phase-sub">Desplegado en producci&oacute;n &middot; validado contra el draft.</div>
       <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; <span id="done-timestamp">2026-07-28 &middot; 09:45 UTC</span> &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
       <div style="margin:12px 0 20px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
         <p style="font-size:12px;color:var(--text-2);line-height:1.5">&#9888; El cambio se ha aplicado, pero puede tardar unos minutos en propagarse a todos los usuarios. Si pruebas producci&oacute;n ahora mismo y ves comportamiento antiguo, espera y reintenta antes de asumir que el deploy fall&oacute;.</p>
@@ -1250,14 +1263,54 @@ function confirmarEliminarDeCx() {
   actualizarPies();
 }
 
+function toggleVersiones() {
+  const panel = document.getElementById('panel-versiones');
+  const boton = document.getElementById('btn-ver-versiones');
+  const abierto = panel.style.display !== 'none';
+  panel.style.display = abierto ? 'none' : 'block';
+  boton.innerHTML = abierto ? 'Ver versiones existentes &#9662;' : 'Ocultar versiones existentes &#9652;';
+  if (!abierto) renderVersionPool();
+}
+
+// Marcar aquí sirve para una sola cosa: eliminar. No hay que marcar nada
+// para publicar.
+function renderVersionPool() {
+  const lista = document.getElementById('version-pool-list');
+  if (!lista) return;
+  lista.innerHTML = VERSIONES.map(v => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+      <input type="checkbox" class="chk-version" ${v.fijadaPor ? 'disabled' : ''} onchange="actualizarBorrarVersiones()"
+             style="width:15px;height:15px;accent-color:var(--error);cursor:${v.fijadaPor ? 'not-allowed' : 'pointer'}">
+      <code style="flex:1;font-size:12px;color:var(--text-2)">${v.nombre}</code>
+      <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${v.creada}</span>
+      <span style="font-size:11px;color:${v.fijadaPor ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:120px;text-align:right">${v.fijadaPor ? 'en uso por ' + v.fijadaPor : ''}</span>
+    </div>`).join('');
+  document.getElementById('version-pool-summary').innerHTML =
+    `${VERSIONES.length} versiones guardadas. Las que un entorno est&aacute; usando no se pueden eliminar.`;
+  actualizarBorrarVersiones();
+}
+
+function actualizarBorrarVersiones() {
+  const n = document.querySelectorAll('.chk-version:checked').length;
+  const b = document.getElementById('btn-borrar-versiones');
+  if (!b) return;
+  b.disabled = n === 0;
+  b.textContent = n ? `Eliminar ${n} ${n === 1 ? 'versi\u00f3n' : 'versiones'}` : 'Eliminar versiones marcadas';
+}
+
+function borrarVersiones() {
+  const marcadas = [...document.querySelectorAll('.chk-version:checked')];
+  if (!marcadas.length) return;
+  if (!confirm(`Se van a eliminar ${marcadas.length} versiones del agente. No se puede deshacer.`)) return;
+  marcadas.forEach(c => c.closest('div').remove());
+  document.getElementById('version-pool-summary').innerHTML =
+    `${document.querySelectorAll('#version-pool-list > div').length} versiones guardadas.`;
+  actualizarBorrarVersiones();
+}
+
 function marcarTestsFallidos() {
   document.getElementById('tests-gate').style.display = 'none';
   document.getElementById('tests-fail').style.display = 'block';
-}
-
-function volverAValidar() {
-  document.getElementById('tests-fail').style.display = 'none';
-  document.getElementById('tests-gate').style.display = 'block';
 }
 
 function renderStep3Diff() {
