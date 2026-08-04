@@ -203,7 +203,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 1: Inventario CX -->
     <div class="step-view" id="view-1">
-      <div class="phase-eyebrow">Paso 1 de 7<span class="escribe-badge read">solo lectura</span></div>
+      <div class="phase-eyebrow">Paso 1 de 5<span class="escribe-badge read">solo lectura</span></div>
       <div class="phase-title">Inventario CX</div>
       <div class="phase-sub">
         Lee el estado actual del draft del agente desde la API de Dialogflow CX.
@@ -290,7 +290,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 2: Qué cambia -->
     <div class="step-view" id="view-2">
-      <div class="phase-eyebrow">Paso 2 de 7<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
+      <div class="phase-eyebrow">Paso 2 de 5<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
       <div class="phase-title">Traer al repositorio</div>
       <div class="phase-sub">Trae al repositorio lo que solo existe en CX, antes de desplegar.</div>
 
@@ -375,7 +375,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- STEP 4: Confirmar deploy -->
     <div class="step-view" id="view-3">
-      <div class="phase-eyebrow">Paso 3 de 7<span class="escribe-badge write-cx">escribe en CX</span></div>
+      <div class="phase-eyebrow">Paso 3 de 5<span class="escribe-badge write-cx">escribe en CX</span></div>
       <div class="phase-title">Aplicar en CX</div>
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
 
@@ -455,161 +455,89 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- STEP 5: Crear versiones -->
+    <!-- STEP 4: Validar tests contra el draft -->
     <div class="step-view" id="view-4">
-      <div class="phase-eyebrow">Paso 4 de 7</div>
-      <div class="phase-title">Publicar en staging</div>
-      <div class="phase-sub">CX crea una versión nueva de cada artefacto con cambios (el flow y cada playbook modificado) y apunta staging a esas versiones. No es una versión única del agente — son varias versiones independientes, una por artefacto.</div>
-      <div class="gate-block" id="snap-gate">
-        <div class="gate-title">&#9995; Acción requerida</div>
-        <p>Se creará una versión nueva de cada artefacto con cambios detectados en el diff — el flow, y cada playbook modificado, por separado. Las versiones anteriores de cada uno se conservan para poder hacer rollback si los tests fallan.</p>
-        <div style="margin-bottom:20px">
+      <div class="phase-eyebrow">Paso 4 de 5<span class="escribe-badge read">solo lectura</span></div>
+      <div class="phase-title">Validar tests</div>
+      <div class="phase-sub">Los tests corren contra el <strong>draft</strong>, que es donde acabas de aplicar los cambios. Nada llega a producci&oacute;n sin pasar por aqu&iacute;.</div>
+
+      <div id="tests-start">
+        <div class="gate-block">
+          <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+          <p>Se lanzar&aacute; la suite completa contra el draft del agente. No hace falta crear ninguna versi&oacute;n: la API permite probar el draft directamente.</p>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="lanzarTests()">Lanzar tests &rarr;</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tests-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="tests-log-block" style="height:200px;overflow-y:auto"></div>
+      </div>
+
+      <div id="tests-ok" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>24 de 24 casos superados &#10003;</p></div>
+        <div class="gate-block" style="margin-top:16px">
+          <div class="gate-title">&#9995; Validaci&oacute;n manual</div>
+          <p>Los tests autom&aacute;ticos cubren lo que cubren. Antes de promover, pru&eacute;balo t&uacute; en el draft del agente y confirma que se comporta como esperas.</p>
+          <div class="action-bar">
+            <a class="btn btn-ghost" href="https://dialogflow.cloud.google.com/cx" target="_blank" rel="noopener">Abrir el agente en CX &#8599;</a>
+            <button class="btn btn-gate" onclick="advance(4)">Validado &mdash; continuar &rarr;</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tests-fail" style="display:none;margin-top:16px">
+        <div style="border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px">
+          <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; 3 de 24 casos han fallado</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
+            No hay nada que revertir: los cambios est&aacute;n en el draft, que es tu espacio de trabajo. Corrige los archivos en el repositorio y vuelve a aplicar.</p>
+          <div class="action-bar">
+            <button class="btn btn-ghost" onclick="viewStep(3)">Volver a aplicar en CX &rarr;</button>
+            <button class="btn btn-ghost" onclick="lanzarTests()">Repetir tests</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Publicar en producción -->
+    <div class="step-view" id="view-5">
+      <div class="phase-eyebrow">Paso 5 de 5<span class="escribe-badge write-cx">escribe en producci&oacute;n</span></div>
+      <div class="phase-title">Publicar en producci&oacute;n</div>
+      <div class="phase-sub">Crea una versi&oacute;n con el draft ya probado y apunta <strong>producci&oacute;n</strong> a ella.</div>
+
+      <div id="prod-gate">
+        <div id="aviso-draft-movido" style="display:none;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.08);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:4px">&#9888; El draft ha cambiado desde que pasaste los tests</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0;line-height:1.6">Has aplicado cambios despu&eacute;s de validar. Lo que subas a producci&oacute;n no es exactamente lo que probaste.</p>
+        </div>
+
+        <div style="margin-bottom:18px">
           <div class="slabel" style="margin-bottom:8px">Nombre de la versi&oacute;n</div>
           <input type="text" id="version-batch-label" class="snapshot-input" value="">
-          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, dígitos, guiones y guiones bajos. Máx. 64 caracteres. Se usa como displayName en cada versión creada, para poder identificarlas como parte del mismo deploy. Vacío = etiqueta automática con fecha y hora.</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, d&iacute;gitos, guiones y guiones bajos.</div>
         </div>
-        <div class="action-bar">
-          <button class="btn btn-gate" id="btn-version-confirm" onclick="confirmVersions()">Crear versi&oacute;n &rarr;</button>
-          <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
-        </div>
-      </div>
-      <div style="margin-top:18px">
-        <button class="btn btn-ghost" id="btn-ver-versiones" onclick="toggleVersiones()">Ver versiones existentes &#9662;</button>
-        <div id="panel-versiones" style="display:none;margin-top:12px;border:1px solid var(--border);border-radius:8px;padding:14px 16px">
-          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Las versiones que ya existen en el agente. M&aacute;rcalas para eliminarlas.</p>
-          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
-          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
-          <div class="action-bar" style="margin-top:12px">
-            <button class="btn btn-danger" id="btn-borrar-versiones" onclick="borrarVersiones()" disabled>Eliminar versiones marcadas</button>
+
+        <div class="gate-block">
+          <div class="gate-title">&#9995; Confirmar subida a producci&oacute;n</div>
+          <p style="margin-bottom:10px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)">Petal 1.0</strong> &mdash; esta acci&oacute;n <strong style="color:var(--gate)">afecta a usuarios reales</strong>.</p>
+          <p style="margin-bottom:6px">Al confirmar ocurren tres cosas, en este orden:</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px">
+            <strong style="color:var(--text)">1.</strong> El c&oacute;digo validado se fusiona a la rama principal del repositorio.<br>
+            <strong style="color:var(--text)">2.</strong> Se crea la versi&oacute;n con el estado actual del draft.<br>
+            <strong style="color:var(--text)">3.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="confirmProduction()">Publicar en producci&oacute;n &rarr;</button>
+            <button class="btn btn-ghost" onclick="resetDeploy()">Cancelar</button>
           </div>
         </div>
       </div>
 
-      <div id="snap-log" style="display:none;margin-top:4px">
-        <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
-      </div>
-      <div id="snap-done" style="display:none">
-        <div class="done-banner"><p>Versiones creadas &#10003;</p></div>
-        <div class="action-bar">
-          <button class="btn btn-primary" onclick="advance(4)">Continuar &rarr;</button>
-        </div>
+      <div id="prod-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="prod-log-block" style="height:170px;overflow-y:auto"></div>
       </div>
     </div>
 
-    <!-- STEP 6: Validación de tests -->
-    <div class="step-view" id="view-5">
-      <div class="phase-eyebrow">Paso 5 de 7</div>
-      <div class="phase-title">Validaci&oacute;n de tests</div>
-      <div class="phase-sub">Confirma que has ejecutado la suite de tests QA y que todos los casos han pasado correctamente en el entorno staging.</div>
-      <div class="gate-block">
-        <div class="gate-title" id="test-gate-title">&#9995; Acci&oacute;n requerida</div>
-        <div class="action-bar" id="test-action-bar">
-          <button class="btn btn-gate" onclick="advance(5)">Tests superados &rarr;</button>
-          <button class="btn btn-danger" onclick="showRollbackConfirm()">Tests fallidos</button>
-        </div>
-      </div>
-      <div id="rollback-confirm" class="error-block" style="display:none;margin-top:20px">
-        <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tests fallidos &mdash; rollback de staging</div>
-        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, staging vuelve a apuntar a <strong>una versi&oacute;n anterior</strong>.</p>
-        <div class="slabel" style="margin-bottom:8px">Qu&eacute; va a ocurrir</div>
-        <div style="margin-bottom:16px">
-          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:4px">Si confirmas rollback</div>
-          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar a <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
-          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
-          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
-          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:14px">Si cancelas</div>
-          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Staging &rarr; conserva las versiones actuales tal cual</div></div>
-          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Draft de CX &rarr; no se modifica</div></div>
-          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
-        </div>
-        <div class="slabel" style="margin-bottom:6px">Qu&eacute; hacer despu&eacute;s</div>
-        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Vuelve a tu rama de trabajo, corrige los problemas y haz un nuevo deploy cuando est&eacute; listo.</p>
-        <div class="action-bar">
-          <button class="btn btn-danger" onclick="rollbackStaging()">Confirmar rollback</button>
-          <button class="btn btn-ghost" onclick="hideRollbackConfirm()">Cancelar</button>
-        </div>
-      </div>
-      <div id="rollback-log" style="display:none;margin-top:20px">
-        <div class="output-block" id="rollback-log-block" style="min-height:80px"></div>
-      </div>
-      <div id="rollback-done-banner" class="error-block" style="display:none;margin-top:16px">
-        <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Deploy abortado</div>
-        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Staging restaurado al estado anterior. Los pasos siguientes quedan fuera de juego.</p>
-        <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
-      </div>
-    </div>
-
-    <!-- STEP 7: Gate QA — staging -->
-    <div class="step-view" id="view-6">
-      <div class="phase-eyebrow">Paso 6 de 7</div>
-      <div class="phase-title">Gate QA &mdash; staging</div>
-      <div class="phase-sub">Valida el agente manualmente en el entorno staging de CX antes de promover a producci&oacute;n.</div>
-      <div class="gate-block">
-        <div class="gate-title">&#9995; Validaci&oacute;n manual requerida</div>
-        <p>Staging apunta ya a las versiones nuevas (etiqueta <span class="snapshot-name-ref">—</span>) — el flow y cada playbook con cambios, cada uno por separado. Pr&uacute;ebalo en Dialogflow CX y confirma que todo funciona antes de promover a producci&oacute;n.</p>
-        <div style="margin-bottom:16px">
-          <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
-        </div>
-        <div class="action-bar">
-          <button class="btn btn-gate" id="btn-validado-p7" onclick="this.disabled=true;this.textContent='Aprobando...';setTimeout(()=>advance(6),350)">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
-          <button class="btn btn-danger" onclick="rollbackFromStep7()">Rollback a staging anterior</button>
-        </div>
-      </div>
-      <div class="slabel">Estado actual de entornos</div>
-      <div class="output-block"><span class="dim">draft     </span> &rarr; (estado editado)  <span class="dim">&#8592; fuente de &ldquo;<span class="snapshot-name-ref">—</span>&rdquo;</span>
-<span class="info">staging   </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="ok">&#8592; nuevo</span>
-<span class="warn">producci&oacute;n</span> &rarr; v5 &middot; 2026-07-25_1134  &#8592; actual</div>
-    </div>
-
-    <!-- STEP 8: Aprobar subida a producción -->
-    <div class="step-view" id="view-7">
-      <div class="phase-eyebrow">Paso 7 de 7</div>
-      <div class="phase-title">Aprobar subida a producci&oacute;n</div>
-      <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se ejecutan dos acciones en orden.</div>
-
-      <!-- Gate -->
-      <div class="gate-block" id="prod-gate">
-        <div class="gate-title">&#9995; Confirmar deploy a producci&oacute;n</div>
-        <p style="margin-bottom:14px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate8-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate8-agent">Petal 1.0</strong> &mdash; esta acci&oacute;n afecta a usuarios reales de este agente.</p>
-        <div style="margin-bottom:20px">
-          <div class="action-result">
-            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">1</div>
-            <div class="action-result-body">
-              <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
-              <div class="action-result-desc">El c&oacute;digo validado queda registrado en main. Si hay conflictos, el merge se aborta y el paso te lo indica.</div>
-            </div>
-          </div>
-          <div class="action-result">
-            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">2</div>
-            <div class="action-result-body">
-              <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
-              <div class="action-result-desc">Las versiones que hoy est&aacute;n en staging (etiqueta <span class="snapshot-name-ref">&mdash;</span>) se asignan al entorno de producci&oacute;n, artefacto por artefacto. No se crea ninguna versi&oacute;n nueva. Los usuarios ya ven los cambios.</div>
-            </div>
-          </div>
-        </div>
-        <div class="action-bar">
-          <button class="btn btn-gate" onclick="confirmProduction()">Promover a producci&oacute;n &rarr;</button>
-          <button class="btn btn-ghost" onclick="cancelDeploy(true)">Cancelar</button>
-        </div>
-      </div>
-
-      <!-- Visor -->
-      <div id="prod-log" style="display:none;margin-top:4px">
-        <div class="output-block" id="prod-log-block" style="min-height:80px"></div>
-      </div>
-
-      <!-- Conflicto de merge -->
-      <div id="prod-conflict" style="display:none;margin-top:16px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:16px 20px">
-        <div style="font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Conflicto de merge</div>
-        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Git no puede hacer el merge autom&aacute;ticamente. Hay cambios en <code style="font-size:12px">main</code> que entran en conflicto con <code style="font-size:12px">staging</code>. Debes resolverlo en GitHub antes de continuar.</p>
-        <div class="action-bar">
-          <a href="https://github.com/jeronimosanchez/cx-automation-template/compare/main...staging" target="_blank" class="btn btn-gate" style="text-decoration:none">&#8599; Resolver conflicto en GitHub</a>
-          <button class="btn btn-ghost" onclick="abortProduction()">Abortar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP DONE -->
     <div class="step-view" id="view-done">
       <div class="phase-eyebrow">Deploy completado</div>
       <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
@@ -953,178 +881,119 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
       </div>
 
       <div id="spec-step-4" style="display:none">
-        <div class="spec-step-title">Paso 4 — Publicar en staging</div>
+        <div class="spec-step-title">Paso 4 — Validar tests</div>
 
         <div class="spec-block">
           <div class="spec-block-label">4.1 — Qué hace</div>
-          <p>Al entrar hay un cuadro de acción con un nombre de versión ya propuesto y un botón. No hay nada que marcar ni que elegir: se acepta el nombre o se cambia, y se pulsa.</p>
-          <p>Debajo, plegado, un desplegable con las versiones que ya existen. Al terminar, staging pasa a servir la versión nueva y se pueden lanzar los tests.</p>
+          <p>Al entrar hay un cuadro de acción con un solo botón. Al pulsarlo, la suite de tests corre contra el draft y el resultado se va escribiendo en una caja de tamaño fijo, caso por caso.</p>
+          <p>Si pasan todos, aparece debajo un segundo cuadro pidiendo la comprobación manual. Si falla alguno, aparece un aviso rojo con las salidas para corregir.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">4.2 — Por qué existe</div>
-          <p>El draft cambia cada vez que se aplica algo. Probar contra el draft sería probar contra un suelo móvil: si mientras corren los tests alguien toca un playbook, al terminar no se sabe qué se ha probado.</p>
-          <p>La versión es una foto que ya no se mueve, y staging apuntando a ella es lo que hace que los tests midan algo.</p>
+          <p>Es la puerta a producción. Su función no es probar por probar: es que <strong>no se propague nada que no haya pasado los tests</strong>. Sin este paso, el último gate sería un botón sin nada detrás.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">4.3 — Qué produce</div>
-          <p>Una versión con el nombre que se le haya puesto, y staging sirviéndola. Aparece en la lista de versiones existentes, y desde ese momento los tests del paso siguiente corren contra ella.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Por debajo no es una sola versión sino varias, una por cada resource que la necesita, porque la API versiona por recurso y no por agente. Eso es mecánica interna: para quien usa el panel es una versión del agente, con un nombre, y no hay ninguna decisión que tomar al respecto.</div>
+          <p>Un resultado —pasan o no pasan— y el registro de qué caso ha fallado. No produce ningún artefacto: nada que se cree aquí viaja al paso siguiente salvo la certeza de haberlo probado.</p>
         </div>
 
         <div class="spec-block">
           <div class="spec-block-label">4.4 — Qué escribe y dónde</div>
-          <p>En CX, y solo al pulsar: crea la versión y mueve staging. No toca producción ni el repositorio.</p>
-          <p>El desplegable de versiones existentes también escribe, pero solo por su botón de eliminar y tras confirmar.</p>
+          <p><strong>Nada.</strong> Los tests conversan con el agente, pero no modifican su definición. Por eso la cabecera dice <em>solo lectura</em>.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">4.5 — Solo se versiona lo que ha cambiado</div>
-          <p>No se vuelve a versionar todo el agente cada vez: solo los resources que el deploy ha tocado. Los que no han cambiado conservan la versión que ya tenían, y el entorno los sigue apuntando ahí.</p>
-          <p><strong>Por qué importa aunque no se vea:</strong> versionar todo cada vez gasta capacidad de versiones a cambio de nada, y el agente tiene un tope. Versionando solo lo que cambia, el tiempo del paso es proporcional a lo que has tocado, no al tamaño del agente.</p>
+          <div class="spec-block-label">4.5 — Se prueba contra el draft</div>
+          <p>No hace falta crear ninguna versión ni publicar en ningún entorno intermedio para probar: se prueba directamente el draft, que es donde acabas de aplicar los cambios.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Ojo con la distinción: <strong>un resource se modifica entero</strong>. Aunque solo cambie un campo de un archivo, ese resource se sube completo con el campo nuevo — no se parchea el campo suelto. Lo que se evita es tocar los resources que no han cambiado en nada.</div>
+          <div class="tech-content" style="display:none">Verificado en la documentación de la API: el entorno es un campo opcional tanto al lanzar test cases como al abrir una conversación, y cuando no se indica se asume el draft. La misma documentación advierte de lo contrario para el tráfico real: producción debe apuntar siempre a una versión, y eso es lo que hace el Paso 5.</div>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">4.6 — El nombre de la versión</div>
-          <p>Viene propuesto uno y se puede cambiar. Es lo único que hay que decidir en este paso.</p>
+          <div class="spec-block-label">4.6 — Si fallan, no se revierte nada</div>
+          <p>Los cambios están en el draft, que es tu espacio de trabajo y no lo ve ningún usuario. Así que ante un fallo no hay nada que deshacer: se corrigen los archivos y se vuelve a aplicar.</p>
+          <p><strong>Por qué esto importa:</strong> revertir el draft sería destructivo y a ciegas — se llevaría por delante todo lo acumulado, no solo lo que ha fallado, y no hay forma de saber qué estado anterior era bueno. Arreglar hacia delante es la única salida que no pierde trabajo.</p>
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">4.7 — Ver versiones existentes</div>
-          <p>Debajo del cuadro de acción, plegado por defecto. <strong>No hace falta abrirlo para crear una versión</strong> — está ahí para consultar y para limpiar.</p>
-          <p>Al abrirlo se ven las versiones que ya existen, con su fecha. Marcar una sirve para <strong>una sola cosa: eliminarla</strong>. El botón de eliminar arranca desactivado y dice cuántas se van a borrar. Las que un entorno está usando salen deshabilitadas: borrarlas dejaría staging o producción apuntando a nada.</p>
+          <div class="spec-block-label">4.7 — La comprobación manual</div>
+          <p>Solo aparece si los tests pasan. Los automáticos cubren lo que cubren, así que antes de promover hay un segundo cuadro que pide abrir el agente y probarlo a mano, con un enlace directo.</p>
         </div>
 
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">4.8 — Criterios de validación</div>
           <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
-          <p>✓ El paso me dice que voy a publicar en staging para poder lanzar tests, no cómo lo hace por dentro<br>
-          ✓ El botón habla de una versión, en singular<br>
-          ✓ Me propone un nombre y puedo cambiarlo<br>
-          ✓ No tengo que marcar nada para crear la versión<br>
-          ✓ Las versiones existentes están plegadas y no estorban<br>
-          ✓ Al desplegarlas veo las que hay con su fecha<br>
-          ✓ Marcar una versión sirve solo para eliminarla, y el botón me dice cuántas<br>
-          ✓ El botón de eliminar está desactivado si no he marcado ninguna<br>
-          ✓ Las versiones que un entorno está usando no me dejan marcarlas, y me dice cuál las usa<br>
-          ✓ Eliminar me pide confirmación antes de borrar nada<br>
-          ✓ Al terminar entiendo que staging ya sirve la versión nueva y que puedo lanzar los tests</p>
+          <p>✓ Solo hay un botón al entrar, y no tengo que crear nada antes de lanzar los tests<br>
+          ✓ Mientras corren veo los casos uno a uno, no una barra sin detalle<br>
+          ✓ La caja del log tiene tamaño fijo y no empuja lo de abajo<br>
+          ✓ Si pasan todos, me lo dice con el número y aparece la comprobación manual<br>
+          ✓ La comprobación manual no aparece si algo ha fallado<br>
+          ✓ Si algo falla, me dice cuántos y cuál, y me ofrece volver a aplicar o repetir los tests<br>
+          ✓ Si algo falla, no se me ofrece revertir nada — y el texto explica por qué<br>
+          ✓ No puedo llegar a producción sin haber pasado por aquí<br>
+          ✓ La cabecera dice "solo lectura" y al recorrer el paso el agente no cambia</p>
         </div>
       </div>
 
       <div id="spec-step-5" style="display:none">
-        <div class="spec-step-title">Paso 5 — Validación de tests</div>
+        <div class="spec-step-title">Paso 5 — Publicar en producción</div>
+
         <div class="spec-block">
           <div class="spec-block-label">5.1 — Qué hace</div>
-          <p>Este paso no ejecuta tests — es el punto de decisión donde el usuario declara si los tests QA han pasado o fallado en staging. Según la respuesta, el pipeline avanza o revierte.</p>
+          <p>Al entrar hay un nombre de versión ya propuesto y un cuadro de confirmación que enumera las tres cosas que van a ocurrir, en orden. Al pulsar, se van escribiendo en el log a medida que pasan.</p>
         </div>
+
         <div class="spec-block">
           <div class="spec-block-label">5.2 — Por qué existe</div>
-          <p>El pipeline no puede ejecutar los tests QA por sí solo — requieren un runner externo. Este gate obliga a verificar los resultados antes de permitir el avance a producción.</p>
+          <p>Es el único paso que afecta a usuarios reales, y por eso está separado de todo lo demás. Hasta aquí nada de lo hecho era visible fuera.</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">5.5 — Qué necesita</div>
-          <p>El snapshot creado en el Paso 4, necesario para poder hacer rollback si los tests fallan. El usuario habrá ejecutado la suite QA externamente antes de llegar aquí.</p>
-        </div>
+
         <div class="spec-block">
           <div class="spec-block-label">5.3 — Qué produce</div>
-          <p>Dos salidas posibles: si los tests pasan, el pipeline avanza al Paso 6. Si se confirma rollback, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Rollback: <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Si el usuario cancela el rollback: ninguna llamada a la API — staging y draft quedan sin cambios.</div>
+          <p>Una versión con el nombre que le hayas puesto, producción sirviéndola, y el código fusionado en la rama principal del repositorio.</p>
         </div>
+
         <div class="spec-block">
-          <div class="spec-block-label">5.6 — Flujo del paso</div>
-          <p>La decisión del usuario (superados / fallidos) determina el camino. Si rollback confirmado: el script hace PATCH sobre staging y restaura el draft — el pipeline queda abortado. Si rollback cancelado: el pipeline queda en pausa con el snapshot actual intacto.</p>
+          <div class="spec-block-label">5.4 — Qué escribe y dónde</div>
+          <p>En CX y en el repositorio, y solo al confirmar. Es la escritura más consecuente del pipeline: la cabecera lo dice con la etiqueta <em>escribe en producción</em>.</p>
         </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">5.5 — Las tres acciones, en orden</div>
+          <p>Primero el código se fusiona a la rama principal, después se crea la versión, y solo entonces producción pasa a apuntar a ella.</p>
+          <p><strong>El orden no es decorativo:</strong> si se promoviera antes de fusionar y el merge fallara, producción estaría sirviendo algo cuyo código no está en la rama principal — y nadie podría reconstruir después qué está corriendo ahí fuera.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">5.6 — El aviso de draft movido</div>
+          <p>Si has aplicado algo al draft después de pasar los tests, aparece un aviso antes de confirmar: lo que vas a subir no es exactamente lo que probaste.</p>
+          <p>No bloquea — puede que el cambio sea trivial y lo sepas. Pero sin ese aviso el gate del Paso 4 dejaría de significar nada, porque nada garantizaría que lo validado y lo publicado son lo mismo.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">5.7 — La versión se crea aquí</div>
+          <p>No antes. Se crea con el draft ya probado, en el mismo gesto que la publica, para que no haya hueco entre lo que se validó y lo que se sube.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Solo se versiona lo que ha cambiado; lo que no se ha tocado conserva la versión que ya tenía. Y ojo con la distinción: un resource se sube <strong>entero</strong> aunque solo cambie un campo — lo que se evita es tocar los que no han cambiado en nada.</div>
+        </div>
+
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">5.5 — Criterios de validación</div>
-          <p>✓ "Tests superados" → avanza al Paso 6 sin ninguna llamada a la API<br>
-          ✓ Rollback confirmado → staging apunta a la versión anterior + draft restaurado desde esa versión<br>
-          ✓ Rollback cancelado → staging y draft no se modifican<br>
-          ✓ Producción no se toca en ningún caso durante este paso</p>
-        </div>
-      </div>
-      <div id="spec-step-6" style="display:none">
-        <div class="spec-step-title">Paso 6 — Gate QA staging</div>
-        <div class="spec-block">
-          <div class="spec-block-label">6.1 — Qué hace</div>
-          <p>El usuario valida directamente el agente en el entorno staging de CX. La UI muestra el estado actual de los tres entornos (draft, staging, producción) para dar contexto completo. Cuando el usuario confirma, el pipeline avanza a producción. Si algo falla en las pruebas, puede revertir staging a la versión anterior desde este mismo paso.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">6.2 — Por qué existe</div>
-          <p>Antes de impactar a usuarios reales, este paso ofrece una última barrera de validación humana con el snapshot real activo en staging — no en simulación. El Paso 5 valida con tests automatizados; este paso valida con exploración manual directa en CX.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">6.5 — Qué necesita</div>
-          <p>El snapshot del Paso 4 activo en el entorno staging. El usuario habrá probado el agente en CX antes de pulsar "Validado".</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">6.3 — Qué produce</div>
-          <p>Dos salidas posibles: si el usuario valida, el pipeline avanza al Paso 7 sin ninguna llamada a la API. Si el usuario revierte, staging vuelve a la versión anterior, el draft queda restaurado y el pipeline se aborta — misma secuencia que el rollback del Paso 5.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">"Validado" → <code>advance(6)</code> sin ninguna llamada a API. "Rollback a staging anterior" → <code>PATCH /environments/staging</code> apuntando a la versión anterior + restaurar draft desde esa versión. Misma secuencia que <code>rollbackStaging()</code> del Paso 5.</div>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">6.6 — Flujo del paso</div>
-          <p>El bloque de estado de entornos muestra las tres filas (draft, staging, producción) con la versión activa en cada una, para que el usuario tenga el contexto completo antes de decidir. El enlace abre directamente el agente en CX staging. No hay lógica automática en este paso.</p>
-        </div>
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">6.5 — Criterios de validación</div>
-          <p>✓ "Validado" → avanza al Paso 7 sin llamadas a la API<br>
-          ✓ Rollback → <code>PATCH /environments/staging</code> a versión anterior + draft restaurado desde esa versión<br>
-          ✓ Producción no se modifica en ningún caso durante este paso<br>
-          ✓ Tras rollback, el pipeline queda abortado — no pausado</p>
-        </div>
-      </div>
-      <div id="spec-step-7" style="display:none">
-        <div class="spec-step-title">Paso 7 — Aprobar subida a producción</div>
-        <div class="spec-block">
-          <div class="spec-block-label">7.1 — Qué hace</div>
-          <p>Ejecuta las dos acciones que llevan los cambios a producción: merge de la rama staging a main en GitHub, y promoción del snapshot activo al entorno de producción en CX. Se ejecutan en secuencia: si el merge falla, la promoción no se intenta.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">7.2 — Por qué existe</div>
-          <p>Separa la aprobación definitiva del resto del pipeline. En este punto el usuario tiene toda la información necesaria — staging validado manualmente, snapshot conocido — antes de tomar la decisión que impacta a usuarios reales.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">7.5 — Qué necesita</div>
-          <p>El snapshot del Paso 4 activo en staging. La rama staging sin conflictos con main en GitHub — si los hay, el merge falla y el paso lo indica.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">7.3 — Qué produce</div>
-          <p>Si ambas acciones tienen éxito: el snapshot queda asignado a producción, staging mergeado a main, pipeline completado. Si el merge falla por conflicto: el pipeline se detiene y el usuario resuelve en GitHub antes de reintentar — la promoción a CX no se ejecuta hasta que el merge complete.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Acción 1: merge <code>staging → main</code> vía GitHub API (o <code>gh pr merge</code>). Si el merge devuelve conflicto, mostrar panel y detener. Acción 2: <code>PATCH /environments/production</code> apuntando al mismo snapshot que ya tiene staging — no se crea una versión nueva, solo se reasigna el entorno. Si la rama staging diverge o hay conflictos, el merge falla antes de tocar CX producción. Si el merge falla → main no ha sido modificado. El abort es limpio — no requiere acción de recuperación en GitHub.</div>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">7.6 — Flujo del paso</div>
-          <p>Las dos acciones se emiten progresivamente en el log, una tras otra. Si el merge falla por conflicto, el panel de conflicto reemplaza el log y muestra el enlace a GitHub para resolverlo — el usuario puede reintentar desde el mismo estado. "Abortar" en ese panel solo cancela el intento de merge; staging y su snapshot quedan intactos y el gate inicial reaparece.</p>
-        </div>
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">7.5 — Criterios de validación</div>
-          <p>✓ Merge primero, promoción después — nunca en paralelo ni al revés<br>
-          ✓ Si merge falla → <code>PATCH /environments/production</code> no se ejecuta<br>
-          ✓ "Abortar" en conflicto no inicia rollback — solo restaura el gate inicial<br>
-          ✓ El snapshot asignado a producción es el mismo que ya tiene staging (sin crear versión nueva)<br>
-          ✓ Producción solo se modifica si el merge completó sin errores</p>
-        </div>
-      </div>
-      <div id="spec-step-done" style="display:none">
-        <div class="spec-step-title">Pipeline completado</div>
-        <div class="spec-block">
-          <div class="spec-block-label">7.7 — Estado final</div>
-          <p>Staging y producción apuntan al mismo snapshot. El código validado está en main. El deploy queda registrado con timestamp.</p>
-          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Estado final de entornos: <code>staging → &lt;snapshot&gt;</code> · <code>production → &lt;snapshot&gt;</code>. La rama main tiene el commit de merge. El checkbox "Sincronizar main local" recuerda al operador hacer <code>git fetch origin main:main</code> en su copia local — es manual, no lo hace el script.</div>
+          <div class="spec-block-label" style="color:var(--gate)">5.8 — Criterios de validación</div>
+          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
+          <p>✓ Me recuerda que esto afecta a usuarios reales, y se ve antes que el botón<br>
+          ✓ Me dice sobre qué proyecto y qué agente voy a escribir<br>
+          ✓ Me enumera las tres acciones y en qué orden ocurren, antes de confirmar<br>
+          ✓ Me propone un nombre de versión y puedo cambiarlo<br>
+          ✓ Si he tocado el draft después de los tests, me avisa — y aun así me deja seguir<br>
+          ✓ Mientras se publica veo cada acción a medida que ocurre<br>
+          ✓ Si el merge falla, no se promueve nada<br>
+          ✓ Al terminar entiendo que esto ya lo están viendo los usuarios</p>
         </div>
       </div>
     </div>
-
-    </div><!-- /specs-content -->
+    </div>
   </aside>
 
 </div>
@@ -1140,13 +1009,11 @@ const STEPS = [
   {id:1, name:'Inventario CX',           sub:'',  gate:false},
   {id:2, name:'Traer al repositorio',    sub:'',  gate:true},
   {id:3, name:'Aplicar en CX',           sub:'',  gate:true},
-  {id:4, name:'Publicar en staging',     sub:'',  gate:true},
-  {id:5, name:'Validación de tests',     sub:'',  gate:true},
-  {id:6, name:'Gate QA — staging',       sub:'',  gate:true},
-  {id:7, name:'Aprobar producción',      sub:'',  gate:true},
+  {id:4, name:'Validar tests',           sub:'',  gate:true},
+  {id:5, name:'Publicar en producción',  sub:'',  gate:true},
 ];
 
-let stepStates = ['active','pending','pending','pending','pending','pending','pending'];
+let stepStates = ['active','pending','pending','pending','pending'];
 let current = 1;
 let viewingStep = 1;
 let versionLabel = '';
@@ -1395,6 +1262,40 @@ function confirmarEliminarDeCx() {
   actualizarPies();
 }
 
+const TESTS_FALLAN = false;
+
+function lanzarTests() {
+  setRunning(true);
+  ['tests-start','tests-ok','tests-fail'].forEach(id => document.getElementById(id).style.display = 'none');
+  const caja = document.getElementById('tests-log');
+  const bloque = document.getElementById('tests-log-block');
+  caja.style.display = 'block';
+  bloque.innerHTML = '';
+  const lineas = [
+    {cls:'dim', text:'· Lanzando la suite contra el draft del agente'},
+    {cls:'ok',  text:'✓ TC-COMPRA-01 · compra simple'},
+    {cls:'ok',  text:'✓ TC-COMPRA-02 · multiproducto'},
+    {cls:'ok',  text:'✓ TC-REGISTRO-01 · alta de cliente'},
+    {cls:'ok',  text:'✓ TC-DEVOLUCION-01 · política'},
+    {cls:'dim', text:'· … 20 casos más'},
+  ].concat(TESTS_FALLAN
+    ? [{cls:'del', text:'✗ TC-URGENCIA-01 · no detecta la restricción temporal'},
+       {cls:'del', text:'✗ 3 de 24 casos fallidos'}]
+    : [{cls:'ok', text:'✓ 24 de 24 casos superados'}]);
+  let i = 0;
+  (function siguiente() {
+    if (i >= lineas.length) {
+      document.getElementById(TESTS_FALLAN ? 'tests-fail' : 'tests-ok').style.display = 'block';
+      setRunning(false);
+      return;
+    }
+    const l = lineas[i++];
+    bloque.insertAdjacentHTML('beforeend', `<div class="log-line ${l.cls}">${l.text}</div>`);
+    bloque.scrollTop = bloque.scrollHeight;
+    setTimeout(siguiente, 380);
+  })();
+}
+
 function renderStep3Diff() {
   actualizarPies();
   document.getElementById('diff-has-changes').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
@@ -1551,52 +1452,6 @@ let VERSIONES = [
 ];
 
 
-function toggleVersiones() {
-  const panel = document.getElementById('panel-versiones');
-  const boton = document.getElementById('btn-ver-versiones');
-  const abierto = panel.style.display !== 'none';
-  panel.style.display = abierto ? 'none' : 'block';
-  boton.innerHTML = abierto ? 'Ver versiones existentes &#9662;' : 'Ocultar versiones existentes &#9652;';
-  if (!abierto) renderVersionPool();
-}
-
-// Marcar aquí sirve para una sola cosa: eliminar. No hay que marcar nada
-// para crear una versión nueva.
-function renderVersionPool() {
-  const lista = document.getElementById('version-pool-list');
-  if (!lista) return;
-  lista.innerHTML = VERSIONES.map((v, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
-      <input type="checkbox" class="chk-version" ${v.fijadaPor ? 'disabled' : ''} onchange="actualizarBorrarVersiones()"
-             style="width:15px;height:15px;accent-color:var(--error);cursor:${v.fijadaPor ? 'not-allowed' : 'pointer'}">
-      <code style="flex:1;font-size:12px;color:var(--text-2)">${v.nombre}</code>
-      <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${v.creada}</span>
-      <span style="font-size:11px;color:${v.fijadaPor ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:150px;text-align:right">${v.fijadaPor ? 'en uso por ' + v.fijadaPor : ''}</span>
-    </div>`).join('');
-  document.getElementById('version-pool-summary').innerHTML =
-    `${VERSIONES.length} versiones guardadas. Las que est&aacute;n en uso por un entorno no se pueden eliminar.`;
-  actualizarBorrarVersiones();
-}
-
-function actualizarBorrarVersiones() {
-  const marcadas = document.querySelectorAll('.chk-version:checked').length;
-  const boton = document.getElementById('btn-borrar-versiones');
-  if (boton) {
-    boton.disabled = marcadas === 0;
-    boton.textContent = marcadas ? `Eliminar ${marcadas} ${marcadas === 1 ? 'versi\u00f3n' : 'versiones'}` : 'Eliminar versiones marcadas';
-  }
-}
-
-function borrarVersiones() {
-  const marcadas = [...document.querySelectorAll('.chk-version:checked')];
-  if (!marcadas.length) return;
-  if (!confirm(`Se van a eliminar ${marcadas.length} versiones del agente. No se puede deshacer.`)) return;
-  marcadas.forEach(c => c.closest('div').remove());
-  document.getElementById('version-pool-summary').innerHTML =
-    `${document.querySelectorAll('#version-pool-list > div').length} versiones guardadas.`;
-  actualizarBorrarVersiones();
-}
-
 function generateVersionLabel() {
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -1642,7 +1497,7 @@ function renderSidebar() {
     </div>`;
     html += '<div class="step-connector"></div>';
   });
-  if (stepStates[6] === 'done') {
+  if (stepStates[4] === 'done') {
     const active = viewingStep === 'done' ? ' active' : '';
     html += `<div class="step-item s-done${active}" onclick="viewDone()">
       <div class="step-badge">★</div>
@@ -1671,8 +1526,8 @@ function viewStep(id) {
   if(v) v.classList.add('visible');
   if(id === 2) renderStep3Diff();
   if(id === 3) actualizarPies();
-  if(id === 4) renderVersionPool();
-  if(id === 4) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
+  if(id === 5) document.getElementById('version-batch-label').value =
+    document.getElementById('version-batch-label').value || generateVersionLabel();
   syncSpecsPanel(id);
   renderSidebar();
 }
@@ -1768,8 +1623,8 @@ function abortProduction() {
 }
 
 function advanceToDone() {
-  if (stepStates[6] !== 'gate') return;
-  stepStates[6] = 'done';
+  if (stepStates[4] !== 'gate') return;
+  stepStates[4] = 'done';
   viewingStep = 'done';
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   document.getElementById('view-done').classList.add('visible');
@@ -1797,50 +1652,6 @@ function completeAuto(idx) {
   renderSidebar();
 }
 
-function confirmVersions() {
-  const inputVal = document.getElementById('version-batch-label').value.trim();
-  if (inputVal && (inputVal.length > 64 || !/^[a-zA-Z0-9_\-\.]+$/.test(inputVal))) {
-    alert('Nombre no válido. Usa solo letras, dígitos, guiones, guiones bajos o puntos. Máximo 64 caracteres.');
-    return;
-  }
-  const name = inputVal || generateVersionLabel();
-  setVersionLabel(name);
-  const v = ++animVersion;
-  setRunning(true);
-  document.getElementById('snap-gate').style.display = 'none';
-  document.getElementById('snap-log').style.display = 'block';
-  const SNAP_LINES = [
-    {cls:'ok',  text:'✓ Enviando POST /versions...'},
-    {cls:'ok',  text:'✓ Operación iniciada — LRO polling...'},
-    {cls:'ok',  text:'✓ Esperando confirmación de CX...'},
-    {cls:'ok',  text:'✓ Snapshot "' + name + '" creado correctamente'},
-    {cls:'dim', text:'  v1 · 2026-07-01_1200 → eliminada (límite 5 versiones)'},
-    {cls:'ok',  text:'✓ Staging apuntando a "' + name + '"'},
-  ];
-  const logBlock = document.getElementById('snap-log-block');
-  logBlock.innerHTML = '';
-  let i = 0;
-  function showLine() {
-    if (animVersion !== v) return;
-    if(i >= SNAP_LINES.length) {
-      setTimeout(() => {
-        document.getElementById('snap-done').style.display = 'block';
-        setRunning(false);
-      }, 300);
-      return;
-    }
-    const line = SNAP_LINES[i];
-    const span = document.createElement('span');
-    span.className = line.cls;
-    span.textContent = line.text;
-    logBlock.appendChild(span);
-    logBlock.appendChild(document.createTextNode('\n'));
-    i++;
-    setTimeout(showLine, 400);
-  }
-  showLine();
-}
-
 function resetVersionUI() {
   document.getElementById('snap-gate').style.display = 'block';
   document.getElementById('snap-log').style.display = 'none';
@@ -1849,75 +1660,11 @@ function resetVersionUI() {
   document.getElementById('version-batch-label').value = generateVersionLabel();
 }
 
-function showRollbackConfirm() {
-  document.getElementById('rollback-confirm').style.display = 'block';
-  document.getElementById('test-action-bar').style.display = 'none';
-}
-function hideRollbackConfirm() {
-  document.getElementById('rollback-confirm').style.display = 'none';
-  document.getElementById('test-action-bar').style.display = 'flex';
-  const tgt = document.getElementById('test-gate-title');
-  if(tgt) tgt.style.display = '';
-}
-const ROLLBACK_LINES = [
-  { cls: 'ok', text: '✓ Iniciando rollback de staging...' },
-  { cls: 'ok', text: '✓ Revirtiendo entorno staging...' },
-  { cls: 'ok', text: '✓ Restaurando snapshot anterior...' },
-  { cls: 'ok', text: '✓ Draft del agente en CX restaurado' },
-  { cls: 'ok', text: '✓ Rollback completado' },
-];
-
-function rollbackFromStep7() {
-  if(isRunning) return;
-  if(!confirm('¿Revertir staging al estado anterior?')) return;
-  stepStates[5] = 'pending'; // SM-03: bloquea el paso siguiente mientras el rollback está en curso
-  renderSidebar();
-  viewStep(5);
-  setTimeout(() => showRollbackConfirm(), 100);
-}
-
-function rollbackStaging() {
-  const v = ++animVersion;
-  setRunning(true);
-  document.getElementById('rollback-confirm').style.display = 'none';
-  document.getElementById('test-action-bar').style.display = 'none';
-  const tgt = document.getElementById('test-gate-title');
-  if(tgt) tgt.style.display = 'none';
-  const logWrap = document.getElementById('rollback-log');
-  const logBlock = document.getElementById('rollback-log-block');
-  logWrap.style.display = 'block';
-  logBlock.innerHTML = '';
-  let i = 0;
-  function showLine() {
-    if (animVersion !== v) return;
-    if (i >= ROLLBACK_LINES.length) {
-      setTimeout(() => {
-        document.getElementById('rollback-done-banner').style.display = 'block';
-        stepStates[4] = 'error';
-        stepStates[5] = 'pending';
-        stepStates[6] = 'pending';
-        renderSidebar();
-        setRunning(false);
-      }, 300);
-      return;
-    }
-    const line = ROLLBACK_LINES[i];
-    const span = document.createElement('span');
-    span.className = line.cls;
-    span.textContent = line.text;
-    logBlock.appendChild(span);
-    logBlock.appendChild(document.createTextNode('\n'));
-    i++;
-    setTimeout(showLine, 400);
-  }
-  showLine();
-}
-
 function cancelDeploy(afterDeploy) {
   if(afterDeploy) {
     if(confirm('El draft de CX ya tiene los cambios del deploy.\n\n¿Ir al rollback para revertirlos?')) {
       stepStates[4] = 'gate';  // desbloquea el paso del snapshot para que viewStep lo acepte
-      stepStates[5] = 'pending'; // bloquea el siguiente
+      stepStates[4] = 'pending'; // bloquea el siguiente
       renderSidebar();
       viewStep(5);
       setTimeout(() => showRollbackConfirm(), 100);
