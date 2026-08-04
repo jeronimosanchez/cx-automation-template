@@ -292,7 +292,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="step-view" id="view-2">
       <div class="phase-eyebrow">Paso 2 de 7<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
       <div class="phase-title">Traer al repositorio</div>
-      <div class="phase-sub">Lo que existe en CX y ning&uacute;n archivo del repositorio reclama. Decide qu&eacute; te llevas antes de desplegar.</div>
+      <div class="phase-sub">Trae al repositorio lo que solo existe en CX, antes de desplegar.</div>
 
       <!-- Con cambios -->
       <div id="diff-has-changes" style="display:none">
@@ -318,10 +318,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
                 </tbody>
               </table>
             </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-primary" id="btn-traer" onclick="traerAlRepo()" disabled>Traer al repositorio &rarr;</button>
-              <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
-            </div>
 
             <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
               <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Confirmar eliminaci&oacute;n en CX</div>
@@ -337,9 +333,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="dir-pie"><span id="pie-repo">&mdash;</span></div>
         </div>
 
+      <div class="gate-block">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Repositorio: <strong style="color:var(--text)">jeronimosanchez/cx-automation-template</strong> &middot; Rama: <strong style="color:var(--text)">staging</strong></p>
+        <p>Se van a traer <strong style="color:var(--text)"><span id="traer-count">0</span> resources</strong> de los marcados arriba. Lo que no marques se queda solo en CX, y el repositorio dejar&aacute; de retratar el agente entero.</p>
         <div class="action-bar">
-          <button class="btn btn-ghost" onclick="advance(2)">Continuar sin modificar &rarr;</button>
+          <button class="btn btn-gate" id="btn-traer" onclick="traerAlRepo()" disabled>Traer al repositorio &rarr;</button>
+          <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
         </div>
+      </div>
+
+      <div class="action-bar" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="advance(2)">Continuar sin modificar &rarr;</button>
+      </div>
       </div>
 
       <!-- Sin cambios -->
@@ -400,10 +406,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Aplicar en CX &rarr;</button>
           <button class="btn btn-ghost" onclick="cancelDeploy(false)">Cancelar</button>
           </div>
-        <div class="action-bar" style="margin-top:14px">
-          <button class="btn btn-ghost" onclick="advance(3)">Continuar sin modificar &rarr;</button>
-        </div>
       </div>
+
+      <div class="action-bar" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="advance(3)">Continuar sin modificar &rarr;</button>
+      </div>
+
       <div id="deploy-log" style="display:none;margin-top:4px">
         <div class="output-block" id="deploy-log-block" style="min-height:80px"></div>
         <div class="legend">
@@ -800,7 +808,20 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">2.2 — Eliminar de CX</div>
+          <div class="spec-block-label">2.2 — El cuadro de acción</div>
+          <p>Debajo de la tarjeta, un cuadro de <strong>acción requerida</strong> que recuerda a qué repositorio y a qué rama se va a escribir, cuántos resources van de los marcados, y qué pasa con los que no: se quedan solo en CX, y el repositorio deja de retratar el agente entero.</p>
+          <p>Los botones de acción viven dentro de ese cuadro. Los dos arrancan desactivados y se activan al marcar algo.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
+          <div class="tech-content" style="display:none">Es la misma estructura que el paso siguiente: tarjeta con la dirección, cuadro de acción con los botones, y fuera del cuadro la salida sin modificar. Dos pasos que hacen lo mismo en sentidos contrarios deben leerse igual.</div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">2.3 — Continuar sin modificar</div>
+          <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado. Pasar sin traer nada es una salida legítima, no un callejón — y con nada marcado por defecto, es la que más se va a usar. Está fuera del cuadro a propósito: no es una de las acciones, es la alternativa a todas ellas.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">2.4 — Eliminar de CX</div>
           <p>La otra salida para la deriva, y la única acción destructiva. Sobre lo marcado, abre un panel que <strong>enseña la lista concreta de lo que se va a borrar</strong> antes de pedir confirmación, y avisa de que no se deshace desde el panel.</p>
           <p>Al confirmar, esos resources dejan de ser deriva y pasan al Paso 3 marcados como <em>eliminar</em>. El contador de aquí baja.</p>
         </div>
@@ -818,8 +839,11 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           ✓ Al pulsar eliminar me enseña la lista concreta antes de que confirme, y puedo cancelar<br>
           ✓ Al confirmar la eliminación, el contador baja y esos resources aparecen en el paso siguiente<br>
           ✓ Si me quedo sin deriva, el aviso naranja se convierte en confirmación de que no queda nada suelto<br>
-          ✓ Los botones de traer y de eliminar aparecen desactivados hasta que marco algo<br>
-          ✓ Puedo continuar sin traer nada: hay un botón que lo dice con esas palabras y nunca está bloqueado</p>
+          ✓ Debajo de la tarjeta hay un cuadro de acción que me recuerda a qué repositorio y a qué rama voy a escribir<br>
+          ✓ Ese cuadro me dice cuántos van y qué pasa con los que no marco<br>
+          ✓ Los botones de traer y de eliminar están dentro del cuadro, y desactivados hasta que marco algo<br>
+          ✓ "Continuar sin modificar" está fuera del cuadro y nunca se bloquea<br>
+          ✓ Este paso y el siguiente se leen igual: misma tarjeta, mismo cuadro, misma salida</p>
         </div>
       </div>
 
@@ -855,7 +879,18 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
         </div>
 
         <div class="spec-block">
-          <div class="spec-block-label">3.2 — El aviso sin staging</div>
+          <div class="spec-block-label">3.2 — El cuadro de acción</div>
+          <p>Debajo de la tarjeta, un cuadro de <strong>acción requerida</strong> que recuerda sobre qué proyecto y qué agente se va a escribir, y cuántos resources van de los marcados. El botón de aplicar vive dentro y arranca bloqueado.</p>
+          <p>Misma estructura que el Paso 2 en sentido contrario: tarjeta, cuadro de acción, y fuera la salida sin modificar.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">3.3 — Continuar sin modificar</div>
+          <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado. Se puede pasar sin aplicar nada — por ejemplo si solo se quería traer cosas al repositorio.</p>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-block-label">3.4 — El aviso sin staging</div>
           <p>Si entre lo marcado hay tipos que la API no versiona, se avisa antes de confirmar: ese cambio será visible en draft, staging y producción a la vez, en el instante en que se aplique. No hay forma de probarlo en staging primero.</p>
         </div>
 
@@ -868,7 +903,9 @@ La rama es <code>staging</code>, y el commit del que se leyó viaja en el result
           ✓ Cada fila me dice de qué archivo sale el cambio<br>
           ✓ Veo las tres operaciones posibles y la leyenda me explica cada una<br>
           ✓ Las eliminaciones que decidí en el paso anterior aparecen aquí<br>
-          ✓ Antes de aplicar me recuerda sobre qué proyecto y qué agente voy a escribir<br>
+          ✓ Debajo de la tarjeta hay un cuadro de acción que me recuerda sobre qué proyecto y qué agente voy a escribir<br>
+          ✓ El botón de aplicar está dentro del cuadro; "Continuar sin modificar" está fuera y nunca se bloquea<br>
+          ✓ Este paso y el anterior se leen igual: misma tarjeta, mismo cuadro, misma salida<br>
           ✓ Si hay cambios que no se pueden probar en staging, me avisa antes de confirmar<br>
           ✓ Mientras se aplica veo el avance recurso a recurso, no una barra sin detalle<br>
           ✓ Si algo falla, me dice qué se aplicó y qué no, y puedo reintentar solo lo fallido<br>
@@ -1200,6 +1237,8 @@ function actualizarPies() {
   const pieRepo = document.getElementById('pie-repo');
   const contadorGate = document.getElementById('deploy-count');
   if (contadorGate) contadorGate.textContent = cx.marcadas;
+  const contadorTraer = document.getElementById('traer-count');
+  if (contadorTraer) contadorTraer.textContent = repo.marcadas;
   const botonAplicar = document.getElementById('btn-confirm-deploy');
   if (botonAplicar) botonAplicar.disabled = cx.marcadas === 0;
   // Un botón que no puede hacer nada no debe parecer que puede
