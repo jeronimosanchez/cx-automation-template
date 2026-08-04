@@ -207,7 +207,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-title">Inventario CX</div>
       <div class="phase-sub">
         Lee el estado actual del draft del agente desde la API de Dialogflow CX.
-        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El draft es el estado editable &mdash; no la versi&oacute;n que CX usa para test cases. Los cambios no se propagan hasta crear las versiones en el Step 5.</p>
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El borrador es el estado editable del agente: es contra &eacute;l contra lo que se prueba, y ning&uacute;n usuario lo ve. Lo que ven los usuarios no cambia hasta el Paso 5.</p>
       </div>
 
       <!-- Estado inicial: selectores de proyecto / agente + botón para iniciar (región fija: europe-west1) -->
@@ -566,7 +566,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
           <div class="action-result-body">
             <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
-            <div class="action-result-desc">Versiones <span class="snapshot-name-ref">—</span> asignadas al entorno producci&oacute;n, artefacto por artefacto. Los usuarios ya ven los cambios.</div>
+            <div class="action-result-desc">Producci&oacute;n sirve la versi&oacute;n <span class="snapshot-name-ref">—</span>. Los usuarios ya la ven.</div>
           </div>
         </div>
         <div class="action-result" id="done-sync-row">
@@ -691,7 +691,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
         <div class="spec-block">
           <div class="spec-block-label">1.7 — Foto de CX</div>
-          <p>Una lectura por cada tipo de resource declarado, sobre el <strong>draft</strong> — el estado editable, no lo que corre en staging. Los tipos salen del registro, así que el número no es fijo.</p>
+          <p>Una lectura por cada tipo de resource declarado, sobre el <strong>borrador</strong> del agente — el estado editable, no ninguna de las versiones publicadas. Los tipos salen del registro, así que el número no es fijo.</p>
           <p>Si una lectura falla, se aborta. Mejor sin datos que con datos parciales: un inventario incompleto produce un diff que propone crear lo que ya existe.</p>
         </div>
 
