@@ -6,7 +6,7 @@
 
 **Fecha:** 2026-08-03 · **Rama:** `build/intento-2`
 
-**Relacionado:** `docs/cloudrun_handoff_opus.md` (infraestructura ya creada en la Fase A: proyecto GCP, cuenta de servicio, Secret Manager, GitHub App). El `docs/plan_cloudrun_multiproyecto.md` que ese handoff cita no está en esta rama — vive en `feature/cloudrun-multiproyecto`.
+**Infraestructura ya creada (Fase A):** ver §14 — proyecto GCP, cuenta de servicio, Secret Manager, GitHub App. (Antes vivía en `docs/cloudrun_handoff_opus.md`, eliminado el 2026-08-05 por duplicar contenido de este documento sin mantenerse sincronizado — causó 3 contradicciones de IAM en un solo día.) El `docs/plan_cloudrun_multiproyecto.md` que ese archivo citaba no está en esta rama — vive en `feature/cloudrun-multiproyecto`.
 
 ---
 
@@ -473,3 +473,44 @@ real con Petal.
    environments, 1 tool y 1 flow migrados hoy).
 
 **Las cuatro dudas de §13 quedan cerradas.**
+
+---
+
+## 14. Infraestructura ya creada (Fase A)
+
+Absorbido de `docs/cloudrun_handoff_opus.md` (2026-08-05) — ese archivo
+se elimina. Son hechos de lo ya provisionado en GCP, no decisiones de
+diseño; se guardan aquí para que no vuelvan a vivir duplicados en dos
+sitios (motivo real de las 3 contradicciones de IAM encontradas y
+corregidas hoy en el propio handoff).
+
+### Proyecto GCP
+- **Nombre:** `cloud-run-multiproyecto`
+- **Facturación:** vinculada a cuenta `015D46-707718-D2A984` (Mi cuenta de facturación 1)
+- **APIs habilitadas:** Cloud Run, Secret Manager, IAM
+
+### Cuenta de servicio
+- **ID:** `act-cloudrun-sa@cloud-run-multiproyecto.iam.gserviceaccount.com`
+- **Permisos:** `roles/dialogflow.admin` sobre los proyectos CX registrados
+- **Cómo gana permisos sobre un proyecto CX nuevo:** nunca automático — el panel muestra el comando `gcloud` y Jero lo ejecuta una vez, fuera del panel (S6b, S11, S22)
+
+### Secret Manager
+- **Secreto:** `github-app-private-key` en proyecto `cloud-run-multiproyecto`
+- **Acceso:** solo `act-cloudrun-sa` — rol `roles/secretmanager.secretAccessor`
+- **Contenido:** clave privada de la GitHub App `act-cloudrun-deploy`
+
+### GitHub App
+- **Nombre:** `act-cloudrun-deploy`
+- **App ID:** `4474347`
+- **Instalada en:** todos los repositorios de `jeronimosanchez` (actuales y futuros)
+- **Permiso:** `Contents: Read and write` — sin webhook, sin OAuth, sin permisos de organización
+- **Cómo genera acceso:** lee la clave privada desde Secret Manager, genera un JWT firmado (válido ~1h), lo usa para la operación, nunca lo guarda ni lo reutiliza
+- **Por qué "todos los repositorios":** cualquier repo que Jero cree en el futuro ya es accesible, sin configuración extra por proyecto nuevo
+
+### Firestore
+- **Base de datos:** `(default)` en `europe-west1`
+- **Capa gratuita:** sí (`freeTier: true`)
+- **Uso:** mapeo agente→repo (S4), lock de concurrencia (S13b), log de auditoría (S12), `previous_versions` (S8)
+
+### Servicio Cloud Run
+- *(pendiente — Fase B, sin construir)*
