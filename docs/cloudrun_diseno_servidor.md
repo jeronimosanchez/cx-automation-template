@@ -77,17 +77,17 @@ Seis rondas de revisión adversarial sobre la propuesta inicial de la Fase 5. Ca
 
 *Por qué esa forma:* `if not` cubre a la vez el campo vacío y el campo ausente, así que no hace falta decidir entre las dos.
 
-### El estado entre pasos — dos capas independientes
+### El estado entre pasos
 
-**Capa 1, visibilidad.** `localStorage` preselecciona el último repo + agente, y los selectores están siempre visibles para que Jero verifique antes de arrancar.
+**Capa 1, visibilidad.** `localStorage` preselecciona el último repo + agente, y los selectores están siempre visibles para que Jero verifique antes de arrancar. Sigue vigente, sin cambios.
 
-**Capa 2, candado.** El inventario embebe **proyecto, agente, repo y marca de tiempo** en el momento de generarse. El Paso 3 rechaza la petición si cualquiera de los tres identificadores no coincide con los selectores actuales, y también si la marca de tiempo supera el umbral, aunque coincidan.
+**Capa 2, candado — eliminada (decisión 2026-08-05).** Existía para proteger contra que el Paso 3 aplicara un diff calculado con una foto vieja del inventario (guardada en `localStorage`), si esa foto ya no coincidía con los selectores actuales. Se elimina porque deja de tener sentido: con el modelo de 5 pasos, **el Paso 2 y el Paso 3 recalculan siempre en fresco** — vuelven a mirar el estado real de CX y del repo en el momento de actuar, usando el `project`/`agent` de los selectores actuales, en vez de fiarse de una foto guardada por el Paso 1. Sin foto guardada, no hay foto que pueda estar desincronizada.
 
-*Por qué hacen falta las dos:* la capa 1 protege contra equivocarse **al elegir**. La capa 2 protege contra que el inventario guardado sea del agente A mientras los selectores muestran el agente B — y eso ocurre **sin ningún error del usuario**, porque `localStorage` sobrevive a recargar la página y los selectores nunca se deshabilitan (verificado, §6). Sin el candado, el Paso 3 puede desplegar las definiciones del agente A sobre el agente B con un diff de aspecto perfectamente normal.
+*Coste de recalcular en fresco:* con Petal (12 tipos de recurso, 60 archivos) son ~73 llamadas por paso (12 `LIST` a CX + 1 listado de árbol + 60 lecturas de archivo a GitHub). Con candado, esas 73 se hacían una vez; sin candado, se repiten en cada paso que actúa (~219 en total para un deploy completo). Estimado, no medido: tiempo añadido del orden de unos segundos por paso (no medido con precisión); coste monetario insignificante en Cloud Run (fracción de céntimo) y muy por debajo del límite de la API de GitHub (5.000 peticiones/hora) salvo en repos mucho más grandes con deploys muy frecuentes en la misma hora — a medir en Fase B si el repo de algún proyecto crece mucho.
 
-*Por qué el umbral de antigüedad:* los tres identificadores coinciden cuando el inventario es simplemente **viejo del agente correcto**. Ese fallo ya se observó en el intento 1 — relanzar solo el Paso 3 con una foto anterior hizo que el diff propusiera crear algo que ya existía y la API devolvió 409.
+*Riesgo que sí se acepta al quitar el candado (extiende S1b):* como cada paso recalcula en el momento de actuar, no hay garantía de que lo que Jero aprobó viendo el Paso 1 sea exactamente lo que se aplica en el Paso 3, si algo cambió en CX entre medias. Aceptado por el mismo motivo que S1b: el diff nunca propone `DELETE`, y solo trabaja Jero (sin deploys en paralelo, por el lock de concurrencia de S13b — un mecanismo distinto de este candado).
 
-*Por qué el inventario vive en el navegador:* Cloud Run es stateless y su disco es efímero; el archivo `docs/data/...json` que hoy comunica el Paso 1 con el Paso 3 no sobrevive entre peticiones.
+*Por qué el inventario ya no necesita vivir en el navegador:* al no guardarse una foto para comparar más tarde, el problema que resolvía guardarlo en `localStorage` (Cloud Run es stateless, `docs/data/...json` no sobrevive entre peticiones) deja de aplicar — cada paso pide lo que necesita en el momento, no depende de lo que generó un paso anterior.
 
 ### El diff nunca borra
 
@@ -303,7 +303,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 |---|---|---|---|
 | **S1** | El servidor **recalcula el diff** en el Paso 4 y no acepta el array de `operations` del panel | El panel valida para dar buena UX; el servidor valida para garantizar que no pasa nada malo pase lo que pase en el panel | ✅ |
 | **S1b** | Recalcula y **aplica sin comparar** contra lo aprobado | Solo trabaja Jero y el lock impide deploys en paralelo | ✅ riesgo asumido |
-| **S1c** | El servidor acepta `project` y `agent` del panel | Con S1 y C3, lo peor que puede hacer un valor erróneo es apuntar a otro agente, y eso lo caza el candado | ✅ |
+| **S1c** | El servidor acepta `project` y `agent` del panel | Con S1 y C3, el servidor nunca acepta un `repo` del cliente — siempre lo deriva fresco desde Firestore a partir de `agent` (S4), así que un `repo` desincronizado es estructuralmente imposible. Un `project`/`agent` erróneo falla en la propia llamada a CX si esa combinación no existe. **Riesgo residual aceptado** (revisado 2026-08-05, tras quitar el candado de §2): si el `project`/`agent` erróneos apuntan por coincidencia a un agente real que sí existe ahí, nada lo detecta antes de aplicar — mismo riesgo que S1b, mismo motivo para aceptarlo | ✅ |
 | **C3** | El servidor **construye todas las URLs** desde `project`/`agent`. Nunca acepta rutas del panel | Hoy `cx_client.py:108` acepta URLs completas del cliente: podría apuntar a otro agente, otro proyecto o un host externo | ✅ |
 | **S2** | El campo de `agent.yaml` se llama **`agent_id`**, no `agent` | Con `agent` el código no lo encuentra, el Paso 3 devuelve OK con cero operaciones y el deploy no aplica nada sin avisar | ✅ |
 | **S3** | El panel tiene **dos pestañas**: Deploy (por defecto) y Proyectos (onboarding y sincronización) | Separa el flujo habitual del de configuración | ✅ |
