@@ -362,6 +362,23 @@ Acordadas el 2026-08-04, después de §10. **Sustituyen a S7 y S14.**
 No son decisiones pendientes: son consecuencias de lo acordado que hay que
 tener delante al construir.
 
+**Fallo parcial: Paso 3 lo hereda bien, Paso 5 necesita el mismo patrón
+que le falta** (hallazgo de la ronda adversarial, corregido 2026-08-06,
+verificado contra el código real). El Paso 3 hereda tal cual
+`step_4_deploy` (`act_cx_resources_deploy.py:1268-1290`): cada operación
+queda con su resultado (`OK`/`ERROR`/`NO_INTENTADO`), se para en el
+primer fallo, y hay un modo para reintentar solo lo pendiente
+(`only_pending`) sin repetir lo que ya salió bien. **El Paso 5, en la
+parte de crear versiones, no puede heredar el código actual tal cual** —
+`create_versions_for_snapshot` (`:978`) es un bucle simple que crea
+versiones una a una y, si falla a mitad, lanza el error y para: las
+versiones ya creadas antes se quedan huérfanas, sin registrar ni limpiar.
+El servidor nuevo debe aplicar en esa parte **el mismo patrón que ya
+funciona en el Paso 3** — registrar cada versión creada con su resultado,
+parar en el primer fallo, dejar claro qué se creó. El resto del Paso 5
+(fusionar antes de apuntar producción, parar sin tocar nada si el merge
+falla) sí se hereda bien de `step_8_approve_production` (`:1414`).
+
 **Todos los endpoints comparten el mismo sobre de respuesta — no hace
 falta un schema distinto por cada uno** (hallazgo de la ronda adversarial,
 implementabilidad, corregido 2026-08-06). Se hereda el patrón que ya usa
