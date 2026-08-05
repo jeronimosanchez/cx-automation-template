@@ -671,7 +671,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
                 <div class="mecanica-header">1.5 — Mecánica propia</div>
 <div class="spec-block">
           <div class="spec-block-label">1.5.1 — Resolución del repositorio</div>
-          <p>No hay selector de repositorio: se elige agente y el repositorio <strong>aparece resuelto</strong>, sin poder editarse. El agente de agente arranca bloqueado hasta elegir proyecto, y cambiar de proyecto borra el agente elegido.</p>
+          <p>No hay selector de repositorio: se elige agente y el repositorio <strong>aparece resuelto</strong>, sin poder editarse. El selector de agente arranca bloqueado hasta elegir proyecto, y cambiar de proyecto borra el agente elegido.</p>
+          <p>Esa asociación no vive en el navegador ni se decide en este paso: la resuelve el servicio que corre en Cloud Run, consultando un almacén propio que persiste aunque el servicio se reinicie. Aquí solo se consulta y se enseña.</p>
           <p>La caja muestra el repositorio y su rama, o un aviso de que ese agente no tiene repositorio, con un botón para vincularlo — que no vincula nada aquí, solo remite a otra pantalla.</p>
           <p>Sin repositorio resuelto, el botón de iniciar sigue apagado: no hay contra qué comparar. Si ningún agente del proyecto tiene repositorio, un aviso lo dice arriba antes de tener que descubrirlo uno a uno.</p>
         </div>
