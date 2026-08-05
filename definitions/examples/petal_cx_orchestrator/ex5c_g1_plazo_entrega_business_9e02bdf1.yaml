@@ -1,0 +1,34 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: 9e02bdf1-0128-462a-8b5c-a8544ac98028
+playbook: Petal CX Orchestrator
+id: 9e02bdf1-0128-462a-8b5c-a8544ac98028
+displayName: EX5c — G1 Plazo de entrega (business, respuesta exacta sin rangos)
+description: Pregunta de plazo de entrega, con producto y urgencia. Usa clave=tiempo_entrega_estimado y responde el valor EXACTO, sin rangos ('24-48h') ni envio urgente inventado.
+actions:
+- userUtterance:
+    text: necesito un ramo urgente, ¿en cuánto tiempo entregáis?
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      clave: tiempo_entrega_estimado
+      recurso: business
+    outputActionParameters:
+      '200':
+        recurso: business
+        ok: true
+        resultados:
+        - Valor: 24h
+          Descripcion: Texto generico de tiempo de entrega para consultas sin zona especifica
+          Variable: tiempo_entrega_estimado
+          Impacto en el Diseño CX: Respuesta rapida sin pedir zona.
+        count: 1
+- agentUtterance:
+    text: Entiendo que te urge. Nuestro plazo de entrega es de 24h. ¿Te gustaría que te ayude a elegir el ramo?
+playbookOutput:
+  executionSummary: Consulta de plazo resuelta con business/tiempo_entrega_estimado, respuesta exacta sin rangos ni envio urgente inventado.
+  actionParameters: {}
+conversationState: OUTPUT_STATE_OK
+languageCode: es

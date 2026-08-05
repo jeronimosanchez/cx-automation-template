@@ -1,0 +1,68 @@
+metadata:
+  tipo: example
+  padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+  cx_id: d0522d93-5146-4e0a-9c81-595207791803
+playbook: Compra
+id: d0522d93-5146-4e0a-9c81-595207791803
+displayName: 'ExI v1: Fallback rosas azules → tono cálido → ofrece alternativas'
+description: Usuario pide algo que no existe exacto (rosas azules). Backend relaja el color y devuelve fallback. Petal reconoce con naturalidad, menciona alternativas e invita a mostrarlas. Enseña el TONO cálido e invitacional ante cualquier fallback (v41).
+actions:
+- toolUse:
+    tool: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/tools/39e35fac-e018-4e98-b735-e45cb761bf5c
+    action: consultarDatos
+    inputActionParameters:
+      recurso: inventario
+      color: Azul
+      especie: rosas
+    outputActionParameters:
+      '200':
+        resultados:
+        - Producto: Ramo de Rosas Rojas — M
+          Color: Rojo
+          Tipo_Producto: Ramo
+          Precio: '37'
+          Ocasion: Regalo
+          Tamano: M
+          Flores_Tallos: '15'
+          Stock: '4'
+        - Tipo_Producto: Ramo
+          Color: Blanco
+          Flores_Tallos: '8'
+          Ocasion: Regalo
+          Stock: '9'
+          Tamano: S
+          Precio: '25'
+          Producto: Ramo de Rosas Blancas — S
+        - Ocasion: Regalo
+          Producto: Ramo de Rosas Rosas — S
+          Flores_Tallos: '8'
+          Stock: '7'
+          Precio: '22'
+          Color: Rosa
+          Tamano: S
+          Tipo_Producto: Ramo
+        recurso: inventario
+        count: 3
+        fallback: color_relajado
+        ok: true
+- agentUtterance:
+    text: Rosas azules justo no tenemos, Ana… pero sí las tengo en otros colores preciosos. ¿Te enseño las más pedidas?
+- userUtterance:
+    text: Vale, enséñamelas
+- agentUtterance:
+    text: 'Mira estas: Rosas Rojas — M (15 flores, 37€), Rosas Blancas — S (8 flores, 25€), Rosas Rosas — S (8 flores, 22€). ¿Alguna te encaja?'
+playbookInput:
+  precedingConversationSummary: Compra recibe $intencion="quiero rosas azules" con $ocasion_detectada=Regalo. Extrae especie=rosas, color=Azul. Llama inventario; el backend no tiene ese color exacto y relaja el filtro (fallback=color_relajado), devolviendo rosas en otros colores ordenadas por ventas. Petal reconoce con naturalidad que no hay el color exacto, menciona que sí hay alternativas e invita a mostrarlas antes de volcarlas.
+  actionParameters:
+    dir_habitual: Calle Mayor 10, Madrid
+    nombre_cliente: Ana
+    id_cliente: '101'
+    tipo_cliente: particular
+    intencion: quiero rosas azules
+    ocasion_detectada: Regalo
+    estado_pago: Al dia
+playbookOutput:
+  executionSummary: 'Petal pide inventario con especie=rosas + color=Azul. El backend relaja el color (fallback=color_relajado) y devuelve rosas en otros colores. Petal aplica el TONO cálido ante fallback: reconoce que no hay rosas azules, menciona alternativas e invita ("¿te enseño las más pedidas?") en vez de volcar la lista de golpe. Tras el "sí" del usuario, muestra las más habituales con APERTURA.'
+  actionParameters: {}
+conversationState: OUTPUT_STATE_OK
+languageCode: es

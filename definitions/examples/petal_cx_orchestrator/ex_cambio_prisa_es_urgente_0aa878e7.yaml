@@ -1,0 +1,31 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: 0aa878e7-3cc2-44ce-8a18-b0a15a6dc3fe
+playbook: Petal CX Orchestrator
+id: 0aa878e7-3cc2-44ce-8a18-b0a15a6dc3fe
+displayName: 'Ex — cambio: prisa mid-conversacion -> es_urgente (registro NO cambia)'
+description: |
+  Arranca neutro. A mitad de conversacion el usuario anade una restriccion temporal. DETECCION de cambio: activa es_urgente=true PERO mantiene registro=estandar. Contraejemplo clave: no toda senal mid-conversacion cambia el registro; la prisa solo acorta la estructura.
+actions:
+- userUtterance:
+    text: Quiero un ramo para regalar
+- agentUtterance:
+    text: |
+      ¡Genial! 🌸 ¿Para que ocasion lo buscas?
+- userUtterance:
+    text: Es para hoy, lo necesito ya
+- agentUtterance:
+    text: Vale, vamos rapido. ¿Que flores prefieres?
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: |
+    Arranca neutro (registro=estandar). Turno 2: senal de prisa ("hoy", "lo necesito ya") -> DETECCION de cambio: activa es_urgente=true. El registro NO cambia (sigue estandar); solo se acorta la estructura (slot-filling directo). Contraejemplo: senal mid-conversacion que NO cambia el registro.
+  actionParameters:
+    registro: estandar
+    estado_emocional: neutro
+    intencion_inicial: comprar ramo para regalo
+    es_urgente: true
+conversationState: OUTPUT_STATE_OK
+languageCode: es

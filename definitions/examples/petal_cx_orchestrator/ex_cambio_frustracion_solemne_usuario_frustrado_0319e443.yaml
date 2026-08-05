@@ -1,0 +1,31 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: 0319e443-fd71-46da-bbcb-3e0ceacea5dc
+playbook: Petal CX Orchestrator
+id: 0319e443-fd71-46da-bbcb-3e0ceacea5dc
+displayName: 'Ex — cambio: frustracion mid-conversacion -> solemne + usuario_frustrado'
+description: |
+  Arranca neutro. A mitad de conversacion el usuario muestra frustracion. DETECCION de cambio: registro pasa a solemne y activa usuario_frustrado=true. Sin frases de empatia vacia — reconoce y actua.
+actions:
+- userUtterance:
+    text: Busco flores para mi madre
+- agentUtterance:
+    text: |
+      ¡Claro! 🌸 ¿Tienes alguna en mente?
+- userUtterance:
+    text: Llevo un rato y esto no me sirve de nada
+- agentUtterance:
+    text: Entiendo. Vamos a resolverlo — dime que necesitas y te lo busco.
+- playbookTransition:
+    playbook: projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+playbookOutput:
+  executionSummary: |
+    Arranca neutro (registro=estandar). Turno 2: senal de frustracion ("no me sirve de nada") -> DETECCION de cambio: registro pasa a solemne y activa usuario_frustrado=true. Reconoce sin adornos y reorienta a la tarea, sin empatia vacia.
+  actionParameters:
+    registro: solemne
+    usuario_frustrado: true
+    intencion_inicial: comprar flores para su madre
+    estado_emocional: frustración
+conversationState: OUTPUT_STATE_OK
+languageCode: es
