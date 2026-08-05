@@ -362,6 +362,23 @@ Acordadas el 2026-08-04, después de §10. **Sustituyen a S7 y S14.**
 No son decisiones pendientes: son consecuencias de lo acordado que hay que
 tener delante al construir.
 
+**Todos los endpoints comparten el mismo sobre de respuesta — no hace
+falta un schema distinto por cada uno** (hallazgo de la ronda adversarial,
+implementabilidad, corregido 2026-08-06). Se hereda el patrón que ya usa
+el pipeline local (`act/act_cx_resources_deploy.py:140`):
+
+```python
+def step_result(status, log, data=None):
+    return {"status": status, "log": log, "data": data or {}}
+```
+
+`status` (`"ok"` o error), `log` (líneas de texto para el panel), `data`
+(lo específico de cada endpoint — operaciones del diff, nombre del
+snapshot, lista de proyectos...). Errores con códigos HTTP estándar: 400
+si faltan datos, 403 si el permiso falla, 404 si el recurso no existe,
+409 si el lock está ocupado, 500 si algo interno falla — consistente con
+`PipelineError` en el código actual.
+
 **El diff cambia de mecanismo.** Hoy la correspondencia va por `displayName`
 y `load_definitions()` recorre `definitions/<tipo>/` carpeta por carpeta.
 Con S18 y S19 el servidor lee **todos** los YAML del repo recursivamente y
