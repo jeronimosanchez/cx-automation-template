@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+  cx_id: 0626cb64-4494-44c7-a733-14a3da2a54c8
 playbook: Compra
 id: b943982b-082b-4c0e-9f05-806271ab1b37
 displayName: 'ExH v17: flor+ocasión en un turno → captura AMBOS filtros (TT-28)'

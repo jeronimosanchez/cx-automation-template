@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: 2d111e5e-e811-4098-b52b-ab1128a0d0e2
+  cx_id: 084bc84b-80eb-4a44-adcf-a9a4748e20e8
 playbook: Registro_Task
 id: 084bc84b-80eb-4a44-adcf-a9a4748e20e8
 displayName: Registro completo

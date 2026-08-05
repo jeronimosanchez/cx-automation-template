@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: 6fa31193-5946-4317-9c67-1cb052a5c9a1
 playbook: Petal CX Orchestrator
 id: 6fa31193-5946-4317-9c67-1cb052a5c9a1
 displayName: Ex09 —solicitud agente

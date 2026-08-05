@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: ddd31a1d-e788-488c-bb98-96e0e7397af7
 playbook: Petal CX Orchestrator
 displayName: EX — Compra directa sin producto (regalo novia)
 description: >

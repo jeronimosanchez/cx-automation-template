@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: 2d111e5e-e811-4098-b52b-ab1128a0d0e2
+  cx_id: 52708f07-a8cb-4060-8d1d-8e90f5f9d694
 playbook: Registro_Task
 id: 52708f07-a8cb-4060-8d1d-8e90f5f9d694
 displayName: Ex_Reg_03 — Empresa con CIF

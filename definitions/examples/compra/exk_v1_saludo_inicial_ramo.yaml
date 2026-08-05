@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+  cx_id: f63a95e5-b3e8-41b6-a098-1ebd01e4f4bb
 playbook: Compra
 id: c17eb8cb-e74e-483a-9491-2545610d3a12
 displayName: 'ExK v1: Saludo inicial + producto (buenas → ramo) reconoce el saludo'

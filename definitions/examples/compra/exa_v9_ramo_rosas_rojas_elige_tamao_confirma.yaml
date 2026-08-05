@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+  cx_id: 608439a5-daa9-4d14-a14b-c1fc96b02d1d
 playbook: Compra
 id: 608439a5-daa9-4d14-a14b-c1fc96b02d1d
 displayName: 'ExA v10: Ramo rosas rojas → elige tamaño → confirma (schema normalizado)'

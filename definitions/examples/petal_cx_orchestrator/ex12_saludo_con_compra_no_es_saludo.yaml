@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: 3038373e-433c-4843-b279-9253ea96bc7e
 playbook: Petal CX Orchestrator
 displayName: EX — Saludo + intención de compra → NO es saludo
 description: >

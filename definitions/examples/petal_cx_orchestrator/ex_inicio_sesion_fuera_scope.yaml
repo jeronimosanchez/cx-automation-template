@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: 0b47a86a-34a1-45fc-8b64-a37a7f0e35d5
 playbook: Petal CX Orchestrator
 displayName: EX — Fuera de scope
 description: El usuario pregunta algo fuera del ámbito de Floristería Petal. El Orquestador redirige con el copy estándar.

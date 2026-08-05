@@ -1,3 +1,7 @@
+metadata:
+  tipo: example
+  padre: 2d111e5e-e811-4098-b52b-ab1128a0d0e2
+  cx_id: 276cddb0-f768-431e-90a0-daebed2c3f76
 playbook: Registro_Task
 id: 276cddb0-f768-431e-90a0-daebed2c3f76
 displayName: Ex_Reg_02 — Datos multiples en un turno
