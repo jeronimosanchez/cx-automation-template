@@ -650,109 +650,63 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-step-title">Paso 1 — Inventario CX</div>
         <div class="spec-block">
           <div class="spec-block-label">1.1 — Qué hace</div>
-          <p>Es la primera pantalla del pipeline y la única marcada como de solo lectura. Debajo del título, un aviso explica qué es el borrador del agente —el estado editable, aquello contra lo que se prueba, que ningún usuario ve— y adelanta que lo que ven los usuarios no cambia hasta el Paso 5.</p>
-          <p>Lo primero que se pide es el destino, en dos selectores encadenados: <strong>proyecto</strong> y, solo después, <strong>agente</strong>. Bajo ellos hay una caja de <strong>repositorio</strong> que no se rellena a mano: enseña lo que el agente elegido resuelve. Cierra el bloque un único botón, <strong>Iniciar inventario</strong>, apagado mientras el destino no esté completo.</p>
-          <p>Al pulsarlo, los selectores desaparecen y en su sitio queda un registro que se escribe solo, línea a línea, en este orden: comprueba la conexión, lee el agente, lee el repositorio y termina emparejando lo uno con lo otro. Mientras corre, ni la lista de pasos ni el botón de empezar de nuevo responden.</p>
-          <p>Cuando acaba, el registro se queda en pantalla y debajo aparece el resultado: un aviso de inventario completado; <strong>tres tarjetas</strong> —emparejados, solo en CX, solo en el repositorio—, cada una con su número, una línea que explica qué significa ese grupo y unos cuantos nombres que se despliegan y se vuelven a plegar; una línea de cierre con el total y con la rama y el commit de los que se leyó; y un solo botón, <strong>Continuar</strong>.</p>
+          <p>Primera pantalla, de solo lectura. Pide el destino en dos selectores encadenados —proyecto y agente— y muestra el repositorio que ese agente resuelve. Un botón, <strong>Iniciar inventario</strong>, apagado hasta tener destino completo.</p>
+          <p>Al pulsarlo corre un registro en vivo: comprueba conexión, lee el agente, lee el repositorio, empareja. Al terminar aparecen tres tarjetas —emparejados, solo en CX, solo en el repositorio—, cada una con su número y su lista, y un botón <strong>Continuar</strong>.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.2 — Por qué existe</div>
-          <p>El pipeline no despliega «lo que haya cambiado»: compara dos cosas —un agente y un repositorio— y trabaja sobre la diferencia. Antes de poder hacer nada hay que saber qué hay a cada lado y qué se corresponde con qué. Eso, y solo eso, es lo que hace este paso.</p>
-          <p>Está el primero porque todos los demás consumen su resultado. El Paso 2 solo puede ofrecer lo que aquí quedó como «solo en CX»; el Paso 3 solo puede aplicar lo que aquí resultó ser diferencia. Sin este reparto, los pasos siguientes no tendrían lista que enseñar.</p>
-          <p>Y aquí, y no antes ni después, se elige el destino. Elegir agente es la decisión más cara del pipeline —a partir del Paso 3 se escribe en él— y conviene tomarla en la única pantalla que no escribe nada: equivocarse aquí no cuesta nada, porque el paso se repite entero sin dejar rastro.</p>
+          <p>El pipeline trabaja sobre la diferencia entre el agente y el repositorio, y aquí es donde se calcula. Los pasos siguientes solo consumen este reparto: sin él no tendrían nada que ofrecer.</p>
+          <p>Y aquí se elige el agente — la decisión más cara del pipeline, porque desde el Paso 3 se escribe en él. Se elige en la única pantalla que no escribe nada: equivocarse aquí no cuesta.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.3 — Qué produce</div>
-          <p><strong>Un destino fijado:</strong> proyecto, agente y el repositorio y la rama que ese agente resuelve. A partir de aquí el destino deja de tocarse. El nombre del agente pasa a la barra superior y reaparece en los cuadros de confirmación del Paso 3 y del Paso 5, y el enlace del Paso 4 abre ese agente y no otro.</p>
-          <p><strong>Un reparto en tres grupos</strong> de todo lo leído a los dos lados. Lo que quedó solo en CX es exactamente lo que el Paso 2 ofrece traer al repositorio. Lo que quedó solo en el repositorio reaparece en el Paso 3 como creación. Y de los emparejados, los que no coinciden reaparecen en el Paso 3 como modificación.</p>
-          <p><strong>La referencia de lo leído:</strong> la rama y el commit exactos. Es lo que fija qué quiere decir «el repositorio» durante el resto de la ejecución.</p>
-          <p>Nada de esto llega al paso siguiente hasta pulsar <strong>Continuar</strong>. Hasta entonces el Paso 2 sigue bloqueado en la lista de la izquierda y no responde al clic. Pulsar Continuar es lo que da este paso por completado y abre el siguiente.</p>
+          <p>Un destino fijado (proyecto, agente, repositorio, rama), que ya no se toca y reaparece en la barra superior y en los pasos 3, 4 y 5.</p>
+          <p>Un reparto en tres grupos: «solo en CX» pasa al Paso 2, «solo en el repositorio» se convierte en creación en el Paso 3, y los emparejados que difieren se convierten en modificación en el Paso 3.</p>
+          <p>Y la referencia exacta —rama y commit— de lo leído. Nada llega al Paso 2 hasta pulsar Continuar.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.4 — Qué escribe y dónde</div>
-          <p><strong>Nada.</strong> Ni en el agente ni en el repositorio. Ninguno de los controles del paso escribe fuera del panel: los selectores eligen, el botón de iniciar lee, las tarjetas despliegan y pliegan, el botón de vincular solo remite a otra pantalla y Continuar avanza. Lo único que cambia es lo que hay en la pantalla.</p>
-          <p>Por eso el paso no acumula efectos y no hay nada que deshacer: ejecutar el inventario dos veces sobre el mismo destino deja el mundo exactamente igual que ejecutarlo una. Es también lo que hace barato equivocarse de agente aquí.</p>
+          <p><strong>Nada.</strong> Ni en el agente ni en el repositorio. Solo cambia lo que hay en pantalla, así que repetir el inventario da siempre el mismo resultado y equivocarse de agente no deja rastro.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.5 — Resolución del repositorio</div>
-          <p>No hay selector de repositorio. Se elige proyecto y agente, y el repositorio <strong>aparece resuelto</strong> en una caja que no se puede editar. La asociación entre un agente y su repositorio no se decide aquí: este paso solo la consulta y la enseña.</p>
-          <p>Los dos selectores van encadenados. El de agente arranca bloqueado y solo se abre al elegir proyecto; al elegir proyecto, además, deja de haber agente elegido. Elegido el agente, la caja muestra una de dos cosas: el repositorio con una marca de conforme y la rama de la que se va a leer, o un aviso de que ese agente no tiene repositorio vinculado con un botón para vincularlo.</p>
-          <p>La rama tampoco se elige: llega dentro de la resolución, igual que el repositorio.</p>
-          <p><strong>Sin repositorio resuelto no se puede arrancar.</strong> El botón de iniciar solo se enciende cuando hay un agente elegido y ese agente tiene repositorio; en cualquier otra combinación está apagado. No es una formalidad: sin repositorio no hay contra qué comparar, así que el paso no tendría nada que producir y los siguientes se quedarían sin lista.</p>
-          <p>Si <strong>ningún</strong> agente del proyecto tiene repositorio, un aviso lo dice arriba del todo, antes de que haya que recorrer los agentes uno a uno para descubrirlo, y ofrece la misma salida de vincular uno.</p>
-          <p>Los dos botones de vincular no vinculan nada: avisan de que eso se hace en otra pantalla del sistema. Desde este paso no se crea ni se cambia ninguna asociación.</p>
+          <p>No hay selector de repositorio: se elige agente y el repositorio <strong>aparece resuelto</strong>, sin poder editarse. El agente de agente arranca bloqueado hasta elegir proyecto, y cambiar de proyecto borra el agente elegido.</p>
+          <p>La caja muestra el repositorio y su rama, o un aviso de que ese agente no tiene repositorio, con un botón para vincularlo — que no vincula nada aquí, solo remite a otra pantalla.</p>
+          <p>Sin repositorio resuelto, el botón de iniciar sigue apagado: no hay contra qué comparar. Si ningún agente del proyecto tiene repositorio, un aviso lo dice arriba antes de tener que descubrirlo uno a uno.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.6 — Comprobación de conexión</div>
-          <p>Es lo primero que hace el paso al arrancar, antes de leer nada: comprueba que las credenciales sirven y que se llega al agente elegido, y lo deja escrito como una línea propia del registro.</p>
-          <p>Va delante por dos razones. Un problema de credenciales o de permisos no depende de lo que haya en el agente ni en el repositorio, así que descubrirlo después de haberlo leído todo sería tiempo tirado. Y porque, si esa línea no sale conforme, ninguna de las siguientes se puede creer: todo lo que viene después son cifras leídas con ese mismo acceso.</p>
-          <p>No pide nada a quien lo usa: aquí no se configura ninguna credencial, solo se comprueba. Si la comprobación falla, vale lo que vale para cualquier paso que falla: el paso se detiene donde iba, dice qué intentaba y qué falló, y no deja pasar al siguiente.</p>
+          <p>Primera línea del registro: credenciales y acceso al agente, antes de leer nada. Si falla, el paso se detiene ahí — todo lo que vendría después se apoya en ese mismo acceso.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.7 — Foto de CX</div>
-          <p>Lee el <strong>borrador</strong> del agente, no lo que están viendo los usuarios. Es la distinción que el propio paso subraya arriba: el borrador es el estado editable, es contra él contra lo que se prueba en el Paso 4, y lo que ven los usuarios no cambia hasta el Paso 5.</p>
-          <p>Lo que encuentra lo reporta en dos niveles: primero <strong>desglosado por tipo de recurso</strong> y después como <strong>un único total del borrador</strong>. El desglose cubre todos los tipos que el agente puede contener, incluidos los que el pipeline nunca despliega —los entornos y las versiones se cuentan igual—, porque la foto es del agente entero y no solo de lo desplegable. El total y el desglose tienen que cuadrar entre sí.</p>
-          <p>Es una foto, no una suscripción: refleja el agente en el instante en que se leyó y no se actualiza sola. Para tener otra hay que volver a empezar. Esto importa porque entre esta lectura y el Paso 3 puede pasar tiempo, y nadie impide que alguien toque el agente por su cuenta mientras tanto.</p>
-          <p>El total del borrador también tiene que cuadrar con el reparto en grupos: lo que hay en el agente es lo emparejado más lo que solo está en el agente.</p>
+          <p>Lee el <strong>borrador</strong> del agente, no lo que ven los usuarios. Reporta un desglose por tipo de recurso y el total del borrador, y los dos tienen que cuadrar.</p>
+          <p>Es una foto fija de ese instante, no una suscripción: si el agente cambia después, hay que repetir el paso para verlo.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.8 — Lectura del repositorio</div>
-          <p>Lee <strong>una sola rama</strong> del repositorio resuelto —la que la caja de resolución anunció, no una que se elija aquí— y reporta tres cosas: de qué rama leyó, de qué commit exacto y cuántos archivos de definición encontró.</p>
-          <p>Nombrar el commit no es un adorno. Fija qué quiere decir «el repositorio» durante el resto de la ejecución: sin él, decir más adelante que algo difiere del repositorio no significaría nada, porque el repositorio se mueve. Por eso la línea de cierre del paso lo repite junto al total, y queda a la vista cuando el registro ya ha pasado.</p>
-          <p>El número de archivos tiene que cuadrar con el reparto en grupos: lo que hay en el repositorio es lo emparejado más lo que solo está en el repositorio.</p>
+          <p>Lee una sola rama — la que resolvió el agente, no una que se elija aquí — y reporta de qué rama, de qué commit y cuántos archivos de definición encontró.</p>
+          <p>El commit importa porque fija qué es «el repositorio» durante el resto de la ejecución: sin él, decir que algo difiere no significaría nada.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.9 — Emparejamiento</div>
-          <p>Es el resultado del paso. Todo lo leído a los dos lados se reparte en <strong>tres grupos, y cada cosa cae en uno solo</strong>.</p>
-          <p><strong>Emparejados</strong> — están en el agente y hay un archivo que los reclama. El grupo afirma que se corresponden, no que coincidan: si su contenido difiere o no, este paso no lo declara; eso aparece en el Paso 3.</p>
-          <p><strong>Solo en CX</strong> — existen en el agente y ningún archivo los reclama. Es lo que alguien creó por su cuenta en la consola del agente. El grupo los cuenta todos, incluidos los que son nativos del agente y no pueden llegar a tener archivo; separarlos es cosa del Paso 2, no de aquí.</p>
-          <p><strong>Solo en el repositorio</strong> — tienen archivo pero no existen en el agente, por dos motivos distintos que la tarjeta distingue caso a caso: o el archivo nunca llegó a aplicarse, o apunta a algo que ya no está en el agente. El emparejamiento va por identidad y no por nombre de archivo; por eso un archivo que apunta a algo desaparecido cuenta aquí y no entre los emparejados.</p>
-          <p>Cada tarjeta enseña su número en grande, una línea que explica qué significa el grupo, unos cuantos nombres y un desplegable para ver la lista entera; desplegar no cambia nada, solo enseña. El registro cierra con los mismos tres números, y bajo las tarjetas una línea los suma y recuerda de qué rama y de qué commit salió la comparación.</p>
-          <p>Los tres números son lo que consume el resto del pipeline: «solo en CX» alimenta el Paso 2, «solo en el repositorio» se convierte en creaciones en el Paso 3, y las diferencias entre los emparejados se convierten en modificaciones en el Paso 3.</p>
+          <p>Todo lo leído cae en un solo grupo de tres:</p>
+          <p><strong>Emparejados</strong> — están en el agente y un archivo los reclama. Que coincidan o no se decide en el Paso 3, no aquí.<br>
+          <strong>Solo en CX</strong> — existen en el agente y ningún archivo los reclama. Incluye lo nativo del agente, que el Paso 2 filtra aparte.<br>
+          <strong>Solo en el repositorio</strong> — tienen archivo pero no existen en el agente: o nunca se aplicaron, o apuntaban a algo que ya no está.</p>
+          <p>Cada tarjeta enseña su número, una lista desplegable y no cambia nada al abrirse. El registro cierra con estos mismos tres números.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">1.10 — Criterios de validación</div>
-          <p><strong>Elegir el destino</strong></p>
-          <p>1. Al abrir el paso, lo único que puedo tocar es el selector de proyecto: el de agente está bloqueado, la caja de repositorio no dice nada y el botón de iniciar no se deja pulsar.</p>
-          <p>2. Al elegir proyecto, el selector de agente se desbloquea y no queda ningún agente elegido.</p>
-          <p>3. Al elegir un agente con repositorio, la caja lo enseña con su rama y el botón de iniciar se enciende.</p>
-          <p>4. Al elegir un agente sin repositorio, la caja lo dice, ofrece vincularlo y el botón de iniciar sigue apagado.</p>
-          <p>5. Cambiando de un agente a otro, la caja y el botón siguen siempre al agente que hay elegido en ese momento.</p>
-          <p>6. No encuentro ninguna forma de arrancar el inventario sin agente elegido o con un agente sin repositorio: en esas combinaciones el botón está apagado.</p>
-          <p>7. No encuentro ningún control para elegir repositorio ni rama: los dos vienen dados por el agente.</p>
-          <p>8. Los botones de vincular no vinculan nada: me remiten a otra pantalla y la caja sigue igual después de pulsarlos.</p>
-          <p>9. Al elegir un agente, su nombre aparece en la barra superior.</p>
-          <p>10. Antes de haber pulsado nada, el paso ya me ha dicho qué es el borrador y que lo que ven los usuarios no cambia hasta el Paso 5.</p>
-
-          <p><strong>Mientras se ejecuta</strong></p>
-          <p>11. En cuanto arranca, los selectores y el botón de iniciar desaparecen: no puedo lanzarlo dos veces ni cambiar de agente a mitad.</p>
-          <p>12. Mientras corre, la lista de pasos de la izquierda no responde al clic y el botón de empezar de nuevo está deshabilitado.</p>
-          <p>13. El registro empieza por la comprobación de conexión: no se lee nada antes de darla por buena.</p>
-          <p>14. El registro no crece con el contenido: mantiene su alto y la última línea escrita siempre queda a la vista.</p>
-
-          <p><strong>Que las cifras cuadren</strong></p>
-          <p>15. El registro dice, por separado, cuántos recursos hay de cada tipo en el agente y cuántos hay en total, y el desglose suma exactamente el total.</p>
-          <p>16. El total del agente coincide con emparejados más solo en CX.</p>
-          <p>17. El número de archivos leídos del repositorio coincide con emparejados más solo en el repositorio.</p>
-          <p>18. La línea de cierre suma exactamente los tres números de las tarjetas.</p>
-          <p>19. Los tres números con los que termina el registro son los mismos tres de las tarjetas.</p>
-          <p>20. La rama y el commit de la línea de cierre son los mismos que nombró el registro.</p>
-          <p>21. Ninguno de los nombres que enseñan las tarjetas aparece en más de una: los grupos no se solapan.</p>
-
-          <p><strong>Que el resultado sirva al resto</strong></p>
-          <p>22. Los nombres de la tarjeta «solo en CX» son exactamente las filas que el Paso 2 ofrece traer, ni una más ni una menos.</p>
-          <p>23. Los archivos de la tarjeta «solo en el repositorio» aparecen en el Paso 3 marcados como creación.</p>
-          <p>24. El agente que elegí aquí es el que nombra la barra superior y el que nombra el cuadro de confirmación del Paso 3.</p>
-          <p>25. Cada tarjeta explica en una línea qué significa su grupo, y su lista se despliega y se vuelve a plegar sin cambiar ningún número.</p>
-
-          <p><strong>Que no pase lo que no debe</strong></p>
-          <p>26. Hasta que pulso Continuar, el Paso 2 sigue bloqueado en la lista de la izquierda y al pulsarlo no ocurre nada.</p>
-          <p>27. Terminado el inventario, dentro del paso no hay ningún otro botón que avance ni que cancele: solo Continuar.</p>
-          <p>28. Al volver al paso ya completado desde la lista, el inventario sigue en pantalla tal y como quedó y el botón de continuar ya no está.</p>
-          <p>29. Al volver, no queda ningún control que vuelva a lanzar el inventario ni que cambie el destino.</p>
-          <p>30. Empezar de nuevo devuelve el paso a su estado de partida —sin registro y sin inventario— y deja el destino elegido tal como estaba, listo para volver a leer.</p>
-          <p>31. Volver a ejecutar el inventario sobre el mismo destino da el mismo resultado, y el registro de la ejecución anterior no aparece mezclado con el nuevo.</p>
-          <p>32. Los únicos controles del paso son elegir destino, iniciar, desplegar listas, vincular y continuar. Ninguno modifica el agente ni el repositorio.</p>
+          <p>1. El destino se elige en orden: sin proyecto no hay agente, y sin un agente con repositorio no se puede iniciar. Repositorio y rama nunca se editan a mano — los resuelve el agente elegido, y cambiar de agente los actualiza siempre.<br>
+          2. Vincular no vincula nada aquí: remite a otra pantalla, y si ningún agente del proyecto tiene repositorio, lo avisa antes de tener que comprobarlo uno a uno.<br>
+          3. El registro arranca comprobando conexión antes de leer nada; si falla, el paso se detiene ahí.<br>
+          4. Mientras corre, nada más responde: ni selectores, ni lista lateral, ni empezar de nuevo. Y el registro tiene alto fijo — no crece ni empuja lo de abajo.<br>
+          5. Las cifras cuadran entre sí: el desglose por tipo suma el total del agente, el total es emparejados más solo en CX, los archivos del repositorio son emparejados más solo en el repositorio, y la línea de cierre suma las tres tarjetas. Ningún resource aparece en dos grupos a la vez.<br>
+          6. Lo que produce este paso es justo lo que consumen los siguientes: «solo en CX» es lo que el Paso 2 ofrece traer, «solo en el repositorio» son las creaciones del Paso 3, y el agente elegido aquí es el que nombran la barra superior y los pasos siguientes.<br>
+          7. Terminado el inventario, el único botón es Continuar, y hasta pulsarlo el Paso 2 sigue bloqueado.<br>
+          8. Al volver a un paso ya hecho, se ve tal cual quedó: sin botones que lo repitan ni forma de cambiar el destino.<br>
+          9. Empezar de nuevo vacía el resultado y mantiene el destino elegido. Repetir el inventario sobre el mismo destino da el mismo resultado, sin mezclar registros.</p>
         </div>
       </div>
 
