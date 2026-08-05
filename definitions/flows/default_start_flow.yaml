@@ -1,3 +1,7 @@
+metadata:
+  tipo: flow
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000000
 displayName: Default Start Flow
 description: A start flow created along with the agent
 transitionRoutes:

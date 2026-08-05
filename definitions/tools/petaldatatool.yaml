@@ -1,3 +1,7 @@
+metadata:
+  tipo: tool
+  padre: null
+  cx_id: 39e35fac-e018-4e98-b735-e45cb761bf5c
 displayName: PetalDataTool
 description: Tool para consultar perfil/inventario/adhoc en Google Sheets via Apps
   Script
