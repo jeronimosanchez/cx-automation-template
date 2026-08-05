@@ -61,21 +61,25 @@ Seis rondas de revisión adversarial sobre la propuesta inicial de la Fase 5. Ca
 
 ### Qué se elige y cómo
 
-**Dos selectores: repo de GitHub y agente CX**, preseleccionados por `localStorage` con los últimos usados.
+~~**Dos selectores: repo de GitHub y agente CX**, preseleccionados por
+`localStorage`... El emparejamiento repo↔agente lo vigila la Regla 11...~~
+— **Sustituido por S4 (§10, hallazgo de la ronda adversarial, corregido
+2026-08-05).** El documento nunca marcó esto como sustituido, aunque S4 es
+posterior — quien leyera §2 primero construiría un selector y una
+validación (Regla 11) que ya no hacen falta.
 
-*Por qué:* un solo selector sería más simple, pero Jero necesita ver el destino completo antes de escribir en él. Es la función de un panel de deploy. No hay selector de proyecto GCP: es siempre el mismo.
+**Lo que aplica de verdad, hoy:** dos desplegables — **proyecto GCP y
+agente CX** (confirmado contra §3, endpoint "Descubrimiento": *"rellenar
+los desplegables de proyecto y de agente"*). El **repo** no se elige —
+se asigna solo desde el mapeo Firestore (S4) en cuanto se elige el
+agente. No hay Regla 11 ni comparación contra `agent.yaml`: ese archivo
+y ese mecanismo pertenecían al modelo viejo.
 
-**El selector de repos solo muestra los que llevan `cx-deploy.yaml` con `cx_project: true`** en la raíz.
-
-*Por qué:* la GitHub App ve todos los repos de la cuenta. Filtrar por la existencia de `definitions/` es frágil; un marcador explícito no lo es. `cx-deploy.yaml` es solo marcador — **no lleva el agente**, que sigue en `agent.yaml`, para no tener dos archivos declarando el mismo destino.
-
-**El emparejamiento repo↔agente lo vigila la Regla 11 de la Fase 3**, comparando la selección contra `definitions/agent.yaml` por ID de agente. Si el repo no tiene agente configurado, el panel muestra el desplegable y guarda el ID.
-
-*Por qué:* dos selectores independientes permiten elegir repo A con agente B. Al descartar que `cx-deploy.yaml` llevara el agente, esa regla deja de ser un detalle y pasa a ser el único guardián.
-
-**`agent.yaml` lleva `project: ""` y `agent: ""`; el código comprueba `if not agent_id`.** El `project` lo escribe Jero a mano una vez en el onboarding — el panel no lo escribe, porque no tiene selector de proyecto de donde sacarlo.
-
-*Por qué esa forma:* `if not` cubre a la vez el campo vacío y el campo ausente, así que no hace falta decidir entre las dos.
+*Por qué proyecto y agente, y no solo agente:* un agente vive dentro de
+un proyecto GCP concreto: hace falta saber en cuál para construir la URL
+de la API de CX (C3). El repo es el único que se infiere, porque es lo
+único que depende de una tabla propia (Firestore) en vez de la propia
+identidad del recurso en CX.
 
 ### El estado entre pasos
 
@@ -170,40 +174,35 @@ propio gate cada uno; ahora van juntas y en orden dentro del último.
 
 ## 4. Onboarding de un proyecto nuevo
 
-Las instrucciones viven **en el Paso 1 del panel**, no en un documento aparte.
+~~Las instrucciones viven en el Paso 1 del panel... tabla de 11 pasos,
+Jero crea el repositorio, la carpeta, `agent.yaml` y la rama a mano antes
+de tocar el panel...~~ — **Sustituido por S22/S23 (§11, hallazgo de la
+ronda adversarial, corregido 2026-08-05).** Ese wizard es posterior a esta
+tabla y nunca se marcó como sustituto — describían dos formas de dar de
+alta un proyecto incompatibles entre sí.
 
-*Por qué ahí:* es donde se necesitan. Nadie recuerda una lista que usa tres
-veces al año.
+**Flujo real, hoy:**
 
 | # | Dónde | Acción |
 |---|---|---|
-| 1 | Dialogflow CX | Crear el agente |
-| 2 | Dialogflow CX | Crear el entorno de **producción** |
-| 3 | Local | Crear el repositorio con su marcador, la carpeta de definiciones, el archivo del agente y la rama de trabajo |
-| 4 | Local | Escribir el identificador del proyecto en el archivo del agente |
-| 5 | Local | Subir a GitHub |
-| 6 | Panel · Paso 1 | Elegir el agente → el panel detecta que no tiene repositorio vinculado |
-| 7 | Panel · Paso 1 | Vincularlo → el panel guarda el mapeo y avisa de traer los cambios a local |
-| 8 | Local | Traer los cambios |
-| 9 | Panel · Paso 2 | Traer al repositorio lo que solo está en el agente |
-| 10 | Local | Traer los cambios |
-| 11 | Panel | Pipeline listo |
+| 1 | Dialogflow CX | Crear el agente (manual, no se automatiza) |
+| 2 | Dialogflow CX | Crear el entorno de **producción** (manual, a propósito — ver por qué abajo) |
+| 3 | Panel · pestaña Proyectos | Wizard: **ID de agente + URL de repo** → el servidor crea la estructura, el `cx-deploy.yaml` (S23), registra el mapeo en Firestore (S4) y hace el `pull` inicial (S22) |
+| 4 | Local | Ejecutar el comando IAM que muestra el wizard (S6b) |
+| 5 | Local | `git pull` — el servidor ya escribió en GitHub |
+| 6 | Panel | Pipeline listo |
 
-**El entorno no se crea automáticamente** (paso 2). *Por qué:* el panel es
-para desplegar, no para crear infraestructura — y crearlo sería una
-escritura en el agente fuera de todos los gates.
+**El entorno de producción no se crea automáticamente** (paso 2), y esto
+no cambió con S22/S23. *Por qué:* el panel es para desplegar, no para
+crear infraestructura — y crearlo sería una escritura en el agente fuera
+de todos los gates.
 
 ---
 
 ## 5. Lo que aún no se ha medido
 
-Tres cosas, todas de una sola comprobación. Ninguna bloquea la redacción del playbook, pero **ninguna debe darse por buena sin medirla** — en el intento 1 cuatro afirmaciones heredadas resultaron falsas al comprobarlas.
-
-| Qué | Por qué importa |
-|---|---|
-| **IAP directo en Cloud Run** en `europe-west1` | La alternativa es un balanceador, que tiene **coste fijo mensual** y rompe la propiedad de "escala a cero y no cobra" |
-| **ADC + `x-goog-user-project` desde el Mac** | `cx_client.py:77` afirma que ADC *"causó problemas en Sprint 1"* y nunca se volvió a comprobar. Sospecha: faltaba esa cabecera, hoy obligatoria. Medir antes de reescribir CLAUDE.md §3 |
-| **Ruido de formato del `pull`** | Los YAMLs generados desde CX deben salir con la misma forma que `definitions/` — sin los campos que gestiona el servidor y con los que solo existen en el repo (`openapi_spec_file`, `id`, `playbook`, `flow`, `start_playbook_id`). Si no, cada `pull` produce un diff enorme de cambios que no son cambios. Primera medición antes de declarar el `pull` funcional |
+Ninguna pendiente — las dos que había (IAP directo en Cloud Run, ruido de
+formato del `pull`) se midieron el 2026-08-06. Ver §6.
 
 ---
 
@@ -218,8 +217,10 @@ Registrados para que no se vuelvan a discutir de memoria.
 | "Una instancia de Cloud Run reproduce el lock global" | **Falso.** Encola, no rechaza |
 | "El diff solo toca lo que cambió" | **Incompleto.** Hace *"POST lo que falta, PATCH lo que cambió, DELETE lo que sobra"* (`act_cx_resources_deploy.py:366`) y construye un DELETE por cada recurso de CX ausente del repo (línea 397). Con el repo vacío, propone borrar el agente entero |
 | "El `pull` solo necesita completarse" | **No basta.** Los recursos que solo existen en CX están marcados `"traible": False` (línea 892): el botón se niega a traerlos por diseño. Hay que levantar la restricción explícitamente |
-| `cx_client.py:77` — "ADC causó problemas en Sprint 1" | **Sin medir.** Afirmación heredada. Ver §5 |
+| `cx_client.py:77` — "ADC causó problemas en Sprint 1" | **Verificado, 2026-08-06.** Con `x-goog-user-project`, ADC funciona igual que `gcloud auth print-access-token` (200 OK); sin la cabecera, 403 — el fallo de Sprint 1 era casi con toda seguridad la cabecera que faltaba, no ADC en sí |
 | Nombres de los entornos | `staging` y `production`, verificado en `definitions/environments/` |
+| **IAP directo en Cloud Run**, sin balanceador | **Verificado, 2026-08-06** contra la documentación oficial de Google Cloud. Se habilita con un solo flag (`gcloud run deploy --iap`), sin coste fijo mensual (sin balanceador, IP estática ni certificado aparte). Los propios ejemplos de la documentación usan `europe-west1` — la misma región de este proyecto |
+| **Ruido de formato del `pull`** | **Verificado, 2026-08-06**, de forma indirecta pero repetida: las comparaciones de contenido de hoy entre CX y el repo (9 playbooks, 2 intents, 2 environments, 1 tool, 1 flow, 45 examples — más de 60 recursos) dieron cero diferencias espurias, excluyendo solo los campos ya conocidos como locales (`metadata`, `id`, `playbook`, `openapi_spec_file`) |
 
 ---
 
