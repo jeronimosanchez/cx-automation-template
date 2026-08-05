@@ -73,7 +73,7 @@ Panel HTML (Mac de Jero)
 ### Cuenta de servicio
 - **ID:** `act-cloudrun-sa@cloud-run-multiproyecto.iam.gserviceaccount.com`
 - **Permisos:** `roles/dialogflow.admin` sobre los proyectos CX registrados
-- **Nota sobre multi-proyecto:** cuando Jero registra un nuevo proyecto CX en el panel, el tool concede automáticamente `dialogflow.admin` a esta cuenta sobre ese proyecto. Jero solo introduce el ID del proyecto — el tool hace el IAM por dentro.
+- **Nota sobre multi-proyecto:** el servidor **no concede IAM automáticamente** (decisión S6b — evita que un servicio con URL pública tenga poder de modificar permisos sobre proyectos GCP ajenos, y respeta `CLAUDE.md §7.1`). Cuando Jero registra un proyecto CX nuevo en el wizard de onboarding, el panel calcula y muestra el comando `gcloud` exacto — con el ID del proyecto ya escrito y el nombre de esta cuenta de servicio ya puesto — y Jero lo ejecuta una vez, fuera del panel (S11, S22).
 
 ### Secret Manager
 - **Secreto:** `github-app-private-key` en proyecto `cloud-run-multiproyecto`
@@ -174,4 +174,4 @@ Ver `docs/plan_cloudrun_multiproyecto.md` §6 Fase B para el detalle completo. R
 - Pieza local mínima sigue existiendo (limitación técnica, no decisión) ✅
 - `CLAUDE.md §6` actualizado: pipeline puede ser local o Cloud Run ✅
 - La opción local se elimina cuando Jero lo decida explícitamente (no hay fecha) ✅
-- Permisos IAM hacia nuevos proyectos CX: el tool los gestiona automáticamente al registrar un proyecto, Jero no hace pasos manuales ✅
+- Permisos IAM hacia nuevos proyectos CX: el servidor **no** los concede — el panel calcula y muestra el comando `gcloud` en el wizard de onboarding, y Jero lo ejecuta una vez, fuera del panel (S6b, S11, S22) ✅
