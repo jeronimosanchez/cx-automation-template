@@ -657,360 +657,44 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <div id="spec-step-1">
         <div class="spec-step-title">Paso 1 — Inventario CX</div>
-
         <div class="spec-block">
-          <div class="spec-block-label">1.1 — Qué hace</div>
-          <p>Construye el punto de partida del pipeline, y hace tres cosas: averigua qué repositorio corresponde al agente elegido, fotografía el draft de CX y lee el repositorio entero para emparejar cada resource con su archivo. Lo que sale no es una lista de lo que hay en CX, sino el mapa de qué está en los dos sitios, qué solo en CX y qué solo en el repositorio.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">1.2 — Por qué existe</div>
-          <p>Sin saber el estado actual no hay nada contra qué comparar. Pero una foto de CX a secas tampoco basta: hasta que cada resource no está emparejado con su archivo, no se puede distinguir un cambio de un resource nuevo, ni un renombrado de un borrado más una creación. El emparejamiento se hace aquí para que después, al llegar al Paso 3, solo haya que comparar el contenido de cada pareja.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">1.3 — Qué produce</div>
-          <p>El mapa del agente en tres grupos —emparejados, solo en CX, solo en el repositorio— con el archivo de cada uno. Lleva dentro el proyecto, el agente, el repositorio, el commit de <code>staging</code> del que se leyó y la marca de tiempo.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">1.4 — Qué escribe y dónde</div>
-          <p><strong>Nada.</strong> Consulta el mapeo agente-repositorio, lee CX y lee GitHub, pero no modifica ninguno de los tres. Cada paso lleva en la cabecera una etiqueta que dice qué toca: aquí es <em>solo lectura</em>; en el Paso 2, <em>escribe en el repositorio</em>; en el 3, <em>escribe en CX</em>.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">1.5 — Resolución del repositorio</div>
-          <p>Al elegir el agente aparece su repositorio. No hay selector: el mapeo lo guarda el servidor, y un agente tiene como máximo un repositorio — eso es lo que impide que dos repositorios reclamen el mismo agente.</p>
-          <p>Si el agente no tiene ninguno, se muestra el aviso y el botón de iniciar queda deshabilitado. Si <strong>ningún</strong> agente del proyecto lo tiene, el aviso aparece arriba al elegir proyecto, para no tener que recorrerlos uno a uno para descubrirlo.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">1.6 — Comprobación de conexión</div>
-          <p>Primera línea del log. Verifica credenciales y acceso al agente antes de lanzar ninguna lectura. Si falla aquí, el error es inmediato y distingue las dos causas —sin credenciales, o sin permiso sobre ese proyecto— en vez de aparecer a mitad del inventario como un 401 sin contexto.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">1.7 — Foto de CX</div>
-          <p>Una lectura por cada tipo de resource declarado, sobre el <strong>borrador</strong> del agente — el estado editable, no ninguna de las versiones publicadas. Los tipos salen del registro, así que el número no es fijo.</p>
-          <p>Si una lectura falla, se aborta. Mejor sin datos que con datos parciales: un inventario incompleto produce un diff que propone crear lo que ya existe.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">1.8 — Lectura del repositorio</div>
-          <p>Se leen <strong>todos</strong> los YAML del repositorio, de forma recursiva. La estructura de carpetas es libre y no significa nada: cada archivo declara en su metadata qué tipo de resource es, de quién cuelga y a qué resource de CX corresponde.</p>
-          <p>La lectura entra en todas las carpetas, por hondas que sean. Si se quedara en el primer nivel dejaría fuera todo lo anidado, y ahí es donde viven los examples, que cuelgan de su playbook.</p>
-          <p>Dos situaciones paran el paso con error explícito, nunca en silencio: un archivo <strong>sin tipo</strong> —sería invisible para el pipeline— y dos archivos con el <strong>mismo identificador de CX</strong>, que es lo que ocurre al duplicar un archivo y olvidar vaciarlo.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">1.9 — Emparejamiento</div>
-          <p>Cada resource de CX se empareja con su archivo <strong>por identificador</strong>, no por nombre ni por ubicación. El resultado son los tres grupos, cada uno desplegable para ver la lista completa.</p>
-          <p>Yendo por nombre, renombrar algo en CX parecería un recurso borrado más uno creado, y el pipeline propondría destruir y recrear en vez de cambiar un campo.</p>
-          <p><strong>Emparejado</strong> — está en CX y tiene archivo.<br>
-          <strong>Solo en CX</strong> — existe en el agente y ningún archivo lo reclama.<br>
-          <strong>Solo en el repositorio</strong> — tiene archivo pero aún no existe en CX, o su identificador ya no está allí.</p>
-        </div>
-
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">1.10 — Criterios de validación</div>
-          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
-          <p>✓ Si elijo un agente que no tiene repositorio, no me deja iniciar el inventario y me ofrece vincularlo ahí mismo<br>
-          ✓ Si ningún agente del proyecto tiene repositorio, me avisa nada más elegir el proyecto — no tengo que ir uno por uno para descubrirlo<br>
-          ✓ El log me deja distinguir las tres fases: la comprobación de conexión, lo que lee de CX y lo que lee del repositorio<br>
-          ✓ Al terminar veo tres grupos con su número, y los tres números suman el total que aparece debajo<br>
-          ✓ Puedo desplegar cualquiera de los tres grupos y ver la lista entera, no solo los primeros<br>
-          ✓ Cada elemento de "solo en el repositorio" me dice por qué está ahí: porque es nuevo, o porque lo que le correspondía en CX ya no está<br>
-          ✓ Si un archivo del repositorio no dice qué tipo de resource es, el inventario se para y me dice cuál es el archivo<br>
-          ✓ Si dos archivos apuntan al mismo resource de CX, se para y me dice cuáles son los dos<br>
-          ✓ Si el repositorio no tiene la rama que el pipeline usa, me lo dice con esas palabras — no con un error genérico<br>
-          ✓ Si falla la lectura de CX o la del repositorio, no me deja continuar con un mapa a medias<br>
-          ✓ Si el agente está vacío me lo dice, pero me deja seguir: un agente recién creado puede estar vacío legítimamente<br>
-          ✓ La cabecera dice "solo lectura", y al recorrer el paso entero no cambia nada ni en CX ni en el repositorio</p>
+          <div class="spec-block-label">Sin escribir</div>
+          <p style="color:var(--text-3)">Las specs de este paso están por redactar.</p>
         </div>
       </div>
+
       <div id="spec-step-2" style="display:none">
-        <div class="spec-step-title">Paso 2 — Traer al repositorio <span style="color:var(--text-3);font-weight:400;font-size:13px">· CX → repositorio</span></div>
-
+        <div class="spec-step-title">Paso 2 — Traer al repositorio</div>
         <div class="spec-block">
-          <div class="spec-block-label">2.1 — Qué hace</div>
-          <p>Al entrar se ve una tarjeta ámbar con la lista de lo que hay en CX y no está en el repositorio. Se marca lo que se quiera traer, y debajo un cuadro de acción dice cuántos van y a qué repositorio. Al pulsar, el sistema los escribe y confirma que el repositorio ha quedado actualizado.</p>
-          <p>La cabecera del paso lleva la etiqueta <em>escribe en el repositorio</em>, porque eso es lo que hace.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">2.2 — Por qué existe</div>
-          <p>Va antes del deploy a propósito. Si primero te traes lo que falta, el repositorio queda completo y lo que despliegues después sale de un retrato fiel del agente. Al revés, desplegarías desde un repositorio al que le faltan piezas.</p>
-          <p>El número en naranja está para eso: recordar que cada cosa que no te traigas es un trozo del agente que el repositorio deja de conocer.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">2.3 — Qué produce</div>
-          <p>Archivos nuevos en el repositorio. En pantalla queda el registro de cuáles se crearon y con qué commit, un mensaje de <strong>repositorio actualizado</strong>, y el recordatorio de hacer <code>git pull</code> en local.</p>
-          <p>La lista de arriba se queda con lo que no te llevaste, y el número en naranja baja.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">2.4 — Qué escribe y dónde</div>
-          <p>En el repositorio, y solo al pulsar el botón de traer: entrar en el paso y marcar casillas no escribe nada.</p>
-          <p><strong>En CX no escribe nada, ni siquiera al confirmar una eliminación.</strong> Confirmar aquí solo apunta el borrado para el Paso 3, que es el único paso que toca el agente.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">2.5 — La deriva</div>
-          <p>El número en naranja encabeza el bloque: es la señal de que el repositorio se está separando del agente. Aparece siempre, aunque se decida no traer nada.</p>
-          <p><strong>Nada viene marcado.</strong> Traer archivos al repositorio es una escritura, y ninguna escritura debería ocurrir por inercia. Lo que no marques se queda como está — por eso no hace falta un botón de ignorar.</p>
-          <p>Los resources nativos de la plataforma salen deshabilitados y con el motivo: no tienen definición que guardar.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">2.6 — El cuadro de acción</div>
-          <p>Debajo de la tarjeta, un cuadro de <strong>acción requerida</strong> que recuerda a qué repositorio y a qué rama se va a escribir, cuántos resources van de los marcados, y qué pasa con los que no: se quedan solo en CX, y el repositorio deja de retratar el agente entero.</p>
-          <p>Los botones de acción viven dentro de ese cuadro. Los dos arrancan desactivados y se activan al marcar algo.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">2.7 — La traída</div>
-          <p>Al pulsar, el sistema escribe de verdad y lo va contando en una caja de tamaño fijo: qué archivo crea, en qué repositorio y en qué rama, y con qué commit queda.</p>
-          <p>Una acción que escribe fuera no puede terminar en un aviso y ya: hace falta ver qué se escribió y en qué estado queda el repositorio después.</p>
-          <p>Al terminar, confirma que <strong>el repositorio está actualizado</strong> y recuerda hacer <code>git pull</code> en local, porque la copia de trabajo se ha quedado un commit por detrás. Las filas traídas desaparecen de la lista y el contador de deriva baja.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">2.8 — Continuar sin modificar</div>
-          <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado mientras esté. Pasar sin traer nada es una salida legítima, no un callejón — y con nada marcado por defecto, es la que más se va a usar. Está fuera del cuadro a propósito: no es una de las acciones, es la alternativa a todas ellas.</p>
-          <p><strong>Desaparece en cuanto se ejecuta la acción.</strong> Una vez traído algo, ya se ha modificado, y ofrecer "continuar sin modificar" sería mentir. En su lugar aparece un continuar normal.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">2.9 — Eliminar de CX</div>
-          <p>La otra salida para la deriva. Sobre lo marcado, abre un panel que enseña la lista concreta antes de pedir confirmación.</p>
-          <p><strong>Confirmar no borra nada todavía</strong>: apunta esos resources para que se borren en el Paso 3, junto con el resto de escrituras en el agente, para que todo lo que se escribe en CX se decida en un solo sitio. La pantalla lo dice con esas palabras — "se borrarán al aplicar, en el Paso 3", nunca "se van a eliminar".</p>
-          <p>El contador de deriva baja porque esos resources ya no son deriva: tienen destino decidido. En el Paso 3 aparecen sin marcar, como todo lo demás.</p>
-        </div>
-
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">2.10 — Criterios de validación</div>
-          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
-          <p>✓ La cabecera dice de dónde a dónde va el dato: de CX al repositorio<br>
-          ✓ Al entrar, no hay nada marcado<br>
-          ✓ El pie me dice cuántos van de cuántos, y cambia al marcar o desmarcar<br>
-          ✓ Si no marco nada, el pie me lo dice con palabras, no con un cero<br>
-          ✓ Hay una casilla para marcarlos todos de una vez<br>
-          ✓ El número de resources sin respaldo va en naranja y se ve antes que la lista<br>
-          ✓ Lo que no se puede traer aparece deshabilitado y me dice por qué<br>
-          ✓ Al pulsar eliminar me enseña la lista concreta antes de que confirme, y puedo cancelar<br>
-          ✓ Al confirmar la eliminación, el contador baja y esos resources aparecen en el paso siguiente<br>
-          ✓ Si me quedo sin deriva, el aviso naranja se convierte en confirmación de que no queda nada suelto<br>
-          ✓ Debajo de la tarjeta hay un cuadro de acción que me recuerda a qué repositorio y a qué rama voy a escribir<br>
-          ✓ Ese cuadro me dice cuántos van y qué pasa con los que no marco<br>
-          ✓ Los botones de traer y de eliminar están dentro del cuadro, y desactivados hasta que marco algo<br>
-          ✓ "Continuar sin modificar" está fuera del cuadro y nunca se bloquea<br>
-          ✓ Al pulsar traer, veo lo que se está escribiendo, no un aviso y ya<br>
-          ✓ Al terminar me confirma que el repositorio está actualizado y me recuerda hacer git pull<br>
-          ✓ Lo traído desaparece de la lista y el contador de deriva baja<br>
-          ✓ Una vez he traído algo, "continuar sin modificar" desaparece y en su sitio hay un continuar normal<br>
-          ✓ Este paso y el siguiente se leen igual: misma tarjeta, mismo cuadro, misma salida</p>
+          <div class="spec-block-label">Sin escribir</div>
+          <p style="color:var(--text-3)">Las specs de este paso están por redactar.</p>
         </div>
       </div>
 
       <div id="spec-step-3" style="display:none">
-        <div class="spec-step-title">Paso 3 — Aplicar en CX <span style="color:var(--text-3);font-weight:400;font-size:13px">· repositorio → CX</span></div>
-
+        <div class="spec-step-title">Paso 3 — Aplicar en CX</div>
         <div class="spec-block">
-          <div class="spec-block-label">3.1 — Qué hace</div>
-          <p>Al entrar se ve una tarjeta azul con la lista de lo que va a cambiar en el agente: qué resource, de qué archivo sale y si se va a crear, modificar o eliminar. Se marca lo que se quiera aplicar, y el cuadro de acción de debajo recuerda sobre qué proyecto y agente se va a escribir.</p>
-          <p>Al pulsar, la lista deja paso a un registro que va contando resource por resource cómo ha ido.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.2 — Por qué existe</div>
-          <p>Es el primer paso que toca el agente, así que es donde se decide de verdad. Todo lo anterior era leer, ordenar y traer.</p>
-          <p>Por eso nada viene marcado y el botón arranca apagado: hay que decir explícitamente qué se aplica.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.3 — Qué produce</div>
-          <p>El <strong>draft</strong> del agente actualizado. En pantalla queda el registro de qué se aplicó y qué falló, y si algo falla se puede reintentar solo lo fallido sin repetir lo que ya salió bien.</p>
-          <p>El draft es el estado editable del agente: ningún usuario lo ve. Por eso terminar aquí es un final legítimo del pipeline — se pueden acumular cambios durante días y decidir más adelante si se publican.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.4 — Qué escribe y dónde</div>
-          <p>En el draft del agente, y solo al pulsar. No toca producción —eso es el paso siguiente— ni el repositorio.</p>
-          <p>El draft es el estado editable del agente: ningún usuario ve lo que se escribe aquí hasta que se publique.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.5 — Lo que se va a aplicar</div>
-          <p>Una fila por resource, con su tipo, su nombre, el archivo del que sale y qué se le va a hacer: <strong>crear</strong> lo que aún no existe, <strong>modificar</strong> lo que existe y el archivo dice distinto, <strong>eliminar</strong> lo que se decidió borrar en el paso anterior.</p>
-          <p><strong>Nada viene marcado</strong>, y el botón de aplicar está bloqueado hasta que se marque algo. Escribir en el agente no debería poder ocurrir por inercia.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.6 — El cuadro de acción</div>
-          <p>Debajo de la tarjeta, un cuadro de <strong>acción requerida</strong> que recuerda sobre qué proyecto y qué agente se va a escribir, y cuántos resources van de los marcados. El botón de aplicar vive dentro y arranca bloqueado.</p>
-          <p>Misma estructura que el Paso 2 en sentido contrario: tarjeta, cuadro de acción, y fuera la salida sin modificar.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.7 — Continuar sin modificar</div>
-          <p><strong>Fuera del cuadro de acción</strong>, y nunca bloqueado mientras esté. Se puede pasar sin aplicar nada — por ejemplo si solo se quería traer cosas al repositorio.</p>
-          <p><strong>Desaparece al aplicar.</strong> Igual que en el Paso 2: una vez modificado, ofrecer no modificar sería mentir.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.8 — El aviso de los cambios que no admiten versión</div>
-          <p>Hay unos pocos tipos de resource que no admiten versión. Si entre lo marcado hay alguno, se avisa antes de confirmar: ese cambio no se queda en el draft — lo verán los usuarios en el mismo instante en que lo apliques, sin pasar por los tests.</p>
-          <p>El aviso no bloquea, pero es el único caso del pipeline en el que el Paso 4 no protege nada.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.9 — De dónde sale esta lista</div>
-          <p>Del mapa del Paso 1, comparando el contenido de cada resource emparejado con el de su archivo, más las eliminaciones decididas en el Paso 2. La comparación se hace <strong>al entrar en este paso</strong>, no antes: así lo que se acaba de traer al repositorio ya cuenta como igual en los dos sitios y no aparece como cambio.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">3.10 — Lo que no se marca</div>
-          <p>Lo que no se marca no se aplica y no desaparece: sigue siendo una diferencia entre el repositorio y el agente. Al terminar, la lista se queda en pantalla, cada fila dice si se aplicó o si quedó fuera, y las casillas dejan de poder tocarse — el paso ya está hecho. Para aplicar lo que quedó fuera hay que arrancar el pipeline de nuevo: volverá a leer y a recalcular las diferencias, así que lo pendiente reaparecerá.</p>
-        </div>
-
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">3.11 — Criterios de validación</div>
-          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
-          <p>✓ La cabecera dice de dónde a dónde va el dato: del repositorio a CX<br>
-          ✓ Al entrar, no hay nada marcado y el botón de aplicar está bloqueado<br>
-          ✓ En cuanto marco algo, el botón se activa y el contador del aviso cuadra con lo marcado<br>
-          ✓ Cada fila me dice de qué archivo sale el cambio<br>
-          ✓ Veo las tres operaciones posibles y la leyenda me explica cada una<br>
-          ✓ Las eliminaciones que decidí en el paso anterior aparecen aquí<br>
-          ✓ Debajo de la tarjeta hay un cuadro de acción que me recuerda sobre qué proyecto y qué agente voy a escribir<br>
-          ✓ El botón de aplicar está dentro del cuadro; "Continuar sin modificar" está fuera y nunca se bloquea<br>
-          ✓ Una vez he aplicado algo, "continuar sin modificar" desaparece: ya he modificado<br>
-          ✓ Este paso y el anterior se leen igual: misma tarjeta, mismo cuadro, misma salida<br>
-          ✓ Si hay cambios que no admiten versión, me avisa antes de confirmar<br>
-          ✓ Mientras se aplica veo el avance recurso a recurso, no una barra sin detalle<br>
-          ✓ En el registro solo aparecen los resources que marqué, y aparecen todos<br>
-          ✓ Si algo falla, me dice qué se aplicó y qué no, y puedo reintentar solo lo fallido<br>
-          ✓ Al terminar entiendo que he cambiado el draft, no lo que ven los usuarios<br>
-          ✓ Puedo continuar sin aplicar nada: hay un botón que lo dice con esas palabras y nunca está bloqueado<br>
-          ✓ Puedo quedarme aquí: terminar en draft es un final válido, no un pipeline a medias</p>
+          <div class="spec-block-label">Sin escribir</div>
+          <p style="color:var(--text-3)">Las specs de este paso están por redactar.</p>
         </div>
       </div>
 
       <div id="spec-step-4" style="display:none">
         <div class="spec-step-title">Paso 4 — Validar tests</div>
-
         <div class="spec-block">
-          <div class="spec-block-label">4.1 — Qué hace</div>
-          <p>Al entrar hay un cuadro que pide lanzar la suite de QA por tu cuenta contra el draft y volver aquí a decir cómo ha ido. Dos salidas: superados, que sigue al paso siguiente, o fallidos, que abre un aviso rojo con las opciones para corregir.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">4.2 — Por qué existe</div>
-          <p>El paso siguiente sube a producción. Este es el último punto donde alguien mira antes de que los cambios los vean usuarios reales.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">4.3 — Qué produce</div>
-          <p>Una decisión: seguir o volver atrás. Nada más — no crea ni modifica ningún resource.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">4.4 — Qué escribe y dónde</div>
-          <p><strong>Nada.</strong> Es un punto de decisión, no una operación.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">4.5 — Es una declaración, no una comprobación</div>
-          <p>El panel <strong>no lanza los tests ni conoce su resultado</strong>. Los lanzas tú fuera y aquí dices lo que ha pasado. La pantalla lo dice con esas palabras, para que nadie confunda el botón con una verificación.</p>
-          <p><strong>Es la limitación conocida del paso:</strong> pulsar "superados" sin haberlos lanzado lleva directo al gate de producción y nada lo detecta. Se asume mientras el runner de QA viva fuera del panel; el día que se pueda invocar desde aquí, este paso pasa a comprobar en vez de preguntar.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">4.6 — Se prueba contra el draft</div>
-          <p>No hace falta crear ninguna versión ni publicar en ningún entorno intermedio: se prueba el draft, que es donde acabas de aplicar los cambios.</p>
-          <p>Es una propiedad del agente, comprobada: se le puede conversar y se le pueden lanzar casos de prueba sin decirle contra qué versión, y entonces responde con el draft. Lo contrario vale para el tráfico real — eso siempre debe apuntar a una versión, y de eso se encarga el Paso 5.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">4.7 — Si fallan, no se revierte nada</div>
-          <p>Los cambios están en el draft, que es tu espacio de trabajo y no lo ve ningún usuario. Ante un fallo no hay nada que deshacer: se corrigen los archivos y se vuelve a aplicar.</p>
-          <p><strong>Por qué no hay botón de revertir:</strong> revertir el draft sería destructivo y a ciegas — se llevaría todo lo acumulado, no solo lo que ha fallado, y no hay forma de saber qué estado anterior era bueno. Arreglar hacia delante es la única salida que no pierde trabajo.</p>
-          <p>Al marcar fallidos, la pantalla no ofrece revertir. Ofrece dos salidas: <strong>terminar aquí</strong> —los cambios se quedan en el draft, que no ve nadie— o <strong>volver al cuadro de validación</strong>, para cuando hayas corregido y reprobado sin salir del panel.</p>
-        </div>
-
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">4.8 — Criterios de validación</div>
-          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
-          <p>✓ Me dice que el paso siguiente sube a producción, antes de pedirme nada<br>
-          ✓ Me dice con todas las letras que el panel no lanza los tests y que lo que marque es una declaración mía<br>
-          ✓ Tengo un enlace para abrir el agente y probarlo<br>
-          ✓ Hay dos salidas claras, superados y fallidos, y ninguna viene elegida de antemano<br>
-          ✓ Si marco fallidos, no se me ofrece revertir nada — y el texto explica por qué<br>
-          ✓ Si marco fallidos, puedo volver a aplicar o volver a marcar cuando haya reprobado<br>
-          ✓ No puedo llegar a producción sin pasar por aquí</p>
+          <div class="spec-block-label">Sin escribir</div>
+          <p style="color:var(--text-3)">Las specs de este paso están por redactar.</p>
         </div>
       </div>
 
       <div id="spec-step-5" style="display:none">
         <div class="spec-step-title">Paso 5 — Publicar en producción</div>
-
         <div class="spec-block">
-          <div class="spec-block-label">5.1 — Qué hace</div>
-          <p>Al entrar hay un nombre de versión ya propuesto y un cuadro de confirmación que enumera las tres cosas que van a ocurrir, en orden. Al pulsar, se van escribiendo en el log a medida que pasan.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">5.2 — Por qué existe</div>
-          <p>Es el único paso que afecta a usuarios reales, y por eso está separado de todo lo demás. Hasta aquí nada de lo hecho era visible fuera.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">5.3 — Qué produce</div>
-          <p>Una versión con el nombre que le hayas puesto, producción sirviéndola, y <code>main</code> al día con lo publicado.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">5.4 — Qué escribe y dónde</div>
-          <p>En CX y en <code>main</code>, y solo al confirmar. Es la escritura más consecuente del pipeline: la cabecera lo dice con la etiqueta <em>escribe en producción</em>.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">5.5 — Las tres acciones, en orden</div>
-          <p>Primero <code>staging</code> se fusiona en <code>main</code>, después se crea la versión con el draft actual, y solo entonces producción pasa a apuntar a ella.</p>
-          <p><strong>Para qué sirve <code>main</code>:</strong> una versión de CX es una foto dentro de Google — no se puede leer, ni comparar, ni abrir en un editor. <code>main</code> es el único retrato legible de lo que hay en producción. <code>staging</code> es donde trabajas; <code>main</code> es lo que está publicado.</p>
-          <p><strong>El orden importa:</strong> si se promoviera antes de fusionar y el merge fallara, producción estaría sirviendo algo cuyo código no está en <code>main</code>, y nadie podría reconstruir después qué se está ejecutando. Y la versión se crea aquí, no antes, para que no haya hueco entre lo que validaste y lo que se publica.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">5.6 — El aviso de draft movido</div>
-          <p>Si has aplicado algo al draft después de pasar los tests, aparece un aviso antes de confirmar: lo que vas a subir no es exactamente lo que probaste.</p>
-          <p>No bloquea — puede que el cambio sea trivial y lo sepas. Pero sin ese aviso el gate del Paso 4 dejaría de significar nada, porque nada garantizaría que lo validado y lo publicado son lo mismo.</p>
-        </div>
-
-        <div class="spec-block">
-          <div class="spec-block-label">5.7 — La versión se crea aquí</div>
-          <p>No antes. Se crea con el draft ya probado, en el mismo gesto que la publica, para que no haya hueco entre lo que se validó y lo que se sube.</p>
-          <p>Solo se versiona lo que ha cambiado; lo que no se ha tocado conserva la versión que ya tenía. Con un matiz que conviene no confundir: <strong>un resource se sube entero</strong> aunque solo cambie un campo suyo — lo que se evita es tocar los que no han cambiado en nada.</p>
-        </div>
-
-        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">5.8 — Criterios de validación</div>
-          <p>Cosas que tengo que poder comprobar mirando la pantalla:</p>
-          <p>✓ Me recuerda que esto afecta a usuarios reales, y se ve antes que el botón<br>
-          ✓ Me dice sobre qué proyecto y qué agente voy a escribir<br>
-          ✓ Me enumera las tres acciones y en qué orden ocurren, antes de confirmar<br>
-          ✓ Me propone un nombre de versión y puedo cambiarlo<br>
-          ✓ Si he tocado el draft después de los tests, me avisa — y aun así me deja seguir<br>
-          ✓ Mientras se publica veo cada acción a medida que ocurre<br>
-
-          ✓ Al terminar me da el comando para actualizar mi main local, con la ruta de mi repositorio dentro<br>
-          ✓ Ese comando no depende de dónde tenga abierto el terminal<br>
-          ✓ La ruta que escriba se recuerda para la próxima vez<br>
-          ✓ Cancelar me devuelve al principio sin haber tocado nada<br>
-          ✓ Al terminar entiendo que esto ya lo están viendo los usuarios</p>
+          <div class="spec-block-label">Sin escribir</div>
+          <p style="color:var(--text-3)">Las specs de este paso están por redactar.</p>
         </div>
       </div>
+
     </div>
     </div>
   </aside>
