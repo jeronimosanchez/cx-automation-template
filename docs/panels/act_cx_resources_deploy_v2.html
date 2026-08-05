@@ -565,6 +565,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="action-result">
           <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
           <div class="action-result-body">
+            <div class="action-result-title">Versi&oacute;n creada</div>
+            <div class="action-result-desc">Se cre&oacute; la versi&oacute;n <span class="snapshot-name-ref">—</span> con el estado del borrador en ese momento.</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
             <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
             <div class="action-result-desc">Producci&oacute;n sirve la versi&oacute;n <span class="snapshot-name-ref">—</span>. Los usuarios ya la ven.</div>
           </div>
@@ -717,44 +724,55 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-step-title">Paso 2 — Traer al repositorio</div>
         <div class="spec-block">
           <div class="spec-block-label">2.1 — Qué hace</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Enseña lo que existe en CX y ningún archivo del repositorio reclama, con una casilla por fila. Al marcar y pulsar <strong>Traer al repositorio</strong>, escribe esos archivos de verdad y lo cuenta en un registro. La otra salida, <strong>Eliminar de CX</strong>, apunta ese resource para que se borre en el Paso 3.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.2 — Por qué existe</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Va antes de aplicar nada a propósito: si primero se completa el repositorio, lo que se despliegue después sale de un retrato fiel del agente. Al revés, se desplegaría desde un repositorio con piezas de menos.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.3 — Qué produce</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Archivos nuevos en el repositorio, con un solo commit para todo lo traído en la misma pulsación. O, por la otra salida, recursos marcados para borrar que pasan al Paso 3 sin tocar CX todavía.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.4 — Qué escribe y dónde</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>En el repositorio, y solo al pulsar <strong>Traer al repositorio</strong>. En CX no escribe nada, ni siquiera al confirmar una eliminación: eso solo apunta el borrado para el Paso 3, que es el único paso que toca el agente.</p>
         </div>
                 <div class="mecanica-header">2.5 — Mecánica propia</div>
 <div class="spec-block">
           <div class="spec-block-label">2.5.1 — La deriva</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>El número en naranja cuenta solo lo que <strong>se puede</strong> traer. Lo nativo de la plataforma se lista aparte, deshabilitado y con su motivo, y no cuenta como deriva — no hay nada que hacer con ello.</p>
+          <p>Nada viene marcado por defecto: escribir en el repositorio no debería ocurrir por inercia. El aviso se mantiene siempre visible, aunque no quede nada que traer, para no perder de vista que el repositorio se aleja del agente.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.5.2 — El cuadro de acción</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Debajo de la tarjeta, un cuadro recuerda a qué repositorio y a qué rama se va a escribir, y cuántos van de los marcados. Los botones de traer y eliminar viven dentro, y arrancan apagados hasta marcar algo.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.5.3 — La traída</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Al pulsar, escribe de verdad y lo cuenta en un registro de tamaño fijo: qué archivo crea y con qué commit queda. Al terminar confirma que el repositorio está actualizado y recuerda hacer <code>git pull</code> en local — la copia de trabajo se ha quedado un commit por detrás.</p>
+          <p>Las filas traídas desaparecen de la lista y el número de deriva baja.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.5.4 — Continuar sin modificar</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Fuera del cuadro de acción, y nunca bloqueado mientras esté. Con nada marcado por defecto, es la salida que más se va a usar. Desaparece en cuanto se ejecuta alguna acción: una vez traído algo, ya se ha modificado, y ofrecer «sin modificar» sería mentir — en su sitio queda un continuar normal.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.5.5 — Eliminar de CX</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Sobre lo marcado, abre un panel que enseña la lista concreta antes de pedir confirmación. Confirmar no borra nada todavía: apunta esos resources para que se borren en el Paso 3, junto con el resto de lo que se escribe en CX, para que toda escritura en el agente se decida en un solo sitio.</p>
+          <p>Si lo marcado cambia mientras el panel está abierto, el panel se cierra: nunca pide confirmar una lista que ya no coincide con lo que hay en pantalla.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">2.6 — Criterios de validación</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>1. Nada viene marcado al entrar, y los botones de traer y eliminar están apagados hasta marcar algo.<br>
+2. El número de deriva cuenta solo lo que se puede traer; lo nativo aparece deshabilitado y no suma.<br>
+3. El cuadro de acción dice a qué repositorio y rama se escribe, y cuántos van de los marcados.<br>
+4. Traer al repositorio escribe de verdad, lo registra, y confirma con el recordatorio de <code>git pull</code>.<br>
+5. Lo traído desaparece de la lista y el número de deriva baja en la misma cantidad.<br>
+6. Eliminar de CX pide confirmación con la lista exacta antes de apuntar el borrado, y no toca CX en este paso.<br>
+7. Si lo marcado cambia con el panel de eliminar abierto, el panel se cierra solo.<br>
+8. Continuar sin modificar está fuera del cuadro, nunca bloqueado, y desaparece en cuanto se ejecuta una acción.<br>
+9. Al volver a este paso ya recorrido, se ve tal cual quedó: sin botones ni casillas que respondan.</p>
         </div>
       </div>
 
@@ -763,48 +781,59 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-step-title">Paso 3 — Aplicar en CX</div>
         <div class="spec-block">
           <div class="spec-block-label">3.1 — Qué hace</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Enseña, fila a fila, lo que el repositorio va a escribir en el agente: qué resource, de qué archivo sale y si se va a crear o modificar. Se marca lo que se quiera aplicar y se pulsa <strong>Aplicar en CX</strong>; el resto queda como diferencia pendiente.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.2 — Por qué existe</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Es el primer paso que toca el agente — todo lo anterior era leer, ordenar y traer. Por eso nada viene marcado y el botón arranca apagado: hay que decir explícitamente qué se escribe.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.3 — Qué produce</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>El <strong>borrador</strong> del agente actualizado con lo marcado, y un registro de qué se aplicó y qué falló. Ningún usuario ve este cambio todavía — eso es el Paso 5.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.4 — Qué escribe y dónde</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>En el borrador del agente, y solo al pulsar Aplicar. No toca producción ni el repositorio: lo primero es el paso 5, lo segundo ya quedó cerrado en el Paso 2.</p>
         </div>
                 <div class="mecanica-header">3.5 — Mecánica propia</div>
 <div class="spec-block">
           <div class="spec-block-label">3.5.1 — Lo que se va a aplicar</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Una fila por resource con su tipo, su nombre, el archivo del que sale y la operación: <strong>crear</strong> lo que aún no existe, <strong>modificar</strong> lo que existe y difiere. Las eliminaciones que se decidieron en el Paso 2 aparecen aquí también, sin archivo del que salgan — vienen decididas del paso anterior.</p>
+          <p>Nada viene marcado por defecto: escribir en el agente no debería ocurrir por inercia.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.5.2 — El cuadro de acción</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Debajo de la tabla, un cuadro recuerda sobre qué proyecto y qué agente se va a escribir, y cuántos resources van de los marcados. El botón de aplicar vive dentro y arranca apagado.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.5.3 — Continuar sin modificar</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Fuera del cuadro de acción, nunca bloqueado mientras esté. Desaparece en cuanto se aplica algo — una vez modificado, ofrecer «sin modificar» sería mentir.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.5.4 — El aviso de los cambios que no admiten versión</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Hay unos pocos tipos de resource que no admiten versión. Si entre lo marcado hay alguno, el cuadro avisa antes de confirmar: ese cambio no se queda en el borrador — lo verán los usuarios en el mismo instante en que lo apliques, sin pasar por los tests del Paso 4.</p>
+          <p>No bloquea, pero es el único caso del pipeline en el que el Paso 4 no protege nada.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.5.5 — De dónde sale esta lista</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Del mapa del Paso 1, comparando el contenido de cada resource emparejado con el de su archivo, más las eliminaciones decididas en el Paso 2. La comparación se hace al entrar en este paso — así lo que se acaba de traer al repositorio ya cuenta como igual en los dos sitios y no aparece como cambio.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.5.6 — Lo que no se marca</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>No se aplica y no desaparece: sigue siendo una diferencia entre el repositorio y el agente. Al terminar, la lista se queda en pantalla, cada fila dice si se aplicó o quedó fuera, y las casillas dejan de poder tocarse.</p>
+          <p>Para aplicarlo hay que arrancar el pipeline de nuevo: al releer, la diferencia pendiente vuelve a aparecer.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">3.6 — Criterios de validación</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>1. Nada viene marcado al entrar, y el botón de aplicar está apagado hasta marcar algo.<br>
+2. Cada fila dice de qué archivo sale el cambio; las eliminaciones dicen que vienen decididas del paso anterior.<br>
+3. El cuadro de acción dice sobre qué proyecto y agente se escribe, y cuántos van de los marcados.<br>
+4. Si hay cambios que no admiten versión, el cuadro avisa antes de confirmar.<br>
+5. Al aplicar, el registro cuenta exactamente los resources marcados — ni uno más, ni uno menos.<br>
+6. Terminado el paso, lo aplicado queda marcado como tal y lo que no se marcó sigue pendiente, visible y sin poder tocarse.<br>
+7. Continuar sin modificar está fuera del cuadro, nunca bloqueado, y desaparece en cuanto se aplica algo.<br>
+8. Si algo falla, se reintenta solo lo fallido y lo no intentado — nunca lo que ya salió bien.<br>
+9. Al volver a este paso ya recorrido, se ve tal cual quedó: sin botones ni casillas que respondan.</p>
         </div>
       </div>
 
@@ -813,36 +842,44 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-step-title">Paso 4 — Validar tests</div>
         <div class="spec-block">
           <div class="spec-block-label">4.1 — Qué hace</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Pide lanzar la suite de pruebas por cuenta propia contra el borrador y declarar aquí el resultado: <strong>Tests superados</strong> continúa al Paso 5, <strong>Tests fallidos</strong> abre un aviso con la salida para corregir.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">4.2 — Por qué existe</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>El paso siguiente sube a producción. Este es el último punto donde alguien mira antes de que los cambios lleguen a usuarios reales.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">4.3 — Qué produce</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Una decisión — seguir o corregir — nada más. No crea ni modifica ningún resource.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">4.4 — Qué escribe y dónde</div>
-          <p style="color:var(--text-3)">—</p>
+          <p><strong>Nada.</strong> Es un punto de decisión, no una operación.</p>
         </div>
                 <div class="mecanica-header">4.5 — Mecánica propia</div>
 <div class="spec-block">
           <div class="spec-block-label">4.5.1 — Es una declaración, no una comprobación</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>El panel no lanza los tests ni conoce su resultado: los lanza quien lo usa, fuera del panel, y aquí solo declara cómo han ido. La pantalla lo dice con esas palabras, para que nadie confunda el botón con una verificación.</p>
+          <p>Es la limitación conocida del paso: declarar «superados» sin haberlos lanzado llega directo al gate de producción y nada lo detecta.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">4.5.2 — Se prueba contra el draft</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>No hace falta crear ninguna versión ni publicar en ningún entorno intermedio para probar: se prueba el borrador, que es donde se acaban de aplicar los cambios.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">4.5.3 — Si fallan, no se revierte nada</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Los cambios están en el borrador, que es un espacio de trabajo y no lo ve ningún usuario. No hay nada que deshacer: se corrigen los archivos en el repositorio y se vuelve a aplicar.</p>
+          <p>Revertir el borrador sería destructivo y a ciegas — se llevaría todo lo acumulado, no solo lo que falló, y no hay forma de saber qué estado anterior era bueno.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">4.6 — Criterios de validación</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>1. El paso deja claro que el siguiente sube a producción, antes de pedir nada.<br>
+2. Dice con todas las letras que no lanza los tests: lo que se marque es una declaración propia.<br>
+3. Hay un enlace directo para abrir el agente y probarlo.<br>
+4. Ninguna de las dos salidas viene elegida de antemano.<br>
+5. Al declarar fallidos, no se ofrece revertir nada — el texto explica por qué.<br>
+6. Al declarar fallidos, se puede volver al cuadro de validación para declarar otra vez, o empezar de nuevo.<br>
+7. No hay forma de llegar al Paso 5 sin haber pasado por aquí.</p>
         </div>
       </div>
 
@@ -851,36 +888,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-step-title">Paso 5 — Publicar en producción</div>
         <div class="spec-block">
           <div class="spec-block-label">5.1 — Qué hace</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Propone un nombre de versión y, al confirmar, publica: fusiona el código validado, crea la versión con el borrador actual y apunta producción a ella. Debajo, un desplegable cerrado permite consultar y limpiar versiones anteriores.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">5.2 — Por qué existe</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Es el único paso que afecta a usuarios reales, y por eso está separado de todo lo demás: hasta aquí, nada de lo hecho era visible fuera del panel.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">5.3 — Qué produce</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Una versión con nombre, producción sirviéndola, y el código fusionado en la rama principal del repositorio.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">5.4 — Qué escribe y dónde</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>En CX y en el repositorio, y solo al confirmar. Es la escritura más consecuente del pipeline — por eso la cabecera lleva la etiqueta que lo advierte.</p>
         </div>
                 <div class="mecanica-header">5.5 — Mecánica propia</div>
 <div class="spec-block">
           <div class="spec-block-label">5.5.1 — Las tres acciones, en orden</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Primero el código se fusiona en la rama principal, después se crea la versión con el borrador actual, y solo entonces producción pasa a apuntar a ella.</p>
+          <p>El orden no es decorativo: si se promoviera antes de fusionar y el merge fallara, producción estaría sirviendo algo cuyo código no está en la rama principal, y nadie podría reconstruir después qué está corriendo.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">5.5.2 — El aviso de draft movido</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>Si el borrador ha cambiado desde que se declararon los tests superados, se avisa antes de confirmar: lo que se va a publicar no es exactamente lo que se probó. No bloquea — pero sin este aviso, el gate del Paso 4 no garantizaría nada.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">5.5.3 — La versión se crea aquí</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>No antes. Se crea con el borrador ya probado, en el mismo gesto que la publica, para que no haya hueco entre lo que se validó y lo que se sube.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">5.6 — Criterios de validación</div>
-          <p style="color:var(--text-3)">—</p>
+          <p>1. Antes de confirmar, se recuerda que la acción afecta a usuarios reales, y sobre qué proyecto y agente.<br>
+2. Se enumeran las tres acciones y su orden antes de confirmar.<br>
+3. Se propone un nombre de versión y se puede cambiar.<br>
+4. Si el borrador cambió después de declarar los tests, se avisa — y aun así se puede seguir.<br>
+5. Mientras se publica, se ve cada acción a medida que ocurre, con el mismo orden anunciado.<br>
+6. Al terminar, el resumen enumera las mismas tres acciones que anunció el cuadro de confirmación.<br>
+7. El comando para poner al día la copia local lleva la ruta propia dentro, y se recuerda entre publicaciones.<br>
+8. Se puede consultar y eliminar versiones existentes; las que un entorno está sirviendo no se dejan marcar.<br>
+9. Al terminar, queda claro que la publicación ya la están viendo los usuarios.</p>
         </div>
             
 </div>
