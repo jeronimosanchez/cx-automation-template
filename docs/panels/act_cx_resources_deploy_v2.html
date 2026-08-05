@@ -668,28 +668,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">1.4 — Qué escribe y dónde</div>
           <p><strong>Nada.</strong> Ni en el agente ni en el repositorio. Solo cambia lo que hay en pantalla, así que repetir el inventario da siempre el mismo resultado y equivocarse de agente no deja rastro.</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">1.5 — Resolución del repositorio</div>
+                <div class="mecanica-header">1.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">1.5.1 — Resolución del repositorio</div>
           <p>No hay selector de repositorio: se elige agente y el repositorio <strong>aparece resuelto</strong>, sin poder editarse. El agente de agente arranca bloqueado hasta elegir proyecto, y cambiar de proyecto borra el agente elegido.</p>
           <p>La caja muestra el repositorio y su rama, o un aviso de que ese agente no tiene repositorio, con un botón para vincularlo — que no vincula nada aquí, solo remite a otra pantalla.</p>
           <p>Sin repositorio resuelto, el botón de iniciar sigue apagado: no hay contra qué comparar. Si ningún agente del proyecto tiene repositorio, un aviso lo dice arriba antes de tener que descubrirlo uno a uno.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">1.6 — Comprobación de conexión</div>
+          <div class="spec-block-label">1.5.2 — Comprobación de conexión</div>
           <p>Primera línea del registro: credenciales y acceso al agente, antes de leer nada. Si falla, el paso se detiene ahí — todo lo que vendría después se apoya en ese mismo acceso.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">1.7 — Foto de CX</div>
+          <div class="spec-block-label">1.5.3 — Foto de CX</div>
           <p>Lee el <strong>borrador</strong> del agente, no lo que ven los usuarios. Reporta un desglose por tipo de recurso y el total del borrador, y los dos tienen que cuadrar.</p>
           <p>Es una foto fija de ese instante, no una suscripción: si el agente cambia después, hay que repetir el paso para verlo.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">1.8 — Lectura del repositorio</div>
+          <div class="spec-block-label">1.5.4 — Lectura del repositorio</div>
           <p>Lee una sola rama — la que resolvió el agente, no una que se elija aquí — y reporta de qué rama, de qué commit y cuántos archivos de definición encontró.</p>
           <p>El commit importa porque fija qué es «el repositorio» durante el resto de la ejecución: sin él, decir que algo difiere no significaría nada.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">1.9 — Emparejamiento</div>
+          <div class="spec-block-label">1.5.5 — Emparejamiento</div>
           <p>Todo lo leído cae en un solo grupo de tres:</p>
           <p><strong>Emparejados</strong> — están en el agente y un archivo los reclama. Que coincidan o no se decide en el Paso 3, no aquí.<br>
           <strong>Solo en CX</strong> — existen en el agente y ningún archivo los reclama. Incluye lo nativo del agente, que el Paso 2 filtra aparte.<br>
@@ -697,7 +698,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <p>Cada tarjeta enseña su número, una lista desplegable y no cambia nada al abrirse. El registro cierra con estos mismos tres números.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">1.10 — Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">1.6 — Criterios de validación</div>
           <p>1. El destino se elige en orden: sin proyecto no hay agente, y sin un agente con repositorio no se puede iniciar. Repositorio y rama nunca se editan a mano — los resuelve el agente elegido, y cambiar de agente los actualiza siempre.<br>
           2. Vincular no vincula nada aquí: remite a otra pantalla, y si ningún agente del proyecto tiene repositorio, lo avisa antes de tener que comprobarlo uno a uno.<br>
           3. El registro arranca comprobando conexión antes de leer nada; si falla, el paso se detiene ahí.<br>
@@ -710,7 +711,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
       </div>
 
-      <div id="spec-step-2" style="display:none">
+            
+<div id="spec-step-2" style="display:none">
         <div class="spec-step-title">Paso 2 — Traer al repositorio</div>
         <div class="spec-block">
           <div class="spec-block-label">2.1 — Qué hace</div>
@@ -728,33 +730,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">2.4 — Qué escribe y dónde</div>
           <p style="color:var(--text-3)">—</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">2.5 — La deriva</div>
+                <div class="mecanica-header">2.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">2.5.1 — La deriva</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">2.6 — El cuadro de acción</div>
+          <div class="spec-block-label">2.5.2 — El cuadro de acción</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">2.7 — La traída</div>
+          <div class="spec-block-label">2.5.3 — La traída</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">2.8 — Continuar sin modificar</div>
+          <div class="spec-block-label">2.5.4 — Continuar sin modificar</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">2.9 — Eliminar de CX</div>
+          <div class="spec-block-label">2.5.5 — Eliminar de CX</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">2.10 — Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">2.6 — Criterios de validación</div>
           <p style="color:var(--text-3)">—</p>
         </div>
       </div>
 
-      <div id="spec-step-3" style="display:none">
+            
+<div id="spec-step-3" style="display:none">
         <div class="spec-step-title">Paso 3 — Aplicar en CX</div>
         <div class="spec-block">
           <div class="spec-block-label">3.1 — Qué hace</div>
@@ -772,37 +776,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">3.4 — Qué escribe y dónde</div>
           <p style="color:var(--text-3)">—</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">3.5 — Lo que se va a aplicar</div>
+                <div class="mecanica-header">3.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">3.5.1 — Lo que se va a aplicar</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">3.6 — El cuadro de acción</div>
+          <div class="spec-block-label">3.5.2 — El cuadro de acción</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">3.7 — Continuar sin modificar</div>
+          <div class="spec-block-label">3.5.3 — Continuar sin modificar</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">3.8 — El aviso de los cambios que no admiten versión</div>
+          <div class="spec-block-label">3.5.4 — El aviso de los cambios que no admiten versión</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">3.9 — De dónde sale esta lista</div>
+          <div class="spec-block-label">3.5.5 — De dónde sale esta lista</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">3.10 — Lo que no se marca</div>
+          <div class="spec-block-label">3.5.6 — Lo que no se marca</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">3.11 — Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">3.6 — Criterios de validación</div>
           <p style="color:var(--text-3)">—</p>
         </div>
       </div>
 
-      <div id="spec-step-4" style="display:none">
+            
+<div id="spec-step-4" style="display:none">
         <div class="spec-step-title">Paso 4 — Validar tests</div>
         <div class="spec-block">
           <div class="spec-block-label">4.1 — Qué hace</div>
@@ -820,25 +826,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">4.4 — Qué escribe y dónde</div>
           <p style="color:var(--text-3)">—</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">4.5 — Es una declaración, no una comprobación</div>
+                <div class="mecanica-header">4.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">4.5.1 — Es una declaración, no una comprobación</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">4.6 — Se prueba contra el draft</div>
+          <div class="spec-block-label">4.5.2 — Se prueba contra el draft</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">4.7 — Si fallan, no se revierte nada</div>
+          <div class="spec-block-label">4.5.3 — Si fallan, no se revierte nada</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">4.8 — Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">4.6 — Criterios de validación</div>
           <p style="color:var(--text-3)">—</p>
         </div>
       </div>
 
-      <div id="spec-step-5" style="display:none">
+            
+<div id="spec-step-5" style="display:none">
         <div class="spec-step-title">Paso 5 — Publicar en producción</div>
         <div class="spec-block">
           <div class="spec-block-label">5.1 — Qué hace</div>
@@ -856,23 +864,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">5.4 — Qué escribe y dónde</div>
           <p style="color:var(--text-3)">—</p>
         </div>
-        <div class="spec-block">
-          <div class="spec-block-label">5.5 — Las tres acciones, en orden</div>
+                <div class="mecanica-header">5.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">5.5.1 — Las tres acciones, en orden</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">5.6 — El aviso de draft movido</div>
+          <div class="spec-block-label">5.5.2 — El aviso de draft movido</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">5.7 — La versión se crea aquí</div>
+          <div class="spec-block-label">5.5.3 — La versión se crea aquí</div>
           <p style="color:var(--text-3)">—</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">5.8 — Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">5.6 — Criterios de validación</div>
           <p style="color:var(--text-3)">—</p>
         </div>
-      </div>
+            
+</div>
 
     </div>
     </div>
