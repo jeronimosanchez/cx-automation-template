@@ -317,7 +317,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S9** | El servidor corre en **`cloud-run-multiproyecto`**, separado de los proyectos CX | Lo hace agnóstico: puede gestionar cualquier agente de cualquier proyecto | ✅ |
 | **S10** | Mantener `x-goog-user-project` y añadir **`serviceusage.services.use`** al SA | Con servidor y agentes en proyectos distintos, Google exige ese permiso para cargar la cuota al proyecto correcto | ✅ |
 | **S11** | Proyecto nuevo: crear en GCP → registrar en la pestaña Proyectos → ejecutar el comando IAM que muestra el panel | Libertad para añadir proyectos con **un solo paso manual**, documentado y bajo control de Jero | ✅ |
-| **S12** | Log de auditoría en **Firestore con timestamp** | El disco de Cloud Run es efímero: sin esto no queda rastro forense de qué se escribió en producción | ✅ |
+| **S12** | Log de auditoría en **Firestore con timestamp**, cada entrada indexada por `project` + `agent_id` + `tipo` además del `cx_id` | El disco de Cloud Run es efímero: sin esto no queda rastro forense de qué se escribió en producción. El `cx_id` de S18 solo es único **dentro de su propio agente y su propio tipo** — CX puede asignar el mismo ID a recursos de dos agentes distintos, y también a recursos de dos tipos distintos dentro del mismo agente (verificado dos veces: el Playbook orquestador de Petal y el Intent "Default Welcome Intent" comparten el ID `00000000-0000-0000-0000-000000000000`). Un log que guarde solo `cx_id` — o incluso `cx_id` + agente, sin el tipo — no podría distinguir a qué recurso pertenece cada entrada | ✅ |
 | **S13** | **Todos** los endpoints que escriben en CX pasan por el lock, sin excepción | `/versions/protect` y `/cx-repo-check` lo saltaban: se podía renombrar una versión mientras el Paso 5 la rotaba | ✅ |
 | **S13b** | El lock vive en **Firestore**, no `threading.Lock` | `threading.Lock` es por proceso: con más de una instancia no protege nada | ✅ |
 | ~~S14~~ | ~~Nombres de carpeta como convención fija~~ | **Sustituida por S19** — la estructura es libre y el tipo lo declara el propio YAML | ❌ |
@@ -388,6 +388,40 @@ Acotado porque el diff ya no propone DELETE.
 
 **Cambiar un template exige reconstruir la imagen**, al vivir en `/templates`
 dentro del contenedor (S21).
+
+**El bloque `metadata` nunca se compara ni se envía a CX — regla única, no
+una lista por tipo.** Cada YAML lleva `metadata: {tipo, padre, cx_id}` (S18)
+más el resto de sus campos sueltos al mismo nivel, sin envoltorio. La regla
+para el diff es: todo lo que está dentro de `metadata` se excluye de la
+comparación y del body que se manda a la API; todo lo que está fuera, se
+compara y se envía tal cual. Verificado con caso real: los 9 Playbooks de
+`definitions/playbooks/` ya llevan esta cabecera, con el `cx_id` real
+confirmado contra un `LIST /playbooks` en vivo — incluido el caso del
+Playbook orquestador, cuyo `cx_id` es `00000000-0000-0000-0000-000000000000`
+(ID real asignado por CX a ese rol, no un placeholder).
+
+**La clave de emparejamiento es `tipo` + `cx_id`, nunca `cx_id` suelto.**
+Verificado con caso real: el Playbook orquestador y el Intent "Default
+Welcome Intent" comparten el mismo `cx_id`
+(`00000000-0000-0000-0000-000000000000`) — cada tipo de recurso tiene su
+propio espacio de IDs en CX, no hay unicidad entre tipos. No hace falta un
+campo compuesto nuevo: como el servidor ya agrupa los YAML por `tipo` antes
+de comparar nada (S18), basta con que esa agrupación sea el paso previo
+obligatorio a cualquier búsqueda por `cx_id` — nunca buscar un `cx_id` en
+una bolsa que mezcle recursos de distinto tipo.
+
+**El emparejamiento pasa de `displayName` a `cx_id`, pero no puede migrar de
+golpe.** Mientras existan YAML sin `metadata.cx_id` en el repo, emparejar
+por `cx_id` los trataría como inexistentes en CX y el diff propondría
+crearlos de nuevo (viola idempotencia, `CLAUDE.md §3.4`). Decisión: migrar
+primero **todos** los YAML de un tipo con su cabecera de `metadata`, y solo
+entonces activar el emparejamiento por `cx_id` para ese tipo — sin lógica
+híbrida de transición, que quedaría como deuda permanente si nadie la
+retira después.
+
+**El `cx_id` es único solo dentro de su agente** (ver S12) — no sirve como
+clave si se llega a comparar o auditar entre agentes distintos sin
+acompañarlo siempre de `project` + `agent_id`.
 
 ---
 

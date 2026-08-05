@@ -1,3 +1,7 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: 9d0d211b-e39e-40cd-932b-b732caa62334
 displayName: Handoff
 goal: escalado a humano
 playbookType: ROUTINE

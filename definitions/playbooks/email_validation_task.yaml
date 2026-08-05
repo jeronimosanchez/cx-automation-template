@@ -1,3 +1,7 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: 8b7e9bac-6d38-4922-90c0-906621921037
 displayName: Email_Validation_Task
 goal: Validar el email del cliente (formato) y devolverlo al caller
 playbookType: TASK

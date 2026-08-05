@@ -1,3 +1,7 @@
+metadata:
+  tipo: intent
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000000
 displayName: Default Welcome Intent
 priority: 500000
 trainingPhrases:

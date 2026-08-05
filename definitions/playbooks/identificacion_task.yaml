@@ -1,3 +1,7 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: 16a48a05-aef4-44f3-a7f2-e9e42cb9e311
 displayName: Identificacion_Task
 goal: Identificar al cliente por email — validar formato, consultar perfil en BD y devolver datos de sesión al caller
 playbookType: TASK

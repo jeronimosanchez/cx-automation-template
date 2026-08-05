@@ -1,3 +1,7 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000000
 displayName: Petal CX Orchestrator
 goal: Identificar al cliente, entender su necesidad, detectar el registro de tono y transferir al playbook correcto. Sin ejecutar lógica de compra, registro ni checkout.
 playbookType: ROUTINE
