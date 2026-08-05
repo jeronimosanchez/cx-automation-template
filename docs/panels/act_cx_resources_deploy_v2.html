@@ -724,43 +724,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-step-title">Paso 2 — Traer al repositorio</div>
         <div class="spec-block">
           <div class="spec-block-label">2.1 — Qué hace</div>
-          <p>Enseña lo que existe en CX y ningún archivo del repositorio reclama, con una casilla por fila. Al marcar y pulsar <strong>Traer al repositorio</strong>, escribe esos archivos de verdad y lo cuenta en un registro. La otra salida, <strong>Eliminar de CX</strong>, apunta ese resource para que se borre en el Paso 3.</p>
+          <p>Enseña lo que existe en CX y ningún archivo del repositorio reclama, con una casilla por fila. Al marcar y pulsar <strong>Traer al repositorio</strong>, escribe esos archivos de verdad. La otra salida, <strong>Eliminar de CX</strong>, apunta el resource para que se borre en el Paso 3.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.2 — Por qué existe</div>
-          <p>Va antes de aplicar nada a propósito: si primero se completa el repositorio, lo que se despliegue después sale de un retrato fiel del agente. Al revés, se desplegaría desde un repositorio con piezas de menos.</p>
+          <p>Va antes de aplicar nada a propósito: si primero se completa el repositorio, lo que se despliegue después sale de un retrato fiel del agente — no de uno con piezas de menos.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.3 — Qué produce</div>
-          <p>Archivos nuevos en el repositorio, con un solo commit para todo lo traído en la misma pulsación. O, por la otra salida, recursos marcados para borrar que pasan al Paso 3 sin tocar CX todavía.</p>
+          <p>Archivos nuevos en el repositorio, con un solo commit para todo lo traído en la misma pulsación. O, por la otra salida, recursos apuntados para borrar que pasan al Paso 3 sin tocar CX todavía.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.4 — Qué escribe y dónde</div>
-          <p>En el repositorio, y solo al pulsar <strong>Traer al repositorio</strong>. En CX no escribe nada, ni siquiera al confirmar una eliminación: eso solo apunta el borrado para el Paso 3, que es el único paso que toca el agente.</p>
+          <p>En el repositorio, y solo al pulsar Traer al repositorio. En CX no escribe nada, ni siquiera al confirmar una eliminación: eso solo apunta el borrado para el Paso 3, el único que toca el agente.</p>
         </div>
                 <div class="mecanica-header">2.5 — Mecánica propia</div>
 <div class="spec-block">
           <div class="spec-block-label">2.5.1 — La deriva</div>
-          <p>El número en naranja cuenta solo lo que <strong>se puede</strong> traer. Lo nativo de la plataforma se lista aparte, deshabilitado y con su motivo, y no cuenta como deriva — no hay nada que hacer con ello.</p>
-          <p>Nada viene marcado por defecto: escribir en el repositorio no debería ocurrir por inercia. El aviso se mantiene siempre visible, aunque no quede nada que traer, para no perder de vista que el repositorio se aleja del agente.</p>
+          <p>El número en naranja cuenta solo lo que <strong>se puede</strong> traer. Lo nativo de la plataforma se lista aparte, deshabilitado y con su motivo, y no cuenta como deriva.</p>
+          <p>Nada viene marcado por defecto — escribir en el repositorio no debería ocurrir por inercia — y el aviso se mantiene siempre visible, aunque no quede nada que traer.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.5.2 — El cuadro de acción</div>
-          <p>Debajo de la tarjeta, un cuadro recuerda a qué repositorio y a qué rama se va a escribir, y cuántos van de los marcados. Los botones de traer y eliminar viven dentro, y arrancan apagados hasta marcar algo.</p>
+          <p>Debajo de la tarjeta, un cuadro recuerda a qué repositorio y a qué rama se va a escribir, y cuántos van de los marcados. Los botones de traer y eliminar viven dentro y arrancan apagados hasta marcar algo.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.5.3 — La traída</div>
-          <p>Al pulsar, escribe de verdad y lo cuenta en un registro de tamaño fijo: qué archivo crea y con qué commit queda. Al terminar confirma que el repositorio está actualizado y recuerda hacer <code>git pull</code> en local — la copia de trabajo se ha quedado un commit por detrás.</p>
+          <p>Al pulsar, escribe de verdad y lo cuenta en un registro de tamaño fijo: qué archivo crea y con qué commit queda. Al terminar confirma que el repositorio está actualizado y recuerda hacer <code>git pull</code> en local.</p>
           <p>Las filas traídas desaparecen de la lista y el número de deriva baja.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.5.4 — Continuar sin modificar</div>
-          <p>Fuera del cuadro de acción, y nunca bloqueado mientras esté. Con nada marcado por defecto, es la salida que más se va a usar. Desaparece en cuanto se ejecuta alguna acción: una vez traído algo, ya se ha modificado, y ofrecer «sin modificar» sería mentir — en su sitio queda un continuar normal.</p>
+          <p>Fuera del cuadro de acción, nunca bloqueado mientras esté. Desaparece en cuanto se ejecuta alguna acción: una vez traído algo, ofrecer «sin modificar» sería mentir — en su sitio queda un continuar normal.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">2.5.5 — Eliminar de CX</div>
-          <p>Sobre lo marcado, abre un panel que enseña la lista concreta antes de pedir confirmación. Confirmar no borra nada todavía: apunta esos resources para que se borren en el Paso 3, junto con el resto de lo que se escribe en CX, para que toda escritura en el agente se decida en un solo sitio.</p>
-          <p>Si lo marcado cambia mientras el panel está abierto, el panel se cierra: nunca pide confirmar una lista que ya no coincide con lo que hay en pantalla.</p>
+          <p>Sobre lo marcado, abre un panel que enseña la lista concreta antes de pedir confirmación. Confirmar no borra nada todavía: apunta esos resources para el Paso 3, para que toda escritura en el agente se decida en un solo sitio.</p>
+          <p>Si lo marcado cambia mientras el panel está abierto, el panel se cierra solo.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">2.6 — Criterios de validación</div>
@@ -781,7 +781,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="spec-step-title">Paso 3 — Aplicar en CX</div>
         <div class="spec-block">
           <div class="spec-block-label">3.1 — Qué hace</div>
-          <p>Enseña, fila a fila, lo que el repositorio va a escribir en el agente: qué resource, de qué archivo sale y si se va a crear o modificar. Se marca lo que se quiera aplicar y se pulsa <strong>Aplicar en CX</strong>; el resto queda como diferencia pendiente.</p>
+          <p>Enseña, fila a fila, lo que el repositorio va a escribir en el agente: resource, archivo de origen y si se va a crear o modificar. Se marca lo que se quiera aplicar y se pulsa <strong>Aplicar en CX</strong>; el resto queda como diferencia pendiente.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.2 — Por qué existe</div>
@@ -793,12 +793,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.4 — Qué escribe y dónde</div>
-          <p>En el borrador del agente, y solo al pulsar Aplicar. No toca producción ni el repositorio: lo primero es el paso 5, lo segundo ya quedó cerrado en el Paso 2.</p>
+          <p>En el borrador del agente, y solo al pulsar Aplicar. No toca producción ni el repositorio.</p>
         </div>
                 <div class="mecanica-header">3.5 — Mecánica propia</div>
 <div class="spec-block">
           <div class="spec-block-label">3.5.1 — Lo que se va a aplicar</div>
-          <p>Una fila por resource con su tipo, su nombre, el archivo del que sale y la operación: <strong>crear</strong> lo que aún no existe, <strong>modificar</strong> lo que existe y difiere. Las eliminaciones que se decidieron en el Paso 2 aparecen aquí también, sin archivo del que salgan — vienen decididas del paso anterior.</p>
+          <p>Una fila por resource con su tipo, su nombre, el archivo del que sale y la operación: <strong>crear</strong> lo que aún no existe, <strong>modificar</strong> lo que existe y difiere. Las eliminaciones decididas en el Paso 2 aparecen aquí también, sin archivo del que salgan.</p>
           <p>Nada viene marcado por defecto: escribir en el agente no debería ocurrir por inercia.</p>
         </div>
         <div class="spec-block">
@@ -816,11 +816,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.5.5 — De dónde sale esta lista</div>
-          <p>Del mapa del Paso 1, comparando el contenido de cada resource emparejado con el de su archivo, más las eliminaciones decididas en el Paso 2. La comparación se hace al entrar en este paso — así lo que se acaba de traer al repositorio ya cuenta como igual en los dos sitios y no aparece como cambio.</p>
+          <p>Del mapa del Paso 1, comparando el contenido de cada resource emparejado con el de su archivo, más las eliminaciones decididas en el Paso 2. La comparación se hace al entrar en este paso, así que lo que se acaba de traer al repositorio ya cuenta como igual en los dos sitios.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">3.5.6 — Lo que no se marca</div>
-          <p>No se aplica y no desaparece: sigue siendo una diferencia entre el repositorio y el agente. Al terminar, la lista se queda en pantalla, cada fila dice si se aplicó o quedó fuera, y las casillas dejan de poder tocarse.</p>
+          <p>No se aplica y no desaparece: sigue siendo diferencia. Al terminar, la lista se queda en pantalla, cada fila dice si se aplicó o quedó fuera, y las casillas dejan de poder tocarse.</p>
           <p>Para aplicarlo hay que arrancar el pipeline de nuevo: al releer, la diferencia pendiente vuelve a aparecer.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
@@ -830,7 +830,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 3. El cuadro de acción dice sobre qué proyecto y agente se escribe, y cuántos van de los marcados.<br>
 4. Si hay cambios que no admiten versión, el cuadro avisa antes de confirmar.<br>
 5. Al aplicar, el registro cuenta exactamente los resources marcados — ni uno más, ni uno menos.<br>
-6. Terminado el paso, lo aplicado queda marcado como tal y lo que no se marcó sigue pendiente, visible y sin poder tocarse.<br>
+6. Terminado el paso, lo aplicado queda marcado como tal y lo no marcado sigue pendiente, visible y sin poder tocarse.<br>
 7. Continuar sin modificar está fuera del cuadro, nunca bloqueado, y desaparece en cuanto se aplica algo.<br>
 8. Si algo falla, se reintenta solo lo fallido y lo no intentado — nunca lo que ya salió bien.<br>
 9. Al volver a este paso ya recorrido, se ve tal cual quedó: sin botones ni casillas que respondan.</p>
@@ -868,7 +868,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="spec-block">
           <div class="spec-block-label">4.5.3 — Si fallan, no se revierte nada</div>
-          <p>Los cambios están en el borrador, que es un espacio de trabajo y no lo ve ningún usuario. No hay nada que deshacer: se corrigen los archivos en el repositorio y se vuelve a aplicar.</p>
+          <p>Los cambios están en el borrador, un espacio de trabajo que no ve ningún usuario. No hay nada que deshacer: se corrigen los archivos en el repositorio y se vuelve a aplicar.</p>
           <p>Revertir el borrador sería destructivo y a ciegas — se llevaría todo lo acumulado, no solo lo que falló, y no hay forma de saber qué estado anterior era bueno.</p>
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
