@@ -2,7 +2,7 @@
 
 **Qué es:** el diseño del servicio que sustituye a `act/server.py` y pasa el pipeline ACT de correr en el Mac de Jero a correr en Cloud Run, con soporte multi-repo y multi-agente.
 
-**Estado:** las 17 decisiones de §2 están tomadas, pero **no se puede redactar la Fase 5 todavía**. Una revisión adversarial de tres lentes (§8) encontró que el diseño no cubre el modelo de confianza entre panel y servidor, más cuatro decisiones factualmente incorrectas. Leer §8 antes que nada.
+**Estado:** §3 y §4 están al día con el pipeline de **cinco pasos**. Las decisiones de §2, §10 y §11 se tomaron cuando eran ocho y hay que leerlas con esa reserva. Sigue abierto lo de §8: el diseño no cubre el modelo de confianza entre panel y servidor.
 
 **Fecha:** 2026-08-03 · **Rama:** `build/intento-2`
 
@@ -35,7 +35,7 @@ Seis rondas de revisión adversarial sobre la propuesta inicial de la Fase 5. Ca
 
 **Timeout del servicio a 60 minutos** (el máximo).
 
-*Por qué:* el timeout por defecto son 5 minutos y la regla de polling de operaciones largas permite esperar hasta 5 minutos exactos. Los Pasos 5 y 8 morirían justo en el límite.
+*Por qué:* el timeout por defecto son 5 minutos y esperar a que el agente termine una operación larga puede llevar otros tantos. El paso que publica moriría justo en el límite.
 
 **Lock explícito con 409, mantenido en el código.**
 
@@ -51,9 +51,9 @@ Seis rondas de revisión adversarial sobre la propuesta inicial de la Fase 5. Ca
 
 ### De dónde salen los datos
 
-**Las definiciones se leen de GitHub por la Contents API**, con token de la GitHub App, siempre desde `staging`.
+**Las definiciones se leen de GitHub** con el token de la GitHub App, siempre desde la rama de trabajo. La lectura entra en todas las carpetas: si se quedara en el primer nivel dejaría fuera lo anidado.
 
-*Por qué:* hoy `load_definitions()` usa `git show` sobre `origin/staging`, y en un contenedor `python:3.11-slim` no hay ni repo ni binario `git`.
+*Por qué:* hoy el pipeline lee del árbol de git en el disco, y en el contenedor no hay ni repositorio ni git.
 
 **El flujo de escritura es unidireccional: Jero empuja desde local, el servidor lee.** Dos excepciones, las dos en el mismo sentido: el panel escribe el ID del agente en `agent.yaml` al vincular un repo, y escribe los artefactos que se traen con el `pull`.
 
@@ -91,11 +91,9 @@ Seis rondas de revisión adversarial sobre la propuesta inicial de la Fase 5. Ca
 
 ### El diff nunca borra
 
-**El diff solo propone POST y PATCH.** Los recursos que existen en CX y no en el repo se muestran aparte, con tres botones en el propio Paso 3:
+**El diff solo propone crear y modificar.** Los resources que existen en el agente y no en el repositorio se tratan aparte:
 
-1. **Traer al repo** *(opción por defecto)* — `pull` con casillas, Jero elige cuáles.
-2. **Ignorar** — el deploy no los toca, siguen en CX.
-3. **Eliminar de CX** — destructivo, con confirmación adicional.
+En el **Paso 2**, no en el del diff: se traen al repositorio los que se marquen, y los que no se marcan se quedan como están. La otra salida es eliminarlos del agente, que se decide ahí y se aplica en el Paso 3 junto con el resto de escrituras.
 
 *Por qué:* hoy el diff hace *"POST lo que falta, PATCH lo que cambió, DELETE lo que sobra"*, así que un recurso creado directamente en CX se borraría en el siguiente deploy sin que nadie lo pidiera. Y con un repo recién creado —vacío— el diff proponía borrar el agente entero, que es justo la primera pantalla que vería alguien estrenando un proyecto.
 
@@ -125,18 +123,48 @@ Firestore entero · el registro manual de proyectos · cualquier paso de IAM · 
 
 ---
 
-## 3. Dónde aterriza cada cosa en el playbook
+## 3. Lo que el servidor tiene que ofrecer
 
-| Fase | Qué cambia |
-|---|---|
-| **3** — pipeline | ADC en `cx_client.py` · definiciones por Contents API · candado del inventario · el diff deja de proponer DELETE · Regla 11 reescrita · recuperar la Regla 9 (Pages) del intento 1 |
-| **4** — validación | Los tests actuales son referencia, no contrato: el diff cambia de comportamiento. Se redefinen fase por fase |
-| **5** — servidor | `cloudrun_server.py` · Dockerfile · GitHub App · lock 409 · endpoint de repos · endpoint que escribe `agent.yaml` · IAP · timeout |
-| **6** — validación | Se reescribe entera como smoke test post-deploy |
-| **7** — panel | Tres botones del diff · contador de deriva · panel informativo de onboarding · el panel lo sirve Cloud Run |
-| **nueva** | El `pull` CX → repo |
-| **8** — prueba de onboarding | Repo desechable + agente desechable, recorriendo el flujo completo. Termina antes de cualquier escritura sobre recursos reales |
-| diferido | Fusión de los Pasos 2 y 3 en uno |
+El pipeline pasó de ocho pasos a cinco. Esta es la superficie del servidor
+contra los cinco actuales.
+
+| Paso del panel | Qué le pide al servidor | Qué escribe |
+|---|---|---|
+| **1 · Inventario** | Averiguar qué repositorio corresponde al agente elegido, leer el agente entero, leer el repositorio entero y emparejar cada resource con su archivo | Nada |
+| **2 · Traer al repositorio** | Escribir en el repositorio los resources que solo están en el agente | Archivos y un commit en la rama de trabajo |
+| **3 · Aplicar en CX** | Crear, modificar y eliminar en el **borrador** del agente lo que se haya marcado | El borrador del agente |
+| **4 · Validar tests** | **Nada.** El panel no lanza las pruebas ni conoce su resultado: solo registra lo que declara quien lo usa | Nada |
+| **5 · Publicar** | Fusionar la rama de trabajo en la principal, crear la versión y apuntar producción a ella | La rama principal del repositorio y el entorno de producción |
+
+Además, tres cosas que no pertenecen a ningún paso:
+
+| | Para qué | Qué escribe |
+|---|---|---|
+| **Descubrimiento** | Rellenar los desplegables de proyecto y de agente | Nada |
+| **Vincular agente y repositorio** | Guardar a qué repositorio pertenece un agente | El mapeo, y el identificador del agente en su archivo del repositorio |
+| **Versiones existentes** | Listar las que guarda el agente y borrar las que se marquen | Borra versiones del agente |
+
+### Lo que desaparece respecto al diseño anterior
+
+**El paso que publicaba en un entorno intermedio** y **el que lo validaba**.
+Ya no hay entorno intermedio: se prueba contra el borrador.
+
+**La rotación automática de versiones.** Se creaba una en cada despliegue y
+por eso hacía falta un pool que rotara solo. Ahora se crea una por
+publicación —muchas menos— y se borran a mano desde el panel.
+
+**Todo lo que fijaba o revertía ese entorno intermedio.**
+
+### Lo que aparece y no estaba previsto
+
+**Escribir en el repositorio** (Paso 2). El diseño anterior daba por hecho
+que el servidor solo leía del repositorio.
+
+**Listar y borrar versiones.** El panel lo ofrece y no había endpoint que lo
+cubriera.
+
+**Publicar hace tres cosas de una vez.** Antes eran pasos separados con su
+propio gate cada uno; ahora van juntas y en orden dentro del último.
 
 ---
 
@@ -144,26 +172,26 @@ Firestore entero · el registro manual de proyectos · cualquier paso de IAM · 
 
 Las instrucciones viven **en el Paso 1 del panel**, no en un documento aparte.
 
-*Por qué ahí:* es donde se necesitan. Nadie recuerda una lista de doce pasos que usa tres veces al año.
+*Por qué ahí:* es donde se necesitan. Nadie recuerda una lista que usa tres
+veces al año.
 
 | # | Dónde | Acción |
 |---|---|---|
-| 1 | Dialogflow CX | Crear el agente → CX asigna un ID |
-| 2 | Dialogflow CX | Crear los entornos `staging` y `production` |
-| 3 | Local | Crear el repo con `cx-deploy.yaml`, `definitions/`, `agent.yaml` y rama `staging` — a mano o desde `cx-project-template` |
-| 4 | Local | Escribir el ID del proyecto GCP en `project` de `agent.yaml` (sale de la URL de CX) |
+| 1 | Dialogflow CX | Crear el agente |
+| 2 | Dialogflow CX | Crear el entorno de **producción** |
+| 3 | Local | Crear el repositorio con su marcador, la carpeta de definiciones, el archivo del agente y la rama de trabajo |
+| 4 | Local | Escribir el identificador del proyecto en el archivo del agente |
 | 5 | Local | Subir a GitHub |
-| 6 | Panel · Paso 1 | Seleccionar el repo → el panel detecta que no tiene agente configurado |
-| 7 | Panel · Paso 1 | Elegir el agente CX → el panel guarda el ID y avisa de hacer `git pull` |
-| 8 | Local | `git pull` |
-| 9 | Panel · Paso 3 | Traer CX → repo, eligiendo artefactos con las casillas |
-| 10 | Local | `git pull` |
-| 11 | Panel | Comprobar que `staging` ✓ y `production` ✓ están visibles |
-| 12 | Panel | Pipeline listo |
+| 6 | Panel · Paso 1 | Elegir el agente → el panel detecta que no tiene repositorio vinculado |
+| 7 | Panel · Paso 1 | Vincularlo → el panel guarda el mapeo y avisa de traer los cambios a local |
+| 8 | Local | Traer los cambios |
+| 9 | Panel · Paso 2 | Traer al repositorio lo que solo está en el agente |
+| 10 | Local | Traer los cambios |
+| 11 | Panel | Pipeline listo |
 
-**Los entornos no se crean automáticamente** (paso 2). *Por qué:* el panel es para desplegar, no para crear infraestructura — y crearlos sería una escritura en CX fuera de todos los gates numerados.
-
-**`cx-project-template` es opcional**, repo privado marcado como *template* nativo de GitHub. Si se usa, hay que marcar **"Include all branches"** al crear el repo, o `staging` no viaja. Si falta esa rama, el panel debe decirlo con un mensaje claro en vez de fallar de forma oscura.
+**El entorno no se crea automáticamente** (paso 2). *Por qué:* el panel es
+para desplegar, no para crear infraestructura — y crearlo sería una
+escritura en el agente fuera de todos los gates.
 
 ---
 
