@@ -622,31 +622,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div id="general-specs-content" style="display:none;flex-direction:column;gap:10px;margin-top:10px">
         <div class="spec-block">
-          <div class="spec-block-label">Auth</div>
-          <p>CX exige identificación antes de cualquier llamada. Usamos gcloud en lugar de una clave de servicio fija porque es más seguro — el token expira, no hay credenciales que robar.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Cabeceras obligatorias</div>
-          <p>Google necesita saber quién eres, en qué formato hablas y a qué proyecto cargar el uso. Sin estas tres cabeceras la API rechaza la llamada aunque el token sea válido.</p>
-        </div>
-        <div class="spec-block">
-          <div class="spec-block-label">Agente de referencia</div>
-          <p>El proyecto y el agente se eligen en el panel (arriba, en el Paso 1) — Petal 1.0 es el agente de referencia con el que se prueba, pero ningún script fija su ID como constante. La región sigue fija en <code>europe-west1</code>.</p>
-        </div>
-        <div class="spec-block">
           <div class="spec-block-label">La caja donde el sistema va contando</div>
-          <p>Todo lo que el sistema hace mientras trabaja se escribe dentro de <strong>una caja de tamaño fijo</strong>, reservado desde el principio. No crece con el contenido ni empuja lo de abajo: si se escriben más líneas de las que caben, se desplazan dentro de la propia caja.</p>
-          <p>Así la pantalla no se reorganiza mientras miras, y el botón de continuar sigue estando donde estaba. Vale para los registros de todos los pasos, no para uno solo.</p>
+          <p>Cuando un paso trabaja, va contando lo que hace dentro de <strong>una caja de tamaño fijo</strong>, reservado desde el principio. No crece con el contenido ni empuja lo que hay debajo: si se escriben más líneas de las que caben, se desplazan dentro de la propia caja y la última siempre queda a la vista.</p>
+          <p>As&iacute; la pantalla no se reorganiza mientras miras, y el bot&oacute;n que ibas a pulsar sigue donde estaba. Vale para todos los pasos que hacen algo, no para uno solo.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Cuando algo falla</div>
-          <p>Cualquier paso puede fallar por causas ajenas a quien lo usa: credenciales caducadas, permisos, el repositorio inaccesible, la rama que no está, un archivo mal formado, el agente que rechaza un resource. En todos esos casos la pantalla se comporta igual: el paso se detiene donde iba, el registro conserva lo que ya había hecho, y debajo aparece un bloque rojo que dice qué se intentaba, qué falló y —cuando se puede señalar— qué archivo o qué resource lo provocó.</p>
-          <p>Ese bloque siempre ofrece reintentar el paso desde el principio y nunca deja continuar al siguiente. En la lista de la izquierda el paso queda marcado como fallido, no como completado.</p>
+          <p>Cualquier paso puede fallar por causas ajenas a quien lo usa: credenciales caducadas, permisos, el repositorio inaccesible, la rama que no est&aacute;, un archivo mal formado, el agente que rechaza algo. En todos esos casos la pantalla se comporta igual: el paso se detiene donde iba, el registro conserva lo que ya hab&iacute;a hecho, y debajo aparece un bloque rojo que dice qu&eacute; se intentaba, qu&eacute; fall&oacute; y &mdash;cuando se puede se&ntilde;alar&mdash; qu&eacute; archivo o qu&eacute; resource lo provoc&oacute;.</p>
+          <p>La salida que ofrece depende de lo que se pueda salvar. <strong>Si el paso no lleg&oacute; a escribir nada</strong>, se reintenta entero: no hay nada a medias que respetar. <strong>Si ya hab&iacute;a escrito parte</strong>, se reintenta solo lo que fall&oacute; y lo que no se lleg&oacute; a intentar, nunca lo que ya sali&oacute; bien &mdash; repetirlo lo escribir&iacute;a dos veces.</p>
+          <p>En ning&uacute;n caso deja pasar al paso siguiente, y en la lista de la izquierda el paso queda marcado como fallido, no como completado.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Volver atrás y empezar de nuevo</div>
-          <p>Se puede volver a cualquier paso ya recorrido desde la lista de la izquierda, pero solo para mirar: un paso ya ejecutado se ve tal y como quedó, con su registro, y sin los botones que lo volverían a ejecutar. Ningún botón del panel es decorativo: si algo se puede pulsar, hace algo.</p>
-          <p>"Nuevo deploy" vuelve al Paso 1 y no sobrevive nada: ni listas, ni casillas, ni registros, ni eliminaciones pendientes. Lo ya escrito en CX o en el repositorio no se deshace — el pipeline vuelve a leer el estado real desde cero, y por eso lo que quedó a medias aparecerá otra vez como diferencia.</p>
+          <p>Se puede volver a cualquier paso ya recorrido desde la lista de la izquierda, pero solo para mirar. Un paso al que se vuelve queda <strong>entero</strong> en modo lectura: no solo desaparecen sus botones, tambi&eacute;n dejan de poder tocarse sus casillas, sus campos y sus selectores. Y los textos hablan en pasado, de lo que ocurri&oacute;, no de lo que ocurrir&iacute;a.</p>
+          <p>Vale igual para un paso que se ejecut&oacute; y para uno que se atraves&oacute; sin hacer nada: en los dos casos la decisi&oacute;n ya est&aacute; tomada.</p>
+          <p>Ning&uacute;n bot&oacute;n del panel es decorativo: si algo se puede pulsar, hace algo.</p>
+          <p><strong>Empezar de nuevo</strong> vuelve al Paso 1 y no sobrevive nada: ni listas, ni marcas, ni registros, ni eliminaciones apuntadas. Lo ya escrito en el agente o en el repositorio no se deshace &mdash; el pipeline vuelve a leer el estado real desde cero, y por eso lo que qued&oacute; a medias aparecer&aacute; otra vez como diferencia. Antes de hacerlo, la pantalla enumera lo que ya se escribi&oacute; fuera y no se va a deshacer.</p>
         </div>
       </div>
     </div>
