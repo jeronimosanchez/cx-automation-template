@@ -348,7 +348,7 @@ Acordadas el 2026-08-04, después de §10. **Sustituyen a S7 y S14.**
 | **S18** | Cada YAML lleva **metadata: tipo, padre y `cx_id`**. El servidor escribe el `cx_id` al subirlo por primera vez | La correspondencia repo↔CX pasa a ser por `cx_id`, no por nombre de archivo ni por carpeta | ✅ |
 | **S19** | **La estructura de carpetas es libre.** El servidor la ignora — va por `cx_id` | Resuelve la contradicción entre S7 y S14 | ✅ |
 | **S20** | El servidor puede **desplegar un resource concreto** bajo demanda leyendo su `cx_id` | Permite iterar rápido sin pasar por el pipeline completo | ✅ |
-| **S21** | **Templates YAML en `/templates`** dentro de la imagen Docker, descargables desde el panel o invocables por un LLM | Agnóstico de cualquier repo y siempre disponibles | ✅ |
+| ~~S21~~ | ~~Templates YAML en `/templates` dentro de la imagen Docker~~ | **Sustituida (2026-08-05)** — sin plantillas estáticas guardadas. Para un recurso nuevo, se pide la información necesaria y se construye el YAML directamente (el LLM ya conoce la forma de cada tipo). Para un proyecto nuevo con repo vacío, Jero copia un YAML real de otro repo a mano. Evita el coste de "cambiar un template exige reconstruir la imagen" (§12) — no hay nada que reconstruir porque no hay plantilla guardada. Cierra también la duda de S21 vs `CLAUDE.md §6`: sin la capacidad de "desplegar sin intervención manual" en la definición, no hay conflicto que resolver | ❌ |
 | **S22** | **Wizard de onboarding** en la pestaña Proyectos: ID de agente + URL de repo → el servidor crea la estructura, muestra el comando IAM, registra en Firestore y hace el `pull` inicial | Reduce el onboarding a dos datos y un comando manual | ✅ |
 | **S23** | `cx-deploy.yaml` lo **crea el servidor** en el paso 3 del wizard | Marcador que identifica el repo como proyecto CX. Jero no lo toca | ✅ |
 
@@ -427,22 +427,32 @@ acompañarlo siempre de `project` + `agent_id`.
 
 ## 13. Dudas abiertas
 
-Cuatro. Ninguna bloquea seguir avanzando; la primera sí bloquea redactar.
+Quedaba una, cerrada el 2026-08-05. Las otras tres se resolvieron el mismo día
+(ver S20 en §10, S21 sustituida en §11) tras validar el mecanismo contra CX
+real con Petal.
 
-1. **S21 y CLAUDE.md §6.** S21 dice que un LLM puede *"descargar, rellenar y
-   desplegar sin intervención manual"*. §6 dice que el pipeline nunca
-   escribe en CX sin pasar por sus gates humanos. ¿El LLM prepara el YAML y
-   Jero despliega (sin conflicto), o el LLM despliega de verdad (y hay que
-   modificar §6)?
+1. ~~S21 y CLAUDE.md §6~~ — **cerrada.** Al sustituir S21 (sin plantillas
+   estáticas, sin capacidad de "desplegar sin intervención manual"), el
+   conflicto con `§6` desaparece: no queda ninguna vía por la que un LLM
+   escriba en CX sin que Jero confirme esa escritura en concreto. En la
+   práctica, un LLM sí puede escribir directamente en CX fuera del pipeline
+   — es el mismo gate que ya exige `CLAUDE.md §8.2` para cualquier `PATCH`
+   directo: enseñar el body exacto y esperar confirmación explícita por
+   cada escritura, nunca en bloque ni automático.
 
-2. **Dónde escribe el `pull` un archivo nuevo.** Por `cx_id` se localizan los
-   resources que ya están en el repo. Uno que solo existe en CX no tiene
-   YAML ni carpeta, y con la estructura libre el servidor no puede deducirla.
-   Falta la regla por defecto — y es justo el caso del onboarding.
+2. ~~Dónde escribe el `pull` un archivo nuevo~~ — **cerrada.** Por `tipo` +
+   `cx_id` (ver §12). Verificado trayendo 18 resources reales de Petal que
+   solo existían en CX.
 
-3. **¿S20 se acota a draft?** Desplegar un resource suelto es una escritura
-   en CX fuera de los pasos numerados. En draft el riesgo es bajo; si
-   alcanzara staging o producción se saltaría el modelo de aprobación.
+3. ~~¿S20 se acota a draft?~~ — **cerrada** (ver S20, §10). Con el modelo de
+   5 pasos, solo el Paso 5 (Publicar) toca producción — S20 usa el mismo
+   mecanismo que el Paso 3, así que cae en el borrador por construcción, sin
+   necesitar una regla aparte.
 
-4. **Alcance de S17.** Renombrar "artefactos" → "resources": ¿solo texto de
-   cara al usuario, o también identificadores en el código y en los YAML?
+4. ~~Alcance de S17~~ — **cerrada (2026-08-05).** "Resources" en todas
+   partes: texto de cara al usuario, identificadores en el código y campos
+   en los YAML (`tipo`, no `tipo_artefacto` ni similar — ya aplicado en la
+   cabecera `metadata` de los 45 examples, 9 playbooks, 2 intents, 2
+   environments, 1 tool y 1 flow migrados hoy).
+
+**Las cuatro dudas de §13 quedan cerradas.**
