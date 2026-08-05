@@ -317,7 +317,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S9** | El servidor corre en **`cloud-run-multiproyecto`**, separado de los proyectos CX | Lo hace agnóstico: puede gestionar cualquier agente de cualquier proyecto | ✅ |
 | **S10** | Mantener `x-goog-user-project` y añadir **`serviceusage.services.use`** al SA | Con servidor y agentes en proyectos distintos, Google exige ese permiso para cargar la cuota al proyecto correcto | ✅ |
 | **S11** | Proyecto nuevo: crear en GCP → registrar en la pestaña Proyectos → ejecutar el comando IAM que muestra el panel | Libertad para añadir proyectos con **un solo paso manual**, documentado y bajo control de Jero | ✅ |
-| **S12** | Log de auditoría en **Firestore con timestamp**, cada entrada indexada por `project` + `agent_id` + `tipo` además del `cx_id` | El disco de Cloud Run es efímero: sin esto no queda rastro forense de qué se escribió en producción. El `cx_id` de S18 solo es único **dentro de su propio agente y su propio tipo** — CX puede asignar el mismo ID a recursos de dos agentes distintos, y también a recursos de dos tipos distintos dentro del mismo agente (verificado dos veces: el Playbook orquestador de Petal y el Intent "Default Welcome Intent" comparten el ID `00000000-0000-0000-0000-000000000000`). Un log que guarde solo `cx_id` — o incluso `cx_id` + agente, sin el tipo — no podría distinguir a qué recurso pertenece cada entrada | ✅ |
+| **S12** | Log de auditoría en **Firestore con timestamp**, cada entrada indexada por `project` + `agent_id` + `tipo` además del `cx_id`, y guardando también **la ruta del archivo del repo** que escribió esa entrada (ronda adversarial, 2026-08-05 — permite avisar si un `cx_id` cambia de archivo entre deploys, ver §12) | El disco de Cloud Run es efímero: sin esto no queda rastro forense de qué se escribió en producción. El `cx_id` de S18 solo es único **dentro de su propio agente y su propio tipo** — CX puede asignar el mismo ID a recursos de dos agentes distintos, y también a recursos de dos tipos distintos dentro del mismo agente (verificado dos veces: el Playbook orquestador de Petal y el Intent "Default Welcome Intent" comparten el ID `00000000-0000-0000-0000-000000000000`). Un log que guarde solo `cx_id` — o incluso `cx_id` + agente, sin el tipo — no podría distinguir a qué recurso pertenece cada entrada | ✅ |
 | **S13** | **Todos** los endpoints que escriben en CX pasan por el lock, sin excepción | `/versions/protect` y `/cx-repo-check` lo saltaban: se podía renombrar una versión mientras el Paso 5 la rotaba | ✅ |
 | **S13b** | El lock vive en **Firestore**, no `threading.Lock` | `threading.Lock` es por proceso: con más de una instancia no protege nada | ✅ |
 | ~~S14~~ | ~~Nombres de carpeta como convención fija~~ | **Sustituida por S19** — la estructura es libre y el tipo lo declara el propio YAML | ❌ |
@@ -367,7 +367,24 @@ se vuelve invisible para el pipeline — que dé error explícito, no silencio.
 
 **Detectar `cx_id` duplicados y parar.** Duplicar un archivo para crear una
 variante es natural; olvidarse de vaciar el `cx_id` deja dos YAML
-reclamando el mismo resource de CX.
+reclamando el mismo resource de CX. Cubre solo el caso de **dos archivos
+del mismo repo** con el mismo `cx_id` — no cubre un `cx_id` válido pero
+equivocado en un único archivo (por edición manual, o por copiar un YAML
+de **otro** repo/agente sin vaciarlo, S21 sustituida en §11).
+
+**Aviso si un `cx_id` cambia de archivo entre deploys (hallazgo de la
+ronda adversarial, 2026-08-05).** El log de auditoría (S12) guarda, además
+de `project`+`agent_id`+`tipo`+`cx_id`, **qué archivo del repo** llevaba
+ese `cx_id` la última vez que se escribió. Si en un deploy nuevo el mismo
+`cx_id` aparece en un archivo distinto al registrado, el servidor avisa
+antes de aplicar — mostrando archivo antes/después **y** `displayName`
+antes/después como contexto, no como lo que decide. El disparador es
+siempre el archivo, nunca el nombre: un renombrado legítimo (mismo
+archivo, `displayName` distinto) no dispara nada — comparar por nombre
+reintroduciría la fragilidad que S18 eliminó (un `displayName` puede
+cambiar a propósito). Sin este aviso, un `cx_id` copiado de otro repo sin
+vaciar (H-C, ronda adversarial multi-proyecto) se aplicaría en silencio
+sobre el recurso equivocado.
 
 **H4 hay que construirlo.** `create_versions_for_snapshot` (`:978`) hoy
 recorre todos los flows, todos los playbooks y todos los tools referenciados
