@@ -79,8 +79,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .spec-empty{font-size:12px;color:var(--text-3);font-style:italic}
 
 /* SIDEBAR */
-.sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
+.sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 0 0}
+.sidebar-steps{flex:1;overflow-y:auto;min-height:0}
 .sidebar-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:0 16px 12px}
+
+/* SIDEBAR — TOOLS (acciones sueltas, fuera de los 5 pasos numerados) */
+.sidebar-tools{flex:0 0 25%;min-height:120px;overflow-y:auto;border-top:1px solid var(--border);padding:14px 0;background:var(--bg)}
+.tool-card{display:flex;align-items:flex-start;gap:10px;margin:0 12px 8px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;transition:border-color .15s,background .15s}
+.tool-card:hover{border-color:var(--accent);background:var(--bg-3)}
+.tool-card-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.tool-card-body{flex:1;min-width:0}
+.tool-card-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+.tool-card-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4}
+.tool-card-empty{margin:0 16px;font-size:11px;color:var(--text-3);font-style:italic;line-height:1.5}
 .step-item{display:flex;align-items:flex-start;gap:12px;padding:9px 16px;cursor:pointer;border-left:2px solid transparent;transition:background .1s;position:relative}
 .step-item:hover{background:var(--bg-3)}
 .step-item.active{background:rgba(59,130,246,.08);border-left-color:var(--accent)}
@@ -196,7 +207,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div class="layout">
   <!-- SIDEBAR -->
-  <nav class="sidebar" id="sidebar"></nav>
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-steps" id="sidebar-steps"></div>
+    <div class="sidebar-tools" id="sidebar-tools">
+      <div class="sidebar-label" style="padding-top:0">Tools</div>
+      <div class="tool-card" onclick="viewTool('deploy-resource')">
+        <div class="tool-card-icon">&#9889;</div>
+        <div class="tool-card-body">
+          <div class="tool-card-name">Desplegar un resource suelto</div>
+          <div class="tool-card-desc">Por cx_id, sin pasar por el pipeline completo &middot; S20</div>
+        </div>
+      </div>
+      <div class="tool-card" onclick="viewTool('onboarding')">
+        <div class="tool-card-icon">&#128279;</div>
+        <div class="tool-card-body">
+          <div class="tool-card-name">Vincular agente y repositorio</div>
+          <div class="tool-card-desc">Onboarding de un proyecto nuevo &middot; S22</div>
+        </div>
+      </div>
+    </div>
+  </nav>
 
   <!-- MAIN -->
   <main class="main">
@@ -606,6 +636,98 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div style="margin-top:4px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
     </div>
 
+    <!-- TOOL: Desplegar un resource suelto (S20) — fuera de los 5 pasos numerados -->
+    <div class="step-view" id="view-tool-deploy-resource">
+      <div class="phase-eyebrow">Tool &middot; fuera del pipeline<span class="escribe-badge write-cx">escribe en CX</span></div>
+      <div class="phase-title">Desplegar un resource suelto</div>
+      <div class="phase-sub">
+        Trae el contenido de un solo archivo y lo aplica en el <strong>borrador</strong> de CX, sin pasar por el diff completo de los 5 pasos. &Uacute;til para iterar r&aacute;pido sobre un YAML mientras lo ajustas.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; Nunca puede llegar a producci&oacute;n &mdash; el endpoint que usa esta herramienta no tiene forma de construir una URL de entorno (S20).</p>
+      </div>
+
+      <div id="tool-deploy-start">
+        <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+          <div>
+            <label for="tool-tipo-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Tipo</label>
+            <select id="tool-tipo-select" class="snapshot-input" style="max-width:200px">
+              <option value="playbook">Playbook</option>
+              <option value="intent">Intent</option>
+              <option value="entity_type">Entity Type</option>
+              <option value="webhook">Webhook</option>
+              <option value="generator">Generator</option>
+              <option value="flow">Flow</option>
+              <option value="page">Page</option>
+              <option value="tool">Tool</option>
+              <option value="transition_route_group">Transition Route Group</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:220px">
+            <label for="tool-cxid-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">cx_id</label>
+            <input type="text" id="tool-cxid-input" class="snapshot-input" placeholder="ej. 1d2698dd-0027-4881-a9b4-6970d61885cb">
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text-3);margin-bottom:16px">Se lee el archivo del repositorio que declare este <code>cx_id</code> en su <code>metadata</code>, y el contenido actual de CX &mdash; ambos en fresco, en el momento de pulsar.</p>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-tool-deploy" onclick="ejecutarToolDeployResource()">Desplegar este resource &rarr;</button>
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="tool-deploy-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="tool-deploy-log-block" style="height:150px;overflow-y:auto"></div>
+      </div>
+
+      <div id="tool-deploy-done" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>Resource aplicado en el borrador &#10003;</p></div>
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOL: Vincular agente y repositorio (S22) — onboarding de proyecto nuevo -->
+    <div class="step-view" id="view-tool-onboarding">
+      <div class="phase-eyebrow">Tool &middot; fuera del pipeline<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
+      <div class="phase-title">Vincular agente y repositorio</div>
+      <div class="phase-sub">
+        Solo hace falta una vez por proyecto nuevo. Con estos dos datos, el servidor crea la estructura del repositorio (<code>cx-deploy.yaml</code>, S23), registra el mapeo en Firestore (S4) y trae lo que ya exista en CX.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El servidor no concede permisos IAM por su cuenta (S6b) &mdash; al terminar, te mostrar&aacute; un comando <code>gcloud</code> para ejecutar t&uacute; una vez, fuera del panel.</p>
+      </div>
+
+      <div id="tool-onboarding-start">
+        <div style="margin-bottom:16px;max-width:420px">
+          <label for="tool-agent-id-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">ID del agente CX</label>
+          <input type="text" id="tool-agent-id-input" class="snapshot-input" placeholder="ej. 745375ba-ac7e-4eb8-b8a0-d742891f2aa4">
+        </div>
+        <div style="margin-bottom:20px;max-width:420px">
+          <label for="tool-repo-url-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">URL del repositorio</label>
+          <input type="text" id="tool-repo-url-input" class="snapshot-input" placeholder="https://github.com/usuario/repo">
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-tool-onboarding" onclick="ejecutarToolOnboarding()">Vincular &rarr;</button>
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="tool-onboarding-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="tool-onboarding-log-block" style="height:150px;overflow-y:auto"></div>
+      </div>
+
+      <div id="tool-onboarding-done" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>Proyecto vinculado &#10003;</p></div>
+        <div style="border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--gate);margin-bottom:6px">&#9995; Acci&oacute;n manual pendiente &mdash; ejecuta este comando una vez, fuera del panel (S6b)</div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
+            <code id="tool-comando-iam" style="flex:1;font-size:11px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;word-break:break-all">gcloud projects add-iam-policy-binding &lt;proyecto&gt; --member=serviceAccount:act-cloudrun-sa@cloud-run-multiproyecto.iam.gserviceaccount.com --role=roles/dialogflow.admin</code>
+            <button onclick="copiarComandoIam(this)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- SPECS PANEL -->
@@ -675,38 +797,106 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="spec-block-label">1.4 — Qué escribe y dónde</div>
           <p><strong>Nada.</strong> Ni en el agente ni en el repositorio. Solo cambia lo que hay en pantalla, así que repetir el inventario da siempre el mismo resultado y equivocarse de agente no deja rastro.</p>
         </div>
-                <div class="mecanica-header">1.5 — Mecánica propia</div>
-<div class="spec-block">
-          <div class="spec-block-label">1.5.1 — Resolución del repositorio</div>
+      </div>
+
+      <div class="spec-step-title" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">Paso 1 — Mecánica propia</div>
+      <div>
+        <div class="spec-block">
+          <div class="spec-block-label">M.1 — Resolución del repositorio</div>
           <p>No hay selector de repositorio: se elige agente y el repositorio <strong>aparece resuelto</strong>, sin poder editarse. El selector de agente arranca bloqueado hasta elegir proyecto, y cambiar de proyecto borra el agente elegido.</p>
           <p>Esa asociación no vive en el navegador ni se decide en este paso: la resuelve el servicio que corre en Cloud Run, consultando un almacén propio que persiste aunque el servicio se reinicie. Aquí solo se consulta y se enseña.</p>
           <p>La caja muestra el repositorio y su rama, o un aviso de que ese agente no tiene repositorio, con un botón para vincularlo — que no vincula nada aquí, solo remite a otra pantalla.</p>
           <p>Sin repositorio resuelto, el botón de iniciar sigue apagado: no hay contra qué comparar. Si ningún agente del proyecto tiene repositorio, un aviso lo dice arriba antes de tener que descubrirlo uno a uno.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">1.5.2 — Comprobación de conexión</div>
+          <div class="spec-block-label">M.2 — Comprobación de conexión</div>
           <p>Primera línea del registro: credenciales y acceso al agente, antes de leer nada. Si falla, el paso se detiene ahí — todo lo que vendría después se apoya en ese mismo acceso.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">1.5.3 — Foto de CX</div>
+          <div class="spec-block-label">M.3 — Foto de CX</div>
           <p>Lee el <strong>borrador</strong> del agente, no lo que ven los usuarios. Reporta un desglose por tipo de recurso y el total del borrador, y los dos tienen que cuadrar.</p>
           <p>Es una foto fija de ese instante, no una suscripción: si el agente cambia después, hay que repetir el paso para verlo.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">1.5.4 — Lectura del repositorio</div>
+          <div class="spec-block-label">M.4 — Lectura del repositorio</div>
           <p>Lee una sola rama — la que resolvió el agente, no una que se elija aquí — y reporta de qué rama, de qué commit y cuántos archivos de definición encontró.</p>
           <p>El commit importa porque fija qué es «el repositorio» durante el resto de la ejecución: sin él, decir que algo difiere no significaría nada.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">1.5.5 — Emparejamiento</div>
+          <div class="spec-block-label">M.5 — Emparejamiento</div>
           <p>Todo lo leído cae en un solo grupo de tres:</p>
           <p><strong>Emparejados</strong> — están en el agente y un archivo los reclama. Que coincidan o no se decide en el Paso 3, no aquí.<br>
           <strong>Solo en CX</strong> — existen en el agente y ningún archivo los reclama. Incluye lo nativo del agente, que el Paso 2 filtra aparte.<br>
           <strong>Solo en el repositorio</strong> — tienen archivo pero no existen en el agente: o nunca se aplicaron, o apuntaban a algo que ya no está.</p>
           <p>Cada tarjeta enseña su número, una lista desplegable y no cambia nada al abrirse. El registro cierra con estos mismos tres números.</p>
         </div>
+      </div>
+
+      <div class="spec-step-title" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">Tools</div>
+      <div>
+        <div class="mecanica-header" style="font-size:12px;font-weight:700;color:var(--text);margin:4px 0 8px">T.1 — Desplegar un resource suelto (S20)</div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.1 — Qué hace</div>
+          <p>Formulario de una sola pantalla: tipo de recurso y <code>cx_id</code>. Al pulsar <strong>Desplegar este resource</strong> corre un registro en vivo, del mismo estilo que los de los pasos, y aplica el contenido en el <strong>borrador</strong> de CX.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.2 — Por qué existe</div>
+          <p>Para iterar rápido sobre un solo YAML mientras se ajusta, sin tener que recorrer los 5 pasos completos cada vez que cambia un detalle.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.3 — Qué produce</div>
+          <p>El recurso actualizado en el borrador de CX. No crea versión, no toca ningún entorno, no pasa por el diff completo del Paso 3.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.4 — Qué escribe y dónde</div>
+          <p>Solo el borrador del recurso concreto en CX — Full Update sin <code>updateMask</code> si el tipo lo requiere (S15b). No escribe en el repositorio ni en Firestore.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.5 — Nunca puede llegar a producción</div>
+          <p>El código de esta herramienta solo sabe construir la URL <code>.../{tipo}/{cx_id}</code> — no existe ninguna variable ni parámetro por el que pueda aparecer <code>/environments/</code>. No es una comprobación que pueda fallar: es una capacidad que el código nunca aprendió, así que no hay nada que pueda saltarse.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.6 — Datos en fresco, sin foto guardada</div>
+          <p>Lee el archivo del repositorio por su <code>metadata.cx_id</code> (S18) y el estado actual de CX en el momento exacto de pulsar — no depende de ninguna foto guardada de un paso anterior.</p>
+          <p>Pasa por el lock de concurrencia (S13) y queda registrado en el log de auditoría (S12), igual que cualquier otra escritura del pipeline.</p>
+          <p>Mientras se ejecuta, bloquea el resto del panel — igual que cualquier otra acción que escribe (Pasos 2, 3 y 5): no se puede navegar a otro paso ni a la otra Tool a mitad de la escritura.</p>
+        </div>
+
+        <div class="mecanica-header" style="font-size:12px;font-weight:700;color:var(--text);margin:18px 0 8px">T.2 — Vincular agente y repositorio (S22)</div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.1 — Qué hace</div>
+          <p>Formulario de una sola pantalla: ID del agente CX y URL del repositorio. Al pulsar <strong>Vincular</strong>, el servidor crea la estructura del repositorio, registra el mapeo, y trae lo que ya exista en CX.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.2 — Por qué existe</div>
+          <p>Es el paso de onboarding de un proyecto nuevo. Sin él, un agente recién creado no tiene ningún repositorio asociado, y el resto del pipeline no tiene con qué comparar.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.3 — Qué produce</div>
+          <p>El mapeo agente→repositorio en Firestore (S4), la estructura inicial del repositorio con <code>cx-deploy.yaml</code> (S23), y el comando <code>gcloud</code> que hay que ejecutar una vez, a mano, para conceder IAM.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.4 — Qué escribe y dónde</div>
+          <p>En el repositorio (estructura inicial + <code>cx-deploy.yaml</code>) y en Firestore (mapeo agente→repo, región detectada). <strong>Nunca concede IAM por su cuenta</strong> (S6b) — solo muestra el comando exacto para que Jero lo ejecute fuera del panel.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.5 — Región detectada automáticamente</div>
+          <p>Prueba las 17 regiones reales de Dialogflow CX una sola vez, contra el agente elegido, y guarda la que responda — verificado hoy contra Petal (solo <code>europe-west1</code> dio resultado, las otras 16 dieron cero). No se le pide la región a Jero a mano.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.6 — El pull inicial no usa plantillas</div>
+          <p>Lo que ya existe en CX se trae usando el mismo mecanismo de <code>metadata</code>/<code>cx_id</code> que el resto del sistema (S18/S19) — no hay plantillas estáticas guardadas (S21, sustituida). Para el primer recurso de un proyecto totalmente nuevo sin nada que copiar, se piden los datos y se construye el YAML directamente.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.7 — Bloquea el panel mientras vincula</div>
+          <p>Igual que T.1.6: mientras corre, el resto del panel queda bloqueado — no se puede navegar a otro paso ni a la otra Tool a mitad de la escritura.</p>
+        </div>
+      </div>
+
+      <div class="spec-step-title" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">Paso 1 — Criterios de evaluación</div>
+      <div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
-          <div class="spec-block-label" style="color:var(--gate)">1.6 — Criterios de validación</div>
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de evaluación</div>
           <p>1. El destino se elige en orden: sin proyecto no hay agente, y sin un agente con repositorio no se puede iniciar. Repositorio y rama nunca se editan a mano — los resuelve el agente elegido, y cambiar de agente los actualiza siempre.<br>
           2. Vincular no vincula nada aquí: remite a otra pantalla, y si ningún agente del proyecto tiene repositorio, lo avisa antes de tener que comprobarlo uno a uno.<br>
           3. El registro arranca comprobando conexión antes de leer nada; si falla, el paso se detiene ahí.<br>
@@ -718,8 +908,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           9. Empezar de nuevo vacía el resultado y mantiene el destino elegido. Repetir el inventario sobre el mismo destino da el mismo resultado, sin mezclar registros.</p>
         </div>
       </div>
+      </div>
 
-            
+
 <div id="spec-step-2" style="display:none">
         <div class="spec-step-title">Paso 2 — Traer al repositorio</div>
         <div class="spec-block">
@@ -954,6 +1145,7 @@ const STEPS = [
 let stepStates = ['active','pending','pending','pending','pending'];
 let current = 1;
 let viewingStep = 1;
+let viewingStepBeforeTool = 1;
 let versionLabel = '';
 let isRunning = false;
 let animVersion = 0;
@@ -1588,7 +1780,7 @@ function badgeContent(state, n) {
 }
 
 function renderSidebar() {
-  const sb = document.getElementById('sidebar');
+  const sb = document.getElementById('sidebar-steps');
   let html = '<div class="sidebar-label">Pipeline de deploy</div>';
   STEPS.forEach((s,i) => {
     const state = stepStates[i];
@@ -1621,6 +1813,114 @@ function viewDone() {
   document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
   document.getElementById('view-done').classList.add('visible');
   renderSidebar();
+}
+
+// TOOLS — acciones sueltas, fuera de los 5 pasos numerados (S20 y las que
+// se añadan con el tiempo). No tocan el estado del pipeline (stepStates,
+// viewingStep de un paso): al cerrar, se vuelve a donde estaba.
+const TOOL_LOG_LINES = [
+  { text: '$ leyendo definitions/... por metadata.cx_id', cls: 'dim' },
+  { text: '✓ archivo local encontrado', cls: 'ok' },
+  { text: '$ GET recurso actual en CX (borrador)', cls: 'dim' },
+  { text: '✓ recurso leído', cls: 'ok' },
+  { text: '$ PATCH — Full Update, sin updateMask', cls: 'dim' },
+  { text: '✓ aplicado en el borrador', cls: 'ok' },
+];
+
+function viewTool(name) {
+  viewingStepBeforeTool = viewingStep;
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-tool-' + name).classList.add('visible');
+  const prefix = name === 'deploy-resource' ? 'tool-deploy' : 'tool-onboarding';
+  document.getElementById(prefix + '-start').style.display = 'block';
+  document.getElementById(prefix + '-log').style.display = 'none';
+  document.getElementById(prefix + '-done').style.display = 'none';
+  document.getElementById(prefix + '-log-block').innerHTML = '';
+}
+
+function cerrarTool() {
+  if (viewingStepBeforeTool === 'done') { viewDone(); return; }
+  if (typeof viewingStepBeforeTool === 'number') { viewStep(viewingStepBeforeTool); return; }
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-1').classList.add('visible');
+  renderSidebar();
+}
+
+const TOOL_ONBOARDING_LOG_LINES = [
+  { text: '$ creando estructura del repositorio', cls: 'dim' },
+  { text: '✓ cx-deploy.yaml creado (S23)', cls: 'ok' },
+  { text: '$ registrando mapeo agente→repo en Firestore (S4)', cls: 'dim' },
+  { text: '✓ mapeo guardado', cls: 'ok' },
+  { text: '$ detectando región del agente (17 regiones probadas)', cls: 'dim' },
+  { text: '✓ región: europe-west1', cls: 'ok' },
+  { text: '$ trayendo lo que ya existe en CX al repositorio', cls: 'dim' },
+  { text: '✓ pull inicial completado', cls: 'ok' },
+];
+
+function copiarComandoIam(btn) {
+  const code = document.getElementById('tool-comando-iam').textContent;
+  navigator.clipboard?.writeText(code);
+  const original = btn.textContent;
+  btn.textContent = 'Copiado';
+  setTimeout(() => { btn.textContent = original; }, 1500);
+}
+
+function ejecutarToolOnboarding() {
+  const agentId = document.getElementById('tool-agent-id-input').value.trim();
+  const repoUrl = document.getElementById('tool-repo-url-input').value.trim();
+  if (!agentId || !repoUrl) {
+    (agentId ? document.getElementById('tool-repo-url-input') : document.getElementById('tool-agent-id-input')).focus();
+    return;
+  }
+  setRunning(true);
+  document.getElementById('tool-onboarding-start').style.display = 'none';
+  document.getElementById('tool-onboarding-log').style.display = 'block';
+  const logBlock = document.getElementById('tool-onboarding-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if (i >= TOOL_ONBOARDING_LOG_LINES.length) {
+      setTimeout(() => { document.getElementById('tool-onboarding-done').style.display = 'block'; setRunning(false); }, 300);
+      return;
+    }
+    const line = TOOL_ONBOARDING_LOG_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    logBlock.scrollTop = logBlock.scrollHeight;
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function ejecutarToolDeployResource() {
+  const cxId = document.getElementById('tool-cxid-input').value.trim();
+  if (!cxId) { document.getElementById('tool-cxid-input').focus(); return; }
+  setRunning(true);
+  document.getElementById('tool-deploy-start').style.display = 'none';
+  document.getElementById('tool-deploy-log').style.display = 'block';
+  const logBlock = document.getElementById('tool-deploy-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if (i >= TOOL_LOG_LINES.length) {
+      setTimeout(() => { document.getElementById('tool-deploy-done').style.display = 'block'; setRunning(false); }, 300);
+      return;
+    }
+    const line = TOOL_LOG_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    logBlock.scrollTop = logBlock.scrollHeight;
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
 }
 
 function viewStep(id) {
@@ -1897,3 +2197,5 @@ viewStep(1);
 renderSidebar();
 </script>
 
+
+</body></html>
