@@ -181,11 +181,37 @@ def api_request(method, project, region, path, body=None, params=None,
                 json=body, params=params, timeout=timeout,
             )
         if response.status_code != 429:
+            _comprobar_region(response, region)
             return response
         if attempt < max_retries - 1:
             _sleep(base_delay * (2 ** attempt))
 
+    _comprobar_region(response, region)
     return response
+
+
+def _comprobar_region(response, region):
+    """Convierte el 404 de un host inexistente en un error de región.
+
+    Una región que no existe produce un host que tampoco existe, y Google
+    responde con su página de error en HTML — no con un JSON de la API. Sin
+    esta traducción, un valor equivocado en Firestore llega a quien lo depura
+    como un 404 con una página web dentro, sin ninguna pista de que el
+    problema era la región.
+
+    Se distingue del 404 legítimo —la API responde JSON diciendo qué recurso
+    no encontró— por el tipo de contenido, no por el código de estado.
+    """
+    if response.status_code != 404:
+        return
+    if "application/json" in response.headers.get("Content-Type", ""):
+        return
+    raise ApiError(
+        f"La región '{region}' no corresponde a ningún endpoint de Dialogflow "
+        f"CX: la petición no llegó a la API. Revisa la región guardada para "
+        f"este agente.",
+        status_code=404,
+    )
 
 
 def _sleep(seconds):
