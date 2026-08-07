@@ -41,9 +41,18 @@ from google.cloud import firestore
 # la consola de Firestore tiene que entender qué mira sin un mapa aparte.
 COL_AGENTES = "agentes"
 COL_CANDADOS = "candados"
-COL_AUDITORIA_RESOURCES = "auditoria_resources"
-COL_AUDITORIA_EJECUCIONES = "auditoria_ejecuciones"
 COL_VERSIONES_PREVIAS = "versiones_previas"
+
+# La auditoría cuelga del agente en vez de vivir en colecciones planas. No es
+# una preferencia de organización: Firestore exige un **índice compuesto** para
+# cualquier consulta que combine varios filtros, y una colección plana obligaba
+# a filtrar por `project` y `agent_id` en cada lectura. Colgando del agente, la
+# consulta ya está acotada por la ruta y solo queda un criterio —ordenar por
+# fecha, o filtrar por pendiente— que Firestore resuelve con sus índices
+# automáticos. Verificado contra Firestore real: la versión plana fallaba con
+# FAILED_PRECONDITION pidiendo crear el índice a mano.
+SUB_EJECUCIONES = "ejecuciones"
+SUB_RESOURCES = "resources"
 
 # El servicio de Cloud Run tiene 60 minutos de timeout máximo, así que ninguna
 # operación legítima puede seguir viva pasado ese tiempo. Un candado que sigue
@@ -159,7 +168,10 @@ def list_agent_mappings(client, project=None):
     repositorio y cuál no — nunca para omitir los que no lo tienen.
     """
     coleccion = client.collection(COL_AGENTES)
-    consulta = coleccion.where("project", "==", project) if project else coleccion
+    consulta = (
+        coleccion.where(filter=firestore.FieldFilter("project", "==", project))
+        if project else coleccion
+    )
     return [snapshot.to_dict() for snapshot in consulta.stream()]
 
 
@@ -255,15 +267,21 @@ class agent_lock:
 
 # ── 3. Log de auditoría ──────────────────────────────────────────────────────
 
-def _resource_doc_id(project, agent_id, tipo, cx_id):
-    """Clave de resource.
+def _resource_doc_id(tipo, cx_id):
+    """Clave de resource dentro de la subcolección de su agente.
 
-    Lleva el tipo además del agente porque un `cx_id` solo es único dentro de
+    Lleva el tipo además del `cx_id` porque un `cx_id` solo es único dentro de
     su tipo: verificado con caso real — el Playbook orquestador de Petal y el
     Intent "Default Welcome Intent" comparten el ID
     00000000-0000-0000-0000-000000000000.
     """
-    return f"{project}__{agent_id}__{tipo}__{cx_id}"
+    return f"{tipo}__{cx_id}"
+
+
+def _sub(client, project, agent_id, subcoleccion):
+    return (client.collection(COL_AGENTES)
+            .document(_doc_id(project, agent_id))
+            .collection(subcoleccion))
 
 
 def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
@@ -280,11 +298,9 @@ def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
     alternativa sería versionar todo y el tiempo del paso crecería con el
     tamaño del agente en vez de con el del cambio.
     """
-    client.collection(COL_AUDITORIA_RESOURCES).document(
-        _resource_doc_id(project, agent_id, tipo, cx_id)
+    _sub(client, project, agent_id, SUB_RESOURCES).document(
+        _resource_doc_id(tipo, cx_id)
     ).set({
-        "project": project,
-        "agent_id": agent_id,
         "tipo": tipo,
         "cx_id": cx_id,
         "archivo": archivo,
@@ -296,8 +312,8 @@ def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
 
 
 def get_resource_record(client, project, agent_id, tipo, cx_id):
-    snapshot = client.collection(COL_AUDITORIA_RESOURCES).document(
-        _resource_doc_id(project, agent_id, tipo, cx_id)
+    snapshot = _sub(client, project, agent_id, SUB_RESOURCES).document(
+        _resource_doc_id(tipo, cx_id)
     ).get()
     return snapshot.to_dict() if snapshot.exists else None
 
@@ -306,10 +322,8 @@ def list_pending_publication(client, project, agent_id):
     """Resources escritos en el borrador que aún no se han publicado."""
     return [
         snapshot.to_dict() for snapshot in
-        client.collection(COL_AUDITORIA_RESOURCES)
-        .where("project", "==", project)
-        .where("agent_id", "==", agent_id)
-        .where("pendiente_publicar", "==", True)
+        _sub(client, project, agent_id, SUB_RESOURCES)
+        .where(filter=firestore.FieldFilter("pendiente_publicar", "==", True))
         .stream()
     ]
 
@@ -321,8 +335,8 @@ def mark_published(client, project, agent_id, resources):
     falla antes, la marca se queda y el reintento vuelve a considerarlos.
     """
     for resource in resources:
-        client.collection(COL_AUDITORIA_RESOURCES).document(
-            _resource_doc_id(project, agent_id, resource["tipo"], resource["cx_id"])
+        _sub(client, project, agent_id, SUB_RESOURCES).document(
+            _resource_doc_id(resource["tipo"], resource["cx_id"])
         ).update({"pendiente_publicar": False, "publicado_en": _now()})
 
 
@@ -332,24 +346,33 @@ def record_run(client, project, agent_id, paso, status, log, data=None,
 
     Es el único rastro forense de lo que se escribió: en el pipeline local
     esto iba a disco, y el disco de Cloud Run desaparece con el contenedor.
+
+    **Nunca propaga un fallo.** Anotar lo que pasó es contabilidad, no la
+    operación: si la anotación falla, la escritura en CX o en el repositorio
+    ya ocurrió igual. Dejar que reventara aquí convertiría una operación
+    correcta en un error de cara a quien lo usa, y le empujaría a reintentar
+    algo que ya está hecho. Verificado en vivo: un índice ausente de Firestore
+    hizo fallar un `pull` que había escrito sus 4 archivos y su commit.
     """
-    client.collection(COL_AUDITORIA_EJECUCIONES).add({
-        "project": project,
-        "agent_id": agent_id,
-        "paso": paso,
-        "status": status,
-        "log": log,
-        "data": data or {},
-        "ejecutado_en": _now(),
-    })
-    _podar_historial(client, project, agent_id, max_ejecuciones)
+    try:
+        _sub(client, project, agent_id, SUB_EJECUCIONES).add({
+            "paso": paso,
+            "status": status,
+            "log": log,
+            "data": data or {},
+            "ejecutado_en": _now(),
+        })
+        _podar_historial(client, project, agent_id, max_ejecuciones)
+        return True
+    except Exception as error:
+        print(f"[auditoría] No se pudo registrar la ejecución del paso {paso} "
+              f"de {agent_id}: {error}")
+        return False
 
 
 def _podar_historial(client, project, agent_id, max_ejecuciones):
     entradas = list(
-        client.collection(COL_AUDITORIA_EJECUCIONES)
-        .where("project", "==", project)
-        .where("agent_id", "==", agent_id)
+        _sub(client, project, agent_id, SUB_EJECUCIONES)
         .order_by("ejecutado_en", direction=firestore.Query.DESCENDING)
         .offset(max_ejecuciones)
         .stream()
@@ -361,9 +384,7 @@ def _podar_historial(client, project, agent_id, max_ejecuciones):
 def list_runs(client, project, agent_id, limite=HISTORIAL_MAX_EJECUCIONES):
     return [
         snapshot.to_dict() for snapshot in
-        client.collection(COL_AUDITORIA_EJECUCIONES)
-        .where("project", "==", project)
-        .where("agent_id", "==", agent_id)
+        _sub(client, project, agent_id, SUB_EJECUCIONES)
         .order_by("ejecutado_en", direction=firestore.Query.DESCENDING)
         .limit(limite)
         .stream()
