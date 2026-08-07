@@ -1495,33 +1495,41 @@ def nivel_4(runner, project, agent_id, run_id):
         validó. Y aborta antes del merge, así que no deja nada a medias.
         """
         contexto = pipeline.Contexto(project, agent_id)
-        antes = [c["version"] for c in
-                 [e for e in pipeline.inventariar_cx(
-                     contexto, tipos=["environment"])[0]["environment"].values()
-                  if e.get("displayName") == "production"][0]
-                 .get("versionConfigs", [])]
 
+        def foto():
+            inventario, _, _ = pipeline.inventariar_cx(contexto)
+            produccion = next(
+                e for e in inventario["environment"].values()
+                if e.get("displayName") == "production"
+            )
+            return {
+                "produccion": [c["version"] for c in
+                               produccion.get("versionConfigs", [])],
+                "borrador": pipeline._huella_borrador(inventario),
+                "rama": contexto.gh.branch_head(contexto.rama),
+                "principal": contexto.gh.branch_head(contexto.rama_principal),
+            }
+
+        antes = foto()
         resultado = pipeline.step_5_publish(
             project, agent_id, "huella_vieja",
             huella_al_validar="huella_que_no_corresponde",
         )
-        despues = [c["version"] for c in
-                   [e for e in pipeline.inventariar_cx(
-                       contexto, tipos=["environment"])[0]["environment"].values()
-                    if e.get("displayName") == "production"][0]
-                   .get("versionConfigs", [])]
+        despues = foto()
 
+        # Abortar no es revertir: lo que el Paso 3 aplicó sigue en el borrador,
+        # y ni el repositorio ni producción se mueven. Simplemente no avanza.
+        cambiado = [k for k in antes if antes[k] != despues[k]]
         return (resultado["status"] == "aborted"
                 and not resultado["data"]["fusionado"]
                 and not resultado["data"]["publicado"]
-                and antes == despues), (
-            f"status={resultado['status']} fusionado="
-            f"{resultado['data'].get('fusionado')} · producción "
-            f"{'se movió' if antes != despues else 'intacta'}"
+                and not cambiado), (
+            f"status={resultado['status']} · cambió: {cambiado or 'nada'}"
         )
 
-    runner.check(4, "Publicar con una huella que ya no corresponde aborta sin "
-                    "fusionar ni tocar producción",
+    runner.check(4, "Abortar por borrador movido no revierte nada: el borrador "
+                    "conserva lo aplicado, y producción, la rama de trabajo y la "
+                    "principal quedan intactas. Simplemente no avanza",
                  el_gate_del_paso_4_aborta_si_el_borrador_se_movio)
 
     def se_detecta_el_conflicto_de_los_dos_lados():
