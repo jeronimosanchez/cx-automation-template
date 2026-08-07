@@ -42,6 +42,7 @@ from google.cloud import firestore
 COL_AGENTES = "agentes"
 COL_CANDADOS = "candados"
 COL_VERSIONES_PREVIAS = "versiones_previas"
+COL_VERSIONES_EN_VUELO = "versiones_en_vuelo"
 
 # La auditoría cuelga del agente en vez de vivir en colecciones planas. No es
 # una preferencia de organización: Firestore exige un **índice compuesto** para
@@ -414,3 +415,36 @@ def get_previous_versions(client, project, agent_id):
         _doc_id(project, agent_id)
     ).get()
     return snapshot.to_dict() if snapshot.exists else None
+
+
+# ── 5. Versiones creadas y todavía no fijadas ────────────────────────────────
+#
+# Publicar hace tres cosas seguidas y no es atómico. Si el proceso muere entre
+# crear las versiones y apuntar el entorno, esas versiones existen en CX pero
+# no las sirve nadie. Sin dejarlas anotadas, el reintento vuelve a crearlas y
+# las primeras quedan huérfanas — consumiendo hueco contra el límite de
+# versiones por playbook y sin que nada las reclame.
+
+def save_inflight_versions(client, project, agent_id, version_names, etiqueta):
+    client.collection(COL_VERSIONES_EN_VUELO).document(
+        _doc_id(project, agent_id)
+    ).set({
+        "project": project,
+        "agent_id": agent_id,
+        "version_names": list(version_names),
+        "etiqueta": etiqueta,
+        "creado_en": _now(),
+    })
+
+
+def get_inflight_versions(client, project, agent_id):
+    snapshot = client.collection(COL_VERSIONES_EN_VUELO).document(
+        _doc_id(project, agent_id)
+    ).get()
+    return snapshot.to_dict() if snapshot.exists else None
+
+
+def clear_inflight_versions(client, project, agent_id):
+    client.collection(COL_VERSIONES_EN_VUELO).document(
+        _doc_id(project, agent_id)
+    ).delete()

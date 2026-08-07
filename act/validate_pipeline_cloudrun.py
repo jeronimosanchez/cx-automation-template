@@ -42,12 +42,15 @@ import sys
 import uuid
 from pathlib import Path
 
+import requests
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from act import act_cx_resources_deploy_cloudrun as pipeline
 from act.utils import cx_client_cloudrun as cx
+from act.utils import cx_payloads_cloudrun as payloads
 from act.utils import firestore_client_cloudrun as store
 
 PASS, FAIL, SKIP = "PASS", "FAIL", "SKIP"
@@ -491,9 +494,54 @@ def nivel_1(runner, project, agent_id, region):
     runner.check(1, "Ejecutar sin project o sin agent termina con mensaje claro",
                  sin_destino_error_claro)
 
+    def descubrimiento_lista_proyectos():
+        datos = pipeline.discover()["data"]
+        proyectos = datos["proyectos"]
+        return bool(proyectos) and all("projectId" in p for p in proyectos), \
+            f"{len(proyectos)} proyectos, sin projectId en alguno"
+
+    runner.check(1, "Descubrimiento sin proyecto devuelve la lista de proyectos GCP",
+                 descubrimiento_lista_proyectos)
+
+    def descubrimiento_lista_agentes_con_su_repositorio():
+        datos = pipeline.discover(project)["data"]
+        agentes = datos["agentes"]
+        nuestro = next((a for a in agentes if a["agentId"] == agent_id), None)
+        if nuestro is None:
+            return False, "el agente desechable no aparece en el descubrimiento"
+        campos = {"agentId", "displayName", "region", "repo", "rama", "vinculado"}
+        return campos <= set(nuestro) and nuestro["vinculado"] and nuestro["repo"], \
+            f"faltan campos o no viene vinculado: {nuestro}"
+
+    runner.check(1, "Descubrimiento devuelve cada agente con el repositorio que "
+                    "le corresponde — es lo que rellena los desplegables del panel",
+                 descubrimiento_lista_agentes_con_su_repositorio)
+
+    def agentes_sin_repositorio_no_se_omiten():
+        datos = pipeline.discover(project)["data"]
+        sin_vincular = [a for a in datos["agentes"] if not a["vinculado"]]
+        # Lo que importa no es que existan, sino que si existen vengan marcados
+        # en vez de desaparecer: omitirlos los haría invisibles justo cuando
+        # hace falta vincularlos.
+        return all(a["repo"] is None for a in sin_vincular), \
+            "un agente sin vincular trae repositorio"
+
+    runner.check(1, "Un agente sin repositorio se incluye marcado, nunca se omite "
+                    "en silencio",
+                 agentes_sin_repositorio_no_se_omiten)
+
+    def los_trece_tipos_traen_contenido():
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        vacios = [t for t, items in inventario.items() if not items]
+        return not vacios, f"sin contenido: {sorted(vacios)}"
+
+    runner.check(1, "Los 13 tipos devuelven contenido real, no solo responden",
+                 los_trece_tipos_traen_contenido)
+
     runner.skip(1, "Dos pares proyecto+agente en el mismo proceso no se contaminan",
-                "exige un segundo agente desechable en otro proyecto; se cubre "
-                "en el Nivel 4, que ya provisiona ese caso")
+                "exige un segundo agente desechable; la propiedad que probaría "
+                "—que la cabecera de cuota no se cachea— sí está cubierta en el "
+                "Nivel 4 sin necesitarlo")
 
 
 # ── Nivel 2 · Dry-run ────────────────────────────────────────────────────────
@@ -601,6 +649,162 @@ def nivel_2(runner, project, agent_id):
     runner.check(2, "Sin cambios, el paso lo dice y no continúa como si hubiera algo",
                  sin_cambios_lo_dice)
 
+    # ── Defensas que solo se disparan cuando algo va mal ─────────────────────
+    #
+    # Ninguna se había ejecutado nunca. Una defensa que no se ha probado es una
+    # suposición: el día que haga falta es el día que se descubre si funciona.
+
+    def cx_id_duplicado_para():
+        contexto = pipeline.Contexto(project, agent_id)
+        original = contexto.gh.list_tree
+        commit = contexto.gh.branch_head(contexto.rama)
+        archivos = original(commit)
+        yaml_real = next((a for a in archivos
+                          if a["path"].startswith("definitions/")), None)
+        if yaml_real is None:
+            return True, "(el repositorio no tiene YAML de resources)"
+
+        # Se simula un segundo archivo con el mismo blob: mismo tipo y mismo
+        # cx_id en dos rutas distintas, que es el caso real de duplicar un
+        # archivo y olvidar vaciar el id.
+        contexto.gh.list_tree = lambda *_a, **_k: archivos + [
+            {**yaml_real, "path": yaml_real["path"].replace(".yaml", "_copia.yaml")}
+        ]
+        try:
+            pipeline.cargar_repositorio(contexto)
+            return False, "aceptó dos archivos con el mismo tipo y cx_id"
+        except pipeline.PipelineError as error:
+            return "cx_id" in str(error), str(error)[:90]
+        finally:
+            contexto.gh.list_tree = original
+
+    runner.check(2, "Dos archivos con el mismo tipo y cx_id paran el pipeline — "
+                    "duplicar un YAML y olvidar vaciar el id deja dos "
+                    "reclamando el mismo resource",
+                 cx_id_duplicado_para)
+
+    def tipo_desconocido_da_error_explicito():
+        contexto = pipeline.Contexto(project, agent_id)
+        original_tree, original_blob = contexto.gh.list_tree, contexto.gh.read_blob
+        contexto.gh.list_tree = lambda *_a, **_k: [
+            {"path": "definitions/raro/x.yaml", "sha": "falso"}]
+        contexto.gh.read_blob = lambda *_a, **_k: (
+            b"metadata:\n  tipo: tipo_inventado\n  cx_id: abc\ndisplayName: x\n")
+        try:
+            pipeline.cargar_repositorio(contexto)
+            return False, "aceptó un tipo que no existe"
+        except pipeline.PipelineError as error:
+            return "tipo_inventado" in str(error), str(error)[:90]
+        finally:
+            contexto.gh.list_tree, contexto.gh.read_blob = original_tree, original_blob
+
+    runner.check(2, "Un YAML con un tipo que no existe da error nombrándolo, "
+                    "no se vuelve invisible",
+                 tipo_desconocido_da_error_explicito)
+
+    def yaml_mal_formado_dice_que_archivo():
+        contexto = pipeline.Contexto(project, agent_id)
+        original_tree, original_blob = contexto.gh.list_tree, contexto.gh.read_blob
+        contexto.gh.list_tree = lambda *_a, **_k: [
+            {"path": "definitions/roto.yaml", "sha": "falso"}]
+        contexto.gh.read_blob = lambda *_a, **_k: b"metadata:\n  tipo: [sin cerrar\n"
+        try:
+            pipeline.cargar_repositorio(contexto)
+            return False, "aceptó un YAML mal formado"
+        except pipeline.PipelineError as error:
+            return "definitions/roto.yaml" in str(error), str(error)[:90]
+        finally:
+            contexto.gh.list_tree, contexto.gh.read_blob = original_tree, original_blob
+
+    runner.check(2, "Un YAML mal formado dice qué archivo lo provocó",
+                 yaml_mal_formado_dice_que_archivo)
+
+    def rama_inexistente_falla_claro():
+        cliente = store.get_client()
+        mapeo = store.get_agent_mapping(cliente, project, agent_id)
+        store.save_agent_mapping(cliente, project, agent_id, mapeo["region"],
+                                 mapeo["repo"], "rama-que-no-existe",
+                                 mapeo.get("rama_principal", "main"))
+        try:
+            pipeline.step_1_inventory(project, agent_id)
+            return False, "no falló con una rama inexistente"
+        except Exception as error:
+            return "404" in str(error) or "not found" in str(error).lower(), \
+                str(error)[:90]
+        finally:
+            store.save_agent_mapping(cliente, project, agent_id, mapeo["region"],
+                                     mapeo["repo"], mapeo["rama"],
+                                     mapeo.get("rama_principal", "main"))
+
+    runner.check(2, "Una rama que no existe en el mapeo falla, no devuelve un "
+                    "repositorio vacío",
+                 rama_inexistente_falla_claro)
+
+    def etiqueta_de_version_validada():
+        malas = ["", "con espacios", "con/barra", "acentué", None]
+        for mala in malas:
+            try:
+                pipeline.step_5_publish(project, agent_id, mala)
+                return False, f"aceptó el nombre de versión {mala!r}"
+            except ValueError:
+                continue
+            except Exception as error:
+                return False, f"{mala!r} falló por otra razón: {type(error).__name__}"
+        return True, ""
+
+    runner.check(2, "Un nombre de versión inválido se rechaza antes de tocar nada",
+                 etiqueta_de_version_validada)
+
+    def url_de_repositorio_validada():
+        for mala in ["", "no-es-una-url", "https://github.com/solo-usuario",
+                     "https://gitlab.com/a/b/c/d"]:
+            try:
+                pipeline._repo_desde_url(mala)
+                return False, f"aceptó {mala!r} como repositorio"
+            except ValueError:
+                continue
+        buena = pipeline._repo_desde_url("https://github.com/usuario/repo.git")
+        return buena == "usuario/repo", buena
+
+    runner.check(2, "Una URL de repositorio que no lo es se rechaza",
+                 url_de_repositorio_validada)
+
+    def resource_suelto_rechaza_lo_que_no_despliega():
+        for tipo in ("environment", "version", "tipo_que_no_existe"):
+            try:
+                pipeline.deploy_single_resource(project, agent_id, tipo, "x")
+                return False, f"aceptó desplegar un {tipo}"
+            except ValueError:
+                continue
+        return True, ""
+
+    runner.check(2, "Desplegar un resource suelto rechaza los tipos que no "
+                    "despliega, incluidos los entornos",
+                 resource_suelto_rechaza_lo_que_no_despliega)
+
+    def resource_suelto_exige_que_el_repo_lo_declare():
+        try:
+            pipeline.deploy_single_resource(project, agent_id, "intent",
+                                            "cx-id-que-nadie-declara")
+            return False, "aceptó un cx_id que ningún archivo declara"
+        except pipeline.PipelineError as error:
+            return "repositorio" in str(error), str(error)[:90]
+
+    runner.check(2, "Desplegar un resource suelto exige que algún archivo lo declare",
+                 resource_suelto_exige_que_el_repo_lo_declare)
+
+    def tests_solo_admite_dos_respuestas():
+        for valor in ("ok", "", None, "SUPERADOS"):
+            try:
+                pipeline.step_4_validate_tests(project, agent_id, valor)
+                return False, f"aceptó {valor!r} como resultado de los tests"
+            except ValueError:
+                continue
+        return True, ""
+
+    runner.check(2, "Declarar los tests solo admite 'superados' o 'fallidos'",
+                 tests_solo_admite_dos_respuestas)
+
     runner.skip(2, "Un resource modificado a la vez en CX y en el repositorio se "
                    "señala como conflicto explícito",
                 "el pipeline no distingue hoy ese caso de un PATCH normal — el "
@@ -616,6 +820,13 @@ def nivel_3(runner, project, agent_id, run_id):
     contexto = pipeline.Contexto(project, agent_id)
     etiqueta = f"{PREFIJO}_{run_id}"
     creados = []
+
+    # Punto al que se devuelve la rama al terminar. Sin esto, un resource que
+    # el nivel crea en CX y trae al repositorio sobrevive al borrado —
+    # desaparece de CX pero su archivo se queda, y el inventario siguiente lo
+    # reporta como cx_id fantasma para siempre. Encontrado ejecutando: el
+    # Nivel 1 falló por el residuo que había dejado el Nivel 3.
+    rama_al_empezar = contexto.gh.branch_head(contexto.rama)
 
     def barrer_restos_previos():
         """Barrido al empezar: un finally no sobrevive a un SIGKILL, así que el
@@ -711,41 +922,374 @@ def nivel_3(runner, project, agent_id, run_id):
                     "un segundo",
                  pull_deja_un_commit_y_solo_uno)
 
-    def limpiar():
-        pendientes = []
-        for nombre in creados:
+    def los_trece_tipos_ciclo_completo():
+        """Create, update y delete real de cada tipo desplegable.
+
+        Los tipos poco comunes pueden tener comportamiento propio que no se
+        descubre nunca si solo se prueban los cuatro conocidos.
+        """
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        fallos, probados = [], []
+        for tipo, spec in pipeline.TIPOS_DESPLEGABLES.items():
+            if spec.get("singular"):
+                continue  # el agente no se crea ni se borra desde aquí
+            padre = contexto.parent
+            if spec.get("padre"):
+                candidatos = list(inventario.get(spec["padre"], {}).values())
+                if not candidatos:
+                    fallos.append(f"{tipo}: sin padre donde colgarlo")
+                    continue
+                padre = candidatos[0]["name"]
+
+            # Sufijo propio: sin él choca con el resource que este mismo nivel
+            # crea al empezar, y la API responde 409 AlreadyExists.
+            cuerpo = {"displayName": f"{etiqueta}_ciclo_{tipo}"}
+            if tipo == "entity_type":
+                cuerpo.update({"kind": "KIND_MAP",
+                               "entities": [{"value": "a", "synonyms": ["a"]}]})
+            elif tipo == "webhook":
+                cuerpo.update({"genericWebService": {"uri": "https://example.invalid/x"},
+                               "timeout": "5s"})
+            elif tipo == "generator":
+                cuerpo.update({"promptText": {"text": "resume"}})
+            elif tipo == "playbook":
+                cuerpo.update({"goal": "objetivo de prueba",
+                               "playbookType": "ROUTINE",
+                               "instruction": {"steps": [{"text": "haz algo"}]}})
+            elif tipo == "example":
+                cuerpo.update({"actions": [{"userUtterance": {"text": "hola"}},
+                                           {"agentUtterance": {"text": "hola"}}],
+                               "conversationState": "OUTPUT_STATE_OK"})
+            elif tipo == "tool":
+                cuerpo.update({"description": "herramienta de prueba",
+                               "openApiSpec": {"textSchema":
+                                   "openapi: 3.0.0\ninfo:\n  title: x\n  version: '1'\npaths: {}\n"}})
+
+            creado = cx.api_post(project, contexto.region,
+                                 f"{padre}/{spec['api']}", cuerpo)
+            if creado.status_code not in (200, 201):
+                fallos.append(f"{tipo} CREATE {creado.status_code}: "
+                              f"{creado.text[:90]}")
+                continue
+            nombre = cx.resolve_operation(project, contexto.region, creado)["name"]
+
+            actual = cx.api_get(project, contexto.region, nombre).json()
+            actual["displayName"] = f"{etiqueta}_ciclo_{tipo}_mod"
+            for campo in payloads.ignore_fields_for(tipo):
+                actual.pop(campo, None)
+            modificado = cx.api_patch(project, contexto.region, nombre, actual)
+            if modificado.status_code not in (200, 201):
+                fallos.append(f"{tipo} UPDATE {modificado.status_code}: "
+                              f"{modificado.text[:90]}")
+
+            cx.api_delete(project, contexto.region, nombre)
+            if cx.api_get(project, contexto.region, nombre).status_code != 404:
+                fallos.append(f"{tipo} DELETE no surtió efecto")
+            probados.append(tipo)
+
+        return not fallos, (f"probados {len(probados)} · " + " | ".join(fallos))
+
+    runner.check(3, "Create, update y delete real de cada tipo desplegable, "
+                    "confirmando el borrado leyendo el resultado",
+                 los_trece_tipos_ciclo_completo)
+
+    def full_update_no_borra_los_handlers_del_flow():
+        """El bug ya documentado: un PATCH parcial intenta borrar los
+        eventHandlers que ningún YAML declara, y la API responde 400."""
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["flow"])
+        flows = list(inventario.get("flow", {}).values())
+        if not flows:
+            return True, "(el agente no tiene flows)"
+        flow = flows[0]
+        antes = len(cx.api_get(project, contexto.region, flow["name"])
+                    .json().get("eventHandlers", []))
+        if antes == 0:
+            return True, "(el flow no tiene eventHandlers que preservar)"
+
+        operacion = pipeline._operacion(
+            "PATCH", "flow", pipeline._cx_id_de(flow),
+            {"ruta": "sintetico", "display_name": flow["displayName"]},
+            {"description": f"tocado por {etiqueta}"},
+            remote_name=flow["name"],
+        )
+        pipeline._patch_full_update(contexto, operacion)
+        despues = len(cx.api_get(project, contexto.region, flow["name"])
+                      .json().get("eventHandlers", []))
+        return antes == despues, (
+            f"el Full Update pasó de {antes} a {despues} eventHandlers"
+        )
+
+    runner.check(3, "Full Update en un flow con eventHandlers implícitos no los "
+                    "borra — es la reproducción del bug ya documentado",
+                 full_update_no_borra_los_handlers_del_flow)
+
+    def full_update_en_playbook_aplica_de_verdad():
+        """El bug de §3.8: en europe-west1 el PATCH con updateMask devuelve 200
+        y no aplica nada. Lo que se comprueba es que el Full Update sí aplica —
+        leyendo el resultado, no el código de respuesta."""
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        playbooks = list(inventario.get("playbook", {}).values())
+        if not playbooks:
+            return True, "(el agente no tiene playbooks)"
+        playbook = playbooks[0]
+        nuevo = f"objetivo cambiado por {etiqueta}"
+        operacion = pipeline._operacion(
+            "PATCH", "playbook", pipeline._cx_id_de(playbook),
+            {"ruta": "sintetico", "display_name": playbook["displayName"]},
+            {"goal": nuevo}, remote_name=playbook["name"],
+        )
+        pipeline._patch_full_update(contexto, operacion)
+        leido = cx.api_get(project, contexto.region, playbook["name"]).json()
+        return leido.get("goal") == nuevo, (
+            f"el cambio no llegó: goal = {leido.get('goal')!r}"
+        )
+
+    runner.check(3, "Full Update en un playbook aplica de verdad, confirmado "
+                    "leyendo el objeto y no el código de respuesta",
+                 full_update_en_playbook_aplica_de_verdad)
+
+    def desplegar_un_resource_suelto():
+        repositorio, _ = pipeline.cargar_repositorio(contexto)
+        candidato = None
+        for tipo in ("intent", "entity_type", "generator", "webhook"):
+            for cx_id in repositorio["por_tipo"].get(tipo, {}):
+                candidato = (tipo, cx_id)
+                break
+            if candidato:
+                break
+        if not candidato:
+            return True, "(el repositorio no tiene un resource desplegable suelto)"
+        tipo, cx_id = candidato
+        # Ya coincide, así que tiene que reportar que no hay nada que aplicar.
+        resultado = pipeline.deploy_single_resource(project, agent_id, tipo, cx_id)
+        return resultado["data"]["aplicado"] is False, (
+            "aplicó algo cuando repo y CX ya coincidían"
+        )
+
+    runner.check(3, "Desplegar un resource suelto no escribe si repo y CX ya "
+                    "coinciden",
+                 desplegar_un_resource_suelto)
+
+    def declarar_tests_da_una_huella_que_cambia():
+        """Si la huella no cambiara al cambiar el borrador, el aviso de 'draft
+        movido' del Paso 5 no avisaría de nada."""
+        antes = pipeline.step_4_validate_tests(
+            project, agent_id, "superados")["data"]["huella_borrador"]
+        creado = cx.api_post(project, contexto.region, f"{contexto.parent}/intents",
+                             {"displayName": f"{etiqueta}_huella"})
+        if creado.status_code not in (200, 201):
+            return False, f"no se pudo mover el borrador: {creado.status_code}"
+        nombre = creado.json()["name"]
+        try:
+            despues = pipeline.step_4_validate_tests(
+                project, agent_id, "superados")["data"]["huella_borrador"]
+            return antes != despues, "la huella no cambió al mover el borrador"
+        finally:
+            cx.api_delete(project, contexto.region, nombre)
+
+    runner.check(3, "La huella del borrador cambia cuando el borrador cambia — "
+                    "sin eso, el aviso de 'draft movido' no avisa de nada",
+                 declarar_tests_da_una_huella_que_cambia)
+
+    def borrar_versiones_respeta_las_que_sirve_un_entorno():
+        listado = pipeline.manage_versions(project, agent_id, "list")["data"]
+        en_uso = [v["name"] for v in listado["versiones"] if v["en_uso"]]
+        if not en_uso:
+            return True, "(ninguna versión está en uso)"
+        resultado = pipeline.manage_versions(project, agent_id, "delete",
+                                             version_names=en_uso)["data"]
+        sigue = pipeline.manage_versions(project, agent_id, "list")["data"]
+        nombres = {v["name"] for v in sigue["versiones"]}
+        return (not resultado["borradas"] and set(en_uso) <= nombres), (
+            f"borró {resultado['borradas']} de las que sirve un entorno"
+        )
+
+    runner.check(3, "Borrar versiones se niega con las que un entorno está "
+                    "sirviendo, y las deja intactas",
+                 borrar_versiones_respeta_las_que_sirve_un_entorno)
+
+    def borrar_una_version_libre_funciona():
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["flow"])
+        flows = list(inventario.get("flow", {}).values())
+        if not flows:
+            return True, "(sin flows)"
+        creada = cx.api_post(project, contexto.region, f"{flows[0]['name']}/versions",
+                             {"displayName": f"{etiqueta}_v"})
+        if creada.status_code not in (200, 201):
+            return False, f"no se pudo crear la versión: {creada.status_code}"
+        nombre = cx.resolve_operation(project, contexto.region, creada)["name"]
+        resultado = pipeline.manage_versions(project, agent_id, "delete",
+                                             version_names=[nombre])["data"]
+        desaparecio = cx.api_get(project, contexto.region, nombre).status_code == 404
+        return nombre in resultado["borradas"] and desaparecio, (
+            "la versión no se borró de verdad"
+        )
+
+    runner.check(3, "Borrar una versión libre funciona, y el borrado se confirma "
+                    "leyendo",
+                 borrar_una_version_libre_funciona)
+
+    def publicar_hace_tres_cosas_en_orden():
+        """Fusionar, crear la versión y apuntar producción — en ese orden.
+
+        Si se promoviera antes de fusionar y el merge fallara, producción
+        estaría sirviendo algo cuyo código no está en la rama principal.
+        """
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["environment"])
+        produccion = [e for e in inventario.get("environment", {}).values()
+                      if e.get("displayName") == "production"]
+        if not produccion:
+            return False, "el agente desechable no tiene entorno production"
+        antes = [c["version"] for c in produccion[0].get("versionConfigs", [])]
+
+        resultado = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_pub")
+        if resultado["status"] != "ok":
+            return False, f"{resultado['status']}: {resultado['log'][-1:]}"
+
+        registro = " | ".join(resultado["log"])
+        orden_correcto = (registro.index("1/3") < registro.index("2/3")
+                          < registro.index("3/3"))
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["environment"])
+        despues = [c["version"] for c in
+                   [e for e in inventario["environment"].values()
+                    if e.get("displayName") == "production"][0]
+                   .get("versionConfigs", [])]
+        return orden_correcto and resultado["data"]["publicado"], (
+            f"orden={orden_correcto} antes={len(antes)} después={len(despues)}"
+        )
+
+    runner.check(3, "Publicar hace tres cosas y en orden: fusionar, versionar y "
+                    "apuntar producción",
+                 publicar_hace_tres_cosas_en_orden)
+
+    def publicar_solo_versiona_lo_tocado():
+        """H4: el tiempo del paso tiene que ser proporcional al cambio, no al
+        tamaño del agente — y cada deploy no puede quemar un hueco de versión
+        en todos los playbooks contra un límite de 20."""
+        cliente = store.get_client()
+        pendientes = store.list_pending_publication(cliente, project, agent_id)
+        resultado = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_h4")
+        if resultado["status"] != "ok":
+            return False, resultado["status"]
+        creadas = resultado["data"]["versiones_creadas"]
+        inventario, _, _ = pipeline.inventariar_cx(
+            contexto, tipos=["playbook", "flow"])
+        versionables = len(inventario.get("playbook", {})) + len(inventario.get("flow", {}))
+        return len(creadas) <= max(1, len(pendientes)) and len(creadas) < versionables + 1, (
+            f"{len(creadas)} versiones creadas con {len(pendientes)} resources "
+            f"tocados y {versionables} versionables en total"
+        )
+
+    runner.check(3, "Publicar versiona solo lo que el diff tocó, no el agente "
+                    "entero (H4)",
+                 publicar_solo_versiona_lo_tocado)
+
+    def publicar_dos_veces_es_no_op():
+        """Un reintento accidental del Paso 5 sobre un commit ya publicado no
+        debe fusionar dos veces ni crear una versión duplicada."""
+        primera = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_dos_a")
+        segunda = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_dos_b")
+        if primera["status"] != "ok" or segunda["status"] != "ok":
+            return False, f"{primera['status']} / {segunda['status']}"
+        return len(segunda["data"]["versiones_creadas"]) == 0, (
+            f"la segunda publicación creó {len(segunda['data']['versiones_creadas'])} "
+            f"versiones sin nada que publicar"
+        )
+
+    runner.check(3, "Publicar dos veces seguidas sin cambios no crea una segunda "
+                    "versión",
+                 publicar_dos_veces_es_no_op)
+
+    def el_rollback_queda_registrado():
+        cliente = store.get_client()
+        previas = store.get_previous_versions(cliente, project, agent_id)
+        return previas is not None and "version_names" in previas, (
+            "no quedó registrado a qué apuntaba producción antes"
+        )
+
+    runner.check(3, "Publicar registra a qué versiones apuntaba producción antes "
+                    "— es lo único que hace posible el rollback",
+                 el_rollback_queda_registrado)
+
+    runner.skip(3, "Repetir los checks de Full Update en una región distinta de "
+                   "europe-west1",
+                "exige un segundo agente desechable en otra región. El bug de "
+                "CLAUDE.md §3.8 solo está verificado en europe-west1 y sigue sin "
+                "verificar fuera: con la región autodetectada, el pipeline puede "
+                "acabar operando en otra sin que nadie lo haya comprobado")
+
+    # ── Limpieza · va al final, y pase lo que pase antes ─────────────────────
+
+    def limpiar_cx():
+        """Borra todo lo que lleva el prefijo, y confirma leyendo.
+
+        Una excepción declarada: la versión que el entorno de producción está
+        sirviendo no se puede borrar mientras la sirva — la API se niega, y con
+        razón. Deja de estar en uso en cuanto la corrida siguiente publique
+        otra, y entonces la barre el barrido inicial. Se cuenta aquí en vez de
+        callarla, porque un residuo silencioso se lee luego como limpieza que
+        sí ocurrió.
+        """
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        en_uso = {
+            config["version"]
+            for entorno in inventario.get("environment", {}).values()
+            for config in entorno.get("versionConfigs", [])
+        }
+        objetivos = set(creados) | {
+            item["name"]
+            for items in inventario.values() for item in items.values()
+            if str(item.get("displayName", "")).startswith(PREFIJO)
+        }
+
+        pendientes, servidos = [], []
+        for nombre in objetivos:
+            if nombre in en_uso:
+                servidos.append(nombre.rsplit("/", 1)[-1])
+                continue
             cx.api_delete(project, contexto.region, nombre)
             # El borrado se confirma leyendo, no por el código de respuesta.
             if cx.api_get(project, contexto.region, nombre).status_code != 404:
                 pendientes.append(nombre)
-        return not pendientes, f"no se borraron: {pendientes}"
 
-    runner.check(3, "Cero residuo: lo creado se borra y el borrado se confirma "
-                    "leyendo el resultado",
-                 limpiar)
+        detalle = f"no se borraron: {pendientes}" if pendientes else (
+            f"{len(servidos)} versiones siguen en uso por un entorno y se "
+            f"barrerán en la corrida siguiente" if servidos else ""
+        )
+        return not pendientes, detalle
 
-    runner.skip(3, "Los 13 tipos con create, update y delete reales",
-                "Petal y el agente desechable solo tienen 5 de los 13 tipos. Los "
-                "8 restantes (entity types, webhooks, generators, pages, "
-                "transition route groups, y los dos no desplegables) exigen "
-                "fabricar un fixture por tipo — es trabajo aparte, no un test "
-                "que se pueda derivar de lo que ya existe")
+    runner.check(3, "Cero residuo en CX: lo creado se borra y el borrado se "
+                    "confirma leyendo el resultado",
+                 limpiar_cx)
 
-    runner.skip(3, "Full Update en un playbook con event handlers implícitos no "
-                   "los borra",
-                "el agente desechable no tiene playbooks. Reproducirlo exige "
-                "crear uno con handlers, que es parte del fixture anterior")
+    def limpiar_repositorio():
+        """Devuelve la rama al commit en el que estaba antes del nivel.
 
-    runner.skip(3, "Repetir los checks de Full Update en una región distinta de "
-                   "europe-west1",
-                "exige un segundo agente desechable en otra región; el bug de "
-                "CLAUDE.md §3.8 solo está verificado en europe-west1 y sigue sin "
-                "verificar fuera")
+        Es un force update, y por eso solo se hace contra el repositorio
+        desechable. Revertir archivo por archivo dejaría fuera cualquiera que
+        el nivel creara sin que este código lo supiera — que es justo lo que
+        pasó: el nivel traía al repositorio un resource que luego borraba de
+        CX, y el archivo se quedaba reclamando un cx_id que ya no existe.
+        """
+        actual = contexto.gh.branch_head(contexto.rama)
+        if actual == rama_al_empezar:
+            return True, "la rama no se movió"
+        respuesta = requests.patch(
+            f"https://api.github.com/repos/{contexto.repo}/git/refs/heads/"
+            f"{contexto.rama}",
+            headers=contexto.gh._headers(),
+            json={"sha": rama_al_empezar, "force": True}, timeout=30,
+        )
+        if respuesta.status_code != 200:
+            return False, f"{respuesta.status_code} {respuesta.text[:120]}"
+        vuelto = contexto.gh.branch_head(contexto.rama)
+        return vuelto == rama_al_empezar, (
+            f"la rama quedó en {vuelto[:7]}, no en {rama_al_empezar[:7]}"
+        )
 
-    runner.skip(3, "Publicar en producción: las tres acciones en orden, y publicar "
-                   "dos veces es no-op",
-                "el agente desechable no tiene entorno production, y el diseño "
-                "dice que los entornos se crean a mano, nunca desde el pipeline")
+    runner.check(3, "Cero residuo en el repositorio: la rama vuelve al commit en "
+                    "el que estaba antes del nivel",
+                 limpiar_repositorio)
 
 
 # ── Nivel 4 · Caos ───────────────────────────────────────────────────────────
@@ -861,13 +1405,89 @@ def nivel_4(runner, project, agent_id):
                 "libera por caducidad— sí está cubierta arriba, sin depender del "
                 "momento del disparo")
 
-    runner.skip(4, "Fallo entre crear la versión y apuntar el entorno en el Paso 5",
-                "el agente desechable no tiene entorno production; mismo motivo "
-                "que los skips del Nivel 3")
+    def fallo_entre_crear_version_y_apuntar_entorno():
+        """Se corta el Paso 5 justo después de crear la versión.
 
-    runner.skip(4, "El gate del Paso 4 queda atado al borrador exacto que se aprobó",
-                "la huella del borrador está construida y el Paso 5 la compara, "
-                "pero probarlo de punta a punta exige publicar")
+        Lo que se comprueba es si el reintento apunta el entorno a la versión
+        que ya existe, o si crea otra — que dejaría la primera huérfana y el
+        estado de CX ambiguo.
+        """
+        cliente = store.get_client()
+        contexto = pipeline.Contexto(project, agent_id)
+
+        # Sin algo pendiente de publicar no se crea ninguna versión, y el
+        # escenario —una versión huérfana tras el corte— no llega a existir:
+        # el check pasaría sin haber probado nada. Se siembra la marca sobre un
+        # playbook real para que el Paso 5 tenga de verdad qué versionar.
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        playbooks = list(inventario.get("playbook", {}).values())
+        if not playbooks:
+            return False, "sin playbooks no se puede provocar el escenario"
+        store.record_resource_write(
+            cliente, project, agent_id, "playbook",
+            pipeline._cx_id_de(playbooks[0]), "sintetico/corte.yaml",
+            display_name=playbooks[0].get("displayName"), operacion="PATCH",
+        )
+        pendientes_antes = store.list_pending_publication(cliente, project, agent_id)
+        if not pendientes_antes:
+            return False, "no se pudo dejar nada pendiente de publicar"
+
+        original = pipeline._apuntar_entorno
+        pipeline._apuntar_entorno = lambda *_a, **_k: (_ for _ in ()).throw(
+            pipeline.PipelineError("corte inyectado antes de apuntar el entorno")
+        )
+        try:
+            pipeline.step_5_publish(project, agent_id, "corte_inyectado")
+            interrumpido = False
+        except pipeline.PipelineError:
+            interrumpido = True
+        finally:
+            pipeline._apuntar_entorno = original
+
+        if not interrumpido:
+            return False, "el corte no llegó a interrumpir el paso"
+
+        # Lo que el corte dejó creado y sin fijar. Es contra esto contra lo que
+        # se compara: el reintento tiene que usar exactamente estas, no otras.
+        en_vuelo = store.get_inflight_versions(cliente, project, agent_id)
+        if not en_vuelo or not en_vuelo.get("version_names"):
+            return False, ("el corte no dejó anotada ninguna versión creada, "
+                           "así que nada puede reutilizarla después")
+        huerfanas = set(en_vuelo["version_names"])
+
+        reintento = pipeline.step_5_publish(project, agent_id, "reintento_tras_corte")
+        if reintento["status"] != "ok":
+            return False, f"el reintento falló: {reintento['status']}"
+        usadas = set(reintento["data"]["versiones_creadas"])
+        return usadas == huerfanas, (
+            f"con {len(pendientes_antes)} resources pendientes, el corte dejó "
+            f"{len(huerfanas)} versiones creadas y el reintento usó "
+            f"{len(usadas)}, de las que {len(usadas - huerfanas)} son nuevas. "
+            f"Las que no se reutilizan quedan huérfanas."
+        )
+
+    runner.check(4, "Tras un corte entre crear la versión y apuntar el entorno, "
+                    "el reintento reutiliza la versión ya creada",
+                 fallo_entre_crear_version_y_apuntar_entorno)
+
+    def el_gate_del_paso_4_detecta_el_borrador_movido():
+        """La huella se toma al declarar los tests y se compara al publicar.
+
+        El panel dice que **avisa y deja seguir**; el criterio de esta fase
+        pedía abortar. Se comprueba lo que dice el panel, que es la
+        especificación contra la que se construyó — la contradicción entre los
+        dos documentos queda anotada, no resuelta aquí.
+        """
+        resultado = pipeline.step_5_publish(
+            project, agent_id, "huella_vieja",
+            huella_al_validar="huella_que_no_corresponde",
+        )
+        aviso = any("borrador ha cambiado" in linea for linea in resultado["log"])
+        return aviso, "publicó sin avisar de que el borrador se había movido"
+
+    runner.check(4, "Publicar con una huella que ya no corresponde avisa de que "
+                    "el borrador se movió desde que se declararon los tests",
+                 el_gate_del_paso_4_detecta_el_borrador_movido)
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────

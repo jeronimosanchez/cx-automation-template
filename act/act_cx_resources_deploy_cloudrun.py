@@ -1034,12 +1034,25 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
         pendientes = store.list_pending_publication(
             contexto.store, project, agent_id
         )
-        _emit(log, on_log,
-              f"· 2/3 Creando versiones · {len(pendientes)} resources tocados "
-              f"desde la última publicación")
-        versiones, fallo = _crear_versiones(
-            contexto, inventario, pendientes, version_label, on_log, log
-        )
+
+        # Un intento anterior pudo crear las versiones y morir antes de fijar
+        # el entorno. Esas versiones existen en CX y no las sirve nadie: si el
+        # reintento crea otras, las primeras quedan huérfanas, consumiendo
+        # hueco contra el límite por playbook sin que nada las reclame.
+        versiones = _versiones_reutilizables(contexto, on_log, log)
+        if versiones:
+            fallo = False
+        else:
+            _emit(log, on_log,
+                  f"· 2/3 Creando versiones · {len(pendientes)} resources tocados "
+                  f"desde la última publicación")
+            versiones, fallo = _crear_versiones(
+                contexto, inventario, pendientes, version_label, on_log, log
+            )
+            if versiones:
+                store.save_inflight_versions(
+                    contexto.store, project, agent_id, versiones, version_label
+                )
         if fallo:
             return step_result("error", log, {
                 "fusionado": True, "publicado": False,
@@ -1063,6 +1076,7 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
               f"{len(finales)} versiones fijadas")
 
         store.mark_published(contexto.store, project, agent_id, pendientes)
+        store.clear_inflight_versions(contexto.store, project, agent_id)
 
     resultado = step_result("ok", log, {
         "fusionado": True, "publicado": True, "version": version_label,
@@ -1072,6 +1086,35 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
     store.record_run(contexto.store, project, agent_id, 5, "ok", log,
                      {"version": version_label})
     return resultado
+
+
+def _versiones_reutilizables(contexto, on_log, log):
+    """Versiones que un intento anterior creó y no llegó a fijar en el entorno.
+
+    Se comprueba que sigan existiendo en CX antes de reutilizarlas: si alguien
+    las borró a mano entre medias, reutilizar una ruta muerta haría fallar el
+    PATCH del entorno con un error que no diría por qué.
+    """
+    anotadas = store.get_inflight_versions(
+        contexto.store, contexto.project, contexto.agent_id
+    )
+    if not anotadas or not anotadas.get("version_names"):
+        return []
+
+    vivas = [
+        nombre for nombre in anotadas["version_names"]
+        if cx.api_get(contexto.project, contexto.region, nombre).status_code == 200
+    ]
+    if not vivas:
+        store.clear_inflight_versions(
+            contexto.store, contexto.project, contexto.agent_id
+        )
+        return []
+
+    _emit(log, on_log,
+          f"· 2/3 Reutilizando {len(vivas)} versiones que un intento anterior "
+          f"dejó creadas sin fijar ({anotadas.get('etiqueta')})")
+    return vivas
 
 
 def _crear_versiones(contexto, inventario, pendientes, etiqueta, on_log, log):
