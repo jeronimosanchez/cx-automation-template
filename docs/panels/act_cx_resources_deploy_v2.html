@@ -471,6 +471,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="done-banner"><p>Deploy completado &#10003;</p></div>
         <div class="action-bar re-ejecuta">
           <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
+          <button class="btn btn-ghost" onclick="pedirTerminar()">Terminar</button>
+        </div>
+        <div id="confirmar-terminar" class="re-ejecuta" style="display:none;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:6px">&#9995; Terminar aqu&iacute; &mdash; el deploy se queda en el borrador</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">Los resources aplicados est&aacute;n en el borrador del agente. Ning&uacute;n usuario los ve: producci&oacute;n sigue sirviendo la versi&oacute;n anterior.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">No se deshace nada &mdash; lo aplicado se queda en el borrador tal cual, y no se crea ninguna versi&oacute;n.</p>
+          <p id="confirmar-terminar-repo" style="display:none;font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">Los archivos tra&iacute;dos al repositorio se quedan en staging, sin fusionar en main.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 14px;line-height:1.6">Cuando arranques un deploy nuevo, el pipeline vuelve a leer el estado real: lo que dejaste en el borrador aparecer&aacute; ya como igual en los dos sitios.</p>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-gate" onclick="confirmarTerminar()">S&iacute;, terminar</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('confirmar-terminar').style.display='none'">Cancelar</button>
+          </div>
         </div>
       </div>
 
@@ -1014,6 +1026,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <p>No se aplica y no desaparece: sigue siendo diferencia. Al terminar, la lista se queda en pantalla, cada fila dice si se aplicó o quedó fuera, y las casillas dejan de poder tocarse.</p>
           <p>Para aplicarlo hay que arrancar el pipeline de nuevo: al releer, la diferencia pendiente vuelve a aparecer.</p>
         </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.5.7 — Terminar en el borrador</div>
+          <p>Es la salida normal cuando el deploy no va a publicarse: los resources aplicados se quedan en el borrador del agente, ningún usuario los ve, y producción sigue sirviendo la versión anterior.</p>
+          <p>No se deshace nada. Los cambios están en el borrador, un espacio de trabajo que no ve ningún usuario: se corrigen los archivos en el repositorio y se vuelve a aplicar.</p>
+          <p>Un deploy nuevo vuelve a leer el estado real del agente: lo que se dejó en el borrador aparecerá ya como igual en los dos sitios, sin pendientes.</p>
+        </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">3.6 — Criterios de validación</div>
           <p>1. Nada viene marcado al entrar, y el botón de aplicar está apagado hasta marcar algo.<br>
@@ -1024,7 +1042,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 6. Terminado el paso, lo aplicado queda marcado como tal y lo no marcado sigue pendiente, visible y sin poder tocarse.<br>
 7. Continuar sin modificar está fuera del cuadro, nunca bloqueado, y desaparece en cuanto se aplica algo.<br>
 8. Si algo falla, se reintenta solo lo fallido y lo no intentado — nunca lo que ya salió bien.<br>
-9. Al volver a este paso ya recorrido, se ve tal cual quedó: sin botones ni casillas que respondan.</p>
+9. Al volver a este paso ya recorrido, se ve tal cual quedó: sin botones ni casillas que respondan.<br>
+10. Al terminar el deploy con éxito hay dos salidas: continuar al Paso 4 y terminar aquí. Terminar pide confirmación enumerando lo que se queda escrito y no se va a deshacer; al confirmar vuelve al Paso 1 limpio.</p>
         </div>
       </div>
 
@@ -1701,10 +1720,22 @@ function retryFailed() {
   showLine();
 }
 
+function pedirTerminar() {
+  const traerDone = document.getElementById('traer-done');
+  const lineaRepo = document.getElementById('confirmar-terminar-repo');
+  if (lineaRepo) lineaRepo.style.display = (traerDone && traerDone.style.display !== 'none') ? 'block' : 'none';
+  document.getElementById('confirmar-terminar').style.display = 'block';
+}
+
+function confirmarTerminar() {
+  resetDeploy();
+}
+
 function resetDeployStep4() {
   document.getElementById('deploy-log').style.display = 'none';
   document.getElementById('deploy-done').style.display = 'none';
   document.getElementById('deploy-fail').style.display = 'none';
+  document.getElementById('confirmar-terminar').style.display = 'none';
   document.getElementById('deploy-log-block').innerHTML = '';
   document.getElementById('deploy-gate').style.display = 'block';
   document.getElementById('sin-modificar-3').style.display = 'flex';
