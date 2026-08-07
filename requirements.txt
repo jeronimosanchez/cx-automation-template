@@ -12,3 +12,9 @@ pytest>=7.0
 # Servidor local que expone el pipeline al panel (act/server.py)
 flask>=2.2
 flask-cors>=4.0
+
+# Pipeline Cloud Run (act/*_cloudrun.py). Firestore guarda lo que tiene que
+# sobrevivir entre peticiones — el contenedor no conserva nada; PyJWT firma el
+# JWT de la GitHub App, que es lo que se canjea por el token de instalación.
+google-cloud-firestore>=2.11
+pyjwt[crypto]>=2.8
