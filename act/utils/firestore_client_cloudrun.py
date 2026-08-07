@@ -286,7 +286,7 @@ def _sub(client, project, agent_id, subcoleccion):
 
 
 def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
-                          display_name=None, operacion=None):
+                          display_name=None, operacion=None, huella_cx=None):
     """Deja constancia de qué archivo del repo escribió este resource.
 
     Se sobrescribe: solo interesa el último estado, así que esta parte no
@@ -298,6 +298,17 @@ def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
     que el diff tocó en vez del agente entero (H4): sin esta marca, la única
     alternativa sería versionar todo y el tiempo del paso crecería con el
     tamaño del agente en vez de con el del cambio.
+
+    `huella_cx` resume cómo quedó el resource en CX **después** de esta
+    escritura, y es el tercer punto de referencia que hace posible detectar un
+    conflicto. El diff solo compara repositorio contra CX: con dos puntos no se
+    puede saber si CX cambió por su cuenta o si nunca estuvo igual. Con este
+    tercero, una huella distinta significa que alguien lo tocó por fuera —
+    típicamente editando en la consola.
+
+    Es una huella del contenido y no una marca de tiempo de la API porque la
+    API no la da: verificado contra CX real, ni el GET ni el PATCH devuelven
+    `updateTime` en ninguno de los tipos.
     """
     _sub(client, project, agent_id, SUB_RESOURCES).document(
         _resource_doc_id(tipo, cx_id)
@@ -307,9 +318,23 @@ def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
         "archivo": archivo,
         "display_name": display_name,
         "operacion": operacion,
+        "huella_cx": huella_cx,
         "escrito_en": _now(),
         "pendiente_publicar": True,
     })
+
+
+def list_resource_records(client, project, agent_id):
+    """Todos los resources auditados de un agente, indexados por tipo y cx_id.
+
+    Se lee entero de una vez porque el diff lo consulta para cada resource: una
+    lectura por resource multiplicaría las llamadas por el tamaño del agente.
+    """
+    return {
+        (doc.get("tipo"), doc.get("cx_id")): doc
+        for doc in (snapshot.to_dict() for snapshot in
+                    _sub(client, project, agent_id, SUB_RESOURCES).stream())
+    }
 
 
 def get_resource_record(client, project, agent_id, tipo, cx_id):

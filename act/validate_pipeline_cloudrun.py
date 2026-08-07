@@ -805,11 +805,6 @@ def nivel_2(runner, project, agent_id):
     runner.check(2, "Declarar los tests solo admite 'superados' o 'fallidos'",
                  tests_solo_admite_dos_respuestas)
 
-    runner.skip(2, "Un resource modificado a la vez en CX y en el repositorio se "
-                   "señala como conflicto explícito",
-                "el pipeline no distingue hoy ese caso de un PATCH normal — el "
-                "diff compara repo contra CX sin conocer un tercer estado previo. "
-                "Es una capacidad que falta, no un test que falte")
 
 
 # ── Nivel 3 · Escritura real ─────────────────────────────────────────────────
@@ -1294,10 +1289,13 @@ def nivel_3(runner, project, agent_id, run_id):
 
 # ── Nivel 4 · Caos ───────────────────────────────────────────────────────────
 
-def nivel_4(runner, project, agent_id):
+def nivel_4(runner, project, agent_id, run_id):
     print("\nNIVEL 4 — Fallo inyectado y concurrencia")
 
     cliente = store.get_client()
+    # El check de conflicto escribe en el repositorio para provocar el caso.
+    rama_al_empezar = pipeline.Contexto(project, agent_id).gh.branch_head(
+        store.get_agent_mapping(cliente, project, agent_id)["rama"])
 
     def dos_invocaciones_concurrentes():
         primero = store.acquire_lock(cliente, project, agent_id, "prueba A")
@@ -1405,6 +1403,26 @@ def nivel_4(runner, project, agent_id):
                 "libera por caducidad— sí está cubierta arriba, sin depender del "
                 "momento del disparo")
 
+    def limpiar_repositorio_del_nivel_4():
+        """El check de conflicto escribió en el repositorio para provocar el caso."""
+        contexto = pipeline.Contexto(project, agent_id)
+        actual = contexto.gh.branch_head(contexto.rama)
+        if actual == rama_al_empezar:
+            return True, "la rama no se movió"
+        respuesta = requests.patch(
+            f"https://api.github.com/repos/{contexto.repo}/git/refs/heads/"
+            f"{contexto.rama}",
+            headers=contexto.gh._headers(),
+            json={"sha": rama_al_empezar, "force": True}, timeout=30,
+        )
+        if respuesta.status_code != 200:
+            return False, f"{respuesta.status_code} {respuesta.text[:120]}"
+        return contexto.gh.branch_head(contexto.rama) == rama_al_empezar, ""
+
+    runner.check(4, "Cero residuo: la rama vuelve al commit en el que estaba "
+                    "antes del nivel",
+                 limpiar_repositorio_del_nivel_4)
+
     def fallo_entre_crear_version_y_apuntar_entorno():
         """Se corta el Paso 5 justo después de crear la versión.
 
@@ -1470,24 +1488,98 @@ def nivel_4(runner, project, agent_id):
                     "el reintento reutiliza la versión ya creada",
                  fallo_entre_crear_version_y_apuntar_entorno)
 
-    def el_gate_del_paso_4_detecta_el_borrador_movido():
+    def el_gate_del_paso_4_aborta_si_el_borrador_se_movio():
         """La huella se toma al declarar los tests y se compara al publicar.
 
-        El panel dice que **avisa y deja seguir**; el criterio de esta fase
-        pedía abortar. Se comprueba lo que dice el panel, que es la
-        especificación contra la que se construyó — la contradicción entre los
-        dos documentos queda anotada, no resuelta aquí.
+        Aborta, no avisa: publicar subiría a usuarios reales algo que nadie
+        validó. Y aborta antes del merge, así que no deja nada a medias.
         """
+        contexto = pipeline.Contexto(project, agent_id)
+        antes = [c["version"] for c in
+                 [e for e in pipeline.inventariar_cx(
+                     contexto, tipos=["environment"])[0]["environment"].values()
+                  if e.get("displayName") == "production"][0]
+                 .get("versionConfigs", [])]
+
         resultado = pipeline.step_5_publish(
             project, agent_id, "huella_vieja",
             huella_al_validar="huella_que_no_corresponde",
         )
-        aviso = any("borrador ha cambiado" in linea for linea in resultado["log"])
-        return aviso, "publicó sin avisar de que el borrador se había movido"
+        despues = [c["version"] for c in
+                   [e for e in pipeline.inventariar_cx(
+                       contexto, tipos=["environment"])[0]["environment"].values()
+                    if e.get("displayName") == "production"][0]
+                   .get("versionConfigs", [])]
 
-    runner.check(4, "Publicar con una huella que ya no corresponde avisa de que "
-                    "el borrador se movió desde que se declararon los tests",
-                 el_gate_del_paso_4_detecta_el_borrador_movido)
+        return (resultado["status"] == "aborted"
+                and not resultado["data"]["fusionado"]
+                and not resultado["data"]["publicado"]
+                and antes == despues), (
+            f"status={resultado['status']} fusionado="
+            f"{resultado['data'].get('fusionado')} · producción "
+            f"{'se movió' if antes != despues else 'intacta'}"
+        )
+
+    runner.check(4, "Publicar con una huella que ya no corresponde aborta sin "
+                    "fusionar ni tocar producción",
+                 el_gate_del_paso_4_aborta_si_el_borrador_se_movio)
+
+    def se_detecta_el_conflicto_de_los_dos_lados():
+        """El repositorio cambió y CX también, por separado.
+
+        Con dos estados no se puede distinguir de un cambio normal: hace falta
+        saber cómo quedó CX la última vez que escribió el pipeline. Se provoca
+        el caso tocando un resource directamente en CX, como haría alguien
+        editando en la consola.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        repositorio, _ = pipeline.cargar_repositorio(contexto)
+
+        # Un resource emparejado y ya escrito por el pipeline alguna vez.
+        auditados = store.list_resource_records(cliente, project, agent_id)
+        candidato = next(
+            ((t, c) for (t, c), reg in auditados.items()
+             if reg.get("huella_cx") and c in inventario.get(t, {})
+             and c in repositorio["por_tipo"].get(t, {})),
+            None,
+        )
+        if candidato is None:
+            return False, ("ningún resource tiene huella guardada de la última "
+                           "escritura: sin ese tercer punto el conflicto no se "
+                           "puede detectar para ninguno")
+        tipo, cx_id = candidato
+        remoto = inventario[tipo][cx_id]
+
+        # Se toca CX por fuera del pipeline, como en la consola.
+        cuerpo = {k: v for k, v in remoto.items()
+                  if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
+        cuerpo["description"] = f"tocado por fuera {run_id}"
+        externo = cx.api_patch(project, contexto.region, remoto["name"], cuerpo)
+        if externo.status_code not in (200, 201):
+            return False, f"no se pudo tocar CX por fuera: {externo.status_code}"
+
+        # Y se cambia también el repositorio, para que el diff proponga algo.
+        entrada = repositorio["por_tipo"][tipo][cx_id]
+        documento = dict(entrada["documento"])
+        documento["description"] = f"tocado en el repo {run_id}"
+        contexto.gh.commit_files(
+            contexto.rama,
+            {entrada["ruta"]: __import__("yaml").safe_dump(
+                documento, allow_unicode=True, sort_keys=False)},
+            f"test: provocar un conflicto en {tipo}/{cx_id}",
+        )
+
+        datos = pipeline.step_3_apply_to_cx(project, agent_id, dry_run=True)["data"]
+        conflictos = datos.get("conflictos", [])
+        return any(c["cx_id"] == cx_id for c in conflictos), (
+            f"{len(conflictos)} conflictos detectados, ninguno de {tipo}/{cx_id}"
+        )
+
+    runner.check(4, "Un resource cambiado a la vez en el repositorio y en CX se "
+                    "señala como conflicto, no se resuelve en silencio a favor "
+                    "del repositorio",
+                 se_detecta_el_conflicto_de_los_dos_lados)
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
@@ -1546,7 +1638,7 @@ def main(argv=None):
     if 3 in niveles:
         nivel_3(runner, args.project, args.agent, run_id)
     if 4 in niveles:
-        nivel_4(runner, args.project, args.agent)
+        nivel_4(runner, args.project, args.agent, run_id)
 
     c = runner.counts()
     print(f"\nRESUMEN: {c[PASS]} PASS · {c[FAIL]} FAIL · {c[SKIP]} SKIP")

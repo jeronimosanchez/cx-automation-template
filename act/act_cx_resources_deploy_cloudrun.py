@@ -39,6 +39,7 @@ que sigue siendo el único camino real a producción y no se toca:
 """
 
 import hashlib
+import json
 import re
 import sys
 import unicodedata
@@ -444,8 +445,12 @@ def calcular_diff(contexto, inventario, repositorio, eliminar=()):
     Solo crear y modificar. Un resource que existe en el agente y no en el
     repositorio no genera un borrado: eso se decide en el Paso 2 y llega aquí
     ya decidido, en `eliminar`.
+
+    Cada modificación se marca además si es un **conflicto**: el repositorio
+    cambió y CX también, por separado. Ver `_marcar_conflicto`.
     """
     operaciones = []
+    auditoria = _auditoria_previa(contexto)
 
     for tipo, del_repo in repositorio["por_tipo"].items():
         if tipo in TIPOS_NO_DESPLEGABLES:
@@ -456,10 +461,12 @@ def calcular_diff(contexto, inventario, repositorio, eliminar=()):
             if cx_id not in remotos:
                 operaciones.append(_operacion("POST", tipo, cx_id, entrada, local))
             elif payloads.differs(remotos[cx_id], local):
-                operaciones.append(_operacion(
+                operacion = _operacion(
                     "PATCH", tipo, cx_id, entrada, local,
                     remote_name=remotos[cx_id].get("name"),
-                ))
+                )
+                _marcar_conflicto(operacion, remotos[cx_id], auditoria)
+                operaciones.append(operacion)
 
     for entrada in repositorio["sin_cx_id"]:
         if entrada["tipo"] in TIPOS_NO_DESPLEGABLES:
@@ -491,8 +498,79 @@ def _operacion(verbo, tipo, cx_id, entrada, local, remote_name=None):
         "local": local,
         "remote_name": remote_name,
         "sin_version": tipo in TIPOS_SIN_VERSION,
+        "conflicto": False,
+        "cambio_externo": None,
         "result": None,
     }
+
+
+def huella_resource(item):
+    """Resumen estable del contenido de un resource de CX.
+
+    Es el tercer punto de referencia del diff: se guarda tras cada escritura y
+    se compara en la siguiente para saber si CX cambió por fuera del pipeline.
+
+    Se hace con el contenido y no con una marca de tiempo del servidor porque
+    la API no la da — verificado contra CX real: ni el GET ni el PATCH
+    devuelven `updateTime` en ninguno de los tipos. Se excluyen los campos que
+    la API gestiona por su cuenta, que cambiarían la huella sin que nadie haya
+    tocado nada.
+    """
+    if not isinstance(item, dict) or not item:
+        return None
+    comparable = {k: v for k, v in item.items()
+                  if k not in CAMPOS_LEIDOS_NO_ENVIADOS}
+    serializado = json.dumps(comparable, sort_keys=True, ensure_ascii=False,
+                             default=str)
+    return hashlib.sha256(serializado.encode()).hexdigest()[:32]
+
+
+def _auditoria_previa(contexto):
+    """Cómo quedó cada resource la última vez que escribió el pipeline.
+
+    Devuelve un diccionario vacío si no hay contexto o si la consulta falla:
+    sin este dato el diff sigue funcionando exactamente como antes, solo deja
+    de poder distinguir un conflicto. Que la auditoría no esté disponible no
+    puede impedir un deploy.
+    """
+    if contexto is None or getattr(contexto, "store", None) is None:
+        return {}
+    try:
+        return store.list_resource_records(
+            contexto.store, contexto.project, contexto.agent_id
+        )
+    except Exception:
+        return {}
+
+
+def _marcar_conflicto(operacion, remoto, auditoria):
+    """Marca la operación si el repositorio y CX cambiaron por separado.
+
+    El diff solo ve dos estados —repositorio y CX— y con dos no se puede
+    distinguir "el repositorio avanzó" de "los dos avanzaron". El tercer punto
+    es cómo quedó CX la última vez que escribió el pipeline: si la marca de
+    modificación de CX ya no es esa, alguien lo tocó por fuera, típicamente
+    editando en la consola.
+
+    No decide nada: marca. Resolver un conflicto en silencio a favor del
+    repositorio perdería un cambio hecho a propósito por la otra vía, que es
+    exactamente lo que pasaba hasta ahora.
+
+    Sin registro previo no se marca: un resource que el pipeline nunca escribió
+    no tiene con qué compararse, y tratarlo como conflicto convertiría el
+    primer deploy de cada resource en un aviso.
+    """
+    registro = auditoria.get((operacion["tipo"], operacion["cx_id"]))
+    if not registro or not registro.get("huella_cx"):
+        return
+    actual = huella_resource(remoto)
+    if actual and actual != registro["huella_cx"]:
+        operacion["conflicto"] = True
+        operacion["cambio_externo"] = {
+            "huella_cx_ahora": actual,
+            "huella_tras_la_ultima_escritura": registro["huella_cx"],
+            "archivo": registro.get("archivo"),
+        }
 
 
 def _operaciones_de_borrado(inventario, repositorio, eliminar):
@@ -633,6 +711,9 @@ def aplicar_operaciones(contexto, operaciones, inventario, on_log=None, log=None
                     operacion["tipo"], operacion["cx_id"], operacion["ruta"],
                     display_name=operacion["resource"],
                     operacion=operacion["operacion"],
+                    # Cómo queda CX tras esta escritura. Es contra esto contra
+                    # lo que el diff siguiente detecta un cambio externo.
+                    huella_cx=huella_resource(creado),
                 )
         except PipelineError as error:
             operacion["result"] = "ERROR"
@@ -895,6 +976,13 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
               f"⚠ {aviso['tipo']}/{aviso['cx_id']} cambió de archivo: "
               f"{aviso['archivo_antes']} → {aviso['archivo_ahora']}")
 
+    conflictos = [op for op in operaciones if op["conflicto"]]
+    for conflicto in conflictos:
+        _emit(log, on_log,
+              f"⚠ CONFLICTO en {conflicto['tipo']}/{conflicto['resource']}: "
+              f"cambió en el repositorio y también en CX por fuera del "
+              f"pipeline. Aplicarlo se lleva por delante el cambio de CX")
+
     sin_version = sorted({op["tipo"] for op in operaciones if op["sin_version"]})
     if sin_version:
         _emit(log, on_log,
@@ -910,6 +998,7 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
         return step_result("ok", log, {
             "operaciones": operaciones, "dry_run": True,
             "avisos_cambio_archivo": avisos, "sin_version": sin_version,
+            "conflictos": conflictos,
         })
 
     if not operaciones:
@@ -932,6 +1021,7 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
         "fallo": fallo,
         "avisos_cambio_archivo": avisos,
         "sin_version": sin_version,
+        "conflictos": conflictos,
     })
     store.record_run(contexto.store, project, agent_id, 3,
                      resultado["status"], log, {"aplicadas": resultado["data"]["aplicadas"]})
@@ -1013,10 +1103,24 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
     with store.agent_lock(contexto.store, project, agent_id, "publicar en producción"):
         inventario, _, _ = inventariar_cx(contexto, on_log, log)
 
+        # El gate del Paso 4 queda atado al borrador exacto que se aprobó. Si
+        # el borrador se movió entre declarar los tests y publicar, publicar
+        # subiría a usuarios reales algo que nadie validó — así que se aborta
+        # antes de tocar nada, no se avisa y se sigue.
+        #
+        # Salir por aquí no deja nada a medias: es lo primero que se comprueba,
+        # antes del merge y antes de crear ninguna versión.
         if huella_al_validar and _huella_borrador(inventario) != huella_al_validar:
             _emit(log, on_log,
-                  "⚠ El borrador ha cambiado desde que se declararon los tests "
-                  "— lo que se publica no es exactamente lo que se probó")
+                  "⚠ El borrador ha cambiado desde que se declararon los tests. "
+                  "No se publica: lo que subiría no es lo que se probó. Vuelve "
+                  "al Paso 4, valida el borrador actual y repite.")
+            return step_result("aborted", log, {
+                "fusionado": False, "publicado": False,
+                "motivo": "el borrador se movió después de declarar los tests",
+                "huella_al_validar": huella_al_validar,
+                "huella_ahora": _huella_borrador(inventario),
+            })
 
         _emit(log, on_log,
               f"· 1/3 Fusionando {contexto.rama} en {contexto.rama_principal}")
