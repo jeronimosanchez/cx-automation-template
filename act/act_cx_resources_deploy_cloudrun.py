@@ -5,10 +5,10 @@ en su variante Cloud Run.
 
 Hace real lo que docs/panels/act_cx_resources_deploy_v2.html describe: cinco
 pasos —Inventario, Traer al repositorio, Aplicar en CX, Validar tests,
-Publicar— más cuatro capacidades que no pertenecen a ningún paso numerado:
-Descubrimiento, Vincular agente y repositorio, Versiones existentes y
-desplegar un resource suelto. Nueve funciones públicas en total; el servidor
-de la fase siguiente delega en ellas y no reimplementa nada.
+Publicar— más tres capacidades que no pertenecen a ningún paso numerado:
+Descubrimiento, Vincular proyecto y repositorio (con el alta de cada agente) y
+Versiones existentes. Ocho funciones públicas en total; el servidor de la fase
+siguiente delega en ellas y no reimplementa nada.
 
 Cinco cosas separan esto del pipeline local (act/act_cx_resources_deploy.py),
 que sigue siendo el único camino real a producción y no se toca:
@@ -113,12 +113,11 @@ DEPLOY_ORDER = [
 # Environments y Versions no salen del diff: se manejan en el Paso 5.
 TIPOS_NO_DESPLEGABLES = ("environment", "version")
 
-# La tabla que consulta todo lo que escribe un resource — el Paso 3 y la
-# herramienta de desplegar uno suelto. No contiene `environment`, así que
-# ningún camino de escritura puede construir una URL con `/environments/`
-# aunque se le pida: no es una comprobación que pueda fallar, es una entrada
-# que no existe (S20). La única función que sabe escribir esa URL es
-# `_apuntar_entorno`, y solo la alcanza el Paso 5.
+# La tabla que consulta todo lo que escribe un resource, que hoy es solo el
+# Paso 3. No contiene `environment`, así que ningún camino de escritura puede
+# construir una URL con `/environments/` aunque se le pida: no es una
+# comprobación que pueda fallar, es una entrada que no existe. La única función
+# que sabe escribir esa URL es `_apuntar_entorno`, y solo la alcanza el Paso 5.
 TIPOS_DESPLEGABLES = {
     tipo: spec for tipo, spec in RESOURCE_TYPES.items()
     if tipo not in TIPOS_NO_DESPLEGABLES
@@ -202,7 +201,24 @@ class Contexto:
         self.project = project
         self.agent_id = agent_id
         self.store = client or store.get_client()
-        mapeo = store.get_agent_mapping(self.store, project, agent_id)
+        try:
+            mapeo = store.get_agent_mapping(self.store, project, agent_id)
+        except store.MappingNotFound:
+            # Con el repositorio del proyecto hay dos ausencias distintas y la
+            # salida de cada una es otra: si el proyecto no está vinculado hace
+            # falta la herramienta; si lo está, al agente solo le falta su rama
+            # de trabajo, y eso se resuelve con el botón del Paso 1. Mandar a la
+            # herramienta a quien solo necesita el botón manda a vincular otra
+            # vez un repositorio que ya está vinculado.
+            try:
+                store.get_project_mapping(self.store, project)
+            except store.MappingNotFound:
+                raise
+            raise store.MappingNotFound(
+                f"El agente {agent_id} todavía no tiene rama de trabajo en el "
+                f"repositorio del proyecto {project}. Dale de alta desde el "
+                f"Paso 1 — el repositorio ya está vinculado, solo falta su rama."
+            ) from None
         self.region = mapeo["region"]
         self.carpeta_raiz = mapeo.get("carpeta_raiz", "definitions")
         self.repo = mapeo["repo"]
@@ -963,7 +979,22 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
     # pueda enseñarlas en su propio desplegable sin mezclarlas con la deriva.
     versiones = len(inventario.get("version", {}))
 
+    # Sin entorno de producción, el Paso 5 no tiene dónde publicar y falla —
+    # pero fallaba al final, después de haber recorrido el pipeline entero y de
+    # haber escrito ya en el agente. El dato está aquí desde siempre: el
+    # inventario lee los entornos junto con todo lo demás. Solo faltaba mirarlo
+    # y decirlo en el único sitio donde todavía no cuesta nada arreglarlo.
+    tiene_produccion = any(
+        item.get("displayName") == ENTORNO_PRODUCCION
+        for item in inventario.get("environment", {}).values()
+    )
+    if not tiene_produccion:
+        _emit(log, on_log,
+              f"⚠ El agente no tiene un entorno '{ENTORNO_PRODUCCION}'. Créalo "
+              f"en la consola de CX — sin él el Paso 5 no puede publicar")
+
     return step_result("ok", log, {
+        "tiene_entorno_produccion": tiene_produccion,
         "project": project,
         "agent_id": agent_id,
         "region": contexto.region,
@@ -1670,6 +1701,11 @@ def discover(project=None, client=None, on_log=None):
             # el repositorio, pero le faltan su región y su rama. Se incluye
             # marcado, nunca se omite.
             "registrado": registro is not None,
+            # La rama que se le crearía. Se manda aunque no se vaya a usar para
+            # que el Paso 1 pueda enseñar qué va a pasar *antes* de que pase:
+            # el alta es una escritura y se ve entera antes de pulsarla.
+            "rama_propuesta": None if registro else rama_propuesta(
+                agente["agentId"], agente.get("displayName")),
         })
     _emit(log, on_log,
           f"✓ {len(agentes)} agentes · repositorio del proyecto: "
@@ -1684,31 +1720,152 @@ def discover(project=None, client=None, on_log=None):
     })
 
 
-# ── 7 · Vincular agente y repositorio ────────────────────────────────────────
+# ── 7 · Vincular proyecto y repositorio · alta de agente ─────────────────────
 
-def link_agent_repo(project, agent_id, repo_url, rama="staging",
-                    rama_principal="main", carpeta_raiz="definitions",
-                    client=None, gh=None, on_log=None):
-    """Onboarding de un proyecto nuevo: detecta la región, registra y trae.
+def rama_propuesta(agent_id, display_name=None):
+    """El nombre de rama que el sistema propone para un agente.
 
-    Con dos datos —ID del agente y URL del repositorio— deja el pipeline
-    listo. Lo único que no hace es conceder IAM: devuelve el comando exacto
-    para ejecutarlo a mano una vez, fuera del panel (S6b).
+    Vive aquí y no en el panel para que los dos digan lo mismo: el panel enseña
+    esta propuesta antes de escribir nada, y el alta escribe exactamente lo que
+    se enseñó. Si cada uno la calculara por su cuenta, la rama que se crea
+    podría no ser la que se leyó en pantalla.
+    """
+    return f"agente/{_slug(display_name) if display_name else agent_id}"
+
+
+def _resolver_region(project, agent_id, pista=None):
+    """La región del agente, comprobando primero la que llega del listado.
+
+    El desplegable del panel ya trae la región de cada agente —listarlos obliga
+    a recorrer las regiones de todos modos—, así que lo normal es acertar con
+    una sola petición en vez de las 17 del barrido. Se comprueba y no se cree:
+    una región equivocada guardada produce 404 sin contexto en todos los pasos
+    siguientes.
+    """
+    if pista:
+        respuesta = cx.api_get(project, pista,
+                               cx.build_parent(project, pista, agent_id))
+        if respuesta.status_code == 200:
+            return pista
+    return cx.detect_agent_region(project, agent_id)
+
+
+def register_agent(project, agent_id, region=None, rama=None,
+                   carpeta_raiz="definitions", client=None, gh=None,
+                   on_log=None):
+    """Da de alta un agente en un proyecto que ya tiene repositorio.
+
+    Es lo que dispara el botón del Paso 1 cuando el agente elegido todavía no
+    tiene rama de trabajo. Apunta su región y su rama, y crea esa rama en el
+    repositorio.
+
+    **Es una escritura, y por eso es un botón y no un efecto de mirar.** El
+    desplegable del Paso 1 lista todos los agentes del proyecto, en todas las
+    regiones, incluidos los que nadie piensa gestionar: dar de alta al elegir
+    dejaría una rama permanente y visible para todo el equipo cada vez que
+    alguien pincha la fila de al lado. El Paso 1 sigue sin escribir nada; lo
+    que escribe es esto, cuando se pulsa.
+    """
+    log = []
+    firestore_client = client or store.get_client()
+
+    # Sin repositorio de proyecto no hay de dónde colgar la rama. Es el caso de
+    # la herramienta, no el del botón, y se dice con ese nombre.
+    try:
+        proyecto = store.get_project_mapping(firestore_client, project)
+    except store.MappingNotFound:
+        raise PipelineError(
+            f"El proyecto {project} no tiene repositorio vinculado todavía. "
+            f"Vincúlalo primero desde la herramienta «Vincular proyecto y "
+            f"repositorio»; el alta de un agente cuelga de él."
+        ) from None
+
+    # Todo lo que se puede rechazar sin salir a la red, antes de salir a la
+    # red: un nombre de rama inválido no debería costar una vuelta por CX para
+    # que le digan que no.
+    rama = rama or rama_propuesta(agent_id)
+
+    # La rama de trabajo no puede ser la principal. Si lo fuera, el Paso 2
+    # escribiría directamente en la rama que se publica —rompiendo su promesa
+    # de no tocarla nunca— y el Paso 5 se quedaría fusionando una rama consigo
+    # misma, que es un no-op permanente: el orden «fusionar y solo después
+    # publicar» dejaría de significar nada sin que nada avisara.
+    if rama == proyecto["rama_principal"]:
+        raise PipelineError(
+            f"La rama de trabajo no puede ser la principal ({rama}). El Paso 2 "
+            f"escribe en la de trabajo y el Paso 5 la fusiona en la principal: "
+            f"siendo la misma, publicar dejaría de ser una decisión."
+        )
+
+    # Dos agentes no pueden compartir rama: publicar uno arrastraría a la
+    # principal lo que el otro tuviera sin publicar. Y la colisión es fácil sin
+    # buscarla — dos agentes con el mismo displayName proponen el mismo nombre,
+    # y `create_branch` es idempotente, así que sin esta comprobación la
+    # compartirían en silencio en vez de fallar.
+    hermanos = [m for m in store.list_agent_mappings(firestore_client, project)
+                if m.get("rama") == rama and m.get("agent_id") != agent_id]
+    if hermanos:
+        raise PipelineError(
+            f"La rama {rama} ya es la del agente {hermanos[0]['agent_id']}. Dos "
+            f"agentes no pueden compartir rama de trabajo: publicar uno "
+            f"arrastraría lo que el otro no ha publicado. Elige otro nombre."
+        )
+
+    region = _resolver_region(project, agent_id, region)
+    _emit(log, on_log, f"✓ Región del agente: {region}")
+
+    github = gh or GitHubAppClient(proyecto["repo"])
+    sha, creada = github.create_branch(rama, proyecto["rama_principal"])
+    _emit(log, on_log,
+          f"{'✓ Rama creada' if creada else '· La rama ya existía'}: {rama} "
+          f"· commit {sha[:7]}")
+
+    # Después de la rama, no antes: un alta guardada cuya rama no existe deja
+    # el Paso 1 muriendo con un 404 de git, que no explica nada de lo que pasa.
+    store.save_agent_mapping(firestore_client, project, agent_id, region, rama,
+                             carpeta_raiz=carpeta_raiz)
+    _emit(log, on_log, f"✓ Agente dado de alta · {proyecto['repo']} · {rama}")
+
+    return step_result("ok", log, {
+        "project": project, "agent_id": agent_id, "region": region,
+        "repo": proyecto["repo"], "rama": rama, "rama_creada": creada,
+        "carpeta_raiz": carpeta_raiz,
+    })
+
+
+def link_project_repo(project, repo_url, rama_principal="main",
+                      client=None, gh=None, on_log=None):
+    """Vincula un proyecto GCP con su repositorio. Una vez por proyecto.
+
+    El repositorio es del proyecto, no del agente: todos los agentes
+    relacionados de un mismo proyecto viven dentro, cada uno con su rama. Por
+    eso esta herramienta no pregunta por ningún agente — los agentes se dan de
+    alta uno a uno desde el Paso 1, con su botón, la primera vez que se elige
+    cada uno.
+
+    Tampoco trae nada: traer lo que ya existe en CX es el Paso 2 del pipeline
+    normal, y hacerlo aquí sería un segundo camino para lo mismo.
+
+    Lo único que no hace es conceder IAM: devuelve el comando exacto para
+    ejecutarlo a mano una vez, fuera del panel (S6b). El permiso es de
+    proyecto, así que se concede aquí y cubre a todos sus agentes.
     """
     log = []
     firestore_client = client or store.get_client()
     repo = _repo_desde_url(repo_url)
 
-    _emit(log, on_log, f"· Detectando la región de {agent_id}")
-    region = cx.detect_agent_region(project, agent_id)
-    _emit(log, on_log, f"✓ Región detectada: {region}")
-
+    # La rama principal tiene que existir ya: la creó quien creó el
+    # repositorio, y es de donde nacen las ramas de los agentes. Se lee antes
+    # de escribir nada para no registrar un vínculo con un repositorio al que
+    # no se llega.
     github = gh or GitHubAppClient(repo)
-    github.branch_head(rama)
-    _emit(log, on_log, f"✓ Acceso al repositorio {repo}, rama {rama}")
+    github.branch_head(rama_principal)
+    _emit(log, on_log, f"✓ Acceso al repositorio {repo}, rama {rama_principal}")
 
-    # El repositorio es del proyecto y se vincula una sola vez. Un agente nuevo
-    # dentro de un proyecto que ya lo tiene no crea nada: se añade al que hay.
+    # Un proyecto tiene un solo repositorio. Vincular dos veces el mismo no es
+    # un error —es lo que pasa al abrir la herramienta por costumbre—; cambiarlo
+    # por otro sí, porque dejaría a los agentes ya dados de alta apuntando a
+    # ramas de un repositorio distinto del que dice su proyecto.
     try:
         ya = store.get_project_mapping(firestore_client, project)
         if ya["repo"] != repo:
@@ -1717,75 +1874,33 @@ def link_agent_repo(project, agent_id, repo_url, rama="staging",
                 f"proyecto tiene un solo repositorio, y todos sus agentes viven "
                 f"dentro. Para usar otro, desvincula el proyecto primero."
             )
-        _emit(log, on_log,
-              f"· El proyecto ya usaba {repo} — se añade el agente con su "
-              f"propia rama de trabajo")
-        nuevo_proyecto = False
+        _emit(log, on_log, f"· El proyecto ya estaba vinculado a {repo}")
+        nuevo = False
     except store.MappingNotFound:
         store.save_project_mapping(firestore_client, project, repo,
                                    rama_principal)
         _emit(log, on_log, "✓ Repositorio del proyecto registrado")
-        nuevo_proyecto = True
+        nuevo = True
 
-    store.save_agent_mapping(firestore_client, project, agent_id, region, rama,
-                             carpeta_raiz=carpeta_raiz)
-    _emit(log, on_log, f"✓ Agente dado de alta en {region}")
-
-    # El marcador es del proyecto, no del agente: identifica el repositorio.
-    # Solo se escribe al vincular el proyecto por primera vez.
-    commit = None
-    if nuevo_proyecto:
-        marcador = yaml.safe_dump({
-            "project": project, "rama": rama,
-            "rama_principal": rama_principal,
-            "vinculado_en": _ahora().isoformat(),
-        }, allow_unicode=True, sort_keys=False)
-        commit = github.commit_files(
-            rama, {"cx-deploy.yaml": marcador},
-            f"chore(onboarding): marcar el repositorio como proyecto CX {project}",
-        )
-    if commit:
-        _emit(log, on_log, f"✓ cx-deploy.yaml · commit {commit[:7]}")
-
-    # El pull inicial: sin él, vincular deja el repositorio con un solo archivo
-    # y hay que recorrer los Pasos 1 y 2 a mano para llegar a donde el
-    # onboarding decía haber llegado. Es lo que convierte "he apuntado el
-    # enlace" en "el proyecto está listo".
-    _emit(log, on_log, "· Trayendo al repositorio lo que ya existe en el agente")
-    traidos, aviso_pull = [], None
-    try:
-        inventario = step_1_inventory(project, agent_id, client=firestore_client,
-                                      gh=github)["data"]
-        traibles = [{"tipo": x["tipo"], "cx_id": x["cx_id"]}
-                    for x in inventario["solo_cx"] if x["traible"]]
-        if traibles:
-            traidos = step_2_pull_to_repo(
-                project, agent_id, traibles, client=firestore_client, gh=github,
-                on_log=on_log,
-            )["data"]["traidos"]
-        _emit(log, on_log, f"✓ {len(traidos)} resources traídos al repositorio")
-    except Exception as error:
-        # El vínculo ya está registrado y es lo que cuesta deshacer. Fallar
-        # aquí no lo invalida: el pull se puede repetir desde el Paso 2.
-        aviso_pull = (
-            f"El agente quedó vinculado, pero no se pudo traer su contenido: "
-            f"{error}. Hazlo desde el Paso 2 cuando quieras."
-        )
-        _emit(log, on_log, f"⚠ {aviso_pull}")
+    # Vincular no escribe nada en el repositorio. Antes dejaba un marcador
+    # `cx-deploy.yaml` en la raíz (S23) que decía de qué proyecto era el
+    # repositorio; se retiró el 2026-08-08 porque nadie lo leía nunca —se
+    # escribía y no se consultaba— y encima el Paso 1 lo contaba como un YAML
+    # más. El vínculo vive donde se consulta, en el registro del proyecto. Si
+    # algún día hace falta declarar algo por repositorio, el archivo se crea
+    # entonces, junto con quien lo lea.
 
     comando_iam = (
         f"gcloud projects add-iam-policy-binding {project} "
-        f"--member=serviceAccount:$ACT_SERVICE_ACCOUNT "
+        f"--member=serviceAccount:{cx.runtime_service_account()} "
         f"--role=roles/dialogflow.admin"
     )
     _emit(log, on_log,
           "Falta un paso manual: ejecuta el comando IAM que devuelve este paso")
 
     return step_result("ok", log, {
-        "project": project, "agent_id": agent_id, "region": region,
-        "repo": repo, "rama": rama, "commit": commit,
-        "traidos": traidos, "aviso_pull": aviso_pull,
-        "comando_iam": comando_iam,
+        "project": project, "repo": repo, "rama_principal": rama_principal,
+        "ya_estaba": not nuevo, "comando_iam": comando_iam,
     })
 
 
@@ -1872,70 +1987,3 @@ def manage_versions(project, agent_id, action="list", version_names=None,
 
     return step_result("ok", log, {"borradas": borradas,
                                    "protegidas": protegidas})
-
-
-# ── 9 · Desplegar un resource suelto ─────────────────────────────────────────
-
-def deploy_single_resource(project, agent_id, tipo, cx_id, client=None, gh=None,
-                           on_log=None):
-    """Aplica un solo YAML en el borrador, sin pasar por el diff completo.
-
-    Sirve para iterar rápido sobre un resource mientras se ajusta. Lee el
-    archivo del repositorio por su `metadata.cx_id` y el estado actual de CX
-    en el momento de llamar — no depende de ninguna foto de un paso anterior.
-
-    **Nunca puede llegar a producción.** No es una comprobación que pueda
-    fallar: la URL que construye es siempre la del borrador
-    (`.../{tipo}/{cx_id}`), y en ningún camino de este código existe una
-    variable o parámetro por el que pueda aparecer `/environments/`. Es una
-    capacidad que el código no tiene, no una regla que haya que respetar.
-    """
-    log = []
-    # Contra TIPOS_DESPLEGABLES, no contra RESOURCE_TYPES: la tabla que esta
-    # función consulta no contiene `environment`, así que el tipo que llegue
-    # nunca puede resolver a un endpoint de entorno.
-    if tipo not in TIPOS_DESPLEGABLES:
-        raise ValueError(
-            f"Esta herramienta no despliega '{tipo}'. Tipos que admite: "
-            f"{', '.join(sorted(TIPOS_DESPLEGABLES))}."
-        )
-    contexto = Contexto(project, agent_id, client=client, gh=gh)
-
-    # Solo su tipo y el padre del que cuelga: ni pide entornos ni los lee.
-    necesarios = [tipo]
-    padre = TIPOS_DESPLEGABLES[tipo].get("padre")
-    if padre:
-        necesarios.insert(0, padre)
-    inventario, _, _ = inventariar_cx(contexto, on_log, log, tipos=necesarios)
-    repositorio, _ = cargar_repositorio(contexto, on_log, log)
-
-    entrada = repositorio["por_tipo"].get(tipo, {}).get(cx_id)
-    if entrada is None:
-        raise PipelineError(
-            f"Ningún archivo del repositorio declara {tipo} con cx_id {cx_id}."
-        )
-
-    remoto = inventario.get(tipo, {}).get(cx_id)
-    local = payloads.comparable_local(tipo, entrada["documento"])
-    if remoto is None:
-        operacion = _operacion("POST", tipo, cx_id, entrada, local)
-    elif not payloads.differs(remoto, local):
-        _emit(log, on_log, f"· {tipo}/{cx_id} ya coincide — nada que aplicar")
-        return step_result("ok", log, {"aplicado": False, "ruta": entrada["ruta"]})
-    else:
-        operacion = _operacion("PATCH", tipo, cx_id, entrada, local,
-                               remote_name=remoto["name"])
-
-    with store.agent_lock(contexto.store, project, agent_id,
-                          f"desplegar {tipo}/{cx_id}"):
-        resultados, fallo, _ = aplicar_operaciones(
-            contexto, [operacion], inventario, repositorio, on_log, log
-        )
-
-    resultado = step_result("error" if fallo else "ok", log, {
-        "aplicado": not fallo, "ruta": entrada["ruta"],
-        "operacion": resultados[0],
-    })
-    store.record_run(contexto.store, project, agent_id, "deploy-resource",
-                     resultado["status"], log, {"tipo": tipo, "cx_id": cx_id})
-    return resultado

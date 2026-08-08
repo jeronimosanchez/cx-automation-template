@@ -114,6 +114,36 @@ def get_token(force_refresh=False):
     return credentials.token
 
 
+def runtime_service_account():
+    """El email de la cuenta que este proceso está usando de verdad.
+
+    Es lo que va en el comando IAM que la herramienta de vincular muestra para
+    ejecutar a mano: un placeholder como `$ACT_SERVICE_ACCOUNT` produce, al
+    pegarlo en una terminal donde esa variable no existe, un `--member=` vacío
+    y un error de sintaxis de gcloud que no dice nada del alta. Y es el único
+    paso del onboarding que ocurre fuera del panel, así que tiene que poder
+    seguirse copiando y pegando.
+
+    Se pregunta en vez de deducirse: en Cloud Run la cuenta la pone la
+    plataforma, y en local es la de quien haya hecho el login.
+    """
+    credentials = _load_credentials()
+    email = getattr(credentials, "service_account_email", None)
+    if email and email != "default":
+        return email
+    respuesta = requests.get(
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        headers={"Authorization": f"Bearer {get_token()}"}, timeout=30,
+    )
+    if respuesta.status_code == 200 and respuesta.json().get("email"):
+        return respuesta.json()["email"]
+    raise AuthError(
+        "No se pudo averiguar con qué cuenta está corriendo este proceso, y "
+        "sin ella el comando IAM que hay que ejecutar a mano no se puede "
+        "construir completo."
+    )
+
+
 def get_headers(project, force_refresh=False):
     if not project:
         raise ValueError("get_headers exige un project — no hay valor por defecto.")

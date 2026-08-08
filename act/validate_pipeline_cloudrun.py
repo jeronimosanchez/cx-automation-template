@@ -37,12 +37,14 @@ Uso:
 
 import argparse
 import ast
+import inspect
 import re
 import sys
 import uuid
 from pathlib import Path
 
 import requests
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -290,7 +292,7 @@ def nivel_0(runner):
     def entrada_exige_destino():
         fallos = []
         for nombre in ("step_1_inventory", "step_3_apply_to_cx", "step_5_publish",
-                       "deploy_single_resource", "manage_versions"):
+                       "manage_versions"):
             funcion = getattr(pipeline, nombre)
             try:
                 funcion()
@@ -449,14 +451,14 @@ def nivel_0(runner):
                     "dirigirse a un host de fuera (C3)",
                  url_absoluta_rechazada)
 
-    def herramienta_no_alcanza_entornos():
+    def ninguna_escritura_alcanza_entornos():
         return "environment" not in pipeline.TIPOS_DESPLEGABLES, (
             "TIPOS_DESPLEGABLES contiene environment"
         )
 
     runner.check(0, "Ninguna escritura de resource puede resolver a un endpoint "
-                    "de entorno: la tabla no tiene la entrada (S20)",
-                 herramienta_no_alcanza_entornos)
+                    "de entorno: la tabla no tiene la entrada",
+                 ninguna_escritura_alcanza_entornos)
 
     def el_panel_y_el_pipeline_declaran_los_mismos_grupos():
         """El Paso 1 devuelve exactamente los grupos que el panel pinta.
@@ -512,6 +514,133 @@ def nivel_0(runner):
             f"{len(pipeline.RESOURCE_TYPES)} tipos"
 
     runner.check(0, "13 tipos de recurso, con Transition Route Groups", trece_tipos)
+
+    # ── El alta de agente es una escritura, y por eso es un botón ────────────
+
+    def el_paso_1_no_da_de_alta_a_nadie():
+        """Que el alta no cuelgue de mirar, sino de pulsar.
+
+        Se comprueba en el árbol y no leyendo: la garantía es que ninguna de
+        las funciones que el Paso 1 recorre —ni él, ni la resolución del
+        destino, ni la lectura del repositorio— llama a lo que crea la rama.
+        Si algún día alguien la engancha ahí «para que sea más cómodo», elegir
+        un agente en el desplegable volvería a dejar rastro.
+        """
+        arbol = ast.parse((REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py")
+                          .read_text())
+        prohibidas = {"register_agent", "create_branch", "save_agent_mapping",
+                      "save_project_mapping", "commit_files"}
+        culpables = []
+        for nodo in ast.walk(arbol):
+            if not isinstance(nodo, ast.FunctionDef):
+                continue
+            if nodo.name not in ("step_1_inventory", "cargar_repositorio",
+                                 "inventariar_cx", "emparejar", "discover"):
+                continue
+            for hijo in ast.walk(nodo):
+                if not isinstance(hijo, ast.Call):
+                    continue
+                nombre = (hijo.func.attr if isinstance(hijo.func, ast.Attribute)
+                          else getattr(hijo.func, "id", None))
+                if nombre in prohibidas:
+                    culpables.append(f"{nodo.name} llama a {nombre}")
+        return not culpables, " · ".join(culpables)
+
+    runner.check(0, "Mirar no da de alta: ninguna función del Paso 1 crea la "
+                    "rama ni registra el agente",
+                 el_paso_1_no_da_de_alta_a_nadie)
+
+    def el_panel_ensena_la_rama_antes_de_crearla():
+        """El nombre que se ve en pantalla y el que se crea son el mismo.
+
+        `discover` manda `rama_propuesta` para que el Paso 1 pueda enseñar qué
+        va a pasar antes de que pase. Si el panel lo calculara por su cuenta, o
+        el alta usara otra regla, se crearía una rama distinta de la que se
+        leyó — y el botón dejaría de ser una confirmación de nada.
+        """
+        propuesta = pipeline.rama_propuesta("abc-123", "Petal Voz")
+        por_id = pipeline.rama_propuesta("abc-123")
+        arbol = ast.parse((REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py")
+                          .read_text())
+        emisores = [n.name for n in ast.walk(arbol)
+                    if isinstance(n, ast.FunctionDef)
+                    and any(isinstance(c, ast.Call)
+                            and getattr(c.func, "id", None) == "rama_propuesta"
+                            for c in ast.walk(n))]
+        problemas = []
+        if propuesta != "agente/petal_voz":
+            problemas.append(f"propone {propuesta!r} para 'Petal Voz'")
+        if por_id != "agente/abc-123":
+            problemas.append(f"sin displayName propone {por_id!r}")
+        for quien in ("discover", "register_agent"):
+            if quien not in emisores:
+                problemas.append(f"{quien} no usa rama_propuesta")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "La rama que el Paso 1 enseña es la misma que el alta crea",
+                 el_panel_ensena_la_rama_antes_de_crearla)
+
+    def vincular_no_pregunta_por_ningun_agente():
+        """El repositorio es del proyecto: la herramienta no toca agentes.
+
+        Si volviera a aceptar un `agent_id`, volvería a haber dos caminos para
+        dar de alta un agente —la herramienta y el botón— y el de la
+        herramienta solo serviría para el primero de cada proyecto.
+        """
+        firma = inspect.signature(pipeline.link_project_repo)
+        sobra = [p for p in firma.parameters if "agent" in p]
+        falta = [p for p in ("project", "repo_url") if p not in firma.parameters]
+        # Y no trae nada: traer es el Paso 2, no un segundo camino.
+        fuente = inspect.getsource(pipeline.link_project_repo)
+        if "step_2_pull_to_repo" in fuente:
+            sobra.append("hace el pull inicial")
+        return not (sobra or falta), \
+            f"sobra: {sobra} · falta: {falta}" if (sobra or falta) else ""
+
+    runner.check(0, "Vincular es del proyecto: ni pide agente ni trae nada",
+                 vincular_no_pregunta_por_ningun_agente)
+
+    def vincular_no_escribe_en_el_repositorio():
+        """Vincular es apuntar una correspondencia, no tocar el repositorio.
+
+        Dejaba un marcador `cx-deploy.yaml` en la raíz que nadie leía nunca —se
+        escribía y no se consultaba— y que el Paso 1 contaba como un YAML más
+        del repositorio. Se comprueba en el árbol: si vuelve a aparecer una
+        llamada de escritura ahí dentro, este check lo dice.
+        """
+        arbol = ast.parse((REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py")
+                          .read_text())
+        funcion = next(n for n in ast.walk(arbol)
+                       if isinstance(n, ast.FunctionDef)
+                       and n.name == "link_project_repo")
+        escrituras = [
+            hijo.func.attr for hijo in ast.walk(funcion)
+            if isinstance(hijo, ast.Call)
+            and isinstance(hijo.func, ast.Attribute)
+            and hijo.func.attr in ("commit_files", "create_branch",
+                                   "delete_branch", "merge_branches")
+        ]
+        return not escrituras, f"escribe en el repositorio: {escrituras}"
+
+    runner.check(0, "Vincular un proyecto no escribe nada en el repositorio: "
+                    "solo apunta a qué repositorio pertenece",
+                 vincular_no_escribe_en_el_repositorio)
+
+    def el_comando_iam_se_puede_copiar():
+        """Sin variables de shell sin resolver.
+
+        Es el único paso del onboarding que ocurre fuera del panel. Pegado en
+        una terminal donde `$ACT_SERVICE_ACCOUNT` no existe, `--member=` queda
+        vacío y gcloud falla con un error de sintaxis que no menciona el alta.
+        """
+        fuente = inspect.getsource(pipeline.link_project_repo)
+        trozo = fuente[fuente.find("comando_iam"):]
+        trozo = trozo[:trozo.find("_emit")]
+        return "$" not in trozo.replace('f"', "").replace("f'", ""), \
+            "el comando lleva una variable de shell sin resolver"
+
+    runner.check(0, "El comando IAM que muestra el panel se puede pegar tal cual",
+                 el_comando_iam_se_puede_copiar)
 
 
 # ── Nivel 1 · Solo lectura ───────────────────────────────────────────────────
@@ -743,6 +872,52 @@ def nivel_1(runner, project, agent_id, region, run_id, hermano=None):
 
     runner.check(1, "Las cifras cuadran: total = emparejados + solo en CX",
                  cifras_cuadran)
+
+    def el_paso_1_dice_si_falta_el_entorno_de_produccion():
+        """Que el Paso 1 lo diga, en vez de descubrirlo el Paso 5.
+
+        Sin entorno de producción el Paso 5 falla — pero fallaba al final, con
+        el agente ya escrito y el pipeline entero recorrido. El dato lo tiene
+        el Paso 1 desde siempre; solo faltaba mirarlo.
+
+        Se contrasta contra CX directamente, no contra sí mismo: se piden los
+        entornos por la API y se compara con lo que el paso declara.
+
+        Y se recorren **los dos agentes**, porque con uno solo no se prueba
+        nada: el desechable tiene entorno de producción, así que un paso que
+        respondiera «sí» siempre acertaría con él y el check pasaría en verde
+        sin haber comprobado nunca el caso que importa. El hermano no tiene
+        ninguno — comprobado leyendo CX— y es el que ejercita el «no».
+        """
+        casos = [a for a in (agent_id, hermano) if a]
+        if len(casos) < 2:
+            return True, "(sin agente hermano: solo se ejercita el caso «sí»)"
+        vistos = set()
+        for agente in casos:
+            resultado = pipeline.step_1_inventory(project, agente)
+            datos = resultado["data"]
+            ctx = pipeline.Contexto(project, agente)
+            entornos = cx.list_all_pages(project, ctx.region,
+                                         f"{ctx.parent}/environments",
+                                         "environments")
+            real = any(e.get("displayName") == pipeline.ENTORNO_PRODUCCION
+                       for e in entornos)
+            vistos.add(real)
+            if datos["tiene_entorno_produccion"] != real:
+                return False, (f"{agente[:8]}: el paso dice "
+                               f"{datos['tiene_entorno_produccion']} y en CX "
+                               f"es {real}")
+            # Cuando falta, tiene que decirlo en el registro, no solo en un
+            # campo que el panel podría no llegar a mirar.
+            if not real and not any(pipeline.ENTORNO_PRODUCCION in linea
+                                    for linea in resultado["log"]):
+                return False, f"{agente[:8]}: falta y el registro no lo menciona"
+        return len(vistos) == 2, (
+            "los dos agentes dan el mismo caso: el «no» no se llega a probar")
+
+    runner.check(1, "El Paso 1 dice si al agente le falta el entorno de "
+                    "producción, en vez de dejarlo para el Paso 5",
+                 el_paso_1_dice_si_falta_el_entorno_de_produccion)
 
     def cero_escrituras():
         with ContadorHttp() as contador:
@@ -1151,30 +1326,6 @@ def nivel_2(runner, project, agent_id):
 
     runner.check(2, "Una URL de repositorio que no lo es se rechaza",
                  url_de_repositorio_validada)
-
-    def resource_suelto_rechaza_lo_que_no_despliega():
-        for tipo in ("environment", "version", "tipo_que_no_existe"):
-            try:
-                pipeline.deploy_single_resource(project, agent_id, tipo, "x")
-                return False, f"aceptó desplegar un {tipo}"
-            except ValueError:
-                continue
-        return True, ""
-
-    runner.check(2, "Desplegar un resource suelto rechaza los tipos que no "
-                    "despliega, incluidos los entornos",
-                 resource_suelto_rechaza_lo_que_no_despliega)
-
-    def resource_suelto_exige_que_el_repo_lo_declare():
-        try:
-            pipeline.deploy_single_resource(project, agent_id, "intent",
-                                            "cx-id-que-nadie-declara")
-            return False, "aceptó un cx_id que ningún archivo declara"
-        except pipeline.PipelineError as error:
-            return "repositorio" in str(error), str(error)[:90]
-
-    runner.check(2, "Desplegar un resource suelto exige que algún archivo lo declare",
-                 resource_suelto_exige_que_el_repo_lo_declare)
 
     def tests_solo_admite_dos_respuestas():
         for valor in ("ok", "", None, "SUPERADOS"):
@@ -1647,28 +1798,6 @@ def nivel_3(runner, project, agent_id, run_id):
                     "leyendo el objeto y no el código de respuesta",
                  full_update_en_playbook_aplica_de_verdad)
 
-    def desplegar_un_resource_suelto():
-        repositorio, _ = pipeline.cargar_repositorio(contexto)
-        candidato = None
-        for tipo in ("intent", "entity_type", "generator", "webhook"):
-            for cx_id in repositorio["por_tipo"].get(tipo, {}):
-                candidato = (tipo, cx_id)
-                break
-            if candidato:
-                break
-        if not candidato:
-            return True, "(el repositorio no tiene un resource desplegable suelto)"
-        tipo, cx_id = candidato
-        # Ya coincide, así que tiene que reportar que no hay nada que aplicar.
-        resultado = pipeline.deploy_single_resource(project, agent_id, tipo, cx_id)
-        return resultado["data"]["aplicado"] is False, (
-            "aplicó algo cuando repo y CX ya coincidían"
-        )
-
-    runner.check(3, "Desplegar un resource suelto no escribe si repo y CX ya "
-                    "coinciden",
-                 desplegar_un_resource_suelto)
-
     def declarar_tests_da_una_huella_que_cambia():
         """Si la huella no cambiara al cambiar el borrador, el aviso de 'draft
         movido' del Paso 5 no avisaría de nada."""
@@ -1901,6 +2030,205 @@ def nivel_3(runner, project, agent_id, run_id):
     runner.check(3, "Cero residuo en el repositorio: la rama vuelve al commit en "
                     "el que estaba antes del nivel",
                  limpiar_repositorio)
+
+    # ── El alta de un agente, provocada de verdad ───────────────────────────
+    #
+    # Es la única escritura del sistema que crea una rama, y hasta aquí solo se
+    # había leído el código. Se ejecuta contra el repositorio desechable con un
+    # agente inventado —un UUID que no existe en CX— porque lo que se prueba es
+    # la resolución del destino, no CX: la región se pasa a mano para no salir
+    # a buscar un agente que no está.
+    cliente_alta = store.get_client()
+    # El agente real: es el único que existe de verdad en CX, y la resolución
+    # de la región necesita que exista. Su mapeo se guarda entero aquí y se
+    # devuelve en el último check del bloque.
+    mapeo_original = dict(store.get_agent_mapping(cliente_alta, project, agent_id))
+    rama_del_alta = f"agente/{PREFIJO}_{run_id}"
+    # Los inventados no llegan nunca a CX: sirven para las comprobaciones que
+    # se resuelven antes de salir a la red, que es donde tienen que estar.
+    agentes_inventados = []
+
+    def el_alta_crea_la_rama_que_no_existia():
+        """Provoca el caso que fallaba: dar de alta un agente sin rama.
+
+        Antes, el alta solo comprobaba que la rama existiera (`branch_head`), y
+        no existe ninguna la primera vez que se da de alta a un agente: fallaba
+        con un 404 de git para todo agente nuevo. Se comprueba leyendo el
+        efecto —que la referencia existe en GitHub y nace de la principal—, no
+        lo que la función dice haber hecho.
+        """
+        if contexto.gh.branch_head_or_none(rama_del_alta) is not None:
+            return False, f"{rama_del_alta} ya existía: la prueba no prueba nada"
+        resultado = pipeline.register_agent(
+            project, agent_id, rama=rama_del_alta,
+            client=cliente_alta, gh=contexto.gh)["data"]
+        despues = contexto.gh.branch_head_or_none(rama_del_alta)
+        principal = contexto.gh.branch_head(contexto.rama_principal)
+        mapeo = store.get_agent_mapping(cliente_alta, project, agent_id)
+        problemas = []
+        if despues is None:
+            problemas.append("la rama no existe en GitHub tras el alta")
+        elif despues != principal:
+            problemas.append(f"la rama nace en {despues[:7]}, no en la principal")
+        if not resultado["rama_creada"]:
+            problemas.append("dice que no la creó")
+        if resultado["region"] != mapeo_original["region"]:
+            problemas.append(f"resolvió la región a {resultado['region']}")
+        if mapeo["rama"] != rama_del_alta:
+            problemas.append(f"el mapeo guarda {mapeo['rama']}")
+        if mapeo["repo"] != contexto.repo:
+            problemas.append("el repositorio no lo hereda del proyecto")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(3, "Dar de alta un agente crea su rama de trabajo, que nace en "
+                    "la principal y queda apuntada en su mapeo",
+                 el_alta_crea_la_rama_que_no_existia)
+
+    def dar_de_alta_dos_veces_no_duplica_nada():
+        """Repetir el alta no puede mover una rama con trabajo dentro.
+
+        Es el caso real de pulsar el botón dos veces, o de dos pestañas
+        abiertas. Se mete un commit en la rama entre las dos pasadas para que
+        moverla hacia atrás sea detectable: sin él la rama sigue en la punta de
+        la principal y un reset pasaría desapercibido.
+        """
+        commit = contexto.gh.commit_files(
+            rama_del_alta,
+            {f"{PREFIJO}_{run_id}_alta.txt": "prueba de idempotencia\n"},
+            f"test({PREFIJO}): commit para detectar un alta que mueve la rama",
+        )
+        resultado = pipeline.register_agent(
+            project, agent_id, rama=rama_del_alta,
+            client=cliente_alta, gh=contexto.gh)["data"]
+        ahora = contexto.gh.branch_head(rama_del_alta)
+        problemas = []
+        if resultado["rama_creada"]:
+            problemas.append("dice haberla creado otra vez")
+        if ahora != commit:
+            problemas.append(f"movió la rama de {commit[:7]} a {ahora[:7]}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(3, "Dar de alta dos veces no vuelve a crear la rama ni la mueve "
+                    "hacia atrás",
+                 dar_de_alta_dos_veces_no_duplica_nada)
+
+    def _rechaza_el_alta(sufijo, rama):
+        """Intenta un alta que debe rebotar sin escribir nada.
+
+        Devuelve (rebotó, detalle). Comprueba además que el rechazo no deja al
+        agente registrado a medias: rebotar y guardar sería peor que aceptar,
+        porque el error diría una cosa y el estado otra.
+        """
+        otro = f"{PREFIJO}-{run_id}-{sufijo}"
+        agentes_inventados.append(otro)
+        try:
+            pipeline.register_agent(project, otro, rama=rama,
+                                    client=cliente_alta, gh=contexto.gh)
+        except pipeline.PipelineError:
+            existe = cliente_alta.collection(store.COL_AGENTES).document(
+                store._doc_id(project, otro)).get().exists
+            return not existe, "rebotó pero dejó el agente registrado" if existe else ""
+        return False, f"aceptó dar de alta con rama {rama}"
+
+    def dos_agentes_no_comparten_rama():
+        """La colisión que el nombre propuesto hace fácil sin buscarla.
+
+        Dos agentes con el mismo `displayName` proponen la misma rama, y crear
+        una rama es idempotente: sin esta comprobación el segundo se quedaría
+        con la del primero en silencio, y publicar uno arrastraría a la
+        principal lo que el otro no hubiera publicado.
+
+        Se pide la rama que el agente real tiene ahora mismo, así que el caso
+        es el de verdad y no uno construido.
+        """
+        return _rechaza_el_alta("hermano", rama_del_alta)
+
+    runner.check(3, "Dos agentes no pueden compartir rama de trabajo: publicar "
+                    "uno arrastraría lo que el otro no publicó",
+                 dos_agentes_no_comparten_rama)
+
+    def la_rama_de_trabajo_no_puede_ser_la_principal():
+        """Si lo fuera, el Paso 2 escribiría en la rama que se publica.
+
+        Y el Paso 5 quedaría fusionando una rama consigo misma: un merge que
+        siempre responde «nada que fusionar», así que el gate de publicar
+        dejaría de significar nada sin que nada avisase.
+        """
+        return _rechaza_el_alta("principal", contexto.rama_principal)
+
+    runner.check(3, "La rama de trabajo no puede ser la principal",
+                 la_rama_de_trabajo_no_puede_ser_la_principal)
+
+    def rechazar_un_alta_no_cuesta_una_vuelta_por_cx():
+        """Los rechazos ocurren antes de salir a la red.
+
+        Un nombre de rama inválido se puede rechazar sin preguntarle nada a
+        nadie. Si la región se resolviera primero, rechazarlo costaría hasta 17
+        peticiones —el barrido de regiones— para acabar diciendo que no, y con
+        un agente inventado ni siquiera llegaría a decirlo: fallaría antes con
+        un error sobre la región, que no es el problema.
+        """
+        llamadas = []
+        original = cx.api_get
+        cx.api_get = lambda *a, **k: (llamadas.append(a), original(*a, **k))[1]
+        try:
+            rebota, detalle = _rechaza_el_alta("sin-red", contexto.rama_principal)
+        finally:
+            cx.api_get = original
+        if not rebota:
+            return False, detalle
+        return not llamadas, f"preguntó a CX {len(llamadas)} veces para decir que no"
+
+    runner.check(3, "Rechazar un alta por el nombre de la rama no llega a "
+                    "preguntarle nada a CX",
+                 rechazar_un_alta_no_cuesta_una_vuelta_por_cx)
+
+    def un_agente_sin_rama_manda_al_boton_no_a_la_herramienta():
+        """Que el mensaje mande al sitio correcto.
+
+        Hay dos ausencias distintas —el proyecto sin repositorio y el agente
+        sin rama— y cada una se arregla en otro sitio. Mandar a la herramienta
+        de vincular a quien solo necesita el botón del Paso 1 es pedirle que
+        vuelva a vincular un repositorio que ya está vinculado.
+        """
+        huerfano = f"{PREFIJO}-{run_id}-sin-alta"
+        try:
+            pipeline.Contexto(project, huerfano, client=cliente_alta)
+        except store.MappingNotFound as error:
+            texto = str(error).lower()
+            if "paso 1" in texto and "rama" in texto:
+                return True, ""
+            return False, f"el mensaje no menciona el botón del Paso 1: {error}"
+        return False, "construyó el contexto de un agente que no está dado de alta"
+
+    runner.check(3, "Un agente sin dar de alta, en un proyecto ya vinculado, "
+                    "manda al botón del Paso 1 y no a la herramienta",
+                 un_agente_sin_rama_manda_al_boton_no_a_la_herramienta)
+
+    def limpiar_el_alta():
+        """Devuelve el mapeo real y borra la rama y los agentes de prueba."""
+        fallos = []
+        store.save_agent_mapping(
+            cliente_alta, project, agent_id, mapeo_original["region"],
+            mapeo_original["rama"],
+            carpeta_raiz=mapeo_original.get("carpeta_raiz", "definitions"))
+        vuelto = store.get_agent_mapping(cliente_alta, project, agent_id)
+        if vuelto["rama"] != mapeo_original["rama"]:
+            fallos.append(f"el mapeo quedó en {vuelto['rama']}")
+        contexto.gh.delete_branch(rama_del_alta)
+        if contexto.gh.branch_head_or_none(rama_del_alta) is not None:
+            fallos.append(f"{rama_del_alta}: sigue existiendo")
+        for agente in agentes_inventados:
+            referencia = cliente_alta.collection(store.COL_AGENTES).document(
+                store._doc_id(project, agente))
+            referencia.delete()
+            if referencia.get().exists:
+                fallos.append(f"{agente}: sigue registrado")
+        return not fallos, " · ".join(fallos)
+
+    runner.check(3, "Cero residuo del alta: el mapeo real vuelve a su rama y no "
+                    "sobrevive ninguna rama ni agente de prueba",
+                 limpiar_el_alta)
 
 
 # ── Nivel 4 · Caos ───────────────────────────────────────────────────────────

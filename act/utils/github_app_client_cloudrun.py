@@ -338,6 +338,53 @@ class GitHubAppClient:
         )
         return commit["sha"]
 
+    def branch_head_or_none(self, rama):
+        """El SHA de la punta de una rama, o None si la rama no existe.
+
+        Distinguir "no existe" de "no se pudo leer" hace falta para dar de alta
+        un agente: una rama ausente es lo normal la primera vez, y un fallo de
+        permisos o de red no lo es. Con `branch_head` a secas los dos llegan
+        como la misma excepción y el alta crearía una rama sobre un repositorio
+        que en realidad no puede leer.
+        """
+        try:
+            return self.branch_head(rama)
+        except GitHubError as error:
+            if error.status_code == 404:
+                return None
+            raise
+
+    def create_branch(self, rama, desde):
+        """Crea `rama` apuntando a la punta de `desde`. Idempotente.
+
+        Devuelve (sha, creada). Si la rama ya existía devuelve su punta y
+        False: dar de alta un agente dos veces no puede fallar por algo que ya
+        estaba hecho, ni mover una rama con trabajo dentro hacia atrás.
+        """
+        existente = self.branch_head_or_none(rama)
+        if existente:
+            return existente, False
+        origen = self.branch_head(desde)
+        self._request(
+            "POST", f"/repos/{self.repo}/git/refs",
+            body={"ref": f"refs/heads/{rama}", "sha": origen},
+            esperado=(201,),
+        )
+        return origen, True
+
+    def delete_branch(self, rama):
+        """Borra una rama. Devuelve si existía.
+
+        La usa la validación para no dejar detrás las ramas que crea al probar
+        el alta de un agente. El pipeline no borra ramas: una rama de trabajo
+        con historial dentro es lo único que queda de lo que no se publicó.
+        """
+        if self.branch_head_or_none(rama) is None:
+            return False
+        self._request("DELETE", f"/repos/{self.repo}/git/refs/heads/{rama}",
+                      esperado=(204,))
+        return True
+
     def merge_branches(self, base, head, mensaje=None):
         """Fusiona `head` en `base` sin pasar por un pull request.
 
