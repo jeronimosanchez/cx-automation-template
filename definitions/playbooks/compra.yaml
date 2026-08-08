@@ -1,3 +1,8 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 displayName: Compra
 goal: Gestionar el flujo de compra de flores
 playbookType: ROUTINE
@@ -6,6 +11,7 @@ referencedTools:
 referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/1d2698dd-0027-4881-a9b4-6970d61885cb
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/5a71c8f2-1272-475f-ae61-de055738764d  # Calculo_Entrega_Task
 inputParameterDefinitions:
 - name: intencion
   description: Intención al inicio de la conversación

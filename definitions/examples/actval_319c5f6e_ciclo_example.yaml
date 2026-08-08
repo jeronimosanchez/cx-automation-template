@@ -1,0 +1,11 @@
+metadata:
+  tipo: example
+  padre: 5003baad-c139-4085-b6ae-ba2f361b3167
+  cx_id: null
+displayName: actval_319c5f6e_ciclo_example
+actions:
+- userUtterance:
+    text: hola
+- agentUtterance:
+    text: hola
+conversationState: OUTPUT_STATE_OK

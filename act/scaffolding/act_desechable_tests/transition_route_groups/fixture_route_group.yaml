@@ -1,0 +1,6 @@
+metadata:
+  tipo: transition_route_group
+  padre: agente
+  cx_id: 86925b64-b4ed-498b-ab50-7ebc8c5cf964
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: fixture_route_group

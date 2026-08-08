@@ -1,3 +1,7 @@
-# environment_id: e7cb0d2e-6f97-48e8-8024-0a2e04687f9d
+metadata:
+  tipo: environment
+  padre: null
+  cx_id: e7cb0d2e-6f97-48e8-8024-0a2e04687f9d
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 displayName: production
 description: "Entorno de produccion — solo recibe versions validadas por QA"

@@ -1,0 +1,1683 @@
+<meta charset="utf-8">
+<title>act_cx_resources_deploy.py — Deploy Petal 1.0</title>
+<style>
+:root {
+  --bg:#0d1117;--bg-2:#1a2030;--bg-3:#252d3a;--border:#3d4755;
+  --text:#f0f6fc;--text-2:#b0bac6;--text-3:#8b95a1;
+  --accent:#3b82f6;--accent-light:#60a5fa;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:14px}
+
+/* TOP BAR */
+.topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.topbar-agent{font-weight:700;font-size:15px}
+.topbar-sep{color:var(--border);font-size:18px}
+.topbar-env{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;transition:background .3s,color .3s,border-color .3s}
+.topbar-commit{font-size:12px;color:var(--text-3);font-family:monospace}
+.topbar-meta{color:var(--text-3);font-size:12px;margin-left:auto;display:flex;align-items:center;gap:12px}
+.btn{padding:6px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-gate{background:var(--gate);color:#000}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.btn-ghost{background:var(--bg-3);color:var(--text-2);border:1px solid var(--border)}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* SPECS PANEL */
+
+/* SIDEBAR */
+.sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
+.sidebar-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:0 16px 12px}
+.step-item{display:flex;align-items:flex-start;gap:12px;padding:9px 16px;cursor:pointer;border-left:2px solid transparent;transition:background .1s;position:relative}
+.step-item:hover{background:var(--bg-3)}
+.step-item.active{background:rgba(59,130,246,.08);border-left-color:var(--accent)}
+.step-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;transition:background .2s}
+.s-done .step-badge{background:var(--success);color:#000}
+.s-active .step-badge{background:var(--accent);color:#fff}
+.s-gate .step-badge{background:var(--gate);color:#000}
+.s-error .step-badge{background:var(--error);color:#fff}
+.s-pending .step-badge{background:var(--bg-3);color:var(--text-3);border:1px solid var(--border)}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:13px;font-weight:500;line-height:1.3}
+.s-pending .step-name{color:var(--text-3)}
+.s-active .step-name,.s-gate .step-name{color:var(--text)}
+.step-status-text{font-size:11px;margin-top:2px}
+.s-done .step-status-text{color:#4ade80}
+.s-active .step-status-text{color:#93c5fd}
+.s-gate .step-status-text{color:#fbbf24}
+.s-error .step-status-text{color:#f87171}
+.s-pending .step-status-text{color:var(--text-3)}
+.step-connector{width:1px;height:6px;background:var(--border);margin-left:27px}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:28px 32px}
+.step-view{display:none;max-width:720px}
+.step-view.visible{display:block}
+.phase-eyebrow{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.phase-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.phase-sub{font-size:14px;color:var(--text-2);margin-bottom:24px;line-height:1.5}
+
+/* GATE BLOCK */
+.gate-block{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:20px 24px;margin-bottom:20px}
+.gate-title{font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.gate-block p{color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px}
+.action-bar{display:flex;gap:10px;margin-top:4px}
+
+/* DIFF */
+.diff-wrap{overflow-x:auto;margin-bottom:20px}
+.diff-table{width:100%;border-collapse:collapse;font-size:13px}
+.diff-table th{text-align:left;padding:6px 12px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.diff-table td{padding:8px 12px;border-bottom:1px solid var(--bg-3);font-variant-numeric:tabular-nums}
+.diff-table tr:last-child td{border-bottom:none}
+.diff-table code{font-size:12px;color:var(--text-2);font-family:monospace}
+.pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.pill-mod{background:rgba(59,130,246,.15);color:#60a5fa}
+.pill-new{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-del{background:rgba(239,68,68,.15);color:#f87171}
+.pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-err{background:rgba(239,68,68,.15);color:#f87171}
+.pill-dim{background:var(--bg-3);color:var(--text-3)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bg-3)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)}
+
+/* OUTPUT */
+.output-block{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8;overflow-x:auto;white-space:pre}
+.output-block .ok{color:#4ade80}
+.output-block .info{color:#60a5fa}
+.output-block .warn{color:#fbbf24}
+.output-block .dim{color:var(--text-3)}
+.output-block .del{color:#f87171}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.stat-label{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+/* PROGRESS */
+.progress-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bg-3)}
+.progress-item:last-child{border-bottom:none}
+.progress-icon{width:18px;text-align:center;font-size:13px;flex-shrink:0}
+.progress-name{flex:1;font-size:13px;color:var(--text)}
+
+/* DONE BANNER */
+.done-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:20px}
+.done-banner p{font-size:13px;color:#4ade80;font-weight:500}
+
+/* SECTION LABEL */
+.slabel{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+
+/* SNAPSHOT GATE (Paso 4) */
+.snapshot-input{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'SF Mono',Menlo,monospace;width:100%;outline:none;transition:border-color .15s}
+.snapshot-input:focus{border-color:var(--gate)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ERROR BLOCK */
+.error-block{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:20px 24px}
+
+/* ACTION RESULT ROWS */
+.action-result{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
+.action-result:last-child{border-bottom:none}
+.action-result-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;margin-top:1px}
+.action-result-body{flex:1}
+.action-result-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.action-result-desc{font-size:12px;color:var(--text-2);line-height:1.55}
+
+</style>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="topbar-agent" id="topbar-agent">Petal 1.0</span>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-env" id="topbar-env">STAGING</span>
+  <span class="topbar-commit">GitHub: staging &middot; 98fcbdd</span>
+  <div class="topbar-meta">
+    <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
+    <button id="btn-reset" class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- STEP 1: Inventario CX -->
+    <div class="step-view" id="view-1">
+      <div class="phase-eyebrow">Paso 1 de 8</div>
+      <div class="phase-title">Inventario CX</div>
+      <div class="phase-sub">
+        Lee el estado actual del draft del agente desde la API de Dialogflow CX.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El draft es el estado editable &mdash; no la versi&oacute;n que CX usa para test cases. Los cambios no se propagan hasta crear las versiones en el Step 5.</p>
+      </div>
+
+      <!-- Estado inicial: selectores de proyecto / agente + botón para iniciar (región fija: europe-west1) -->
+      <div id="inv-start">
+        <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+          <div>
+            <label for="project-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Proyecto</label>
+            <select id="project-select" class="snapshot-input" style="max-width:240px" onchange="onProjectSelected()">
+              <option value="" selected disabled>Cargando proyectos&hellip;</option>
+            </select>
+          </div>
+          <div>
+            <label for="agent-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Agente</label>
+            <select id="agent-select" class="snapshot-input" style="max-width:240px" onchange="onAgentSelected()" disabled>
+              <option value="" selected disabled>&mdash;</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
+      </div>
+
+      <!-- Log animado (oculto hasta pulsar) -->
+      <div id="inv-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="inv-log-block" style="min-height:80px"></div>
+      </div>
+
+      <!-- Estado completado con inventario (oculto hasta finalizar) -->
+      <div id="inv-done" style="display:none">
+        <div class="done-banner"><p>Inventario completado &#10003;</p></div>
+
+        <!-- Cuadrícula de 12 tipos de recursos -->
+        <div class="cards-grid" style="margin-bottom:24px">
+          <div class="stat-card">
+            <div class="stat-label">Playbooks</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Examples</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tools</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Flows</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pages</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Intents</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Entity Types</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Webhooks</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Generators</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Agent Config</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Environments</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Versions</div>
+            <div class="stat-value">—</div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Push a GitHub staging -->
+    <div class="step-view" id="view-2">
+      <div class="phase-eyebrow">Paso 2 de 8</div>
+      <div class="phase-title">Push a GitHub staging</div>
+      <div class="phase-sub">Sube los commits locales a la rama <strong>staging de GitHub</strong> antes de calcular el diff con CX.</div>
+
+      <!-- Status header — actualiza en los 3 estados -->
+      <div id="push-status" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px 8px 0 0;border-bottom:none">
+        <div id="push-status-icon" style="width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--error)">✗</div>
+        <div>
+          <div id="push-status-label" style="font-size:13px;font-weight:600;color:var(--text)">Commits pendientes de push</div>
+          <div id="push-status-detail" style="font-size:11px;color:var(--text-3);margin-top:1px">origin/staging está 2 commits por detrás</div>
+        </div>
+      </div>
+
+      <!-- Lista de commits — siempre visible -->
+      <div id="push-commit-list" style="border:1px solid var(--border);border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:16px"></div>
+
+      <!-- Log — aparece durante el push, debajo de la lista -->
+      <div id="push-log" style="display:none;margin-bottom:16px">
+        <div class="output-block" id="push-log-block" style="min-height:60px"></div>
+      </div>
+
+      <!-- Acción — botón push o continuar -->
+      <div id="push-action"></div>
+    </div>
+
+    <!-- STEP 3: Diff GitHub vs CX -->
+    <div class="step-view" id="view-3">
+      <div class="phase-eyebrow">Paso 3 de 8</div>
+      <div class="phase-title">Diff GitHub vs CX</div>
+      <div class="phase-sub">Compara la rama <strong>staging de GitHub</strong> contra el entorno <strong>staging de CX</strong>.</div>
+
+      <!-- Con cambios -->
+      <div id="diff-has-changes" style="display:none">
+        <div id="diff-resumen" style="margin-bottom:16px"></div>
+        <div class="diff-wrap">
+          <table class="diff-table">
+            <thead><tr><th>Tipo</th><th>Recurso</th><th>Operaci&oacute;n</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="legend" style="margin-bottom:20px">
+          <span class="legend-item"><span class="pill pill-new">POST</span> Nuevo en CX</span>
+          <span class="legend-item"><span class="pill pill-mod">PATCH</span> Modificado en CX</span>
+          <span class="legend-item"><span class="pill pill-del">DELETE</span> Eliminado de CX</span>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" id="btn-diff-continuar" onclick="advance(3)">Revisar y confirmar &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Sin cambios -->
+      <div id="diff-no-changes" style="display:none">
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:18px 20px;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">Sin cambios detectados</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">El agente en CX staging ya est&aacute; al d&iacute;a con la rama staging de GitHub. No hay nada que desplegar.</p>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="resetDeploy()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Confirmar deploy -->
+    <div class="step-view" id="view-4">
+      <div class="phase-eyebrow">Paso 4 de 8</div>
+      <div class="phase-title">Desplegar al draft</div>
+      <div class="phase-sub">Los cambios se aplican al <strong>draft</strong> del agente, recurso a recurso. El draft es el borrador editable: <strong>no lo ve ning&uacute;n usuario</strong> hasta que se cree una versi&oacute;n y se promueva. Puedes desplegar aqu&iacute; tantas veces como quieras antes de versionar.</div>
+
+      <!-- Comprobación CX → repo: qué hay en CX que el repo no refleja -->
+      <div id="cxrepo-check" style="display:none;margin-bottom:16px">
+        <div id="cxrepo-clean" style="display:none;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28);border-radius:8px;padding:14px 18px">
+          <div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Comprobaci&oacute;n CX &rarr; repo</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">El repo refleja todo lo que hay en CX. Nada se perder&aacute; al desplegar.</p>
+        </div>
+
+        <div id="cxrepo-drift" style="display:none;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:16px 20px">
+          <div style="font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hay cambios en CX que el repo no tiene</div>
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Estos recursos existen o difieren en CX y no est&aacute;n reflejados en <code style="font-size:12px">definitions/</code>. El deploy sincroniza repo &rarr; CX, as&iacute; que <strong style="color:var(--text)">si contin&uacute;as se perder&aacute;n</strong>.</p>
+          <div class="diff-wrap" style="margin-bottom:14px">
+            <table class="diff-table">
+              <thead><tr><th>Tipo</th><th>Recurso</th><th>Qu&eacute; cambia</th><th>Se puede traer</th></tr></thead>
+              <tbody id="cxrepo-rows"></tbody>
+            </table>
+          </div>
+          <p id="cxrepo-nota-borrado" style="display:none;font-size:12px;color:var(--text-3);margin-bottom:14px">Los marcados <strong style="color:var(--text-2)">no</strong> son recursos que solo existen en CX. Traerlos exigir&iacute;a crear archivos nuevos en <code style="font-size:11px">definitions/</code>, y est&aacute; decidido que se borren &mdash; ya salen como <span class="pill pill-del">DELETE</span> en el diff del Paso 3.</p>
+          <div class="action-bar">
+            <button class="btn btn-gate" id="btn-pull-repo" onclick="pullToRepo()">&#8595; Traer al repo primero</button>
+            <button class="btn btn-ghost" onclick="acceptDrift()">Continuar sin traerlos</button>
+          </div>
+        </div>
+
+        <!-- Previsualización: nada se escribe en definitions/ sin verlo antes (CLAUDE.md §7.4) -->
+        <div id="cxrepo-preview" style="display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px 20px">
+          <div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Cambios propuestos en definitions/</div>
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">No se ha guardado nada todav&iacute;a. Revisa y confirma.</p>
+          <div id="cxrepo-preview-body" style="margin-bottom:16px"></div>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="savePullToRepo()">Guardar en definitions/</button>
+            <button class="btn btn-ghost" onclick="cancelPull()">Cancelar</button>
+          </div>
+        </div>
+
+        <div id="cxrepo-pulled" style="display:none;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28);border-radius:8px;padding:14px 18px">
+          <div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Tra&iacute;do al repo</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0"><strong style="color:var(--text)" id="cxrepo-pulled-count">0</strong> cambios escritos en <code style="font-size:12px">definitions/</code>. El diff se recalcula con el repo ya actualizado.</p>
+        </div>
+
+        <div id="cxrepo-accepted" style="display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:12px 16px">
+          <p style="font-size:13px;color:var(--text-2);margin:0">Continuando sin traer <strong style="color:var(--text)" id="cxrepo-lost-count">0</strong> cambios de CX &mdash; se perder&aacute;n al desplegar.</p>
+        </div>
+      </div>
+
+      <div class="gate-block" id="deploy-gate">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate4-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate4-agent">Petal 1.0</strong></p>
+        <p>Se van a aplicar al draft <strong style="color:var(--text)"><span id="deploy-count">—</span> operaciones</strong> &mdash; <span id="deploy-desglose">—</span>. Los recursos sin cambios no se tocan.</p>
+        <div id="agent-config-warning" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+          <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; Este deploy incluye cambios en Agent Config / Generators &mdash; sin staging posible</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.5">Estos dos tipos no tienen versión en la API de CX. El cambio será visible en draft, staging y producción a la vez, en el instante en que confirmes &mdash; no hay forma de probarlo en staging antes.</p>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Desplegar al draft &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelarAntesDeDesplegar()">Cancelar</button>
+        </div>
+      </div>
+      <div id="deploy-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="deploy-log-block" style="min-height:80px"></div>
+        <div class="legend">
+          <span class="legend-item"><span class="pill pill-ok">OK</span> Aplicado</span>
+          <span class="legend-item"><span class="pill pill-err">ERROR</span> Fallo en API</span>
+          <span class="legend-item"><span class="pill pill-dim">—</span> No intentado</span>
+        </div>
+      </div>
+
+      <!-- Deploy OK -->
+      <div id="deploy-done" style="display:none">
+        <div class="done-banner"><p>Draft actualizado &#10003;</p></div>
+        <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;line-height:1.7">El draft ya tiene tus cambios y <strong style="color:var(--text-2)">no lo ve ning&uacute;n usuario</strong>. Puedes parar aqu&iacute; y seguir acumulando cambios en otro momento, o crear versiones ahora para empezar el ciclo de QA.</p>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(4)">Crear versiones &rarr;</button>
+          <button class="btn btn-ghost" onclick="terminarEnDraft()">Terminar &mdash; quedarme en draft</button>
+        </div>
+      </div>
+
+      <!-- Deploy PARCIAL (fallo) -->
+      <div id="deploy-fail" style="display:none">
+        <div class="error-block" style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Deploy parcial &mdash; fallo en el recurso 3</div>
+          <div id="deploy-fail-summary" style="font-size:13px;color:var(--text-2);line-height:1.8;margin-bottom:14px"></div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">El draft del agente en CX tiene cambios aplicados a medias. <strong style="color:var(--text-2)">No hace falta revertir</strong>: el draft no lo ve ning&uacute;n usuario, y el pipeline es idempotente. Elige c&oacute;mo continuar:</div>
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:14px;line-height:1.7">
+            &middot; <strong style="color:var(--text-2)">Reintentar fallidos</strong> &mdash; solo el que fall&oacute; y los que quedaron sin intentar. Los que ya est&aacute;n OK no se tocan.<br>
+            &middot; <strong style="color:var(--text-2)">Empezar de nuevo</strong> &mdash; vuelve al Paso 1. La foto nueva de CX hace que el diff proponga solo lo que de verdad falta.<br>
+            &middot; Si quieres deshacer un cambio que s&iacute; se aplic&oacute;, corrige el YAML en el repo y despliega otra vez.
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="retryFailed()">Reintentar fallidos &rarr;</button>
+            <button class="btn btn-ghost" onclick="resetDeploy()">Empezar de nuevo desde el Paso 1</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Crear versiones -->
+    <div class="step-view" id="view-5">
+      <div class="phase-eyebrow">Paso 5 de 8</div>
+      <div class="phase-title">Crear versiones</div>
+      <div class="phase-sub">CX crea una versión nueva de cada artefacto con cambios (el flow y cada playbook modificado) y apunta staging a esas versiones. No es una versión única del agente — son varias versiones independientes, una por artefacto.</div>
+      <div class="gate-block" id="snap-gate">
+        <div class="gate-title">&#9995; Acción requerida</div>
+        <p>Se creará una versión nueva de cada artefacto con cambios detectados en el diff — el flow, y cada playbook modificado, por separado. Las versiones anteriores de cada uno se conservan para poder hacer rollback si los tests fallan.</p>
+        <p style="margin-top:0;margin-bottom:16px">CX admite <strong style="color:var(--text)">20 versiones por artefacto</strong> y el límite es duro: la 21 falla y <strong style="color:var(--text)">CX no borra nada por su cuenta</strong>. De esas 20, el pipeline gestiona un <strong style="color:var(--text)">pool de 5</strong> que rota solo: al crear la sexta, borra la más antigua <em>de las suyas</em>. Las demás son tu reservorio y no se tocan nunca.</p>
+
+        <!-- Reservorio: sacar una versión del pool automático -->
+        <div style="margin-bottom:20px">
+          <div class="slabel" style="margin-bottom:6px">Versiones existentes</div>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Marca una versión para <strong style="color:var(--text-2)">guardarla</strong>: sale del pool automático y la rotación deja de verla. Desmárcala para devolverla.</p>
+          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
+          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
+        </div>
+        <div style="margin-bottom:20px">
+          <div class="slabel" style="margin-bottom:8px">Etiqueta de este lote de versiones</div>
+          <input type="text" id="version-batch-label" class="snapshot-input" value="">
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, dígitos, guiones y guiones bajos. Máx. 64 caracteres. Se usa como displayName en cada versión creada, para poder identificarlas como parte del mismo deploy. Vacío = etiqueta automática con fecha y hora.</div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-version-confirm" onclick="confirmVersions()">Crear versiones &rarr;</button>
+          <button class="btn btn-ghost" onclick="terminarEnDraft()">Terminar &mdash; quedarme en draft</button>
+        </div>
+      </div>
+      <div id="snap-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="snap-log-block" style="min-height:80px"></div>
+      </div>
+      <div id="snap-done" style="display:none">
+        <div class="done-banner"><p>Versiones creadas &#10003;</p></div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(5)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6: Validación de tests -->
+    <div class="step-view" id="view-6">
+      <div class="phase-eyebrow">Paso 6 de 8</div>
+      <div class="phase-title">Validaci&oacute;n de tests</div>
+      <div class="phase-sub">Confirma que has ejecutado la suite de tests QA y que todos los casos han pasado correctamente en el entorno staging.</div>
+      <div class="gate-block">
+        <div class="gate-title" id="test-gate-title">&#9995; Acci&oacute;n requerida</div>
+        <div class="action-bar" id="test-action-bar">
+          <button class="btn btn-gate" onclick="advance(6)">Tests superados &rarr;</button>
+          <button class="btn btn-danger" onclick="showRollbackConfirm()">Tests fallidos</button>
+        </div>
+      </div>
+      <div id="rollback-confirm" class="error-block" style="display:none;margin-top:20px">
+        <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tests fallidos &mdash; rollback de staging</div>
+        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Los tests no han pasado. Si confirmas, el sistema revertir&aacute; el entorno staging de CX al estado anterior.</p>
+        <div class="slabel" style="margin-bottom:8px">Qu&eacute; va a ocurrir</div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:4px">Si confirmas rollback</div>
+          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Staging de CX &rarr; volver&aacute; a apuntar a <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:#f87171">&#8594;</div><div class="progress-name">Draft de CX &rarr; se restaurar&aacute; desde <strong style="color:var(--text)">v5 &middot; 2026-07-25_1134</strong></div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:14px">Si cancelas</div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Staging &rarr; conserva las versiones actuales tal cual</div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Draft de CX &rarr; no se modifica</div></div>
+          <div class="progress-item"><div class="progress-icon" style="color:var(--text-3)">&#8594;</div><div class="progress-name" style="color:var(--text-2)">Producci&oacute;n &rarr; no se tocar&aacute;</div></div>
+        </div>
+        <div class="slabel" style="margin-bottom:6px">Qu&eacute; hacer despu&eacute;s</div>
+        <p style="color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px">Vuelve a tu rama de trabajo, corrige los problemas y haz un nuevo deploy cuando est&eacute; listo.</p>
+        <div class="action-bar">
+          <button class="btn btn-danger" onclick="rollbackStaging()">Confirmar rollback</button>
+          <button class="btn btn-ghost" onclick="hideRollbackConfirm()">Cancelar</button>
+        </div>
+      </div>
+      <div id="rollback-log" style="display:none;margin-top:20px">
+        <div class="output-block" id="rollback-log-block" style="min-height:80px"></div>
+      </div>
+      <div id="rollback-done-banner" class="error-block" style="display:none;margin-top:16px">
+        <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Deploy abortado</div>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Staging restaurado al estado anterior. Los pasos siguientes quedan fuera de juego.</p>
+        <button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
+      </div>
+    </div>
+
+    <!-- STEP 7: Gate QA — staging -->
+    <div class="step-view" id="view-7">
+      <div class="phase-eyebrow">Paso 7 de 8</div>
+      <div class="phase-title">Gate QA &mdash; staging</div>
+      <div class="phase-sub">Valida el agente manualmente en el entorno staging de CX antes de promover a producci&oacute;n.</div>
+      <div class="gate-block">
+        <div class="gate-title">&#9995; Validaci&oacute;n manual requerida</div>
+        <p>Staging apunta ya a las versiones nuevas (etiqueta <span class="snapshot-name-ref">—</span>) — el flow y cada playbook con cambios, cada uno por separado. Pr&uacute;ebalo en Dialogflow CX y confirma que todo funciona antes de promover a producci&oacute;n.</p>
+        <div style="margin-bottom:16px">
+          <a href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/environments" target="_blank" style="font-size:13px;color:#60a5fa;text-decoration:none;border-bottom:1px solid rgba(96,165,250,.3);padding-bottom:1px">&#8599; Abrir agente en Dialogflow CX (staging)</a>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-validado-p7" onclick="validarGateQA()">Validado &mdash; aprobar producci&oacute;n &rarr;</button>
+          <button class="btn btn-danger" onclick="rollbackFromStep7()">Rollback a staging anterior</button>
+        </div>
+      </div>
+      <div id="p7-rollback-log" style="display:none;margin-bottom:16px">
+        <div class="output-block" id="p7-rollback-log-block" style="min-height:60px"></div>
+      </div>
+      <div class="slabel">Estado actual de entornos</div>
+      <div class="output-block"><span class="dim">draft     </span> &rarr; (estado editado)  <span class="dim">&#8592; fuente de &ldquo;<span class="snapshot-name-ref">—</span>&rdquo;</span>
+<span class="info">staging   </span> &rarr; <span class="snapshot-name-ref">—</span>  <span class="ok">&#8592; nuevo</span>
+<span class="warn">producci&oacute;n</span> &rarr; v5 &middot; 2026-07-25_1134  &#8592; actual</div>
+    </div>
+
+    <!-- STEP 8: Aprobar subida a producción -->
+    <div class="step-view" id="view-8">
+      <div class="phase-eyebrow">Paso 8 de 8</div>
+      <div class="phase-title">Aprobar subida a producci&oacute;n</div>
+      <div class="phase-sub">Los cambios han sido verificados en staging. Si confirmas, se ejecutan dos acciones en orden.</div>
+
+      <!-- Gate -->
+      <div class="gate-block" id="prod-gate">
+        <div class="gate-title">&#9995; Confirmar deploy a producci&oacute;n</div>
+        <p style="margin-bottom:14px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate8-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate8-agent">Petal 1.0</strong> &mdash; esta acci&oacute;n afecta a usuarios reales de este agente.</p>
+        <div style="margin-bottom:20px">
+          <div class="action-result">
+            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">1</div>
+            <div class="action-result-body">
+              <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
+              <div class="action-result-desc">El c&oacute;digo validado queda registrado en main. Si hay conflictos, el merge se aborta y el paso te lo indica.</div>
+            </div>
+          </div>
+          <div class="action-result">
+            <div class="action-result-icon" style="color:var(--gate);font-weight:700;font-size:12px">2</div>
+            <div class="action-result-body">
+              <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
+              <div class="action-result-desc">Las versiones que hoy est&aacute;n en staging (etiqueta <span class="snapshot-name-ref">&mdash;</span>) se asignan al entorno de producci&oacute;n, artefacto por artefacto. No se crea ninguna versi&oacute;n nueva. Los usuarios ya ven los cambios.</div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" onclick="confirmProduction()">Promover a producci&oacute;n &rarr;</button>
+          <button class="btn btn-ghost" onclick="dejarloEnStaging()">Dejarlo en staging</button>
+        </div>
+      </div>
+
+      <!-- Visor -->
+      <div id="prod-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="prod-log-block" style="min-height:80px"></div>
+      </div>
+
+      <!-- Conflicto de merge -->
+      <div id="prod-conflict" style="display:none;margin-top:16px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:16px 20px">
+        <div style="font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Conflicto de merge</div>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Git no puede hacer el merge autom&aacute;ticamente. Hay cambios en <code style="font-size:12px">main</code> que entran en conflicto con <code style="font-size:12px">staging</code>. Debes resolverlo en GitHub antes de continuar.</p>
+        <div class="action-bar">
+          <a href="https://github.com/jeronimosanchez/cx-automation-template/compare/main...staging" target="_blank" class="btn btn-gate" style="text-decoration:none">&#8599; Resolver conflicto en GitHub</a>
+          <button class="btn btn-ghost" onclick="abortProduction()">Abortar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP DONE -->
+    <div class="step-view" id="view-done">
+      <div class="phase-eyebrow">Deploy completado</div>
+      <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
+      <div class="phase-sub">Desplegado en producci&oacute;n &middot; verificado en staging.</div>
+      <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; <span id="done-timestamp">2026-07-28 &middot; 09:45 UTC</span> &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
+      <div style="margin:12px 0 20px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+        <p style="font-size:12px;color:var(--text-2);line-height:1.5">&#9888; El cambio se ha aplicado, pero puede tardar unos minutos en propagarse a todos los usuarios. Si pruebas producci&oacute;n ahora mismo y ves comportamiento antiguo, espera y reintenta antes de asumir que el deploy fall&oacute;.</p>
+      </div>
+
+      <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
+      <div style="margin-bottom:20px">
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
+            <div class="action-result-desc">El c&oacute;digo validado queda registrado en main de GitHub.</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
+            <div class="action-result-desc">Versiones <span class="snapshot-name-ref">—</span> asignadas al entorno producci&oacute;n, artefacto por artefacto. Los usuarios ya ven los cambios.</div>
+          </div>
+        </div>
+        <div class="action-result" id="done-sync-row">
+          <div class="action-result-icon">
+            <input type="checkbox" id="check-sync-local" onchange="toggleSyncCheck()" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">
+          </div>
+          <div class="action-result-body">
+            <div class="action-result-title" id="done-sync-title" style="color:var(--text-2)">Sincronizar main local <span style="font-size:11px;font-weight:400;color:var(--text-3)">(recomendado)</span></div>
+            <div class="action-result-desc">Copia y ejecuta manualmente en tu terminal:<br>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
+                <code style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace">git fetch origin main:main</code>
+                <button onclick="navigator.clipboard.writeText('git fetch origin main:main').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copiar',1500)})" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slabel">Estado final de entornos</div>
+      <div class="output-block"><span class="ok">&#10003;</span> staging    &rarr; <span class="snapshot-name-ref">—</span>
+<span class="ok">&#10003;</span> producci&oacute;n &rarr; <span class="snapshot-name-ref">—</span>  <span class="info">&#8592; nuevo</span></div>
+
+      <div style="margin-top:4px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
+    </div>
+
+  </main>
+
+  <!-- SPECS PANEL -->
+
+  <!-- Confirmación propia: un confirm() del navegador es un diálogo del
+       sistema en medio del panel, y no puede explicar la consecuencia. -->
+  <div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:22px 26px;max-width:460px;margin:20px">
+      <div id="modal-titulo" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px"></div>
+      <p id="modal-texto" style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:20px"></p>
+      <div class="action-bar">
+        <button class="btn btn-gate" id="modal-aceptar"></button>
+        <button class="btn btn-ghost" onclick="cerrarModal()">Volver</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── Conexión con server.py ──────────────────────────────────────────────
+   Todo lo que antes simulaba el panel viene ahora del servidor local. El
+   proyecto y el agente viajan en el body de cada llamada porque el servidor
+   no guarda la selección entre peticiones: cada una tiene que traer su
+   propio destino o se rechaza con un 400.                                  */
+// 127.0.0.1 y no localhost: en macOS `localhost` resuelve a ::1, donde el
+// receptor de AirPlay ocupa el puerto 5000 y responde 403 sin CORS. El panel
+// hablaría con AirPlay en vez de con el pipeline, y el fallo parecería un
+// problema del servidor.
+const SERVER = 'http://127.0.0.1:5000';
+
+const ESTADO_KEY = 'act_deploy_v1';
+
+function guardarEstado() {
+  localStorage.setItem(ESTADO_KEY, JSON.stringify({
+    stepStates, current, viewingStep,
+    project: seleccion.project, agent: seleccion.agent,
+    agentLabel: seleccion.agentLabel, snapshot: versionLabel,
+  }));
+}
+
+function cargarEstado() {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(ESTADO_KEY));
+    if (!guardado) return false;
+    stepStates.splice(0, stepStates.length, ...guardado.stepStates);
+    current = guardado.current;
+    viewingStep = guardado.viewingStep;
+    seleccion.project = guardado.project;
+    seleccion.agent = guardado.agent;
+    seleccion.agentLabel = guardado.agentLabel;
+    versionLabel = guardado.snapshot || versionLabel;
+    return Boolean(guardado.project && guardado.agent);
+  } catch { return false; }
+}
+
+const seleccion = {project: null, agent: null, agentLabel: null};
+
+class ServidorCaido extends Error {}
+
+async function llamarPaso(numero, extra = {}) {
+  let respuesta;
+  try {
+    respuesta = await fetch(`${SERVER}/step/${numero}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({project: seleccion.project, agent: seleccion.agent, ...extra}),
+    });
+  } catch {
+    // El servidor es un proceso local que se puede olvidar de arrancar, o
+    // cerrar sin querer a mitad. Es el fallo más probable del día a día.
+    throw new ServidorCaido(
+      'No se pudo conectar con el servidor local. ¿Está arrancado? '
+      + '(python act/server.py)');
+  }
+  if (respuesta.status === 409) {
+    throw new Error('Ya hay una operación en curso. Espera a que termine.');
+  }
+  const datos = await leerJson(respuesta);
+  if (respuesta.status === 400) {
+    throw new Error(datos.log ? datos.log.join(' ') : 'Faltan proyecto o agente.');
+  }
+  return datos;
+}
+
+/* El puerto puede estar ocupado por otro programa — en macOS, AirPlay
+   escucha en el 5000 y responde 403 sin cuerpo. Con el pipeline apagado la
+   petición no falla: la contesta otro. Si lo que vuelve no es el JSON del
+   servidor, es que no estamos hablando con él. */
+async function leerJson(respuesta) {
+  const texto = await respuesta.text();
+  try {
+    return JSON.parse(texto);
+  } catch {
+    throw new ServidorCaido(
+      `El puerto ${new URL(SERVER).port} respondió ${respuesta.status}, pero no es el `
+      + `pipeline. ¿Está arrancado (python act/server.py)? En macOS, AirPlay Receiver `
+      + `ocupa ese puerto — desactívalo en Ajustes › General › AirDrop y Handoff.`);
+  }
+}
+
+async function obtener(ruta) {
+  try {
+    const respuesta = await fetch(`${SERVER}${ruta}`);
+    return await leerJson(respuesta);
+  } catch (error) {
+    if (error instanceof ServidorCaido) throw error;
+    throw new ServidorCaido(
+      'No se pudo conectar con el servidor local. ¿Está arrancado? '
+      + '(python act/server.py)');
+  }
+}
+
+function pintarLog(idBloque, lineas) {
+  const bloque = document.getElementById(idBloque);
+  bloque.innerHTML = '';
+  (lineas || []).forEach(texto => {
+    const span = document.createElement('span');
+    span.className = /error|fall|✗/i.test(texto) ? 'err'
+                   : /aviso|warning/i.test(texto) ? 'warn' : 'ok';
+    span.textContent = texto;
+    bloque.appendChild(span);
+    bloque.appendChild(document.createTextNode('\n'));
+  });
+  bloque.scrollTop = bloque.scrollHeight;
+}
+
+function mostrarError(idBloque, error) {
+  const bloque = document.getElementById(idBloque);
+  const span = document.createElement('span');
+  span.className = 'err';
+  span.textContent = error instanceof ServidorCaido
+    ? `✗ ${error.message}`
+    : `✗ ${error.message}`;
+  bloque.appendChild(span);
+  bloque.appendChild(document.createTextNode('\n'));
+}
+
+/* Un doble clic no puede disparar dos peticiones: el botón se desactiva al
+   pulsar y solo vuelve si la llamada falla, para poder reintentar.        */
+async function conBoton(idBoton, textoEnCurso, accion) {
+  const boton = document.getElementById(idBoton);
+  const original = boton ? boton.textContent : null;
+  if (boton) { boton.disabled = true; boton.textContent = textoEnCurso; }
+  try {
+    await accion();
+  } finally {
+    if (boton && boton.disabled) { boton.disabled = false; boton.textContent = original; }
+  }
+}
+
+
+
+const STEPS = [
+  {id:1, name:'Inventario CX',           sub:'',  gate:false},
+  {id:2, name:'Push a GitHub staging',   sub:'',  gate:true},
+  {id:3, name:'Diff GitHub vs CX',       sub:'',  gate:true},
+  {id:4, name:'Desplegar al draft',     sub:'',  gate:true},
+  {id:5, name:'Crear versiones',        sub:'',  gate:true},
+  {id:6, name:'Validación de tests',     sub:'',  gate:true},
+  {id:7, name:'Gate QA — staging',       sub:'',  gate:true},
+  {id:8, name:'Aprobar producción',      sub:'',  gate:true},
+];
+
+let stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
+let current = 1;
+let viewingStep = 1;
+let versionLabel = '';
+let isRunning = false;
+let animVersion = 0;
+
+
+
+
+function setRunning(val) {
+  isRunning = val;
+  document.getElementById('sidebar').style.opacity = val ? '0.4' : '1';
+  document.getElementById('sidebar').style.pointerEvents = val ? 'none' : '';
+  const btn = document.getElementById('btn-reset');
+  if (btn) { btn.disabled = val; btn.style.opacity = val ? '0.4' : '1'; btn.style.pointerEvents = val ? 'none' : ''; }
+}
+
+
+async function cargarProyectos() {
+  const select = document.getElementById('project-select');
+  try {
+    const datos = await obtener('/projects');
+    if (datos.status !== 'ok') {
+      // Una cuenta puede tener acceso a CX sin permiso de Resource Manager.
+      // Dejar el selector vacío sin explicar nada sería el peor resultado.
+      select.innerHTML = '<option value="" selected disabled>Sin permiso para listar proyectos</option>';
+      mostrarAvisoProyectoManual(datos.log ? datos.log.join(' ') : '');
+      return;
+    }
+    const proyectos = datos.data.projects || [];
+    select.innerHTML = '<option value="" selected disabled>Selecciona un proyecto…</option>'
+      + proyectos.map(p => `<option value="${p.projectId}">${p.projectId}</option>`).join('');
+  } catch (error) {
+    select.innerHTML = `<option value="" selected disabled>${error.message}</option>`;
+  }
+}
+
+function mostrarAvisoProyectoManual(detalle) {
+  const contenedor = document.getElementById('project-select').parentElement;
+  if (document.getElementById('project-manual')) return;
+  const aviso = document.createElement('div');
+  aviso.id = 'project-manual';
+  aviso.style.cssText = 'margin-top:8px';
+  aviso.innerHTML = `<div style="font-size:11px;color:var(--gate);margin-bottom:6px">${detalle}</div>`
+    + `<input type="text" id="project-manual-input" class="snapshot-input" style="max-width:240px"
+             placeholder="Escribe el ID del proyecto" onchange="onProjectManual(this.value)">`;
+  contenedor.appendChild(aviso);
+}
+
+function onProjectManual(valor) {
+  if (valor.trim()) onProjectSelected(valor.trim());
+}
+
+async function onProjectSelected(manual) {
+  const project = manual || document.getElementById('project-select').value;
+  seleccion.project = project;
+  seleccion.agent = null;
+  const agentSel = document.getElementById('agent-select');
+  agentSel.disabled = true;
+  agentSel.innerHTML = '<option value="" selected disabled>Cargando agentes…</option>';
+  document.getElementById('btn-start-inventory').disabled = true;
+  if (!project) return;
+  try {
+    const datos = await obtener(`/projects/${encodeURIComponent(project)}/agents`);
+    const agentes = (datos.data && datos.data.agents) || [];
+    agentSel.innerHTML = '<option value="" selected disabled>Selecciona un agente…</option>'
+      + agentes.map(a => `<option value="${a.agentId}">${a.displayName}</option>`).join('');
+    agentSel.disabled = false;
+  } catch (error) {
+    agentSel.innerHTML = `<option value="" selected disabled>${error.message}</option>`;
+  }
+  guardarEstado();
+}
+
+function onAgentSelected() {
+  const select = document.getElementById('agent-select');
+  seleccion.agent = select.value;
+  seleccion.agentLabel = select.value
+    ? select.options[select.selectedIndex].textContent : null;
+  document.getElementById('btn-start-inventory').disabled = !seleccion.agent;
+  if (seleccion.agentLabel) {
+    document.getElementById('topbar-agent').textContent = seleccion.agentLabel;
+  }
+  actualizarDestinoEnGates();
+  guardarEstado();
+}
+
+/* Los gates del Paso 4 y del Paso 8 son los dos momentos de más consecuencia
+   —uno escribe en el draft, el otro afecta a usuarios reales— así que el
+   destino tiene que verse en el propio texto de confirmación, sin depender
+   de acordarse de mirar la topbar.                                        */
+function actualizarDestinoEnGates() {
+  [['gate4-project', 'gate4-agent'], ['gate8-project', 'gate8-agent']].forEach(([p, a]) => {
+    const elP = document.getElementById(p), elA = document.getElementById(a);
+    if (elP) elP.textContent = seleccion.project || '—';
+    if (elA) elA.textContent = seleccion.agentLabel || seleccion.agent || '—';
+  });
+}
+
+
+
+async function startInventory() {
+  await conBoton('btn-start-inventory', 'Inventariando…', async () => {
+    setRunning(true);
+    document.getElementById('inv-start').style.display = 'none';
+    document.getElementById('inv-log').style.display = 'block';
+    try {
+      const datos = await llamarPaso(1);
+      pintarLog('inv-log-block', datos.log);
+      if (datos.status !== 'ok') { setRunning(false); return; }
+      pintarInventario(datos.data.totals || {});
+      document.getElementById('inv-done').style.display = 'block';
+      guardarEstado();
+    } catch (error) {
+      mostrarError('inv-log-block', error);
+      document.getElementById('inv-start').style.display = 'block';
+    } finally {
+      setRunning(false);
+    }
+  });
+}
+
+/* La cuadrícula deja de tener conteos escritos en el HTML: los pinta el
+   inventario real que devuelve el Paso 1.                                 */
+function pintarInventario(totales) {
+  const grid = document.querySelector('#inv-done .cards-grid');
+  if (!grid) return;
+  const ETIQUETAS = {
+    playbooks: 'Playbooks', examples: 'Examples', tools: 'Tools', flows: 'Flows',
+    pages: 'Pages', intents: 'Intents', entity_types: 'Entity Types',
+    webhooks: 'Webhooks', generators: 'Generators', agent_config: 'Agent Config',
+    environments: 'Environments', versions: 'Versions',
+  };
+  grid.innerHTML = Object.entries(ETIQUETAS).map(([clave, etiqueta]) =>
+    `<div class="stat-card"><div class="stat-label">${etiqueta}</div>`
+  + `<div class="stat-value">${totales[clave] ?? '—'}</div></div>`).join('');
+}
+
+function resetInventoryUI() {
+  document.getElementById('inv-start').style.display = 'block';
+  document.getElementById('inv-log').style.display = 'none';
+  document.getElementById('inv-done').style.display = 'none';
+  document.getElementById('inv-log-block').innerHTML = '';
+}
+
+async function renderStep2Checks() {
+  const lista = document.getElementById('push-commit-list');
+  try {
+    const datos = await llamarPaso(2, {dry_run: true});
+    const commits = (datos.data && datos.data.commits) || [];
+    lista.innerHTML = commits.length
+      ? commits.map((c, i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;${i < commits.length-1 ? 'border-bottom:1px solid var(--bg-3);' : ''}">
+          <span style="font-size:13px;color:var(--text-2)">${c}</span>
+        </div>`).join('')
+      : '<div style="padding:10px 12px;font-size:13px;color:var(--text-3)">Sin commits pendientes</div>';
+    const alDia = commits.length === 0;
+    document.getElementById('push-status-icon').textContent = alDia ? '✓' : '✗';
+    document.getElementById('push-status-icon').style.color = alDia ? 'var(--success)' : 'var(--error)';
+    document.getElementById('push-status-label').textContent = alDia
+      ? 'origin/staging al día' : 'Commits pendientes de push';
+    document.getElementById('push-status-detail').textContent = alDia
+      ? 'No hay nada que empujar' : `origin/staging está ${commits.length} commit(s) por detrás`;
+    document.getElementById('push-action').innerHTML = alDia
+      ? '<button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>'
+      : '<button class="btn btn-gate" id="btn-push" onclick="executePush()">Hacer push &rarr;</button>';
+  } catch (error) {
+    lista.innerHTML = `<div style="padding:10px 12px;font-size:13px;color:var(--error)">${error.message}</div>`;
+    document.getElementById('push-action').innerHTML =
+      '<button class="btn btn-gate" onclick="renderStep2Checks()">Reintentar</button>';
+  }
+}
+
+async function executePush() {
+  await conBoton('btn-push', 'Empujando…', async () => {
+    setRunning(true);
+    document.getElementById('push-log').style.display = 'block';
+    try {
+      const datos = await llamarPaso(2);
+      pintarLog('push-log-block', datos.log);
+      const ok = datos.status === 'ok';
+      document.getElementById('push-status-icon').textContent = ok ? '✓' : '✗';
+      document.getElementById('push-status-icon').style.color = ok ? 'var(--success)' : 'var(--error)';
+      document.getElementById('push-status-label').textContent = ok
+        ? 'origin/staging al día' : 'El push falló';
+      document.getElementById('push-status-detail').textContent = (datos.log || []).slice(-1)[0] || '';
+      document.getElementById('push-action').innerHTML = ok
+        ? '<button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>'
+        : '<button class="btn btn-gate" id="btn-push" onclick="executePush()">Reintentar</button>';
+      if (ok) guardarEstado();
+    } catch (error) {
+      mostrarError('push-log-block', error);
+      document.getElementById('push-action').innerHTML =
+        '<button class="btn btn-gate" id="btn-push" onclick="executePush()">Reintentar</button>';
+    } finally {
+      setRunning(false);
+    }
+  });
+}
+
+function retryPush() {
+  document.getElementById('push-log').style.display = 'none';
+  document.getElementById('push-log-block').innerHTML = '';
+  renderStep2Checks();
+}
+
+async function renderStep3Diff() {
+  const conCambios = document.getElementById('diff-has-changes');
+  const sinCambios = document.getElementById('diff-no-changes');
+  conCambios.style.display = 'none';
+  sinCambios.style.display = 'none';
+  try {
+    const datos = await llamarPaso(3);
+    const operaciones = (datos.data && datos.data.operations) || [];
+    DIFF_OPS = operaciones;
+    const cuerpo = conCambios.querySelector('.diff-table tbody');
+    const PILL = {POST: 'pill-new', PATCH: 'pill-mod', DELETE: 'pill-del'};
+    cuerpo.innerHTML = operaciones.map(o =>
+      `<tr><td>${o.type}</td><td><code>${o.resource}</code></td>`
+    + `<td><span class="pill ${PILL[o.operation]}">${o.operation}</span></td></tr>`).join('');
+    (datos.data.warnings || []).forEach(aviso => {
+      const fila = document.createElement('tr');
+      fila.innerHTML = `<td colspan="3" style="color:var(--gate)">${aviso}</td>`;
+      cuerpo.appendChild(fila);
+    });
+    pintarResumenDiff(operaciones);
+    (operaciones.length ? conCambios : sinCambios).style.display = 'block';
+    const contador = document.getElementById('deploy-count');
+    if (contador) contador.textContent = operaciones.length;
+    const desglose = document.getElementById('deploy-desglose');
+    if (desglose) desglose.textContent = describirOperaciones(operaciones);
+    guardarEstado();
+  } catch (error) {
+    sinCambios.style.display = 'block';
+    sinCambios.querySelector('p').textContent = error.message;
+  }
+}
+
+let DIFF_OPS = [];
+
+/* Esta pantalla es el último sitio donde se ve qué se va a destruir. Sin un
+   resumen hay que contar filas a mano, y un DELETE pesa lo mismo que un
+   PATCH: dos pastillas en una lista larga. */
+function contarPorOperacion(operaciones) {
+  return operaciones.reduce((cuenta, o) => {
+    cuenta[o.operation] = (cuenta[o.operation] || 0) + 1;
+    return cuenta;
+  }, {});
+}
+
+function describirOperaciones(operaciones) {
+  const c = contarPorOperacion(operaciones);
+  const partes = [];
+  if (c.POST)   partes.push(`${c.POST} nuevo${c.POST > 1 ? 's' : ''}`);
+  if (c.PATCH)  partes.push(`${c.PATCH} modificado${c.PATCH > 1 ? 's' : ''}`);
+  if (c.DELETE) partes.push(`${c.DELETE} eliminado${c.DELETE > 1 ? 's' : ''}`);
+  return partes.join(' · ');
+}
+
+function pintarResumenDiff(operaciones) {
+  const c = contarPorOperacion(operaciones);
+  const borra = c.DELETE || 0;
+  const caja = document.getElementById('diff-resumen');
+  caja.style.cssText = borra
+    ? 'margin-bottom:16px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:14px 18px'
+    : 'margin-bottom:16px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 18px';
+  caja.innerHTML =
+    `<div style="font-size:13px;color:var(--text);margin-bottom:${borra ? '6px' : '0'}">`
+  + `<strong>${operaciones.length} operacion${operaciones.length === 1 ? '' : 'es'}</strong>`
+  + ` &mdash; ${describirOperaciones(operaciones) || 'ninguna'}</div>`
+  + (borra
+      ? `<div style="font-size:12px;color:#f87171">Los <strong>${borra} recurso${borra > 1 ? 's' : ''}`
+        + ` eliminado${borra > 1 ? 's' : ''}</strong> desaparece${borra > 1 ? 'n' : ''} de CX. No hay deshacer.</div>`
+      : '');
+}
+
+/* ── Comprobación CX → repo ──────────────────────────────────────────────
+   El diff del Paso 3 mira repo → CX: qué hay que aplicar. Esta comprobación
+   mira al revés — qué existe en CX que definitions/ no recoge. Sin ella, el
+   deploy borra en silencio el trabajo hecho desde la consola de CX, porque
+   el repo es la fuente de verdad y lo que no está en él se elimina.
+
+   Alcance de "Traer al repo": solo campos de recursos que YA existen en el
+   repo. Un recurso que solo vive en CX exigiría crear un archivo nuevo, y
+   esos ya están decididos como DELETE — traerlos contradiría esa decisión. */
+let CXREPO_DRIFT = [];
+
+const traibles = () => CXREPO_DRIFT.filter(d => d.traible);
+
+let driftAccepted = false;
+let driftCargada = false;
+let driftPulled = false;
+
+async function renderCxRepoCheck() {
+  const gate = document.getElementById('deploy-gate');
+  if (!driftCargada) {
+    try {
+      const respuesta = await fetch(`${SERVER}/cx-repo-check`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({project: seleccion.project, agent: seleccion.agent})});
+      const datos = await leerJson(respuesta);
+      CXREPO_DRIFT = (datos.data.drift || []).map(d => ({
+        tipo: d.tipo, recurso: d.recurso, cambio: d.cambio, traible: d.traible,
+        archivo: d.archivo, campo: d.campo,
+        antes: d.antes == null ? ['(sin declarar)'] : [String(d.antes)],
+        despues: [String(d.despues).slice(0, 120)],
+      }));
+      driftCargada = true;
+    } catch (error) {
+      CXREPO_DRIFT = [];
+      driftCargada = true;
+      document.getElementById('cxrepo-check').style.display = 'block';
+      document.getElementById('cxrepo-drift').style.display = 'none';
+      document.getElementById('cxrepo-clean').style.display = 'block';
+      document.getElementById('cxrepo-clean').querySelector('p').textContent = error.message;
+      gate.style.display = 'block';
+      return;
+    }
+  }
+  document.getElementById('cxrepo-check').style.display = 'block';
+  ['cxrepo-clean','cxrepo-drift','cxrepo-preview','cxrepo-pulled','cxrepo-accepted']
+    .forEach(id => document.getElementById(id).style.display = 'none');
+
+  const pendientes = CXREPO_DRIFT.filter(d => !(driftPulled && d.traible));
+
+  if (pendientes.length === 0) {
+    document.getElementById('cxrepo-clean').style.display = 'block';
+    gate.style.display = 'block';
+    return;
+  }
+  if (driftPulled) {
+    document.getElementById('cxrepo-pulled').style.display = 'block';
+    document.getElementById('cxrepo-pulled-count').textContent = traibles().length;
+    gate.style.display = 'block';
+    return;
+  }
+  if (driftAccepted) {
+    document.getElementById('cxrepo-accepted').style.display = 'block';
+    document.getElementById('cxrepo-lost-count').textContent = CXREPO_DRIFT.length;
+    gate.style.display = 'block';
+    return;
+  }
+  document.getElementById('cxrepo-rows').innerHTML = CXREPO_DRIFT.map(d =>
+    `<tr><td>${d.tipo}</td><td><code>${d.recurso}</code></td><td>${d.cambio}</td>`
+  + `<td>${d.traible ? '<span class="pill pill-new">sí</span>' : '<span class="pill pill-dim">no</span>'}</td></tr>`
+  ).join('');
+  document.getElementById('cxrepo-nota-borrado').style.display =
+    CXREPO_DRIFT.some(d => !d.traible) ? 'block' : 'none';
+  const btn = document.getElementById('btn-pull-repo');
+  btn.disabled = traibles().length === 0;
+  btn.style.opacity = btn.disabled ? '.45' : '';
+  btn.style.cursor = btn.disabled ? 'not-allowed' : '';
+  document.getElementById('cxrepo-drift').style.display = 'block';
+  // El gate se oculta hasta que el usuario decida: continuar sin verlo sería
+  // exactamente el fallo silencioso que esta comprobación existe para evitar.
+  gate.style.display = 'none';
+}
+
+/* Genera los cambios y los muestra. No escribe nada: cualquier modificación
+   de definitions/ se revisa antes de guardarse (CLAUDE.md §7.4). */
+function pullToRepo() {
+  const items = traibles();
+  if (items.length === 0) return;
+  document.getElementById('cxrepo-preview-body').innerHTML = items.map(d => `
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-family:'SF Mono',Menlo,monospace;color:#93c5fd;margin-bottom:2px">${d.archivo}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">campo <code style="font-size:11px">${d.campo}</code></div>
+      <div class="output-block" style="min-height:0">${
+        d.antes.map(v => `<span class="dim">  ${v}</span>`).join('\n')
+      }\n${
+        d.despues.filter(v => !d.antes.includes(v)).map(v => `<span class="ok">+ ${v}</span>`).join('\n')
+      }</div>
+    </div>`).join('');
+  document.getElementById('cxrepo-drift').style.display = 'none';
+  document.getElementById('cxrepo-preview').style.display = 'block';
+  document.getElementById('deploy-gate').style.display = 'none';
+}
+
+function savePullToRepo() {
+  driftPulled = true;
+  renderCxRepoCheck();
+}
+
+function cancelPull() {
+  document.getElementById('cxrepo-preview').style.display = 'none';
+  renderCxRepoCheck();
+}
+
+function acceptDrift() {
+  driftAccepted = true;
+  renderCxRepoCheck();
+}
+
+
+async function confirmDeploy() {
+  await conBoton('btn-confirm-deploy', 'Desplegando…', async () => {
+    setRunning(true);
+    document.getElementById('deploy-gate').style.display = 'none';
+    document.getElementById('deploy-log').style.display = 'block';
+    document.getElementById('deploy-fail').style.display = 'none';
+    try {
+      const datos = await llamarPaso(4, {operations: DIFF_OPS});
+      pintarLog('deploy-log-block', datos.log);
+      const operaciones = (datos.data && datos.data.operations) || [];
+      if (datos.status === 'ok') {
+        document.getElementById('deploy-done').style.display = 'block';
+        guardarEstado();
+        return;
+      }
+      DIFF_OPS = operaciones;
+      document.getElementById('deploy-fail-summary').innerHTML = operaciones.map(o =>
+        `<div>${o.result === 'OK' ? '<span class="pill pill-ok">OK</span>'
+             : o.result === 'ERROR' ? '<span class="pill pill-err">ERROR</span>'
+             : '<span class="pill pill-dim">—</span>'} ${o.type} · ${o.resource}</div>`).join('');
+      document.getElementById('deploy-fail').style.display = 'block';
+    } catch (error) {
+      mostrarError('deploy-log-block', error);
+      document.getElementById('deploy-gate').style.display = 'block';
+    } finally {
+      setRunning(false);
+    }
+  });
+}
+
+function appendLogLine(block, cls, text) {
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = text;
+  block.appendChild(span);
+  block.appendChild(document.createTextNode('\n'));
+}
+
+async function retryFailed() {
+  document.getElementById('deploy-fail').style.display = 'none';
+  setRunning(true);
+  try {
+    const datos = await llamarPaso(4, {operations: DIFF_OPS, only_pending: true});
+    pintarLog('deploy-log-block', datos.log);
+    if (datos.status === 'ok') document.getElementById('deploy-done').style.display = 'block';
+    else document.getElementById('deploy-fail').style.display = 'block';
+  } catch (error) {
+    mostrarError('deploy-log-block', error);
+    document.getElementById('deploy-fail').style.display = 'block';
+  } finally { setRunning(false); }
+}
+
+
+function resetDeployStep4() {
+  driftAccepted = false;
+  driftPulled = false;
+  driftCargada = false;
+  renderCxRepoCheck();
+  document.getElementById('deploy-log').style.display = 'none';
+  document.getElementById('deploy-done').style.display = 'none';
+  document.getElementById('deploy-fail').style.display = 'none';
+  document.getElementById('deploy-log-block').innerHTML = '';
+}
+
+/* ── Pool de versiones y reservorio ──────────────────────────────────────
+   El pipeline solo rota lo que él mismo creó: las que empiezan por
+   deploy_. Guardar una versión es renombrarla — la protección es opt-out y
+   no opt-in a propósito, porque olvidarse de marcar algo no puede costar
+   una versión. Las que un entorno está sirviendo tampoco se tocan, aunque
+   lleven el prefijo.                                                       */
+const VERSION_PREFIX = 'deploy_';
+const VERSION_POOL_MAX = 5;
+const VERSION_CAPACITY = 20;   // medido contra la API: la 21 falla con code:9
+
+let VERSIONES = [];
+
+async function cargarVersiones() {
+  const lista = document.getElementById('version-pool-list');
+  if (!lista || !seleccion.project || !seleccion.agent) return;
+  try {
+    const datos = await obtener(
+      `/projects/${seleccion.project}/agents/${seleccion.agent}/versions`);
+    VERSIONES = (datos.data.versions || []).map(v => ({
+      name: v.name, nombre: v.displayName,
+      creada: (v.createTime || '').slice(0, 10),
+      fijadaPor: v.fijadaPor, enPool: v.enPool,
+    }));
+    renderVersionPool();
+  } catch (error) {
+    lista.innerHTML = `<div style="padding:10px 12px;font-size:12px;color:var(--error)">${error.message}</div>`;
+  }
+}
+
+const enPool = v => v.enPool;
+
+function renderVersionPool() {
+  const lista = document.getElementById('version-pool-list');
+  if (!lista) return;
+  lista.innerHTML = VERSIONES.map((v, i) => {
+    const guardada = !enPool(v);
+    const motivo = v.fijadaPor
+      ? `en uso por ${v.fijadaPor} — no puede rotar`
+      : (guardada ? 'guardada, fuera del pool' : 'en el pool automático');
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+      <input type="checkbox" ${guardada ? 'checked' : ''} ${v.fijadaPor ? 'disabled' : ''}
+             onchange="toggleVersionGuardada(${i})"
+             style="width:15px;height:15px;accent-color:var(--gate);cursor:${v.fijadaPor ? 'not-allowed' : 'pointer'}">
+      <code style="flex:1;font-size:12px;color:${guardada ? 'var(--text)' : 'var(--text-2)'}">${v.nombre}</code>
+      <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${v.creada}</span>
+      <span style="font-size:11px;color:${v.fijadaPor ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:170px;text-align:right">${motivo}</span>
+    </div>`;
+  }).join('');
+
+  const pool = VERSIONES.filter(enPool).length;
+  const huecos = VERSION_CAPACITY - VERSIONES.length;
+  const rotara = pool >= VERSION_POOL_MAX;
+  document.getElementById('version-pool-summary').innerHTML =
+    `Pool automático: <strong style="color:var(--text-2)">${pool} de ${VERSION_POOL_MAX}</strong> · `
+  + `${VERSIONES.length - pool} guardadas · ${huecos} huecos libres de ${VERSION_CAPACITY}`
+  + (rotara ? ` · <span style="color:var(--gate)">al crear la próxima se borrará la más antigua del pool</span>` : '');
+}
+
+async function toggleVersionGuardada(indice) {
+  // Marcar = renombrar. Lo hace el servidor: la API admite PATCH del
+  // displayName y es reversible en los dos sentidos.
+  const v = VERSIONES[indice];
+  try {
+    const respuesta = await fetch(
+      `${SERVER}/projects/${seleccion.project}/agents/${seleccion.agent}/versions/protect`,
+      {method: 'POST', headers: {'Content-Type': 'application/json'},
+       body: JSON.stringify({version: v.name, protected: enPool(v)})});
+    const datos = await leerJson(respuesta);
+    if (datos.status !== 'ok') throw new Error((datos.log || []).join(' '));
+    await cargarVersiones();
+  } catch (error) {
+    document.getElementById('version-pool-summary').innerHTML =
+      `<span style="color:var(--error)">${error.message}</span>`;
+    await cargarVersiones();
+  }
+}
+
+function generateVersionLabel() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
+}
+
+function setVersionLabel(name) {
+  versionLabel = name;
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = name);
+}
+
+function stateClass(state) {
+  return {done:'s-done',gate:'s-gate',active:'s-active',pending:'s-pending',error:'s-error'}[state] || 's-pending';
+}
+function stateText(state) {
+  if(state==='done') return 'Completado';
+  if(state==='gate') return 'Esperando confirmación';
+  if(state==='active') return 'En progreso...';
+  if(state==='pending') return 'Pendiente';
+  if(state==='error') return 'Rollback';
+  return '';
+}
+function badgeContent(state, n) {
+  if(state==='done') return '✓';
+  if(state==='gate') return '!';
+  if(state==='active') return '●';
+  return n;
+}
+
+function renderSidebar() {
+  const sb = document.getElementById('sidebar');
+  let html = '<div class="sidebar-label">Pipeline de deploy</div>';
+  STEPS.forEach((s,i) => {
+    const state = stepStates[i];
+    const sc = stateClass(state);
+    const active = viewingStep === s.id ? ' active' : '';
+    html += `<div class="step-item ${sc}${active}" onclick="viewStep(${s.id})">
+      <div class="step-badge">${badgeContent(state, s.id)}</div>
+      <div class="step-info">
+        <div class="step-name">${s.name}</div>
+        <div class="step-status-text">${stateText(state)}</div>
+      </div>
+    </div>`;
+    html += '<div class="step-connector"></div>';
+  });
+  if (stepStates[7] === 'done') {
+    const active = viewingStep === 'done' ? ' active' : '';
+    html += `<div class="step-item s-done${active}" onclick="viewDone()">
+      <div class="step-badge">★</div>
+      <div class="step-info">
+        <div class="step-name">Resumen</div>
+        <div class="step-status-text">Deploy completado</div>
+      </div>
+    </div>`;
+  }
+  sb.innerHTML = html;
+}
+
+function viewDone() {
+  viewingStep = 'done';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-done').classList.add('visible');
+  renderSidebar();
+}
+
+function viewStep(id) {
+  const idx = id - 1;
+  if(idx >= 0 && stepStates[idx] === 'pending') return;
+  viewingStep = id;
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  const v = document.getElementById('view-'+id);
+  if(v) v.classList.add('visible');
+  if(id === 2) renderStep2Checks();
+  if(id === 3) renderStep3Diff();
+  if(id === 4) renderCxRepoCheck();
+  if(id === 5) cargarVersiones();
+  if(id === 5) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
+  renderSidebar();
+}
+
+
+function advance(fromStep) {
+  if(stepStates[fromStep] !== 'pending') return; // SM-02: ya completado o en curso
+  const idx = fromStep - 1;
+  stepStates[idx] = 'done';
+  const nextIdx = idx + 1;
+  if(nextIdx < STEPS.length) {
+    if (stepStates[nextIdx] === 'done' || stepStates[nextIdx] === 'gate') return;
+    stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
+    current = STEPS[nextIdx].id;
+    viewStep(current);
+  }
+}
+
+function toggleSyncCheck() {
+  const checked = document.getElementById('check-sync-local').checked;
+  const title = document.getElementById('done-sync-title');
+  title.style.color = checked ? 'var(--success)' : 'var(--text-2)';
+}
+
+async function confirmProduction() {
+  setRunning(true);
+  document.getElementById('prod-gate').style.display = 'none';
+  document.getElementById('prod-log').style.display = 'block';
+  document.getElementById('prod-conflict').style.display = 'none';
+  try {
+    const datos = await llamarPaso(8, {version_names: versionesActuales});
+    pintarLog('prod-log-block', datos.log);
+    if (datos.status === 'conflict') {
+      document.getElementById('prod-conflict').style.display = 'block';
+      return;
+    }
+    if (datos.status !== 'ok') { document.getElementById('prod-gate').style.display = 'block'; return; }
+    advanceToDone();
+    guardarEstado();
+  } catch (error) {
+    mostrarError('prod-log-block', error);
+    document.getElementById('prod-gate').style.display = 'block';
+  } finally { setRunning(false); }
+}
+
+function abortProduction() {
+  document.getElementById('prod-conflict').style.display = 'none';
+  document.getElementById('prod-log').style.display = 'none';
+  document.getElementById('prod-log-block').innerHTML = '';
+  document.getElementById('prod-gate').style.display = 'block';
+  const existing = document.getElementById('prod-conflict-reminder');
+  if (!existing) {
+    const rem = document.createElement('p');
+    rem.id = 'prod-conflict-reminder';
+    rem.style.cssText = 'color:var(--gate);font-size:12px;margin-top:10px';
+    rem.textContent = 'Conflicto de merge pendiente — resuélvelo en GitHub antes de reintentar.';
+    document.getElementById('prod-gate').appendChild(rem);
+  }
+  setRunning(false);
+}
+
+function advanceToDone() {
+  if (stepStates[7] !== 'gate') return;
+  stepStates[7] = 'done';
+  viewingStep = 'done';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-done').classList.add('visible');
+  const badge = document.getElementById('topbar-env');
+  badge.textContent = 'PRODUCCIÓN';
+  badge.style.background = 'rgba(34,197,94,.15)';
+  badge.style.color = '#4ade80';
+  badge.style.borderColor = 'rgba(34,197,94,.3)';
+  document.getElementById('last-deploy-time').textContent = 'ahora mismo';
+  const _d = new Date(), _p = n => String(n).padStart(2,'0');
+  document.getElementById('done-timestamp').textContent = _d.getUTCFullYear() + '-' + _p(_d.getUTCMonth()+1) + '-' + _p(_d.getUTCDate()) + ' · ' + _p(_d.getUTCHours()) + ':' + _p(_d.getUTCMinutes()) + ' UTC';
+  renderSidebar();
+}
+
+
+async function confirmVersions() {
+  await conBoton('btn-version-confirm', 'Creando versiones…', async () => {
+    setRunning(true);
+    document.getElementById('snap-gate').style.display = 'none';
+    document.getElementById('snap-log').style.display = 'block';
+    try {
+      const etiqueta = document.getElementById('version-batch-label').value.trim();
+      const datos = await llamarPaso(5, etiqueta ? {name: etiqueta} : {});
+      pintarLog('snap-log-block', datos.log);
+      if (datos.status !== 'ok') { document.getElementById('snap-gate').style.display = 'block'; return; }
+      versionLabel = datos.data.snapshot_name || etiqueta;
+      versionesAnteriores = datos.data.previous_versions || [];
+      versionesActuales = datos.data.version_names || [];
+      document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = versionLabel);
+      document.getElementById('snap-done').style.display = 'block';
+      guardarEstado();
+    } catch (error) {
+      mostrarError('snap-log-block', error);
+      // Crear versiones no es idempotente: si el servidor murió justo después
+      // de que CX creara la versión, reintentar a ciegas crearía duplicadas.
+      if (error instanceof ServidorCaido) {
+        mostrarError('snap-log-block', new Error(
+          'No se sabe si las versiones llegaron a crearse — revisa el inventario '
+          + 'del Paso 1 antes de reintentar, o crearás duplicadas.'));
+      }
+      document.getElementById('snap-gate').style.display = 'block';
+    } finally { setRunning(false); }
+  });
+}
+
+let versionesAnteriores = [];
+let versionesActuales = [];
+
+function resetVersionUI() {
+  document.getElementById('snap-gate').style.display = 'block';
+  document.getElementById('snap-log').style.display = 'none';
+  document.getElementById('snap-done').style.display = 'none';
+  document.getElementById('snap-log-block').innerHTML = '';
+  document.getElementById('version-batch-label').value = generateVersionLabel();
+}
+
+function showRollbackConfirm() {
+  document.getElementById('rollback-confirm').style.display = 'block';
+  document.getElementById('test-action-bar').style.display = 'none';
+}
+function hideRollbackConfirm() {
+  document.getElementById('rollback-confirm').style.display = 'none';
+  document.getElementById('test-action-bar').style.display = 'flex';
+  const tgt = document.getElementById('test-gate-title');
+  if(tgt) tgt.style.display = '';
+}
+
+/* El Paso 7 no llama a la API al validar: es una decisión humana, no una
+   operación. Se avanza directamente, sin espera artificial — la animación
+   de 350ms era un resto del panel simulado. */
+function validarGateQA() {
+  const boton = document.getElementById('btn-validado-p7');
+  boton.disabled = true;
+  advance(7);
+}
+
+async function rollbackFromStep7() {
+  mostrarConfirmacion(
+    'Rollback a la versión anterior',
+    'Staging vuelve a la versión anterior y el draft se restaura desde ella. '
+    + 'Producción no se toca. El pipeline queda cerrado: para volver a desplegar '
+    + 'habría que empezar de cero.',
+    'Confirmar rollback', ejecutarRollbackStep7);
+}
+
+async function ejecutarRollbackStep7() {
+  setRunning(true);
+  const bloque = document.getElementById('p7-rollback-log');
+  bloque.style.display = 'block';
+  try {
+    const datos = await llamarPaso(7, {decision: 'rollback', previous_versions: versionesAnteriores});
+    pintarLog('p7-rollback-log-block', datos.log);
+    document.getElementById('btn-validado-p7').disabled = true;
+  } catch (error) {
+    mostrarError('p7-rollback-log-block', error);
+  } finally { setRunning(false); }
+}
+
+async function rollbackStaging() {
+  hideRollbackConfirm();
+  document.getElementById('rollback-log').style.display = 'block';
+  setRunning(true);
+  try {
+    const datos = await llamarPaso(6, {decision: 'rollback', previous_versions: versionesAnteriores});
+    pintarLog('rollback-log-block', datos.log);
+    document.getElementById('rollback-done-banner').style.display = 'block';
+    document.getElementById('test-action-bar').style.display = 'none';
+    guardarEstado();
+  } catch (error) {
+    mostrarError('rollback-log-block', error);
+  } finally { setRunning(false); }
+}
+
+function mostrarConfirmacion(titulo, texto, etiquetaAceptar, alAceptar) {
+  document.getElementById('modal-titulo').textContent = titulo;
+  document.getElementById('modal-texto').textContent = texto;
+  const aceptar = document.getElementById('modal-aceptar');
+  aceptar.textContent = etiquetaAceptar;
+  aceptar.onclick = () => { cerrarModal(); alAceptar(); };
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function cerrarModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+/* Tres salidas distintas, una por momento. Antes había un único
+   cancelDeploy() que en los Pasos 5 y 8 llevaba al rollback — una acción
+   destructiva detrás de un botón que ponía «Cancelar». */
+
+function cancelarAntesDeDesplegar() {
+  // Nada se ha escrito en CX todavía: reiniciar es gratis.
+  mostrarConfirmacion(
+    'Cancelar el deploy',
+    'Todavía no se ha aplicado nada en CX. El pipeline vuelve al Paso 1 y el repo no se toca.',
+    'Cancelar el deploy', () => resetDeploy());
+}
+
+function terminarEnDraft() {
+  mostrarConfirmacion(
+    'Terminar y quedarse en draft',
+    'Los cambios se quedan en el draft del agente, donde no los ve ningún usuario. '
+    + 'Puedes seguir acumulando y crear versiones más adelante.',
+    'Terminar', () => resetDeploy());
+}
+
+function dejarloEnStaging() {
+  mostrarConfirmacion(
+    'Dejarlo en staging',
+    'Las versiones se quedan activas en staging y producción no cambia. '
+    + 'Puedes volver a promover más adelante. Si lo que quieres es deshacer, '
+    + 'usa el rollback del Paso 7.',
+    'Dejarlo en staging', () => resetDeploy());
+}
+
+function resetDeploy() {
+  setRunning(false);
+  animVersion++;
+  stepStates = ['active','pending','pending','pending','pending','pending','pending','pending'];
+  current = 1; viewingStep = 1;
+  versionLabel = '';
+  resetInventoryUI();
+  resetDeployStep4();
+  resetVersionUI();
+  document.getElementById('rollback-confirm').style.display = 'none';
+  document.getElementById('rollback-log').style.display = 'none';
+  document.getElementById('rollback-log-block').innerHTML = '';
+  document.getElementById('rollback-done-banner').style.display = 'none';
+  document.getElementById('test-action-bar').style.display = 'flex';
+  const tgtReset = document.getElementById('test-gate-title');
+  if(tgtReset) tgtReset.style.display = '';
+  document.getElementById('push-log').style.display = 'none';
+  document.getElementById('push-log').style.opacity = '1';
+  document.getElementById('push-log-block').innerHTML = '';
+  document.getElementById('push-status-icon').innerHTML = '<span style="color:var(--error);font-size:14px">✗</span>';
+  document.getElementById('push-status-label').textContent = 'Commits pendientes de push';
+  document.getElementById('push-status-detail').textContent = 'origin/staging está 2 commits por detrás';
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
+  document.getElementById('done-timestamp').textContent = '— · — UTC';
+  const badge = document.getElementById('topbar-env');
+  badge.textContent = 'STAGING';
+  badge.style.background = 'rgba(59,130,246,.15)';
+  badge.style.color = '#60a5fa';
+  badge.style.borderColor = 'rgba(59,130,246,.3)';
+  document.getElementById('last-deploy-time').textContent = 'hace 3 días';
+  document.getElementById('prod-gate').style.display = 'block';
+  document.getElementById('prod-log').style.display = 'none';
+  document.getElementById('prod-log-block').innerHTML = '';
+  document.getElementById('prod-conflict').style.display = 'none';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  // P1-A: restaurar btn-validado-p7 para el segundo ciclo
+  const btnP7 = document.getElementById('btn-validado-p7');
+  if (btnP7) { btnP7.disabled = false; btnP7.textContent = 'Validado — aprobar producción →'; }
+  // P2-F: resetear checkbox "Sincronizar main local"
+  const syncCb = document.getElementById('check-sync-local');
+  if (syncCb) {
+    syncCb.checked = false;
+    document.getElementById('done-sync-title').style.color = 'var(--text-2)';
+  }
+  viewStep(1);
+}
+
+document.getElementById('version-batch-label').value = generateVersionLabel();
+
+/* Recargar la página a mitad de una operación real no puede perder el sitio:
+   el estado del pipeline vive en localStorage, incluido el destino elegido —
+   sin él, las llamadas siguientes irían a ningún agente. */
+(async () => {
+  const restaurado = cargarEstado();
+  // onProjectSelected() limpia el agente a propósito — al cambiar de proyecto
+  // el anterior deja de valer. Al restaurar hay que guardarlo antes.
+  const agenteGuardado = seleccion.agent;
+  await cargarProyectos();
+  if (restaurado) {
+    document.getElementById('project-select').value = seleccion.project;
+    await onProjectSelected();
+    document.getElementById('agent-select').value = agenteGuardado;
+    onAgentSelected();
+  }
+  // La etiqueta del lote se restaura después de los selectores: si se hiciera
+  // antes, generateVersionLabel() del arranque la pisaría con una nueva.
+  if (versionLabel) {
+    document.getElementById('version-batch-label').value = versionLabel;
+    document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = versionLabel);
+  }
+  actualizarDestinoEnGates();
+  viewStep(restaurado ? viewingStep : 1);
+  renderSidebar();
+})();
+</script>
+

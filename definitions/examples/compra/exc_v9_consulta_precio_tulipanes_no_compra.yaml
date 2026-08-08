@@ -1,3 +1,8 @@
+metadata:
+  tipo: example
+  padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+  cx_id: 4b262b47-086a-495b-9673-677c1e059775
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Compra
 id: 4b262b47-086a-495b-9673-677c1e059775
 displayName: 'ExC v10: Consulta precio tulipanes → no compra (schema normalizado)'

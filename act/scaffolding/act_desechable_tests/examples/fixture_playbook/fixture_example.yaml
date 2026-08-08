@@ -1,0 +1,14 @@
+metadata:
+  tipo: example
+  padre: 5003baad-c139-4085-b6ae-ba2f361b3167
+  cx_id: 63e89f1b-a318-4360-85e3-83ef2e47c30a
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+actions:
+- userUtterance:
+    text: hola
+- agentUtterance:
+    text: hola, soy el fixture
+displayName: fixture_example
+description: Example de fixture.
+conversationState: OUTPUT_STATE_OK
+languageCode: es

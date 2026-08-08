@@ -1,0 +1,10 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: null
+displayName: actval_319c5f6e_ciclo_playbook
+goal: objetivo de prueba
+playbookType: ROUTINE
+instruction:
+  steps:
+  - text: haz algo

@@ -1,3 +1,8 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: 5b145d1d-5d79-48ec-8e33-6de362239cf0
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 displayName: EX — Compra directa solemne (lirios para velatorio)
 description: >

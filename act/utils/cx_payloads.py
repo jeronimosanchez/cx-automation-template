@@ -26,12 +26,19 @@ Este módulo no hace llamadas a la API. Solo construye el body resultante.
 # Recuperados de act/push_playbooks.py (git 4b0b932^) y validados en producción.
 PLAYBOOK_IGNORE_FIELDS = ["name", "tokenCount", "createTime", "updateTime"]
 
+# Campos read-only del recurso Agent.
+# `satisfiesPzi` / `satisfiesPzs` los añade Google y no se pueden enviar;
+# `name` es la ruta que asigna la API. El resto del objeto sí viaja en el
+# Full Update, incluido `startPlaybook`, que el YAML local no declara.
+AGENT_IGNORE_FIELDS = ["name", "satisfiesPzi", "satisfiesPzs"]
+
 
 # ---------------------------------------------------------------------------
 # Función principal
 # ---------------------------------------------------------------------------
 
-def build_full_update_body(remote: dict, local: dict) -> dict:
+def build_full_update_body(remote: dict, local: dict,
+                           ignore_fields: list = None) -> dict:
     """Construye el body para Full Update (workaround bug §3.8).
 
     Algoritmo:
@@ -42,14 +49,16 @@ def build_full_update_body(remote: dict, local: dict) -> dict:
          devuelve 400 si se incluyen en el PATCH).
 
     Args:
-        remote: objeto Playbook completo devuelto por GET /playbooks/{id}.
-        local:  dict cargado desde el YAML de definitions/playbooks/.
+        remote: objeto completo devuelto por GET del recurso.
+        local:  dict cargado desde el YAML de definitions/.
+        ignore_fields: campos read-only a excluir. Por defecto los del
+            Playbook; usa AGENT_IGNORE_FIELDS para el recurso Agent.
 
     Returns:
         dict listo para enviar como body de PATCH sin `updateMask`.
     """
     merged = dict(remote)
     merged.update(local)
-    for field in PLAYBOOK_IGNORE_FIELDS:
+    for field in (ignore_fields if ignore_fields is not None else PLAYBOOK_IGNORE_FIELDS):
         merged.pop(field, None)
     return merged

@@ -335,6 +335,51 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-eyebrow">Paso 4 de 8</div>
       <div class="phase-title">Confirmar deploy</div>
       <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
+
+      <!-- Comprobación CX → repo: qué hay en CX que el repo no refleja -->
+      <div id="cxrepo-check" style="display:none;margin-bottom:16px">
+        <div id="cxrepo-clean" style="display:none;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28);border-radius:8px;padding:14px 18px">
+          <div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Comprobaci&oacute;n CX &rarr; repo</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">El repo refleja todo lo que hay en CX. Nada se perder&aacute; al desplegar.</p>
+        </div>
+
+        <div id="cxrepo-drift" style="display:none;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:16px 20px">
+          <div style="font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hay cambios en CX que el repo no tiene</div>
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Estos recursos existen o difieren en CX y no est&aacute;n reflejados en <code style="font-size:12px">definitions/</code>. El deploy sincroniza repo &rarr; CX, as&iacute; que <strong style="color:var(--text)">si contin&uacute;as se perder&aacute;n</strong>.</p>
+          <div class="diff-wrap" style="margin-bottom:14px">
+            <table class="diff-table">
+              <thead><tr><th>Tipo</th><th>Recurso</th><th>Qu&eacute; cambia</th><th>Se puede traer</th></tr></thead>
+              <tbody id="cxrepo-rows"></tbody>
+            </table>
+          </div>
+          <p id="cxrepo-nota-borrado" style="display:none;font-size:12px;color:var(--text-3);margin-bottom:14px">Los marcados <strong style="color:var(--text-2)">no</strong> son recursos que solo existen en CX. Traerlos exigir&iacute;a crear archivos nuevos en <code style="font-size:11px">definitions/</code>, y est&aacute; decidido que se borren &mdash; ya salen como <span class="pill pill-del">DELETE</span> en el diff del Paso 3.</p>
+          <div class="action-bar">
+            <button class="btn btn-gate" id="btn-pull-repo" onclick="pullToRepo()">&#8595; Traer al repo primero</button>
+            <button class="btn btn-ghost" onclick="acceptDrift()">Continuar sin traerlos</button>
+          </div>
+        </div>
+
+        <!-- Previsualización: nada se escribe en definitions/ sin verlo antes (CLAUDE.md §7.4) -->
+        <div id="cxrepo-preview" style="display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px 20px">
+          <div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Cambios propuestos en definitions/</div>
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">No se ha guardado nada todav&iacute;a. Revisa y confirma.</p>
+          <div id="cxrepo-preview-body" style="margin-bottom:16px"></div>
+          <div class="action-bar">
+            <button class="btn btn-gate" onclick="savePullToRepo()">Guardar en definitions/</button>
+            <button class="btn btn-ghost" onclick="cancelPull()">Cancelar</button>
+          </div>
+        </div>
+
+        <div id="cxrepo-pulled" style="display:none;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28);border-radius:8px;padding:14px 18px">
+          <div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Tra&iacute;do al repo</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0"><strong style="color:var(--text)" id="cxrepo-pulled-count">0</strong> cambios escritos en <code style="font-size:12px">definitions/</code>. El diff se recalcula con el repo ya actualizado.</p>
+        </div>
+
+        <div id="cxrepo-accepted" style="display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:12px 16px">
+          <p style="font-size:13px;color:var(--text-2);margin:0">Continuando sin traer <strong style="color:var(--text)" id="cxrepo-lost-count">0</strong> cambios de CX &mdash; se perder&aacute;n al desplegar.</p>
+        </div>
+      </div>
+
       <div class="gate-block" id="deploy-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate4-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate4-agent">Petal 1.0</strong></p>
@@ -387,7 +432,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="gate-block" id="snap-gate">
         <div class="gate-title">&#9995; Acción requerida</div>
         <p>Se creará una versión nueva de cada artefacto con cambios detectados en el diff — el flow, y cada playbook modificado, por separado. Las versiones anteriores de cada uno se conservan para poder hacer rollback si los tests fallan.</p>
-        <p style="margin-top:0;margin-bottom:16px">CX conserva un máximo de <strong style="color:var(--text)">5 versiones por artefacto</strong>. Si un artefacto concreto ya tiene 5, su versión más antigua se eliminará automáticamente al crear la nueva — el límite es por artefacto, no compartido entre todos.</p>
+        <p style="margin-top:0;margin-bottom:16px">CX admite <strong style="color:var(--text)">20 versiones por artefacto</strong> y el límite es duro: la 21 falla y <strong style="color:var(--text)">CX no borra nada por su cuenta</strong>. De esas 20, el pipeline gestiona un <strong style="color:var(--text)">pool de 5</strong> que rota solo: al crear la sexta, borra la más antigua <em>de las suyas</em>. Las demás son tu reservorio y no se tocan nunca.</p>
+
+        <!-- Reservorio: sacar una versión del pool automático -->
+        <div style="margin-bottom:20px">
+          <div class="slabel" style="margin-bottom:6px">Versiones existentes</div>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Marca una versión para <strong style="color:var(--text-2)">guardarla</strong>: sale del pool automático y la rotación deja de verla. Desmárcala para devolverla.</p>
+          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
+          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
+        </div>
         <div style="margin-bottom:20px">
           <div class="slabel" style="margin-bottom:8px">Etiqueta de este lote de versiones</div>
           <input type="text" id="version-batch-label" class="snapshot-input" value="">
@@ -754,11 +807,21 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué hace</div>
           <p>Aplica al draft del agente en CX los cambios calculados en el Paso 3, recurso a recurso. Es el único paso que realmente muta CX — todo lo anterior era preparación.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">Para cada recurso en la lista del Paso 3: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados". Orden de deploy obligatorio: Entity Types → Intents → Webhooks → Tools → Generators → Playbooks → Examples → Flows → Pages → Agent Config. Los tipos que son referenciados por otros van primero — si un playbook referencia un webhook, el webhook debe existir antes del PATCH del playbook.</div>
+          <div class="tech-content" style="display:none"><strong>Recuperación tras un fallo parcial:</strong> no existe «revertir draft» ni se necesita. Dos caminos, medidos contra la API: <em>Reintentar fallidos</em> reutiliza la lista del Paso 3 y solo toca los <code>ERROR</code> y los no intentados; <em>empezar de nuevo desde el Paso 1</em> refresca la foto de CX y el diff propone solo lo que de verdad falta. <strong>Lo que no vale es relanzar solo el Paso 3:</strong> ese paso no consulta CX, lee el JSON que escribió el Paso 1, y con la foto caducada un <code>POST</code> ya aplicado se reintenta y choca con un <code>409</code>. Para deshacer algo aplicado correctamente, se corrige el YAML y se despliega otra vez.<br><br>Para cada recurso en la lista del Paso 3: POST (nuevo), PATCH (modificado) o DELETE (eliminado). Playbooks y pages usan Full Update: GET del objeto completo → modificar → PATCH sin <code>updateMask</code>. Bug conocido del backend CX en <code>europe-west1</code>: PATCH con <code>updateMask</code> falla silenciosamente. Si un recurso falla, los siguientes quedan "no intentados". Orden de deploy obligatorio: Entity Types → Intents → Webhooks → Tools → Generators → Playbooks → Examples → Flows → Pages → Agent Config. Los tipos que son referenciados por otros van primero — si un playbook referencia un webhook, el webhook debe existir antes del PATCH del playbook.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Por qué existe</div>
           <p>Sin este paso el diff no sirve de nada. Es el momento en que los cambios pasan de GitHub al agente.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">4.0 — Comprobación CX &rarr; repo (antes del gate)</div>
+          <p>Antes de dejar confirmar, el sistema mira en la dirección contraria al diff: qué existe o difiere en CX que <code>definitions/</code> no recoge. El deploy sincroniza repo &rarr; CX, así que todo lo que esté solo en CX se borra al aplicar. Sin este aviso, el trabajo hecho desde la consola desaparece en silencio.</p>
+          <p style="margin-top:8px">Si hay diferencias, el gate de confirmación <strong>no se muestra</strong> hasta que el usuario elija: traerlas al repo primero, o continuar aceptando que se pierden. Si no hay ninguna, se indica y el gate aparece con normalidad.</p>
+          <button class="tech-toggle" onclick="toggleTech(this)">TECH &#9660;</button>
+          <div class="tech-content" style="display:none">Recorre el inventario del Paso 1 y, por cada tipo, marca: recursos presentes en CX y ausentes de <code>definitions/</code> (los que el diff propone como <code>DELETE</code>), y campos con contenido en CX que el YAML no declara — estos últimos el diff no los ve, porque solo compara los campos que el local menciona.<br>
+No usa el diff del Paso 3 como fuente: ese mira repo &rarr; CX y por diseño es ciego a lo que el repo no nombra.<br>
+&laquo;Traer al repo&raquo; tiene un alcance acotado: <strong>solo actualiza campos de recursos que ya existen en <code>definitions/</code></strong> (por ejemplo a&ntilde;adir referencias que faltan a un playbook). Un recurso que solo vive en CX exigir&iacute;a crear un archivo nuevo y queda fuera &mdash; esos ya salen como <code>DELETE</code> en el diff, y traerlos contradir&iacute;a esa decisi&oacute;n. El bot&oacute;n se deshabilita si no hay nada actualizable.<br>
+Nunca escribe directo: genera los cambios, los muestra campo a campo (valor actual y l&iacute;neas a a&ntilde;adir) y espera confirmaci&oacute;n, como cualquier modificaci&oacute;n de <code>definitions/</code> (CLAUDE.md &sect;7.4). Al guardar, el diff se recalcula contra el repo ya actualizado.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Qué necesita</div>
@@ -776,10 +839,13 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ Deploy completo → todos los recursos OK, banner verde, botón "Continuar →"<br>
+          <p>✓ Comprobación CX → repo ejecutada antes del gate; si hay diferencias, el gate no aparece hasta elegir<br>
+          ✓ Diferencias listadas con tipo, recurso, qué cambia y si se puede traer al repo<br>
+          ✓ "Traer al repo" muestra los cambios antes de escribir nada, con opción de cancelar<br>
+          ✓ Deploy completo → todos los recursos OK, banner verde, botón "Continuar →"<br>
           ✓ Deploy parcial → resumen OK/ERROR/no-intentado, dos opciones de recuperación<br>
           ✓ "Reintentar fallidos" → reintenta el recurso fallido más todos los que quedaron como "no intentado" por el fallo anterior; no reintenta los que ya completaron OK<br>
-          ✓ "Revertir draft" → restaura el draft al estado previo al deploy<br>
+          ✓ No hay opción de revertir el draft, y no hace falta: el draft no lo ve ningún usuario y el pipeline es idempotente<br>
           ✓ Simulable con <code>DEPLOY_SIMULATE_FAIL=true</code></p>
         </div>
       </div>
@@ -805,7 +871,9 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
           <div class="spec-block-label">Qué produce</div>
           <p>Una nueva versión del agente en staging. La versión anterior se conserva para poder hacer rollback. El nombre del snapshot queda disponible para los Pasos 6, 7 y 8.</p>
           <button class="tech-toggle" onclick="toggleTech(this)">TECH ▼</button>
-          <div class="tech-content" style="display:none">CX conserva máximo 5 versiones por entorno. Si ya hay 5, la más antigua se elimina automáticamente al crear ésta. El script almacena el nombre del snapshot en memoria para propagarlo a los pasos siguientes.</div>
+          <div class="tech-content" style="display:none">Medido contra la API: un flow admite <strong>20 versiones</strong> y el límite es duro — la 21 falla con <code>code:9</code>. <strong>CX no rota nada por su cuenta</strong>; la documentación que decía 5 y decía que se borraban solas era falsa en las dos mitades.<br>
+El pipeline mantiene un pool de 5 versiones propias, reconocibles por el prefijo <code>deploy_</code>, y borra la más antigua antes de crear la sexta. No toca ninguna otra: renombrar una versión la saca del pool para siempre, y las que un entorno esté sirviendo quedan protegidas aunque lleven el prefijo. La protección es opt-out y no opt-in a propósito — olvidarse de marcar algo no puede costar una versión.<br>
+El script almacena el nombre del snapshot en memoria para propagarlo a los pasos siguientes.</div>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">Flujo del paso</div>
@@ -813,7 +881,9 @@ sin saber en qué recurso falló. Con el pre-flight, el fallo es inmediato y exp
         </div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de validación</div>
-          <p>✓ Snapshot creado → esperar <code>done:true</code> en el LRO antes de reportar éxito — no reportar antes<br>
+          <p>✓ Pool automático de 5: al crear la sexta, se borra la más antigua de las creadas por el pipeline<br>
+          ✓ Una versión guardada (renombrada) nunca rota, y una fijada por un entorno tampoco aunque lleve el prefijo<br>
+          ✓ Snapshot creado → esperar <code>done:true</code> en el LRO antes de reportar éxito — no reportar antes<br>
           ✓ <code>displayName</code> siempre presente en el POST body — nunca omitirlo aunque el campo UI esté vacío<br>
           ✓ Si ya hay 5 versiones → la más antigua se elimina automáticamente, el snapshot se crea igualmente<br>
           ✓ El nombre del snapshot se propaga a los elementos <code>snapshot-name-ref</code> de Pasos 6, 7 y 8</p>
@@ -1179,6 +1249,105 @@ function renderStep3Diff() {
   document.getElementById('diff-no-changes').style.display  = DIFF_COUNT > 0 ? 'none'  : 'block';
 }
 
+/* ── Comprobación CX → repo ──────────────────────────────────────────────
+   El diff del Paso 3 mira repo → CX: qué hay que aplicar. Esta comprobación
+   mira al revés — qué existe en CX que definitions/ no recoge. Sin ella, el
+   deploy borra en silencio el trabajo hecho desde la consola de CX, porque
+   el repo es la fuente de verdad y lo que no está en él se elimina.
+
+   Alcance de "Traer al repo": solo campos de recursos que YA existen en el
+   repo. Un recurso que solo vive en CX exigiría crear un archivo nuevo, y
+   esos ya están decididos como DELETE — traerlos contradiría esa decisión. */
+const CXREPO_DRIFT = [
+  {tipo:'Example',  recurso:'Ex — duelo → registro solemne',       cambio:'solo en CX, no está en el repo', traible:false},
+  {tipo:'Example',  recurso:'Ex — ocasión especial → celebracion', cambio:'solo en CX, no está en el repo', traible:false},
+  {tipo:'Playbook', recurso:'Orquestador',                         cambio:'referencedPlaybooks: 2 referencias de más en CX', traible:true,
+   archivo:'definitions/playbooks/petal_cx_orchestrator.yaml', campo:'referencedPlaybooks',
+   antes:['Compra','Registro_Task','Handoff','Gestion_Deuda'],
+   despues:['Compra','Registro_Task','Handoff','Gestion_Deuda','Calculo_Entrega_Task','Identificacion_Task']},
+];
+
+const traibles = () => CXREPO_DRIFT.filter(d => d.traible);
+
+let driftAccepted = false;
+let driftPulled = false;
+
+function renderCxRepoCheck() {
+  const gate = document.getElementById('deploy-gate');
+  document.getElementById('cxrepo-check').style.display = 'block';
+  ['cxrepo-clean','cxrepo-drift','cxrepo-preview','cxrepo-pulled','cxrepo-accepted']
+    .forEach(id => document.getElementById(id).style.display = 'none');
+
+  const pendientes = CXREPO_DRIFT.filter(d => !(driftPulled && d.traible));
+
+  if (pendientes.length === 0) {
+    document.getElementById('cxrepo-clean').style.display = 'block';
+    gate.style.display = 'block';
+    return;
+  }
+  if (driftPulled) {
+    document.getElementById('cxrepo-pulled').style.display = 'block';
+    document.getElementById('cxrepo-pulled-count').textContent = traibles().length;
+    gate.style.display = 'block';
+    return;
+  }
+  if (driftAccepted) {
+    document.getElementById('cxrepo-accepted').style.display = 'block';
+    document.getElementById('cxrepo-lost-count').textContent = CXREPO_DRIFT.length;
+    gate.style.display = 'block';
+    return;
+  }
+  document.getElementById('cxrepo-rows').innerHTML = CXREPO_DRIFT.map(d =>
+    `<tr><td>${d.tipo}</td><td><code>${d.recurso}</code></td><td>${d.cambio}</td>`
+  + `<td>${d.traible ? '<span class="pill pill-new">sí</span>' : '<span class="pill pill-dim">no</span>'}</td></tr>`
+  ).join('');
+  document.getElementById('cxrepo-nota-borrado').style.display =
+    CXREPO_DRIFT.some(d => !d.traible) ? 'block' : 'none';
+  const btn = document.getElementById('btn-pull-repo');
+  btn.disabled = traibles().length === 0;
+  btn.style.opacity = btn.disabled ? '.45' : '';
+  btn.style.cursor = btn.disabled ? 'not-allowed' : '';
+  document.getElementById('cxrepo-drift').style.display = 'block';
+  // El gate se oculta hasta que el usuario decida: continuar sin verlo sería
+  // exactamente el fallo silencioso que esta comprobación existe para evitar.
+  gate.style.display = 'none';
+}
+
+/* Genera los cambios y los muestra. No escribe nada: cualquier modificación
+   de definitions/ se revisa antes de guardarse (CLAUDE.md §7.4). */
+function pullToRepo() {
+  const items = traibles();
+  if (items.length === 0) return;
+  document.getElementById('cxrepo-preview-body').innerHTML = items.map(d => `
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-family:'SF Mono',Menlo,monospace;color:#93c5fd;margin-bottom:2px">${d.archivo}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">campo <code style="font-size:11px">${d.campo}</code></div>
+      <div class="output-block" style="min-height:0">${
+        d.antes.map(v => `<span class="dim">  ${v}</span>`).join('\n')
+      }\n${
+        d.despues.filter(v => !d.antes.includes(v)).map(v => `<span class="ok">+ ${v}</span>`).join('\n')
+      }</div>
+    </div>`).join('');
+  document.getElementById('cxrepo-drift').style.display = 'none';
+  document.getElementById('cxrepo-preview').style.display = 'block';
+  document.getElementById('deploy-gate').style.display = 'none';
+}
+
+function savePullToRepo() {
+  driftPulled = true;
+  renderCxRepoCheck();
+}
+
+function cancelPull() {
+  document.getElementById('cxrepo-preview').style.display = 'none';
+  renderCxRepoCheck();
+}
+
+function acceptDrift() {
+  driftAccepted = true;
+  renderCxRepoCheck();
+}
+
 const DEPLOY_RESOURCES = [
   {label:'Playbook · Compra · PATCH (Full Update)',         ok: true,  okText:'OK',                            cls:'ok'},
   {label:'Playbook · Orquestador · PATCH (Full Update)',    ok: true,  okText:'OK',                            cls:'ok'},
@@ -1305,11 +1474,68 @@ function revertDraft() {
 }
 
 function resetDeployStep4() {
-  document.getElementById('deploy-gate').style.display = 'block';
+  driftAccepted = false;
+  driftPulled = false;
+  renderCxRepoCheck();
   document.getElementById('deploy-log').style.display = 'none';
   document.getElementById('deploy-done').style.display = 'none';
   document.getElementById('deploy-fail').style.display = 'none';
   document.getElementById('deploy-log-block').innerHTML = '';
+}
+
+/* ── Pool de versiones y reservorio ──────────────────────────────────────
+   El pipeline solo rota lo que él mismo creó: las que empiezan por
+   deploy_. Guardar una versión es renombrarla — la protección es opt-out y
+   no opt-in a propósito, porque olvidarse de marcar algo no puede costar
+   una versión. Las que un entorno está sirviendo tampoco se tocan, aunque
+   lleven el prefijo.                                                       */
+const VERSION_PREFIX = 'deploy_';
+const VERSION_POOL_MAX = 5;
+const VERSION_CAPACITY = 20;   // medido contra la API: la 21 falla con code:9
+
+let VERSIONES = [
+  {nombre: 'ci-207',                 creada: '2026-07-22', fijadaPor: 'staging · producción'},
+  {nombre: 'fix-orquestador-routing', creada: '2026-07-24', fijadaPor: null},
+  {nombre: 'deploy_2026-07-28_0945', creada: '2026-07-28', fijadaPor: null},
+  {nombre: 'deploy_2026-07-30_1712', creada: '2026-07-30', fijadaPor: null},
+];
+
+const enPool = v => v.nombre.startsWith(VERSION_PREFIX) && !v.fijadaPor;
+
+function renderVersionPool() {
+  const lista = document.getElementById('version-pool-list');
+  if (!lista) return;
+  lista.innerHTML = VERSIONES.map((v, i) => {
+    const guardada = !enPool(v);
+    const motivo = v.fijadaPor
+      ? `en uso por ${v.fijadaPor} — no puede rotar`
+      : (guardada ? 'guardada, fuera del pool' : 'en el pool automático');
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+      <input type="checkbox" ${guardada ? 'checked' : ''} ${v.fijadaPor ? 'disabled' : ''}
+             onchange="toggleVersionGuardada(${i})"
+             style="width:15px;height:15px;accent-color:var(--gate);cursor:${v.fijadaPor ? 'not-allowed' : 'pointer'}">
+      <code style="flex:1;font-size:12px;color:${guardada ? 'var(--text)' : 'var(--text-2)'}">${v.nombre}</code>
+      <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${v.creada}</span>
+      <span style="font-size:11px;color:${v.fijadaPor ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:170px;text-align:right">${motivo}</span>
+    </div>`;
+  }).join('');
+
+  const pool = VERSIONES.filter(enPool).length;
+  const huecos = VERSION_CAPACITY - VERSIONES.length;
+  const rotara = pool >= VERSION_POOL_MAX;
+  document.getElementById('version-pool-summary').innerHTML =
+    `Pool automático: <strong style="color:var(--text-2)">${pool} de ${VERSION_POOL_MAX}</strong> · `
+  + `${VERSIONES.length - pool} guardadas · ${huecos} huecos libres de ${VERSION_CAPACITY}`
+  + (rotara ? ` · <span style="color:var(--gate)">al crear la próxima se borrará la más antigua del pool</span>` : '');
+}
+
+function toggleVersionGuardada(indice) {
+  // Marcar = renombrar. La API admite PATCH del displayName y es reversible.
+  const v = VERSIONES[indice];
+  v.nombre = enPool(v)
+    ? v.nombre.replace(VERSION_PREFIX, 'KEEP_')
+    : 'deploy_' + v.nombre.replace(/^KEEP_/, '');
+  renderVersionPool();
 }
 
 function generateVersionLabel() {
@@ -1386,6 +1612,8 @@ function viewStep(id) {
   if(v) v.classList.add('visible');
   if(id === 2) renderStep2Checks();
   if(id === 3) renderStep3Diff();
+  if(id === 4) renderCxRepoCheck();
+  if(id === 5) renderVersionPool();
   if(id === 5) document.getElementById('version-batch-label').value = document.getElementById('version-batch-label').value || generateVersionLabel();
   syncSpecsPanel(id);
   renderSidebar();

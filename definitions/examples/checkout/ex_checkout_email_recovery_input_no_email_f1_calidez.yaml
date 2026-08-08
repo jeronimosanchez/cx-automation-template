@@ -1,3 +1,8 @@
+metadata:
+  tipo: example
+  padre: 1d2698dd-0027-4881-a9b4-6970d61885cb
+  cx_id: 229cf088-1852-4e90-83d1-8ea211bca7b8
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Checkout
 id: 079e2abd-38ee-4b37-9452-9c73c351c301
 displayName: 'Checkout Ex02 — Email recovery: input no-email → F1 calidez → reintenta'

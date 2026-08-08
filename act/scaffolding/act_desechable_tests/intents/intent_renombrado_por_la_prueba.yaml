@@ -1,0 +1,9 @@
+metadata:
+  tipo: intent
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000001
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: Intent Renombrado Por La Prueba
+priority: 500000
+isFallback: true
+description: Cambiado por el pipeline para probar el emparejamiento por cx_id.

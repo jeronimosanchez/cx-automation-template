@@ -1,0 +1,2241 @@
+<meta charset="utf-8">
+<title>act_cx_resources_deploy_v2.py — Deploy Petal 1.0 (intento 2)</title>
+<style>
+:root {
+  --bg:#0d1117;--bg-2:#1a2030;--bg-3:#252d3a;--border:#3d4755;
+  --text:#f0f6fc;--text-2:#b0bac6;--text-3:#8b95a1;
+  --accent:#3b82f6;--accent-light:#60a5fa;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:14px}
+
+/* TOP BAR */
+.topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.dir-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:22px}
+.dir-card.hacia-cx{border-color:rgba(59,130,246,.4)}
+.dir-card.hacia-repo{border-color:rgba(245,158,11,.4)}
+.dir-head{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:12px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase}
+.hacia-cx .dir-head{background:rgba(59,130,246,.12);color:#93c5fd;border-bottom:1px solid rgba(59,130,246,.25)}
+.hacia-repo .dir-head{background:rgba(245,158,11,.12);color:var(--gate);border-bottom:1px solid rgba(245,158,11,.25)}
+.dir-flecha{font-family:'SF Mono',Menlo,monospace;font-size:12px;opacity:.8;letter-spacing:0;text-transform:none;margin-left:auto;white-space:nowrap}
+.dir-body{padding:14px 16px}
+.dir-pie{padding:10px 16px;font-size:12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.hacia-cx .dir-pie{background:rgba(59,130,246,.05)}
+.hacia-repo .dir-pie{background:rgba(245,158,11,.05)}
+.bloque-titulo{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
+.sel-todos{font-size:12px;color:var(--text-2);margin-bottom:8px}
+.sel-todos label{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.escribe-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  border-radius:4px;padding:1px 7px;margin-left:12px;white-space:nowrap}
+.escribe-badge.read{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+.escribe-badge.write-cx{background:rgba(245,158,11,.12);color:var(--gate);border:1px solid rgba(245,158,11,.35)}
+.escribe-badge.write-gh{background:rgba(59,130,246,.12);color:var(--accent-light);border:1px solid rgba(59,130,246,.35)}
+.repo-resuelto{display:flex;align-items:center;gap:8px;background:var(--bg-2);border:1px solid var(--border);
+  border-radius:6px;padding:8px 12px;font-size:12px;min-height:34px}
+.grupo-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;flex:1;min-width:200px}
+.grupo-card .grupo-num{font-size:26px;font-weight:700;line-height:1.1}
+.grupo-card .grupo-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.grupo-card{cursor:pointer;transition:border-color .15s}
+.grupo-card:hover{border-color:var(--accent)}
+.grupo-card .grupo-toggle{font-size:11px;color:var(--accent-light);margin-top:10px;display:inline-block}
+.grupo-card .grupo-desc{font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.5}
+.grupo-card.emp{border-left:3px solid var(--success)}
+.grupo-card.cx{border-left:3px solid var(--gate)}
+.grupo-card.repo{border-left:3px solid var(--accent)}
+.grupo-lista{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-2);margin-top:10px;line-height:1.7}
+.topbar-tool{font-family:monospace;font-size:12px;color:var(--text-3);letter-spacing:.02em}
+.topbar-agent{font-weight:700;font-size:15px}
+.topbar-sep{color:var(--border);font-size:18px}
+.topbar-env{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;transition:background .3s,color .3s,border-color .3s}
+.topbar-commit{font-size:12px;color:var(--text-3);font-family:monospace}
+.topbar-meta{color:var(--text-3);font-size:12px;margin-left:auto;display:flex;align-items:center;gap:12px}
+.btn{padding:6px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-gate{background:var(--gate);color:#000}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.btn-ghost{background:var(--bg-3);color:var(--text-2);border:1px solid var(--border)}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* SPECS PANEL */
+.specs-panel{width:420px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s}
+.specs-panel.collapsed{width:36px;overflow:hidden}
+.specs-tab{display:none;writing-mode:vertical-rl;text-orientation:mixed;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase;padding:20px 10px;white-space:nowrap;align-self:stretch;align-items:center;justify-content:center}
+.specs-tab:hover{color:var(--text)}
+.specs-panel.collapsed .specs-tab{display:flex}
+.specs-panel.collapsed .specs-content{display:none}
+.specs-content{overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px;flex:1}
+.specs-section{display:flex;flex-direction:column;gap:10px}
+.specs-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.spec-block{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.spec-block-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.spec-block p{font-size:12px;color:var(--text-2);line-height:1.6}
+.spec-block code{font-size:11px;font-family:'SF Mono',Menlo,monospace;color:var(--text);background:var(--bg-2);padding:1px 4px;border-radius:3px}
+.spec-step-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px}
+.spec-empty{font-size:12px;color:var(--text-3);font-style:italic}
+
+/* SIDEBAR */
+.sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 0 0}
+.sidebar-steps{flex:1;overflow-y:auto;min-height:0}
+.sidebar-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:0 16px 12px}
+
+/* SIDEBAR — TOOLS (acciones sueltas, fuera de los 5 pasos numerados) */
+.sidebar-tools{flex:0 0 25%;min-height:120px;overflow-y:auto;border-top:1px solid var(--border);padding:14px 0;background:var(--bg)}
+.tool-card{display:flex;align-items:flex-start;gap:10px;margin:0 12px 8px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;transition:border-color .15s,background .15s}
+.tool-card:hover{border-color:var(--accent);background:var(--bg-3)}
+.tool-card-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.tool-card-body{flex:1;min-width:0}
+.tool-card-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+.tool-card-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4}
+.tool-card-empty{margin:0 16px;font-size:11px;color:var(--text-3);font-style:italic;line-height:1.5}
+.step-item{display:flex;align-items:flex-start;gap:12px;padding:9px 16px;cursor:pointer;border-left:2px solid transparent;transition:background .1s;position:relative}
+.step-item:hover{background:var(--bg-3)}
+.step-item.active{background:rgba(59,130,246,.08);border-left-color:var(--accent)}
+.step-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;transition:background .2s}
+.s-done .step-badge{background:var(--success);color:#000}
+.s-active .step-badge{background:var(--accent);color:#fff}
+.s-gate .step-badge{background:var(--gate);color:#000}
+.s-error .step-badge{background:var(--error);color:#fff}
+.s-pending .step-badge{background:var(--bg-3);color:var(--text-3);border:1px solid var(--border)}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:13px;font-weight:500;line-height:1.3}
+.s-pending .step-name{color:var(--text-3)}
+.s-active .step-name,.s-gate .step-name{color:var(--text)}
+.step-status-text{font-size:11px;margin-top:2px}
+.s-done .step-status-text{color:#4ade80}
+.s-active .step-status-text{color:#93c5fd}
+.s-gate .step-status-text{color:#fbbf24}
+.s-error .step-status-text{color:#f87171}
+.s-pending .step-status-text{color:var(--text-3)}
+.step-connector{width:1px;height:6px;background:var(--border);margin-left:27px}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:28px 32px}
+.step-view{display:none;max-width:720px}
+.step-view.visible{display:block}
+.phase-eyebrow{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.phase-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.phase-sub{font-size:14px;color:var(--text-2);margin-bottom:24px;line-height:1.5}
+
+/* GATE BLOCK */
+.gate-block{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:20px 24px;margin-bottom:20px}
+.gate-title{font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.gate-block p{color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px}
+.action-bar{display:flex;gap:10px;margin-top:4px}
+
+/* DIFF */
+.diff-wrap{overflow-x:auto;margin-bottom:20px}
+.diff-table{width:100%;border-collapse:collapse;font-size:13px}
+.diff-table th{text-align:left;padding:6px 12px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.diff-table td{padding:8px 12px;border-bottom:1px solid var(--bg-3);font-variant-numeric:tabular-nums}
+.diff-table tr:last-child td{border-bottom:none}
+.diff-table code{font-size:12px;color:var(--text-2);font-family:monospace}
+.pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.pill-mod{background:rgba(59,130,246,.15);color:#60a5fa}
+.pill-new{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-del{background:rgba(239,68,68,.15);color:#f87171}
+.pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-err{background:rgba(239,68,68,.15);color:#f87171}
+.pill-dim{background:var(--bg-3);color:var(--text-3)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bg-3)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)}
+
+/* OUTPUT */
+.output-block{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8;overflow-x:auto;white-space:pre}
+.output-block .ok{color:#4ade80}
+.output-block .info{color:#60a5fa}
+.output-block .warn{color:#fbbf24}
+.output-block .dim{color:var(--text-3)}
+.output-block .del{color:#f87171}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.stat-label{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+/* PROGRESS */
+.progress-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bg-3)}
+.progress-item:last-child{border-bottom:none}
+.progress-icon{width:18px;text-align:center;font-size:13px;flex-shrink:0}
+.progress-name{flex:1;font-size:13px;color:var(--text)}
+
+/* DONE BANNER */
+.done-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:20px}
+.done-banner p{font-size:13px;color:#4ade80;font-weight:500}
+
+/* SECTION LABEL */
+.slabel{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+
+/* SNAPSHOT GATE (Paso 3) */
+.snapshot-input{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'SF Mono',Menlo,monospace;width:100%;outline:none;transition:border-color .15s}
+.snapshot-input:focus{border-color:var(--gate)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* PASO YA EJECUTADO — se puede volver a mirarlo, no a repetirlo */
+.step-view.paso-cerrado .re-ejecuta{display:none !important}
+
+/* ERROR BLOCK */
+.error-block{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:20px 24px}
+
+/* ACTION RESULT ROWS */
+.action-result{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
+.action-result:last-child{border-bottom:none}
+.action-result-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;margin-top:1px}
+.action-result-body{flex:1}
+.action-result-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.action-result-desc{font-size:12px;color:var(--text-2);line-height:1.55}
+
+</style>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="topbar-tool">act_cx_resources_deploy_v2.py</span>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-agent" id="topbar-agent">Petal 1.0</span>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-env" id="topbar-env">DRAFT</span>
+  <span class="topbar-commit">GitHub: staging &middot; 98fcbdd &middot; <span id="topbar-commit-time">—</span></span>
+  <div class="topbar-meta">
+    <span>&#218;ltimo deploy: <span id="last-deploy-time">hace 3 d&iacute;as</span></span>
+    <button id="btn-reset" class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-steps" id="sidebar-steps"></div>
+    <div class="sidebar-tools" id="sidebar-tools">
+      <div class="sidebar-label" style="padding-top:0">Tools</div>
+      <div class="tool-card" onclick="viewTool('deploy-resource')">
+        <div class="tool-card-icon">&#9889;</div>
+        <div class="tool-card-body">
+          <div class="tool-card-name">Desplegar un resource suelto</div>
+          <div class="tool-card-desc">Por cx_id, sin pasar por el pipeline completo &middot; S20</div>
+        </div>
+      </div>
+      <div class="tool-card" onclick="viewTool('onboarding')">
+        <div class="tool-card-icon">&#128279;</div>
+        <div class="tool-card-body">
+          <div class="tool-card-name">Vincular agente y repositorio</div>
+          <div class="tool-card-desc">Onboarding de un proyecto nuevo &middot; S22</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- STEP 1: Inventario CX -->
+    <div class="step-view" id="view-1">
+      <div class="phase-eyebrow">Paso 1 de 5<span class="escribe-badge read">solo lectura</span></div>
+      <div class="phase-title">Inventario CX</div>
+      <div class="phase-sub">
+        Lee el estado actual del draft del agente desde la API de Dialogflow CX.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El borrador es el estado editable del agente: es contra &eacute;l contra lo que se prueba, y ning&uacute;n usuario lo ve. Lo que ven los usuarios no cambia hasta el Paso 5.</p>
+      </div>
+
+      <!-- Estado inicial: selectores de proyecto / agente + botón para iniciar (región fija: europe-west1) -->
+      <div id="inv-start">
+        <div id="aviso-sin-repos" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
+          <strong style="color:var(--gate)">&#9888; Ning&uacute;n agente de este proyecto tiene repositorio vinculado.</strong><br>
+          <span style="color:var(--text-2)">El pipeline compara CX contra un repositorio de GitHub, as&iacute; que sin vincular al menos uno no hay nada que desplegar.</span>
+          <button class="btn btn-gate" style="margin-top:10px;font-size:12px;padding:5px 12px" onclick="alert('Abre la pestaña Proyectos para vincular un repositorio.')">Vincular un repositorio &rarr;</button>
+        </div>
+        <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+          <div>
+            <label for="project-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Proyecto</label>
+            <select id="project-select" class="snapshot-input" style="max-width:240px" onchange="onProjectSelected()">
+              <option value="" selected disabled>Selecciona un proyecto&hellip;</option>
+              <option value="floristeria-petal-digital">floristeria-petal-digital</option>
+            </select>
+          </div>
+          <div>
+            <label for="agent-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Agente</label>
+            <select id="agent-select" class="snapshot-input" style="max-width:240px" onchange="onAgentSelected()" disabled>
+              <option value="" selected disabled>&mdash;</option>
+              <option value="petal-1.0">Petal 1.0</option>
+              <option value="petal-voz">Petal Voz (sin vincular)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;max-width:520px">
+          <label style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Repositorio</label>
+          <div class="repo-resuelto" id="repo-resuelto">
+            <span style="color:var(--text-3)">&mdash;</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
+      </div>
+
+      <!-- Log animado (oculto hasta pulsar) -->
+      <div id="inv-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="inv-log-block" style="height:210px;overflow-y:auto"></div>
+      </div>
+
+      <!-- Estado completado con inventario (oculto hasta finalizar) -->
+      <div id="inv-done" style="display:none">
+        <div class="done-banner"><p>Inventario completado &#10003;</p></div>
+
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
+          <div class="grupo-card emp" onclick="toggleGrupo(this)">
+            <div class="grupo-label">Emparejados</div>
+            <div class="grupo-num" style="color:var(--success)">42</div>
+            <div class="grupo-desc">Est&aacute;n en CX y tienen archivo en el repositorio.</div>
+            <div class="grupo-lista">petal_cx_orchestrator.yaml<br>compra.yaml<br>checkout.yaml
+              <span class="grupo-extra" style="display:none"><br>registro_task.yaml<br>gestion_deuda.yaml<br>handoff.yaml<br>calculo_entrega_task.yaml<br>identificacion_task.yaml<br>petaldatatool.yaml<br>agent.yaml<br><span style="color:var(--text-3)">&hellip; y 32 m&aacute;s</span></span>
+            </div>
+            <div class="grupo-toggle">Ver los 42 &#9662;</div>
+          </div>
+          <div class="grupo-card cx" onclick="toggleGrupo(this)">
+            <div class="grupo-label">Solo en CX</div>
+            <div class="grupo-num" style="color:var(--gate)">4</div>
+            <div class="grupo-desc">Existen en el agente y ning&uacute;n archivo los reclama.</div>
+            <div class="grupo-lista">Example &middot; compra_tulipanes_002<br>Example &middot; despedida_larga<br>Generator &middot; resumen_pedido
+              <span class="grupo-extra" style="display:none"><br>Tool &middot; code-interpreter <span style="color:var(--text-3)">(nativo de CX)</span></span>
+            </div>
+            <div class="grupo-toggle">Ver los 4 &#9662;</div>
+          </div>
+          <div class="grupo-card repo" onclick="toggleGrupo(this)">
+            <div class="grupo-label">Solo en el repositorio</div>
+            <div class="grupo-num" style="color:var(--accent-light)">2</div>
+            <div class="grupo-desc">Tienen archivo pero a&uacute;n no existen en CX, o su <code>cx_id</code> ya no est&aacute;.</div>
+            <div class="grupo-lista">devoluciones.yaml <span style="color:var(--text-3)">&middot; sin cx_id</span>
+              <span class="grupo-extra" style="display:none"><br>ex_registro_04.yaml <span style="color:var(--text-3)">&middot; cx_id fantasma</span></span>
+            </div>
+            <div class="grupo-toggle">Ver los 2 &#9662;</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">48 resources en total &middot; le&iacute;dos de <code>staging</code> &middot; commit <code>98fcbdd</code></div>
+        <div class="action-bar re-ejecuta">
+          <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Qué cambia -->
+    <div class="step-view" id="view-2">
+      <div class="phase-eyebrow">Paso 2 de 5<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
+      <div class="phase-title">Traer al repositorio</div>
+      <div class="phase-sub">Trae al repositorio lo que solo existe en CX, antes de desplegar.</div>
+
+      <!-- Con cambios -->
+      <div id="diff-has-changes" style="display:none">
+
+        <!-- Dirección 2: de CX hacia el repositorio -->
+        <div class="dir-card hacia-repo">
+          <div class="dir-head">
+            Se va a traer al repositorio <span class="dir-flecha">CX &rarr; repositorio</span>
+          </div>
+          <div class="dir-body">
+            <div id="aviso-deriva" style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:8px">
+              &#9888; <span id="num-deriva">4</span> resources en CX sin respaldo en el repositorio
+            </div>
+            <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Alguien los cre&oacute; directamente en la consola de CX. Lo que no marques se queda como est&aacute;.</p>
+            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-repo" onchange="marcarTodos('tabla-repo', this.checked)"> Seleccionar todos</label></div>
+            <div class="diff-wrap" style="margin-bottom:14px">
+              <table class="diff-table" id="tabla-repo">
+                <tbody>
+                  <tr><td style="width:34px"><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Example</td><td><code>compra_tulipanes_002</code></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Example</td><td><code>despedida_larga</code></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Generator</td><td><code>resumen_pedido</code></td></tr>
+                  <tr><td><input type="checkbox" disabled></td><td>Tool</td><td><code>code-interpreter</code> <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
+              <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Apuntar para borrar en el Paso 3</div>
+              <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
+                Los resources de abajo <strong>se borrar&aacute;n al aplicar, en el Paso 3</strong>. Hasta entonces no se toca el agente: aqu&iacute; solo queda decidido su destino, y all&iacute; aparecer&aacute;n sin marcar como todo lo dem&aacute;s.<br>
+                Cuando se apliquen, el borrado <strong>no se puede deshacer desde el panel</strong> &mdash; solo recuperando una versi&oacute;n anterior.</p>
+              <div id="lista-borrado" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-danger" onclick="confirmarEliminarDeCx()">S&iacute;, apuntar para borrar</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('confirmar-borrado').style.display='none'">Cancelar</button>
+              </div>
+            </div>
+          </div>
+          <div class="dir-pie"><span id="pie-repo">&mdash;</span></div>
+        </div>
+
+      <div class="gate-block re-ejecuta" id="traer-gate">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Repositorio: <strong style="color:var(--text)">jeronimosanchez/cx-automation-template</strong> &middot; Rama: <strong style="color:var(--text)">staging</strong></p>
+        <p>Se van a traer <strong style="color:var(--text)"><span id="traer-count">0</span> resources</strong> de los marcados arriba. Lo que no marques se queda solo en CX, y el repositorio dejar&aacute; de retratar el agente entero.</p>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-traer" onclick="traerAlRepo()" disabled>Traer al repositorio &rarr;</button>
+          <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
+        </div>
+      </div>
+
+      <div id="traer-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="traer-log-block" style="height:150px;overflow-y:auto"></div>
+      </div>
+
+      <div id="traer-done" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>Repositorio actualizado &#10003;</p></div>
+        <p style="font-size:12px;color:var(--text-3);margin:10px 0 14px">Haz <code>git pull</code> en local antes de seguir trabajando &mdash; tu copia est&aacute; un commit por detr&aacute;s.</p>
+        <div class="action-bar re-ejecuta">
+          <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
+        </div>
+      </div>
+
+      <div class="action-bar re-ejecuta" id="sin-modificar-2" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="advance(2)">Continuar sin modificar &rarr;</button>
+      </div>
+      </div>
+
+      <!-- Sin cambios -->
+      <div id="diff-no-changes" style="display:none">
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:18px 20px;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">Nada que desplegar</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">Los resources emparejados tienen el mismo contenido en el repositorio y en CX.</p>
+        </div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">Aun as&iacute;, hay <strong style="color:var(--gate)">4 resources en CX sin respaldo en el repositorio</strong>.</div>
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="resetDeploy()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Confirmar deploy -->
+    <div class="step-view" id="view-3">
+      <div class="phase-eyebrow">Paso 3 de 5<span class="escribe-badge write-cx">escribe en CX</span></div>
+      <div class="phase-title">Aplicar en CX</div>
+      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
+
+      <!-- Comprobación CX → repo: qué hay en CX que el repo no refleja -->
+      <!-- Lo que se va a escribir en el draft -->
+        <div class="dir-card hacia-cx">
+          <div class="dir-head">
+            Se va a aplicar en CX <span class="dir-flecha">repositorio &rarr; CX</span>
+          </div>
+          <div class="dir-body">
+            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)"> Seleccionar todos</label></div>
+            <div class="diff-wrap">
+              <table class="diff-table" id="tabla-cx">
+                <thead><tr><th style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
+                <tbody>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Playbook</td><td><code>Compra</code></td><td><code style="color:var(--text-3)">compra.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Playbook</td><td><code>Orquestador</code></td><td><code style="color:var(--text-3)">petal_cx_orchestrator.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Agent Config</td><td><code>Petal 1.0</code></td><td><code style="color:var(--text-3)">agent.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Playbook</td><td><code>Devoluciones</code></td><td><code style="color:var(--text-3)">devoluciones.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
+                  <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Example</td><td><code>registro_04</code></td><td><code style="color:var(--text-3)">ex_registro_04.yaml</code></td><td><span class="pill pill-new">Crear</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="legend" style="margin-bottom:0">
+              <span class="legend-item"><span class="pill pill-new">Crear</span> A&uacute;n no existe en CX</span>
+              <span class="legend-item"><span class="pill pill-mod">Modificar</span> Existe y el archivo dice otra cosa</span>
+              <span class="legend-item"><span class="pill pill-del">Eliminar</span> Se ha decidido borrarlo</span>
+            </div>
+          </div>
+          <div class="dir-pie"><span id="pie-cx">&mdash;</span></div>
+        </div>
+
+      <div class="gate-block re-ejecuta" id="deploy-gate">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate4-project">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)" id="gate4-agent">Petal 1.0</strong></p>
+        <p>Se van a aplicar <strong style="color:var(--text)"><span id="deploy-count">0</span> resources</strong> de los marcados arriba. Los recursos sin cambios no se tocan.</p>
+        <div id="agent-config-warning" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+          <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; Este deploy incluye cambios que no admiten versi&oacute;n</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.5">Estos tipos no se pueden congelar en una versi&oacute;n, as&iacute; que el cambio lo ver&aacute;n los usuarios en el mismo instante en que lo apliques &mdash; sin pasar por los tests del paso siguiente.</p>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Aplicar en CX &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy(false)">Cancelar</button>
+          </div>
+      </div>
+
+      <div class="action-bar re-ejecuta" id="sin-modificar-3" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="advance(3)">Continuar sin modificar &rarr;</button>
+      </div>
+
+      <div id="deploy-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="deploy-log-block" style="height:150px;overflow-y:auto"></div>
+        <div class="legend">
+          <span class="legend-item"><span class="pill pill-ok">OK</span> Aplicado</span>
+          <span class="legend-item"><span class="pill pill-err">ERROR</span> Fallo en API</span>
+          <span class="legend-item"><span class="pill pill-dim">—</span> No intentado</span>
+        </div>
+      </div>
+
+      <!-- Deploy OK -->
+      <div id="deploy-done" style="display:none">
+        <div class="done-banner"><p>Deploy completado &#10003;</p></div>
+        <div class="action-bar re-ejecuta">
+          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
+          <button class="btn btn-ghost" onclick="pedirTerminar()">Terminar</button>
+        </div>
+        <div id="confirmar-terminar" class="re-ejecuta" style="display:none;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:6px">&#9995; Terminar aqu&iacute; &mdash; el deploy se queda en el borrador</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">Los resources aplicados est&aacute;n en el borrador del agente. Ning&uacute;n usuario los ve: producci&oacute;n sigue sirviendo la versi&oacute;n anterior.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">No se deshace nada &mdash; lo aplicado se queda en el borrador tal cual, y no se crea ninguna versi&oacute;n.</p>
+          <p id="confirmar-terminar-repo" style="display:none;font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">Los archivos tra&iacute;dos al repositorio se quedan en staging, sin fusionar en main.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 14px;line-height:1.6">Cuando arranques un deploy nuevo, el pipeline vuelve a leer el estado real: lo que dejaste en el borrador aparecer&aacute; ya como igual en los dos sitios.</p>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-gate" onclick="confirmarTerminar()">S&iacute;, terminar</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('confirmar-terminar').style.display='none'">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deploy PARCIAL (fallo) -->
+      <div id="deploy-fail" style="display:none">
+        <div class="error-block" style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px" id="deploy-fail-title">Deploy parcial</div>
+          <div id="deploy-fail-summary" style="font-size:13px;color:var(--text-2);line-height:1.8;margin-bottom:14px"></div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">El draft del agente en CX tiene cambios aplicados a medias. Elige c&oacute;mo continuar:</div>
+          <div class="action-bar re-ejecuta">
+            <button class="btn btn-gate" onclick="retryFailed()">Reintentar fallidos &rarr;</button>
+            <button class="btn btn-ghost" onclick="resetDeploy()">Terminar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Validar tests contra el draft -->
+    <div class="step-view" id="view-4">
+      <div class="phase-eyebrow">Paso 4 de 5</div>
+      <div class="phase-title">Validar tests</div>
+      <div class="phase-sub">El paso siguiente sube a producci&oacute;n. Antes hay que comprobar que el draft se comporta como debe.</div>
+
+      <div id="tests-gate">
+        <div class="gate-block">
+          <div class="gate-title">&#9995; Validaci&oacute;n manual requerida</div>
+          <p style="margin-bottom:10px">Lanza t&uacute; la suite de QA contra el <strong>draft</strong> del agente y comprueba el resultado. Cuando lo tengas, dilo aqu&iacute;.</p>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:14px">El panel no lanza los tests ni conoce su resultado: lo que marques aqu&iacute; es una declaraci&oacute;n tuya.</p>
+          <div class="action-bar re-ejecuta">
+            <button class="btn btn-gate" onclick="validarTests()">Tests superados &mdash; continuar &rarr;</button>
+            <button class="btn btn-danger" onclick="marcarTestsFallidos()">Tests fallidos</button>
+          </div>
+        </div>
+        <div class="action-bar" style="margin-top:16px">
+          <a class="btn btn-ghost" id="enlace-agente-cx" href="https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4" target="_blank" rel="noopener">Abrir el agente en CX &#8599;</a>
+        </div>
+      </div>
+
+      <div id="tests-fail" style="display:none;margin-top:16px">
+        <div style="border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px">
+          <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Tests fallidos &mdash; no se publica nada</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0;line-height:1.6">
+            Los cambios se quedan en el draft, que no ve ning&uacute;n usuario, y producci&oacute;n sigue sirviendo lo de antes. No hay nada que revertir.<br><br>
+            Corrige los archivos en tu repositorio, vuelve a subirlos y arranca el pipeline otra vez desde el principio.</p>
+        </div>
+        <div class="action-bar re-ejecuta" style="margin-top:16px">
+          <button class="btn btn-gate" onclick="resetDeploy()">Terminar</button>
+          <button class="btn btn-ghost" onclick="volverAValidacion()">Volver al cuadro de validaci&oacute;n</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Publicar en producción -->
+    <div class="step-view" id="view-5">
+      <div class="phase-eyebrow">Paso 5 de 5<span class="escribe-badge write-cx">escribe en producci&oacute;n</span></div>
+      <div class="phase-title">Publicar en producci&oacute;n</div>
+      <div class="phase-sub">Crea una versi&oacute;n con el draft ya probado y apunta <strong>producci&oacute;n</strong> a ella.</div>
+
+      <div id="prod-gate">
+        <div id="aviso-draft-movido" style="display:none;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.08);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:6px">&#9888; El draft ha cambiado &mdash; no se puede publicar</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">Lo que subir&iacute;a a producci&oacute;n no es lo que validaste, as&iacute; que el paso est&aacute; detenido.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6"><strong style="color:var(--text)">Los cambios se quedan en el draft</strong>, que no ve ning&uacute;n usuario, y producci&oacute;n sigue sirviendo lo de antes. No se ha fusionado nada ni se ha creado ninguna versi&oacute;n: <strong style="color:var(--text)">no hay nada que revertir</strong>.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 14px;line-height:1.6">Para publicar, arranca el pipeline otra vez desde el principio y vuelve a validar.</p>
+          <button class="btn btn-gate" onclick="resetDeploy()">Empezar de nuevo</button>
+        </div>
+
+        <div style="margin-bottom:18px">
+          <div class="slabel" style="margin-bottom:8px">Nombre de la versi&oacute;n</div>
+          <input type="text" id="version-batch-label" class="snapshot-input" value="" oninput="validarVersionLabel()">
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, d&iacute;gitos, guiones y guiones bajos.</div>
+          <div id="version-label-error" style="display:none;font-size:11px;color:#f87171;margin-top:6px"></div>
+        </div>
+
+        <div class="gate-block re-ejecuta">
+          <div class="gate-title">&#9995; Confirmar subida a producci&oacute;n</div>
+          <p style="margin-bottom:10px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)">floristeria-petal-digital</strong> &middot; Agente: <strong style="color:var(--text)">Petal 1.0</strong> &mdash; esta acci&oacute;n <strong style="color:var(--gate)">afecta a usuarios reales</strong>.</p>
+          <p style="margin-bottom:6px">Al confirmar ocurren tres cosas, en este orden:</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px">
+            <strong style="color:var(--text)">1.</strong> <code>staging</code> se fusiona en <code>main</code>, que pasa a retratar lo que hay en producci&oacute;n.<br>
+            <strong style="color:var(--text)">2.</strong> Se crea una versi&oacute;n con el estado actual del draft.<br>
+            <strong style="color:var(--text)">3.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
+          <div class="action-bar">
+            <button class="btn btn-gate" id="btn-confirm-prod" onclick="confirmProduction()">Publicar en producci&oacute;n &rarr;</button>
+            <button class="btn btn-ghost" onclick="resetDeploy()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <button class="btn btn-ghost" id="btn-ver-versiones" onclick="toggleVersiones()">Ver versiones existentes &#9662;</button>
+        <div id="panel-versiones" style="display:none;margin-top:12px;border:1px solid var(--border);border-radius:8px;padding:14px 16px">
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Las versiones que ya existen en el agente. M&aacute;rcalas para eliminarlas y no acumular.</p>
+          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
+          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
+          <div class="action-bar" style="margin-top:12px">
+            <button class="btn btn-danger" id="btn-borrar-versiones" onclick="borrarVersiones()" disabled>Eliminar versiones marcadas</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="prod-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="prod-log-block" style="height:170px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <div class="step-view" id="view-done">
+      <div class="phase-eyebrow">Deploy completado</div>
+      <div class="phase-title">&#10003; Petal 1.0 en producci&oacute;n</div>
+      <div class="phase-sub">Desplegado en producci&oacute;n &middot; validado contra el draft.</div>
+      <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; <span id="done-timestamp">2026-07-28 &middot; 09:45 UTC</span> &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
+      <div style="margin:12px 0 20px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+        <p style="font-size:12px;color:var(--text-2);line-height:1.5">&#9888; El cambio se ha aplicado, pero puede tardar unos minutos en propagarse a todos los usuarios. Si pruebas producci&oacute;n ahora mismo y ves comportamiento antiguo, espera y reintenta antes de asumir que el deploy fall&oacute;.</p>
+      </div>
+
+      <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
+      <div style="margin-bottom:20px">
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Merge staging &rarr; main en GitHub</div>
+            <div class="action-result-desc">El c&oacute;digo validado queda registrado en main de GitHub.</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Versi&oacute;n creada</div>
+            <div class="action-result-desc">Se cre&oacute; la versi&oacute;n <span class="snapshot-name-ref">—</span> con el estado del borrador en ese momento.</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
+            <div class="action-result-desc">Producci&oacute;n sirve la versi&oacute;n <span class="snapshot-name-ref">—</span>. Los usuarios ya la ven.</div>
+          </div>
+        </div>
+        <div class="action-result" id="done-sync-row">
+          <div class="action-result-icon">
+            <input type="checkbox" id="check-sync-local" onchange="toggleSyncCheck()" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">
+          </div>
+          <div class="action-result-body">
+            <div class="action-result-title" id="done-sync-title" style="color:var(--text-2)">Actualizar tu <code>main</code> local <span style="font-size:11px;font-weight:400;color:var(--text-3)">(recomendado)</span></div>
+            <div class="action-result-desc">
+              La fusi&oacute;n la ha hecho el servidor, as&iacute; que tu copia local a&uacute;n no la tiene.
+              <div style="margin-top:10px;margin-bottom:8px">
+                <label style="display:block;font-size:11px;color:var(--text-3);margin-bottom:4px">Ruta de tu copia local de <strong style="color:var(--text-2)">jeronimosanchez/cx-automation-template</strong></label>
+                <input type="text" id="ruta-local" class="snapshot-input" placeholder="~/cx-automation-template" oninput="actualizarComandoSync()" style="max-width:100%">
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
+                <code id="comando-sync" style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;word-break:break-all">git -C ~/cx-automation-template fetch origin main:main</code>
+                <button onclick="copiarComandoSync(this)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:8px;line-height:1.6">
+                Lleva la ruta dentro para que no dependa de d&oacute;nde tengas abierto el terminal. No cambia de rama ni toca tu trabajo: solo adelanta <code>main</code>, y si no pudiera hacerlo limpiamente aborta sin tocar nada.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slabel">Estado final de entornos</div>
+      <div class="output-block"><span class="ok">&#10003;</span> producci&oacute;n &rarr; <span class="snapshot-name-ref">&mdash;</span>  <span class="info">&#8592; nuevo</span></div>
+
+      <div style="margin-top:4px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
+    </div>
+
+    <!-- TOOL: Desplegar un resource suelto (S20) — fuera de los 5 pasos numerados -->
+    <div class="step-view" id="view-tool-deploy-resource">
+      <div class="phase-eyebrow">Tool &middot; fuera del pipeline<span class="escribe-badge write-cx">escribe en CX</span></div>
+      <div class="phase-title">Desplegar un resource suelto</div>
+      <div class="phase-sub">
+        Trae el contenido de un solo archivo y lo aplica en el <strong>borrador</strong> de CX, sin pasar por el diff completo de los 5 pasos. &Uacute;til para iterar r&aacute;pido sobre un YAML mientras lo ajustas.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; Nunca puede llegar a producci&oacute;n &mdash; el endpoint que usa esta herramienta no tiene forma de construir una URL de entorno (S20).</p>
+      </div>
+
+      <div id="tool-deploy-start">
+        <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+          <div>
+            <label for="tool-tipo-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Tipo</label>
+            <select id="tool-tipo-select" class="snapshot-input" style="max-width:200px">
+              <option value="playbook">Playbook</option>
+              <option value="intent">Intent</option>
+              <option value="entity_type">Entity Type</option>
+              <option value="webhook">Webhook</option>
+              <option value="generator">Generator</option>
+              <option value="flow">Flow</option>
+              <option value="page">Page</option>
+              <option value="tool">Tool</option>
+              <option value="transition_route_group">Transition Route Group</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:220px">
+            <label for="tool-cxid-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">cx_id</label>
+            <input type="text" id="tool-cxid-input" class="snapshot-input" placeholder="ej. 1d2698dd-0027-4881-a9b4-6970d61885cb">
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text-3);margin-bottom:16px">Se lee el archivo del repositorio que declare este <code>cx_id</code> en su <code>metadata</code>, y el contenido actual de CX &mdash; ambos en fresco, en el momento de pulsar.</p>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-tool-deploy" onclick="ejecutarToolDeployResource()">Desplegar este resource &rarr;</button>
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="tool-deploy-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="tool-deploy-log-block" style="height:150px;overflow-y:auto"></div>
+      </div>
+
+      <div id="tool-deploy-done" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>Resource aplicado en el borrador &#10003;</p></div>
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOL: Vincular agente y repositorio (S22) — onboarding de proyecto nuevo -->
+    <div class="step-view" id="view-tool-onboarding">
+      <div class="phase-eyebrow">Tool &middot; fuera del pipeline<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
+      <div class="phase-title">Vincular agente y repositorio</div>
+      <div class="phase-sub">
+        Solo hace falta una vez por proyecto nuevo. Con estos dos datos, el servidor crea la estructura del repositorio (<code>cx-deploy.yaml</code>, S23), registra el mapeo en Firestore (S4) y trae lo que ya exista en CX.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El servidor no concede permisos IAM por su cuenta (S6b) &mdash; al terminar, te mostrar&aacute; un comando <code>gcloud</code> para ejecutar t&uacute; una vez, fuera del panel.</p>
+      </div>
+
+      <div id="tool-onboarding-start">
+        <div style="margin-bottom:16px;max-width:420px">
+          <label for="tool-agent-id-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">ID del agente CX</label>
+          <input type="text" id="tool-agent-id-input" class="snapshot-input" placeholder="ej. 745375ba-ac7e-4eb8-b8a0-d742891f2aa4">
+        </div>
+        <div style="margin-bottom:20px;max-width:420px">
+          <label for="tool-repo-url-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">URL del repositorio</label>
+          <input type="text" id="tool-repo-url-input" class="snapshot-input" placeholder="https://github.com/usuario/repo">
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-tool-onboarding" onclick="ejecutarToolOnboarding()">Vincular &rarr;</button>
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="tool-onboarding-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="tool-onboarding-log-block" style="height:150px;overflow-y:auto"></div>
+      </div>
+
+      <div id="tool-onboarding-done" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>Proyecto vinculado &#10003;</p></div>
+        <div style="border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--gate);margin-bottom:6px">&#9995; Acci&oacute;n manual pendiente &mdash; ejecuta este comando una vez, fuera del panel (S6b)</div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
+            <code id="tool-comando-iam" style="flex:1;font-size:11px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;word-break:break-all">gcloud projects add-iam-policy-binding &lt;proyecto&gt; --member=serviceAccount:act-cloudrun-sa@cloud-run-multiproyecto.iam.gserviceaccount.com --role=roles/dialogflow.admin</code>
+            <button onclick="copiarComandoIam(this)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- SPECS PANEL -->
+  <aside class="specs-panel collapsed" id="specs-panel">
+    <div class="specs-tab" onclick="toggleSpecsPanel()" title="Ver specs">SPECS</div>
+    <div class="specs-content">
+
+    <div style="font-size:13px;font-weight:700;color:var(--text);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:8px;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="background:rgba(59,130,246,.15);color:var(--accent-light);border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em">SPECS</span>
+        Especificaciones funcionales
+      </div>
+      <span onclick="toggleSpecsPanel()" title="Colapsar specs" style="cursor:pointer;font-size:11px;color:var(--text-3);padding:2px 6px;border-radius:3px;border:1px solid var(--border)" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-3)'">◀</span>
+    </div>
+
+    <!-- Specs generales -->
+    <div class="specs-section">
+      <div class="specs-section-title" onclick="toggleGeneralSpecs()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none">
+        <span>Specs generales</span>
+        <span id="general-specs-arrow" style="font-size:9px;color:var(--text-3);transform:rotate(-90deg);transition:transform .2s;display:inline-block">▼</span>
+      </div>
+      <div id="general-specs-content" style="display:none;flex-direction:column;gap:10px;margin-top:10px">
+        <div class="spec-block">
+          <div class="spec-block-label">La caja donde el sistema va contando</div>
+          <p>Cuando un paso trabaja, va contando lo que hace dentro de <strong>una caja de tamaño fijo</strong>, reservado desde el principio. No crece con el contenido ni empuja lo que hay debajo: si se escriben más líneas de las que caben, se desplazan dentro de la propia caja y la última siempre queda a la vista.</p>
+          <p>As&iacute; la pantalla no se reorganiza mientras miras, y el bot&oacute;n que ibas a pulsar sigue donde estaba. Vale para todos los pasos que hacen algo, no para uno solo.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Cuando algo falla</div>
+          <p>Cualquier paso puede fallar por causas ajenas a quien lo usa: credenciales caducadas, permisos, el repositorio inaccesible, la rama que no est&aacute;, un archivo mal formado, el agente que rechaza algo. En todos esos casos la pantalla se comporta igual: el paso se detiene donde iba, el registro conserva lo que ya hab&iacute;a hecho, y debajo aparece un bloque rojo que dice qu&eacute; se intentaba, qu&eacute; fall&oacute; y &mdash;cuando se puede se&ntilde;alar&mdash; qu&eacute; archivo o qu&eacute; resource lo provoc&oacute;.</p>
+          <p>La salida que ofrece depende de lo que se pueda salvar. <strong>Si el paso no lleg&oacute; a escribir nada</strong>, se reintenta entero: no hay nada a medias que respetar. <strong>Si ya hab&iacute;a escrito parte</strong>, se reintenta solo lo que fall&oacute; y lo que no se lleg&oacute; a intentar, nunca lo que ya sali&oacute; bien &mdash; repetirlo lo escribir&iacute;a dos veces.</p>
+          <p>En ning&uacute;n caso deja pasar al paso siguiente, y en la lista de la izquierda el paso queda marcado como fallido, no como completado.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">Volver atrás y empezar de nuevo</div>
+          <p>Se puede volver a cualquier paso ya recorrido desde la lista de la izquierda, pero solo para mirar. Un paso al que se vuelve queda <strong>entero</strong> en modo lectura: no solo desaparecen sus botones, tambi&eacute;n dejan de poder tocarse sus casillas, sus campos y sus selectores. Y los textos hablan en pasado, de lo que ocurri&oacute;, no de lo que ocurrir&iacute;a.</p>
+          <p>Vale igual para un paso que se ejecut&oacute; y para uno que se atraves&oacute; sin hacer nada: en los dos casos la decisi&oacute;n ya est&aacute; tomada.</p>
+          <p>Ning&uacute;n bot&oacute;n del panel es decorativo: si algo se puede pulsar, hace algo.</p>
+          <p><strong>Empezar de nuevo</strong> vuelve al Paso 1 y no sobrevive nada: ni listas, ni marcas, ni registros, ni eliminaciones apuntadas. Lo ya escrito en el agente o en el repositorio no se deshace &mdash; el pipeline vuelve a leer el estado real desde cero, y por eso lo que qued&oacute; a medias aparecer&aacute; otra vez como diferencia. Antes de hacerlo, la pantalla enumera lo que ya se escribi&oacute; fuera y no se va a deshacer.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Por paso -->
+    <div class="specs-section">
+      <div class="specs-section-title">Specs por paso</div>
+
+      <div id="spec-step-1">
+        <div class="spec-step-title">Paso 1 — Inventario CX</div>
+        <div class="spec-block">
+          <div class="spec-block-label">1.1 — Qué hace</div>
+          <p>Primera pantalla, de solo lectura. Pide el destino en dos selectores encadenados —proyecto y agente— y muestra el repositorio que ese agente resuelve. Un botón, <strong>Iniciar inventario</strong>, apagado hasta tener destino completo.</p>
+          <p>Al pulsarlo corre un registro en vivo: comprueba conexión, lee el agente, lee el repositorio, empareja. Al terminar aparecen tres tarjetas —emparejados, solo en CX, solo en el repositorio—, cada una con su número y su lista, y un botón <strong>Continuar</strong>.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">1.2 — Por qué existe</div>
+          <p>El pipeline trabaja sobre la diferencia entre el agente y el repositorio, y aquí es donde se calcula. Los pasos siguientes solo consumen este reparto: sin él no tendrían nada que ofrecer.</p>
+          <p>Y aquí se elige el agente — la decisión más cara del pipeline, porque desde el Paso 3 se escribe en él. Se elige en la única pantalla que no escribe nada: equivocarse aquí no cuesta.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">1.3 — Qué produce</div>
+          <p>Un destino fijado (proyecto, agente, repositorio, rama), que ya no se toca y reaparece en la barra superior y en los pasos 3, 4 y 5.</p>
+          <p>Un reparto en tres grupos: «solo en CX» pasa al Paso 2, «solo en el repositorio» se convierte en creación en el Paso 3, y los emparejados que difieren se convierten en modificación en el Paso 3.</p>
+          <p>Y la referencia exacta —rama y commit— de lo leído. Nada llega al Paso 2 hasta pulsar Continuar.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">1.4 — Qué escribe y dónde</div>
+          <p><strong>Nada.</strong> Ni en el agente ni en el repositorio. Solo cambia lo que hay en pantalla, así que repetir el inventario da siempre el mismo resultado y equivocarse de agente no deja rastro.</p>
+        </div>
+      </div>
+
+      <div class="spec-step-title" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">Paso 1 — Mecánica propia</div>
+      <div>
+        <div class="spec-block">
+          <div class="spec-block-label">M.1 — Resolución del repositorio</div>
+          <p>No hay selector de repositorio: se elige agente y el repositorio <strong>aparece resuelto</strong>, sin poder editarse. El selector de agente arranca bloqueado hasta elegir proyecto, y cambiar de proyecto borra el agente elegido.</p>
+          <p>Esa asociación no vive en el navegador ni se decide en este paso: la resuelve el servicio que corre en Cloud Run, consultando un almacén propio que persiste aunque el servicio se reinicie. Aquí solo se consulta y se enseña.</p>
+          <p>La caja muestra el repositorio y su rama, o un aviso de que ese agente no tiene repositorio, con un botón para vincularlo — que no vincula nada aquí, solo remite a otra pantalla.</p>
+          <p>Sin repositorio resuelto, el botón de iniciar sigue apagado: no hay contra qué comparar. Si ningún agente del proyecto tiene repositorio, un aviso lo dice arriba antes de tener que descubrirlo uno a uno.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">M.2 — Comprobación de conexión</div>
+          <p>Primera línea del registro: credenciales y acceso al agente, antes de leer nada. Si falla, el paso se detiene ahí — todo lo que vendría después se apoya en ese mismo acceso.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">M.3 — Foto de CX</div>
+          <p>Lee el <strong>borrador</strong> del agente, no lo que ven los usuarios. Reporta un desglose por tipo de recurso y el total del borrador, y los dos tienen que cuadrar.</p>
+          <p>Es una foto fija de ese instante, no una suscripción: si el agente cambia después, hay que repetir el paso para verlo.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">M.4 — Lectura del repositorio</div>
+          <p>Lee una sola rama — la que resolvió el agente, no una que se elija aquí — y reporta de qué rama, de qué commit y cuántos archivos de definición encontró.</p>
+          <p>El commit importa porque fija qué es «el repositorio» durante el resto de la ejecución: sin él, decir que algo difiere no significaría nada.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">M.5 — Emparejamiento</div>
+          <p>Todo lo leído cae en un solo grupo de tres:</p>
+          <p><strong>Emparejados</strong> — están en el agente y un archivo los reclama. Que coincidan o no se decide en el Paso 3, no aquí.<br>
+          <strong>Solo en CX</strong> — existen en el agente y ningún archivo los reclama. Incluye lo nativo del agente, que el Paso 2 filtra aparte.<br>
+          <strong>Solo en el repositorio</strong> — tienen archivo pero no existen en el agente: o nunca se aplicaron, o apuntaban a algo que ya no está.</p>
+          <p>Cada tarjeta enseña su número, una lista desplegable y no cambia nada al abrirse. El registro cierra con estos mismos tres números.</p>
+        </div>
+      </div>
+
+      <div class="spec-step-title" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">Tools</div>
+      <div>
+        <div class="mecanica-header" style="font-size:12px;font-weight:700;color:var(--text);margin:4px 0 8px">T.1 — Desplegar un resource suelto (S20)</div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.1 — Qué hace</div>
+          <p>Formulario de una sola pantalla: tipo de recurso y <code>cx_id</code>. Al pulsar <strong>Desplegar este resource</strong> corre un registro en vivo, del mismo estilo que los de los pasos, y aplica el contenido en el <strong>borrador</strong> de CX.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.2 — Por qué existe</div>
+          <p>Para iterar rápido sobre un solo YAML mientras se ajusta, sin tener que recorrer los 5 pasos completos cada vez que cambia un detalle.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.3 — Qué produce</div>
+          <p>El recurso actualizado en el borrador de CX. No crea versión, no toca ningún entorno, no pasa por el diff completo del Paso 3.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.4 — Qué escribe y dónde</div>
+          <p>Solo el borrador del recurso concreto en CX — Full Update sin <code>updateMask</code> si el tipo lo requiere (S15b). No escribe en el repositorio ni en Firestore.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.5 — Nunca puede llegar a producción</div>
+          <p>El código de esta herramienta solo sabe construir la URL <code>.../{tipo}/{cx_id}</code> — no existe ninguna variable ni parámetro por el que pueda aparecer <code>/environments/</code>. No es una comprobación que pueda fallar: es una capacidad que el código nunca aprendió, así que no hay nada que pueda saltarse.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.1.6 — Datos en fresco, sin foto guardada</div>
+          <p>Lee el archivo del repositorio por su <code>metadata.cx_id</code> (S18) y el estado actual de CX en el momento exacto de pulsar — no depende de ninguna foto guardada de un paso anterior.</p>
+          <p>Pasa por el lock de concurrencia (S13) y queda registrado en el log de auditoría (S12), igual que cualquier otra escritura del pipeline.</p>
+          <p>Mientras se ejecuta, bloquea el resto del panel — igual que cualquier otra acción que escribe (Pasos 2, 3 y 5): no se puede navegar a otro paso ni a la otra Tool a mitad de la escritura.</p>
+        </div>
+
+        <div class="mecanica-header" style="font-size:12px;font-weight:700;color:var(--text);margin:18px 0 8px">T.2 — Vincular agente y repositorio (S22)</div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.1 — Qué hace</div>
+          <p>Formulario de una sola pantalla: ID del agente CX y URL del repositorio. Al pulsar <strong>Vincular</strong>, el servidor crea la estructura del repositorio, registra el mapeo, y trae lo que ya exista en CX.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.2 — Por qué existe</div>
+          <p>Es el paso de onboarding de un proyecto nuevo. Sin él, un agente recién creado no tiene ningún repositorio asociado, y el resto del pipeline no tiene con qué comparar.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.3 — Qué produce</div>
+          <p>El mapeo agente→repositorio en Firestore (S4), la estructura inicial del repositorio con <code>cx-deploy.yaml</code> (S23), y el comando <code>gcloud</code> que hay que ejecutar una vez, a mano, para conceder IAM.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.4 — Qué escribe y dónde</div>
+          <p>En el repositorio (estructura inicial + <code>cx-deploy.yaml</code>) y en Firestore (mapeo agente→repo, región detectada). <strong>Nunca concede IAM por su cuenta</strong> (S6b) — solo muestra el comando exacto para que Jero lo ejecute fuera del panel.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.5 — Región detectada automáticamente</div>
+          <p>Prueba las 17 regiones reales de Dialogflow CX una sola vez, contra el agente elegido, y guarda la que responda — verificado hoy contra Petal (solo <code>europe-west1</code> dio resultado, las otras 16 dieron cero). No se le pide la región a Jero a mano.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.6 — El pull inicial no usa plantillas</div>
+          <p>Lo que ya existe en CX se trae usando el mismo mecanismo de <code>metadata</code>/<code>cx_id</code> que el resto del sistema (S18/S19) — no hay plantillas estáticas guardadas (S21, sustituida). Para el primer recurso de un proyecto totalmente nuevo sin nada que copiar, se piden los datos y se construye el YAML directamente.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">T.2.7 — Bloquea el panel mientras vincula</div>
+          <p>Igual que T.1.6: mientras corre, el resto del panel queda bloqueado — no se puede navegar a otro paso ni a la otra Tool a mitad de la escritura.</p>
+        </div>
+      </div>
+
+      <div class="spec-step-title" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">Paso 1 — Criterios de evaluación</div>
+      <div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">Criterios de evaluación</div>
+          <p>1. El destino se elige en orden: sin proyecto no hay agente, y sin un agente con repositorio no se puede iniciar. Repositorio y rama nunca se editan a mano — los resuelve el agente elegido, y cambiar de agente los actualiza siempre.<br>
+          2. Vincular no vincula nada aquí: remite a otra pantalla, y si ningún agente del proyecto tiene repositorio, lo avisa antes de tener que comprobarlo uno a uno.<br>
+          3. El registro arranca comprobando conexión antes de leer nada; si falla, el paso se detiene ahí.<br>
+          4. Mientras corre, nada más responde: ni selectores, ni lista lateral, ni empezar de nuevo. Y el registro tiene alto fijo — no crece ni empuja lo de abajo.<br>
+          5. Las cifras cuadran entre sí: el desglose por tipo suma el total del agente, el total es emparejados más solo en CX, los archivos del repositorio son emparejados más solo en el repositorio, y la línea de cierre suma las tres tarjetas. Ningún resource aparece en dos grupos a la vez.<br>
+          6. Lo que produce este paso es justo lo que consumen los siguientes: «solo en CX» es lo que el Paso 2 ofrece traer, «solo en el repositorio» son las creaciones del Paso 3, y el agente elegido aquí es el que nombran la barra superior y los pasos siguientes.<br>
+          7. Terminado el inventario, el único botón es Continuar, y hasta pulsarlo el Paso 2 sigue bloqueado.<br>
+          8. Al volver a un paso ya hecho, se ve tal cual quedó: sin botones que lo repitan ni forma de cambiar el destino.<br>
+          9. Empezar de nuevo vacía el resultado y mantiene el destino elegido. Repetir el inventario sobre el mismo destino da el mismo resultado, sin mezclar registros.</p>
+        </div>
+      </div>
+      </div>
+
+
+<div id="spec-step-2" style="display:none">
+        <div class="spec-step-title">Paso 2 — Traer al repositorio</div>
+        <div class="spec-block">
+          <div class="spec-block-label">2.1 — Qué hace</div>
+          <p>Enseña lo que existe en CX y ningún archivo del repositorio reclama, con una casilla por fila. Al marcar y pulsar <strong>Traer al repositorio</strong>, escribe esos archivos de verdad. La otra salida, <strong>Eliminar de CX</strong>, apunta el resource para que se borre en el Paso 3.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">2.2 — Por qué existe</div>
+          <p>Va antes de aplicar nada a propósito: si primero se completa el repositorio, lo que se despliegue después sale de un retrato fiel del agente — no de uno con piezas de menos.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">2.3 — Qué produce</div>
+          <p>Archivos nuevos en el repositorio, con un solo commit para todo lo traído en la misma pulsación. O, por la otra salida, recursos apuntados para borrar que pasan al Paso 3 sin tocar CX todavía.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">2.4 — Qué escribe y dónde</div>
+          <p>En el repositorio, y solo al pulsar Traer al repositorio. En CX no escribe nada, ni siquiera al confirmar una eliminación: eso solo apunta el borrado para el Paso 3, el único que toca el agente.</p>
+        </div>
+                <div class="mecanica-header">2.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">2.5.1 — La deriva</div>
+          <p>El número en naranja cuenta solo lo que <strong>se puede</strong> traer. Lo nativo de la plataforma se lista aparte, deshabilitado y con su motivo, y no cuenta como deriva.</p>
+          <p>Nada viene marcado por defecto — escribir en el repositorio no debería ocurrir por inercia — y el aviso se mantiene siempre visible, aunque no quede nada que traer.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">2.5.2 — El cuadro de acción</div>
+          <p>Debajo de la tarjeta, un cuadro recuerda a qué repositorio y a qué rama se va a escribir, y cuántos van de los marcados. Los botones de traer y eliminar viven dentro y arrancan apagados hasta marcar algo.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">2.5.3 — La traída</div>
+          <p>Al pulsar, escribe de verdad y lo cuenta en un registro de tamaño fijo: qué archivo crea y con qué commit queda. Al terminar confirma que el repositorio está actualizado y recuerda hacer <code>git pull</code> en local.</p>
+          <p>Las filas traídas desaparecen de la lista y el número de deriva baja.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">2.5.4 — Continuar sin modificar</div>
+          <p>Fuera del cuadro de acción, nunca bloqueado mientras esté. Desaparece en cuanto se ejecuta alguna acción: una vez traído algo, ofrecer «sin modificar» sería mentir — en su sitio queda un continuar normal.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">2.5.5 — Eliminar de CX</div>
+          <p>Sobre lo marcado, abre un panel que enseña la lista concreta antes de pedir confirmación. Confirmar no borra nada todavía: apunta esos resources para el Paso 3, para que toda escritura en el agente se decida en un solo sitio.</p>
+          <p>Si lo marcado cambia mientras el panel está abierto, el panel se cierra solo.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">2.6 — Criterios de validación</div>
+          <p>1. Nada viene marcado al entrar, y los botones de traer y eliminar están apagados hasta marcar algo.<br>
+2. El número de deriva cuenta solo lo que se puede traer; lo nativo aparece deshabilitado y no suma.<br>
+3. El cuadro de acción dice a qué repositorio y rama se escribe, y cuántos van de los marcados.<br>
+4. Traer al repositorio escribe de verdad, lo registra, y confirma con el recordatorio de <code>git pull</code>.<br>
+5. Lo traído desaparece de la lista y el número de deriva baja en la misma cantidad.<br>
+6. Eliminar de CX pide confirmación con la lista exacta antes de apuntar el borrado, y no toca CX en este paso.<br>
+7. Si lo marcado cambia con el panel de eliminar abierto, el panel se cierra solo.<br>
+8. Continuar sin modificar está fuera del cuadro, nunca bloqueado, y desaparece en cuanto se ejecuta una acción.<br>
+9. Al volver a este paso ya recorrido, se ve tal cual quedó: sin botones ni casillas que respondan.</p>
+        </div>
+      </div>
+
+            
+<div id="spec-step-3" style="display:none">
+        <div class="spec-step-title">Paso 3 — Aplicar en CX</div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.1 — Qué hace</div>
+          <p>Enseña, fila a fila, lo que el repositorio va a escribir en el agente: resource, archivo de origen y si se va a crear o modificar. Se marca lo que se quiera aplicar y se pulsa <strong>Aplicar en CX</strong>; el resto queda como diferencia pendiente.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.2 — Por qué existe</div>
+          <p>Es el primer paso que toca el agente — todo lo anterior era leer, ordenar y traer. Por eso nada viene marcado y el botón arranca apagado: hay que decir explícitamente qué se escribe.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.3 — Qué produce</div>
+          <p>El <strong>borrador</strong> del agente actualizado con lo marcado, y un registro de qué se aplicó y qué falló. Ningún usuario ve este cambio todavía — eso es el Paso 5.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.4 — Qué escribe y dónde</div>
+          <p>En el borrador del agente, y solo al pulsar Aplicar. No toca producción ni el repositorio.</p>
+        </div>
+                <div class="mecanica-header">3.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">3.5.1 — Lo que se va a aplicar</div>
+          <p>Una fila por resource con su tipo, su nombre, el archivo del que sale y la operación: <strong>crear</strong> lo que aún no existe, <strong>modificar</strong> lo que existe y difiere. Las eliminaciones decididas en el Paso 2 aparecen aquí también, sin archivo del que salgan.</p>
+          <p>Nada viene marcado por defecto: escribir en el agente no debería ocurrir por inercia.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.5.2 — El cuadro de acción</div>
+          <p>Debajo de la tabla, un cuadro recuerda sobre qué proyecto y qué agente se va a escribir, y cuántos resources van de los marcados. El botón de aplicar vive dentro y arranca apagado.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.5.3 — Continuar sin modificar</div>
+          <p>Fuera del cuadro de acción, nunca bloqueado mientras esté. Desaparece en cuanto se aplica algo — una vez modificado, ofrecer «sin modificar» sería mentir.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.5.4 — El aviso de los cambios que no admiten versión</div>
+          <p>Hay unos pocos tipos de resource que no admiten versión. Si entre lo marcado hay alguno, el cuadro avisa antes de confirmar: ese cambio no se queda en el borrador — lo verán los usuarios en el mismo instante en que lo apliques, sin pasar por los tests del Paso 4.</p>
+          <p>No bloquea, pero es el único caso del pipeline en el que el Paso 4 no protege nada.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.5.5 — De dónde sale esta lista</div>
+          <p>Del mapa del Paso 1, comparando el contenido de cada resource emparejado con el de su archivo, más las eliminaciones decididas en el Paso 2. La comparación se hace al entrar en este paso, así que lo que se acaba de traer al repositorio ya cuenta como igual en los dos sitios.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.5.6 — Lo que no se marca</div>
+          <p>No se aplica y no desaparece: sigue siendo diferencia. Al terminar, la lista se queda en pantalla, cada fila dice si se aplicó o quedó fuera, y las casillas dejan de poder tocarse.</p>
+          <p>Para aplicarlo hay que arrancar el pipeline de nuevo: al releer, la diferencia pendiente vuelve a aparecer.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">3.5.7 — Terminar en el borrador</div>
+          <p>Es la salida normal cuando el deploy no va a publicarse: los resources aplicados se quedan en el borrador del agente, ningún usuario los ve, y producción sigue sirviendo la versión anterior.</p>
+          <p>No se deshace nada. Los cambios están en el borrador, un espacio de trabajo que no ve ningún usuario: se corrigen los archivos en el repositorio y se vuelve a aplicar.</p>
+          <p>Un deploy nuevo vuelve a leer el estado real del agente: lo que se dejó en el borrador aparecerá ya como igual en los dos sitios, sin pendientes.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">3.6 — Criterios de validación</div>
+          <p>1. Nada viene marcado al entrar, y el botón de aplicar está apagado hasta marcar algo.<br>
+2. Cada fila dice de qué archivo sale el cambio; las eliminaciones dicen que vienen decididas del paso anterior.<br>
+3. El cuadro de acción dice sobre qué proyecto y agente se escribe, y cuántos van de los marcados.<br>
+4. Si hay cambios que no admiten versión, el cuadro avisa antes de confirmar.<br>
+5. Al aplicar, el registro cuenta exactamente los resources marcados — ni uno más, ni uno menos.<br>
+6. Terminado el paso, lo aplicado queda marcado como tal y lo no marcado sigue pendiente, visible y sin poder tocarse.<br>
+7. Continuar sin modificar está fuera del cuadro, nunca bloqueado, y desaparece en cuanto se aplica algo.<br>
+8. Si algo falla, se reintenta solo lo fallido y lo no intentado — nunca lo que ya salió bien.<br>
+9. Al volver a este paso ya recorrido, se ve tal cual quedó: sin botones ni casillas que respondan.<br>
+10. Al terminar el deploy con éxito hay dos salidas: continuar al Paso 4 y terminar aquí. Terminar pide confirmación enumerando lo que se queda escrito y no se va a deshacer; al confirmar vuelve al Paso 1 limpio.</p>
+        </div>
+      </div>
+
+            
+<div id="spec-step-4" style="display:none">
+        <div class="spec-step-title">Paso 4 — Validar tests</div>
+        <div class="spec-block">
+          <div class="spec-block-label">4.1 — Qué hace</div>
+          <p>Pide lanzar la suite de pruebas por cuenta propia contra el borrador y declarar aquí el resultado: <strong>Tests superados</strong> continúa al Paso 5, <strong>Tests fallidos</strong> abre un aviso con la salida para corregir.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">4.2 — Por qué existe</div>
+          <p>El paso siguiente sube a producción. Este es el último punto donde alguien mira antes de que los cambios lleguen a usuarios reales.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">4.3 — Qué produce</div>
+          <p>Una decisión — seguir o corregir — nada más. No crea ni modifica ningún resource.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">4.4 — Qué escribe y dónde</div>
+          <p><strong>Nada.</strong> Es un punto de decisión, no una operación.</p>
+        </div>
+                <div class="mecanica-header">4.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">4.5.1 — Es una declaración, no una comprobación</div>
+          <p>El panel no lanza los tests ni conoce su resultado: los lanza quien lo usa, fuera del panel, y aquí solo declara cómo han ido. La pantalla lo dice con esas palabras, para que nadie confunda el botón con una verificación.</p>
+          <p>Es la limitación conocida del paso: declarar «superados» sin haberlos lanzado llega directo al gate de producción y nada lo detecta.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">4.5.2 — Se prueba contra el draft</div>
+          <p>No hace falta crear ninguna versión ni publicar en ningún entorno intermedio para probar: se prueba el borrador, que es donde se acaban de aplicar los cambios.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">4.5.3 — Si fallan, no se revierte nada</div>
+          <p>Los cambios están en el borrador, un espacio de trabajo que no ve ningún usuario. No hay nada que deshacer: se corrigen los archivos en el repositorio y se vuelve a aplicar.</p>
+          <p>Revertir el borrador sería destructivo y a ciegas — se llevaría todo lo acumulado, no solo lo que falló, y no hay forma de saber qué estado anterior era bueno.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">4.6 — Criterios de validación</div>
+          <p>1. El paso deja claro que el siguiente sube a producción, antes de pedir nada.<br>
+2. Dice con todas las letras que no lanza los tests: lo que se marque es una declaración propia.<br>
+3. Hay un enlace directo para abrir el agente y probarlo.<br>
+4. Ninguna de las dos salidas viene elegida de antemano.<br>
+5. Al declarar fallidos, no se ofrece revertir nada — el texto explica por qué.<br>
+6. Al declarar fallidos, se puede volver al cuadro de validación para declarar otra vez, o empezar de nuevo.<br>
+7. No hay forma de llegar al Paso 5 sin haber pasado por aquí.</p>
+        </div>
+      </div>
+
+            
+<div id="spec-step-5" style="display:none">
+        <div class="spec-step-title">Paso 5 — Publicar en producción</div>
+        <div class="spec-block">
+          <div class="spec-block-label">5.1 — Qué hace</div>
+          <p>Propone un nombre de versión y, al confirmar, publica: fusiona el código validado, crea la versión con el borrador actual y apunta producción a ella. Debajo, un desplegable cerrado permite consultar y limpiar versiones anteriores.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">5.2 — Por qué existe</div>
+          <p>Es el único paso que afecta a usuarios reales, y por eso está separado de todo lo demás: hasta aquí, nada de lo hecho era visible fuera del panel.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">5.3 — Qué produce</div>
+          <p>Una versión con nombre, producción sirviéndola, y el código fusionado en la rama principal del repositorio.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">5.4 — Qué escribe y dónde</div>
+          <p>En CX y en el repositorio, y solo al confirmar. Es la escritura más consecuente del pipeline — por eso la cabecera lleva la etiqueta que lo advierte.</p>
+        </div>
+                <div class="mecanica-header">5.5 — Mecánica propia</div>
+<div class="spec-block">
+          <div class="spec-block-label">5.5.1 — Las tres acciones, en orden</div>
+          <p>Primero el código se fusiona en la rama principal, después se crea la versión con el borrador actual, y solo entonces producción pasa a apuntar a ella.</p>
+          <p>El orden no es decorativo: si se promoviera antes de fusionar y el merge fallara, producción estaría sirviendo algo cuyo código no está en la rama principal, y nadie podría reconstruir después qué está corriendo.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">5.5.2 — El borrador movido detiene el paso</div>
+          <p>Si el borrador ha cambiado desde que se declararon los tests superados, el paso se detiene y no publica: lo que subiría no es lo que se probó, y publicarlo llevaría a usuarios reales algo que nadie validó.</p>
+          <p>Detenerse no deshace nada. Lo aplicado permanece en el borrador, que no ve ningún usuario; no se fusiona nada, no se crea ninguna versión y producción sigue sirviendo lo de antes. No hay nada que revertir. La salida es arrancar el pipeline de nuevo y volver a validar, igual que cuando los tests fallan.</p>
+          <p>Quien lo garantiza es el servidor, no el panel: comprueba el estado del borrador antes de fusionar y antes de crear ninguna versión, así que se detiene sin dejar nada a medias. El panel lo bloquea para que se entienda, no para que el sistema esté protegido.</p>
+        </div>
+        <div class="spec-block">
+          <div class="spec-block-label">5.5.3 — La versión se crea aquí</div>
+          <p>No antes. Se crea con el borrador ya probado, en el mismo gesto que la publica, para que no haya hueco entre lo que se validó y lo que se sube.</p>
+        </div>
+        <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
+          <div class="spec-block-label" style="color:var(--gate)">5.6 — Criterios de validación</div>
+          <p>1. Antes de confirmar, se recuerda que la acción afecta a usuarios reales, y sobre qué proyecto y agente.<br>
+2. Se enumeran las tres acciones y su orden antes de confirmar.<br>
+3. Se propone un nombre de versión y se puede cambiar.<br>
+4. Si el borrador cambió después de declarar los tests, el paso queda detenido: el botón de publicar no responde, y la única salida que se ofrece es arrancar el pipeline de nuevo.<br>
+5. Mientras se publica, se ve cada acción a medida que ocurre, con el mismo orden anunciado.<br>
+6. Al terminar, el resumen enumera las mismas tres acciones que anunció el cuadro de confirmación.<br>
+7. El comando para poner al día la copia local lleva la ruta propia dentro, y se recuerda entre publicaciones.<br>
+8. Se puede consultar y eliminar versiones existentes; las que un entorno está sirviendo no se dejan marcar.<br>
+9. Al terminar, queda claro que la publicación ya la están viendo los usuarios.</p>
+        </div>
+            
+</div>
+
+    </div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+const DIFF_COUNT = 4;
+const TEST_COUNT = 42;
+const DEPLOY_SIMULATE_FAIL         = false;
+const PRODUCTION_SIMULATE_CONFLICT = false;
+
+const STEPS = [
+  {id:1, name:'Inventario CX',           sub:'',  gate:false},
+  {id:2, name:'Traer al repositorio',    sub:'',  gate:true},
+  {id:3, name:'Aplicar en CX',           sub:'',  gate:true},
+  {id:4, name:'Validar tests',           sub:'',  gate:true},
+  {id:5, name:'Publicar en producción',  sub:'',  gate:true},
+];
+
+let stepStates = ['active','pending','pending','pending','pending'];
+let current = 1;
+let viewingStep = 1;
+let viewingStepBeforeTool = 1;
+let versionLabel = '';
+let isRunning = false;
+let animVersion = 0;
+let deployAcciones = [];   // lo que se aplicó en el Paso 3, leído de la tabla
+let paso3Cerrado = false;  // el Paso 3 ya se ejecutó: la tabla deja de editarse
+
+// Tipos que no tienen versión en CX: lo que se les aplique se ve en el acto,
+// sin pasar por los tests del Paso 4.
+const TIPOS_SIN_VERSION = ['Agent Config', 'Generator'];
+
+function toggleGeneralSpecs() {
+  const content = document.getElementById('general-specs-content');
+  const arrow = document.getElementById('general-specs-arrow');
+  const open = content.style.display !== 'none';
+  content.style.display = open ? 'none' : 'flex';
+  arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
+function toggleSpecsPanel() {
+  const panel = document.getElementById('specs-panel');
+  panel.classList.toggle('collapsed');
+}
+
+function setRunning(val) {
+  isRunning = val;
+  document.getElementById('sidebar').style.opacity = val ? '0.4' : '1';
+  document.getElementById('sidebar').style.pointerEvents = val ? 'none' : '';
+  const btn = document.getElementById('btn-reset');
+  if (btn) { btn.disabled = val; btn.style.opacity = val ? '0.4' : '1'; btn.style.pointerEvents = val ? 'none' : ''; }
+}
+
+const INV_LINES = [
+  {cls:'dim', text:'· Comprobando conexión'},
+  {cls:'ok',  text:'✓ Credenciales válidas · acceso al agente confirmado'},
+  {cls:'dim', text:'· Leyendo Dialogflow CX'},
+  {cls:'ok',  text:'✓ Playbooks (4) · Examples (11) · Tools (2) · Flows (1) · Pages (6)'},
+  {cls:'ok',  text:'✓ Intents (8) · Entity Types (3) · Webhooks (1) · Generators (2) · Config (1) · Environments (2) · Versions (5)'},
+  {cls:'ok',  text:'✓ 46 resources en el draft'},
+  {cls:'dim', text:'· Leyendo el repositorio'},
+  {cls:'ok',  text:'✓ staging · commit 98fcbdd · 44 archivos YAML'},
+  {cls:'ok',  text:'✓ Emparejados 42 · solo en CX 4 · solo en el repositorio 2'},
+];
+
+
+function onProjectSelected() {
+  const proj = document.getElementById('project-select').value;
+  // Si ningún agente del proyecto tiene repositorio, el paso es inútil:
+  // más vale decirlo antes de que Jero recorra los selectores uno a uno.
+  const agentes = [...document.getElementById('agent-select').options]
+    .map(o => o.value).filter(Boolean);
+  const alguno = agentes.some(a => REPOS_POR_AGENTE[a]);
+  document.getElementById('aviso-sin-repos').style.display =
+    (proj && agentes.length && !alguno) ? 'block' : 'none';
+  const agentSel = document.getElementById('agent-select');
+  agentSel.disabled = !proj;
+  agentSel.value = '';
+  document.getElementById('btn-start-inventory').disabled = true;
+}
+
+// Un agente tiene como máximo un repositorio, y el mapeo lo guarda el
+// servidor. Por eso no hay selector de repositorio: elegir agente lo resuelve.
+const REPOS_POR_AGENTE = {
+  'petal-1.0': 'jeronimosanchez/cx-automation-template',
+  'petal-voz': null,          // registrado en CX pero aún sin vincular
+};
+
+// Cada agente tiene su propia dirección en la consola de CX. La genérica solo
+// se usa mientras no hay ninguno elegido.
+const URL_CONSOLA_CX = 'https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents';
+const URL_AGENTE = {
+  'petal-1.0': URL_CONSOLA_CX + '/745375ba-ac7e-4eb8-b8a0-d742891f2aa4',
+};
+
+function onAgentSelected() {
+  const agentSelect = document.getElementById('agent-select');
+  const agent = agentSelect.value;
+  const caja = document.getElementById('repo-resuelto');
+  const repo = REPOS_POR_AGENTE[agent];
+
+  if (!agent) {
+    caja.innerHTML = '<span style="color:var(--text-3)">&mdash;</span>';
+  } else if (repo) {
+    caja.innerHTML = `<span style="color:var(--success)">&#10003;</span>
+      <code style="color:var(--text-2)">${repo}</code>
+      <span style="color:var(--text-3);margin-left:auto">rama staging</span>`;
+  } else {
+    // Sin repositorio no hay contra qué comparar: el paso no puede arrancar.
+    caja.innerHTML = `<span style="color:var(--gate)">&#9888;</span>
+      <span style="color:var(--text-2)">Este agente no tiene repositorio vinculado</span>
+      <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 10px"
+              onclick="alert('Abre la pestaña Proyectos para vincularlo.')">Vincular &rarr;</button>`;
+  }
+  document.getElementById('btn-start-inventory').disabled = !agent || !repo;
+  if (agent) {
+    document.getElementById('topbar-agent').textContent = agentSelect.options[agentSelect.selectedIndex].textContent;
+    const nombre = agentSelect.options[agentSelect.selectedIndex].textContent;
+    document.getElementById('gate4-agent').textContent = nombre;
+  }
+  // El enlace del Paso 4 tiene que abrir el agente que está seleccionado, no
+  // la consola genérica.
+  const enlace = document.getElementById('enlace-agente-cx');
+  if (enlace) enlace.href = URL_AGENTE[agent] || URL_CONSOLA_CX;
+}
+
+function startInventory() {
+  const v = ++animVersion;
+  setRunning(true);
+  document.getElementById('inv-start').style.display = 'none';
+  document.getElementById('inv-log').style.display = 'block';
+  const logBlock = document.getElementById('inv-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if (animVersion !== v) return;
+    if(i >= INV_LINES.length) {
+      setTimeout(() => {
+        document.getElementById('inv-done').style.display = 'block';
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    const line = INV_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    logBlock.scrollTop = logBlock.scrollHeight;
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function resetInventoryUI() {
+  document.getElementById('inv-start').style.display = 'block';
+  document.getElementById('inv-log').style.display = 'none';
+  document.getElementById('inv-done').style.display = 'none';
+  document.getElementById('inv-log-block').innerHTML = '';
+  // Se recalcula en vez de vaciarse: si el agente sigue elegido, la caja del
+  // repositorio y el botón de iniciar tienen que decir lo mismo que él.
+  onAgentSelected();
+}
+
+function toggleGrupo(card) {
+  const extra  = card.querySelector('.grupo-extra');
+  const toggle = card.querySelector('.grupo-toggle');
+  const abierto = extra.style.display !== 'none';
+  extra.style.display = abierto ? 'none' : 'inline';
+  toggle.innerHTML = toggle.innerHTML.replace(abierto ? '▴' : '▾', abierto ? '▾' : '▴');
+}
+
+// El pie de cada tarjeta confirma cuántos van y hacia dónde, sin pedir un
+// clic extra. Cambia al marcar y desmarcar.
+// Tras traer o encolar un borrado hay que recalcular tres cosas a la vez:
+// el contador, el mensaje y la casilla de marcar todos. Hacerlo en un solo
+// sitio evita que se queden desincronizados entre sí.
+function refrescarDeriva() {
+  const filas = document.querySelectorAll('#tabla-repo tbody tr');
+  const traibles = document.querySelectorAll('#tabla-repo tbody input:not(:disabled)');
+  const aviso = document.getElementById('aviso-deriva');
+  const num = document.getElementById('num-deriva');
+
+  if (!filas.length) {
+    aviso.innerHTML = '<span style="color:var(--success)">&#10003; Ya no queda nada en CX sin respaldo en el repositorio</span>';
+  } else if (!traibles.length) {
+    // Lo que queda existe en CX y no tiene archivo, pero no se puede traer:
+    // no es deriva que se pueda resolver, así que deja de avisar en ámbar.
+    aviso.innerHTML = '<span style="color:var(--text-3)">Solo queda lo que no se puede traer al repositorio</span>';
+  } else if (num) {
+    num.textContent = traibles.length;
+    aviso.innerHTML = '&#9888; <span id="num-deriva">' + traibles.length + '</span> resource' +
+      (traibles.length === 1 ? '' : 's') + ' en CX sin respaldo en el repositorio';
+  }
+
+  const todos = document.getElementById('sel-todos-repo');
+  if (todos) {
+    todos.disabled = !traibles.length;
+    todos.checked = traibles.length > 0 &&
+      [...traibles].every(c => c.checked);
+  }
+  const todosCx = document.getElementById('sel-todos-cx');
+  if (todosCx) {
+    const cx = [...document.querySelectorAll('#tabla-cx tbody input:not(:disabled)')];
+    todosCx.checked = cx.length > 0 && cx.every(c => c.checked);
+  }
+}
+
+function actualizarPies() {
+  const cuenta = id => ({
+    marcadas: document.querySelectorAll('#' + id + ' tbody input[type=checkbox]:checked:not(:disabled)').length,
+    total:    document.querySelectorAll('#' + id + ' tbody input[type=checkbox]:not(:disabled)').length,
+  });
+  const cx = cuenta('tabla-cx'), repo = cuenta('tabla-repo');
+  const pieCx = document.getElementById('pie-cx');
+  const pieRepo = document.getElementById('pie-repo');
+  const contadorGate = document.getElementById('deploy-count');
+  if (contadorGate) contadorGate.textContent = cx.marcadas;
+  const contadorTraer = document.getElementById('traer-count');
+  if (contadorTraer) contadorTraer.textContent = repo.marcadas;
+  const botonAplicar = document.getElementById('btn-confirm-deploy');
+  if (botonAplicar) botonAplicar.disabled = cx.marcadas === 0;
+  actualizarAvisoSinVersion();
+  // Un botón que no puede hacer nada no debe parecer que puede
+  ['btn-traer', 'btn-eliminar'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = repo.marcadas === 0;
+  });
+  if (pieCx && !paso3Cerrado) pieCx.innerHTML = cx.marcadas
+    ? `<strong style="color:#93c5fd">${cx.marcadas} de ${cx.total}</strong> se aplicar&aacute;n en CX al continuar`
+    : '<span style="color:var(--text-3)">Nada marcado &mdash; no se tocar&aacute; CX</span>';
+  const filasRepo = document.querySelectorAll('#tabla-repo tbody tr').length;
+  if (pieRepo) pieRepo.innerHTML = repo.total === 0
+    ? (filasRepo === 0
+        ? '<span style="color:var(--success)">&#10003; No queda nada suelto en CX</span>'
+        : '<span style="color:var(--text-3)">Nada que traer &mdash; lo que queda no se puede llevar al repositorio</span>')
+    : (repo.marcadas
+      ? `<strong style="color:var(--gate)">${repo.marcadas} de ${repo.total}</strong> se traer&aacute;n al repositorio al pulsar el bot&oacute;n`
+      : '<span style="color:var(--text-3)">Nada marcado &mdash; todos se quedan solo en CX</span>');
+}
+
+// El aviso solo tiene sentido si entre lo marcado hay algún tipo sin versión:
+// se enciende al marcar esa fila y se apaga al desmarcarla.
+function actualizarAvisoSinVersion() {
+  const aviso = document.getElementById('agent-config-warning');
+  if (!aviso) return;
+  const hay = filasMarcadas('tabla-cx')
+    .some(f => TIPOS_SIN_VERSION.includes(f.cells[1].textContent.trim()));
+  aviso.style.display = hay ? 'block' : 'none';
+}
+
+function marcarTodos(tablaId, marcado) {
+  document.querySelectorAll('#' + tablaId + ' tbody input[type=checkbox]:not(:disabled)')
+    .forEach(c => c.checked = marcado);
+  actualizarPies();
+  refrescarDeriva();
+}
+
+function filasMarcadas(tablaId) {
+  return [...document.querySelectorAll('#' + tablaId + ' tbody tr')]
+    .filter(f => { const c = f.querySelector('input[type=checkbox]'); return c && c.checked && !c.disabled; });
+}
+
+function traerAlRepo() {
+  const filas = filasMarcadas('tabla-repo');
+  if (!filas.length) return;
+  const nombres = filas.map(f => f.cells[2].querySelector('code').textContent);
+  setRunning(true);
+  document.getElementById('btn-traer').disabled = true;
+  document.getElementById('btn-eliminar').disabled = true;
+  // Una acción que escribe fuera no puede terminar en un aviso y ya: hace
+  // falta ver qué se escribió y dónde queda el repositorio después.
+  const caja = document.getElementById('traer-log');
+  const bloque = document.getElementById('traer-log-block');
+  caja.style.display = 'block';
+  bloque.innerHTML = '';
+  const lineas = [{cls:'dim', text:'· Escribiendo en jeronimosanchez/cx-automation-template · staging'}]
+    .concat(nombres.map(n => ({cls:'ok', text:'✓ ' + n + '.yaml creado'})))
+    .concat([{cls:'ok', text:'✓ commit 4a91c02 · ' + nombres.length + ' archivos nuevos'}]);
+  let i = 0;
+  (function siguiente() {
+    if (i >= lineas.length) {
+      filas.forEach(f => f.remove());
+      const quedan = document.querySelectorAll('#tabla-repo tbody tr').length;
+      refrescarDeriva();
+      document.getElementById('traer-done').style.display = 'block';
+      document.getElementById('sin-modificar-2').style.display = 'none';
+      actualizarPies();
+      setRunning(false);
+      return;
+    }
+    const l = lineas[i++];
+    bloque.insertAdjacentHTML('beforeend', `<div class="log-line ${l.cls}">${l.text}</div>`);
+    bloque.scrollTop = bloque.scrollHeight;
+    setTimeout(siguiente, 420);
+  })();
+}
+
+// Borrar es la única acción destructiva del paso: se enseña qué se borra
+// antes de pedir la confirmación, no después.
+function pedirEliminarDeCx() {
+  const filas = filasMarcadas('tabla-repo');
+  if (!filas.length) { alert('No hay nada marcado.'); return; }
+  document.getElementById('lista-borrado').innerHTML =
+    filas.map(f => '· ' + f.cells[1].textContent + ' · ' + f.cells[2].textContent.trim()).join('<br>');
+  document.getElementById('confirmar-borrado').style.display = 'block';
+}
+
+function confirmarEliminarDeCx() {
+  const cuerpoCx = document.querySelector('#tabla-cx tbody');
+  filasMarcadas('tabla-repo').forEach(f => {
+    const tipo = f.cells[1].textContent, nombre = f.cells[2].querySelector('code').textContent;
+    // Lo que se decide borrar deja de ser deriva y pasa a ser una operación
+    // más de las que se aplican en CX — así todo lo que se escribe está en
+    // una sola lista.
+    cuerpoCx.insertAdjacentHTML('beforeend',
+      `<tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>${tipo}</td><td><code>${nombre}</code></td>` +
+      `<td><code style="color:var(--text-3)">&mdash;</code></td><td><span class="pill pill-del">Eliminar</span></td></tr>`);
+    f.remove();
+  });
+  document.getElementById('confirmar-borrado').style.display = 'none';
+  const quedan = document.querySelectorAll('#tabla-repo tbody tr').length;
+  refrescarDeriva();
+  actualizarPies();
+}
+
+function toggleVersiones() {
+  const panel = document.getElementById('panel-versiones');
+  const boton = document.getElementById('btn-ver-versiones');
+  const abierto = panel.style.display !== 'none';
+  panel.style.display = abierto ? 'none' : 'block';
+  boton.innerHTML = abierto ? 'Ver versiones existentes &#9662;' : 'Ocultar versiones existentes &#9652;';
+  if (!abierto) renderVersionPool();
+}
+
+// Marcar aquí sirve para una sola cosa: eliminar. No hay que marcar nada
+// para publicar.
+function renderVersionPool() {
+  const lista = document.getElementById('version-pool-list');
+  if (!lista) return;
+  lista.innerHTML = VERSIONES.map(v => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+      <input type="checkbox" class="chk-version" ${v.fijadaPor ? 'disabled' : ''} onchange="actualizarBorrarVersiones()"
+             style="width:15px;height:15px;accent-color:var(--error);cursor:${v.fijadaPor ? 'not-allowed' : 'pointer'}">
+      <code style="flex:1;font-size:12px;color:var(--text-2)">${v.nombre}</code>
+      <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${v.creada}</span>
+      <span style="font-size:11px;color:${v.fijadaPor ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:120px;text-align:right">${v.fijadaPor ? 'en uso por ' + v.fijadaPor : ''}</span>
+    </div>`).join('');
+  document.getElementById('version-pool-summary').innerHTML =
+    `${VERSIONES.length} versiones guardadas. Las que un entorno est&aacute; usando no se pueden eliminar.`;
+  actualizarBorrarVersiones();
+}
+
+function actualizarBorrarVersiones() {
+  const n = document.querySelectorAll('.chk-version:checked').length;
+  const b = document.getElementById('btn-borrar-versiones');
+  if (!b) return;
+  b.disabled = n === 0;
+  b.textContent = n ? `Eliminar ${n} ${n === 1 ? 'versi\u00f3n' : 'versiones'}` : 'Eliminar versiones marcadas';
+}
+
+function borrarVersiones() {
+  const marcadas = [...document.querySelectorAll('.chk-version:checked')];
+  if (!marcadas.length) return;
+  if (!confirm(`Se van a eliminar ${marcadas.length} versiones del agente. No se puede deshacer.`)) return;
+  marcadas.forEach(c => c.closest('div').remove());
+  document.getElementById('version-pool-summary').innerHTML =
+    `${document.querySelectorAll('#version-pool-list > div').length} versiones guardadas.`;
+  actualizarBorrarVersiones();
+}
+
+/* ── El draft que se validó ──────────────────────────────────────────────
+   Al declarar los tests superados se guarda cómo estaba el draft en ese
+   momento, y al entrar en el Paso 5 se vuelve a mirar: si no coincide, lo
+   que se va a publicar no es lo que se probó.
+
+   En la maqueta basta con una bandera. En el sistema real la comparación se
+   hace contra el draft leído de CX, no contra lo que el panel recuerde haber
+   aplicado: el draft puede haberse tocado desde la consola del agente sin
+   que el panel se haya usado para nada.                                    */
+const SIMULAR_DRAFT_MOVIDO = false;
+let draftAlValidar = null;
+let huellaSecuencia = 0;
+
+function huellaDraft() {
+  // Con la bandera activada la huella cambia en cada lectura, que es lo que
+  // ocurriría si alguien hubiera tocado el draft entre un paso y el otro.
+  return SIMULAR_DRAFT_MOVIDO ? 'draft-' + (++huellaSecuencia) : 'draft-sin-cambios';
+}
+
+function validarTests() {
+  draftAlValidar = huellaDraft();
+  advance(4);
+}
+
+function marcarTestsFallidos() {
+  document.getElementById('tests-gate').style.display = 'none';
+  document.getElementById('tests-fail').style.display = 'block';
+}
+
+// Corregir y reprobar no obliga a salir del panel: se vuelve al cuadro de
+// validación y se declara otra vez.
+function volverAValidacion() {
+  document.getElementById('tests-fail').style.display = 'none';
+  document.getElementById('tests-gate').style.display = 'block';
+}
+
+function renderStep3Diff() {
+  actualizarPies();
+  document.getElementById('diff-has-changes').style.display = DIFF_COUNT > 0 ? 'block' : 'none';
+  document.getElementById('diff-no-changes').style.display  = DIFF_COUNT > 0 ? 'none'  : 'block';
+}
+
+/* En la maqueta esto solo decide cómo termina cada fila en la simulación:
+   si sale bien o si el agente la rechaza. Nunca decide QUÉ se aplica —
+   eso sale siempre de las filas marcadas en la tabla.                     */
+const DEPLOY_RESOURCES = {
+  'Compra':       {ok: true},
+  'Orquestador':  {ok: true},
+  'Petal 1.0':    {ok: true},
+  'Devoluciones': {ok: false, errText:'ERROR 400: campo "steps" no válido'},
+  'registro_04':  {ok: true},
+};
+
+// Lo que se aplica se lee de la tabla, fila a fila: tipo, nombre y operación
+// salen de la propia fila marcada.
+function accionesMarcadas() {
+  return filasMarcadas('tabla-cx').map(f => {
+    const tipo   = f.cells[1].textContent.trim();
+    const nombre = f.cells[2].querySelector('code').textContent.trim();
+    const op     = f.cells[4].textContent.trim();
+    const sim    = DEPLOY_RESOURCES[nombre] || {ok: true};
+    return {
+      fila: f, tipo, nombre, op,
+      label: `${tipo} · ${nombre} · ${op}`,
+      ok: sim.ok !== false,
+      errText: sim.errText || 'ERROR 400: el agente ha rechazado el recurso',
+      cls: op === 'Eliminar' ? 'del' : 'ok',
+    };
+  });
+}
+
+// Al terminar, la lista se queda en pantalla pero deja de ser editable: cada
+// fila dice si se aplicó o si quedó fuera, y lo que quedó fuera sigue siendo
+// una diferencia entre el repositorio y el agente.
+function cerrarTablaCx(aplicadas) {
+  paso3Cerrado = true;
+  const nombresAplicados = new Set(aplicadas.map(a => a.nombre));
+  const selTodos = document.getElementById('sel-todos-cx');
+  if (selTodos) { selTodos.checked = false; selTodos.disabled = true; }
+  const filas = [...document.querySelectorAll('#tabla-cx tbody tr')];
+  filas.forEach(f => {
+    const chk = f.querySelector('input[type=checkbox]');
+    if (chk) chk.disabled = true;
+    const nombre = f.cells[2].querySelector('code').textContent.trim();
+    const dentro = nombresAplicados.has(nombre);
+    f.cells[4].insertAdjacentHTML('beforeend',
+      dentro
+        ? ' <span class="pill pill-ok">Aplicado</span>'
+        : ' <span class="pill pill-dim">Qued&oacute; fuera</span>');
+    if (!dentro) f.style.opacity = '.55';
+  });
+  const pieCx = document.getElementById('pie-cx');
+  const fuera = filas.length - aplicadas.length;
+  if (pieCx) pieCx.innerHTML = aplicadas.length
+    ? `<strong style="color:#93c5fd">${aplicadas.length} de ${filas.length}</strong> se aplicaron en CX` +
+      (fuera ? ` &middot; <span style="color:var(--text-3)">los otros ${fuera} siguen siendo una diferencia entre el repositorio y el agente</span>` : '')
+    : '<span style="color:var(--text-3)">No se aplic&oacute; nada &mdash; CX no se ha tocado</span>';
+}
+
+function confirmDeploy() {
+  const acciones = accionesMarcadas();
+  if (!acciones.length) return;
+  deployAcciones = acciones;
+  const v = ++animVersion;
+  setRunning(true);
+  // Al elegir modificar, la salida "sin modificar" deja de tener sentido
+  document.getElementById('sin-modificar-3').style.display = 'none';
+  document.getElementById('deploy-gate').style.display = 'none';
+  document.getElementById('deploy-log').style.display = 'block';
+  document.getElementById('deploy-fail').style.display = 'none';
+  const failAt = DEPLOY_SIMULATE_FAIL ? acciones.findIndex(r => !r.ok) : -1;
+  const logBlock = document.getElementById('deploy-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if (animVersion !== v) return;
+    if (i >= acciones.length) {
+      setTimeout(() => {
+        if (failAt === -1) {
+          appendLogLine(logBlock, 'ok', `✓ Deploy completado — ${acciones.length} ${acciones.length === 1 ? 'resource' : 'resources'} en 3.1s`);
+          cerrarTablaCx(acciones);
+          setTimeout(() => {
+            document.getElementById('deploy-done').style.display = 'block';
+            setRunning(false);
+          }, 300);
+        } else {
+          const ok  = failAt;
+          const skipped = acciones.length - failAt - 1;
+          // El título nombra el resource que falló, no una posición fija.
+          document.getElementById('deploy-fail-title').textContent =
+            'Deploy parcial — fallo en ' + acciones[failAt].nombre;
+          document.getElementById('deploy-fail-summary').innerHTML =
+            `<span style="color:#4ade80">✓ ${ok} aplicado${ok !== 1 ? 's' : ''}</span> &nbsp;·&nbsp; ` +
+            `<span style="color:#f87171">✗ 1 fallido</span> &nbsp;·&nbsp; ` +
+            `<span style="color:var(--text-3)">${skipped} no intentado${skipped !== 1 ? 's' : ''}</span>`;
+          document.getElementById('deploy-fail').style.display = 'block';
+          setRunning(false);
+        }
+      }, 300);
+      return;
+    }
+    const res = acciones[i];
+    if (failAt !== -1 && i === failAt) {
+      appendLogLine(logBlock, 'del', `✗ ${res.label} → ${res.errText}`);
+      i++;
+      setTimeout(() => {
+        for (let j = i; j < acciones.length; j++) {
+          appendLogLine(logBlock, 'dim', `— ${acciones[j].label} → no intentado`);
+        }
+        i = acciones.length;
+        setTimeout(showLine, 200);
+      }, 400);
+      return;
+    }
+    appendLogLine(logBlock, res.cls === 'del' ? 'dim' : 'ok', `✓ ${res.label} → OK`);
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function appendLogLine(block, cls, text) {
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = text;
+  block.appendChild(span);
+  block.appendChild(document.createTextNode('\n'));
+  block.scrollTop = block.scrollHeight;
+}
+
+function retryFailed() {
+  const v = ++animVersion;
+  document.getElementById('deploy-fail').style.display = 'none';
+  document.getElementById('deploy-log').style.display = 'block';
+  const logBlock = document.getElementById('deploy-log-block');
+  logBlock.innerHTML = '';
+  setRunning(true);
+  // Solo lo que falló y lo que quedó sin intentar: lo ya aplicado no se repite.
+  const desde = deployAcciones.findIndex(r => !r.ok);
+  const pendientes = desde === -1 ? [] : deployAcciones.slice(desde);
+  const retryLines = [];
+  pendientes.forEach(r => {
+    retryLines.push({cls:'warn', text:'↻ Reintentando ' + r.label + '...'});
+    retryLines.push({cls:'ok',   text:'✓ ' + r.label + ' → OK'});
+  });
+  retryLines.push({cls:'ok', text:'✓ Deploy completado — todos los resources marcados aplicados'});
+  let i = 0;
+  function showLine() {
+    if (animVersion !== v) return;
+    if (i >= retryLines.length) {
+      setTimeout(() => {
+        cerrarTablaCx(deployAcciones);
+        document.getElementById('deploy-done').style.display = 'block';
+        setRunning(false);
+      }, 300);
+      return;
+    }
+    appendLogLine(logBlock, retryLines[i].cls, retryLines[i].text);
+    i++;
+    setTimeout(showLine, 500);
+  }
+  showLine();
+}
+
+function pedirTerminar() {
+  const traerDone = document.getElementById('traer-done');
+  const lineaRepo = document.getElementById('confirmar-terminar-repo');
+  if (lineaRepo) lineaRepo.style.display = (traerDone && traerDone.style.display !== 'none') ? 'block' : 'none';
+  document.getElementById('confirmar-terminar').style.display = 'block';
+}
+
+function confirmarTerminar() {
+  resetDeploy();
+}
+
+function resetDeployStep4() {
+  document.getElementById('deploy-log').style.display = 'none';
+  document.getElementById('deploy-done').style.display = 'none';
+  document.getElementById('deploy-fail').style.display = 'none';
+  document.getElementById('confirmar-terminar').style.display = 'none';
+  document.getElementById('deploy-log-block').innerHTML = '';
+  document.getElementById('deploy-gate').style.display = 'block';
+  document.getElementById('sin-modificar-3').style.display = 'flex';
+  deployAcciones = [];
+  paso3Cerrado = false;
+}
+
+/* ── Pool de versiones y reservorio ──────────────────────────────────────
+   El pipeline solo rota lo que él mismo creó: las que empiezan por
+   deploy_. Guardar una versión es renombrarla — la protección es opt-out y
+   no opt-in a propósito, porque olvidarse de marcar algo no puede costar
+   una versión. Las que un entorno está sirviendo tampoco se tocan, aunque
+   lleven el prefijo.                                                       */
+const VERSION_PREFIX = 'deploy_';
+
+let VERSIONES = [
+  {nombre: 'ci-207',                 creada: '2026-07-22', fijadaPor: 'producción'},
+  {nombre: 'fix-orquestador-routing', creada: '2026-07-24', fijadaPor: null},
+  {nombre: 'deploy_2026-07-28_0945', creada: '2026-07-28', fijadaPor: null},
+  {nombre: 'deploy_2026-07-30_1712', creada: '2026-07-30', fijadaPor: null},
+];
+
+
+function generateVersionLabel() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
+}
+
+function setVersionLabel(name) {
+  versionLabel = name;
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = name);
+}
+
+// La pantalla anuncia la regla — letras, dígitos, guiones y guiones bajos —,
+// así que la pantalla tiene que comprobarla: si el nombre no sirve, el botón
+// de publicar se queda bloqueado y el motivo aparece junto al campo.
+const VERSION_LABEL_OK = /^[A-Za-z0-9_-]+$/;
+
+function validarVersionLabel() {
+  const campo = document.getElementById('version-batch-label');
+  const aviso = document.getElementById('version-label-error');
+  const boton = document.getElementById('btn-confirm-prod');
+  if (!campo || !aviso || !boton) return false;
+  const valor = campo.value.trim();
+  let motivo = '';
+  if (!valor) motivo = 'Hace falta un nombre para la versión.';
+  else if (!VERSION_LABEL_OK.test(valor))
+    motivo = 'Solo letras, dígitos, guiones y guiones bajos — quita el resto.';
+  aviso.textContent = motivo;
+  aviso.style.display = motivo ? 'block' : 'none';
+  campo.style.borderColor = motivo ? 'var(--error)' : '';
+  boton.disabled = !!motivo;
+  return !motivo;
+}
+
+function stateClass(state) {
+  return {done:'s-done',gate:'s-gate',active:'s-active',pending:'s-pending',error:'s-error'}[state] || 's-pending';
+}
+function stateText(state) {
+  if(state==='done') return 'Completado';
+  if(state==='gate') return 'Esperando confirmación';
+  if(state==='active') return 'En progreso...';
+  if(state==='pending') return 'Pendiente';
+  if(state==='error') return 'Fallido';
+  return '';
+}
+function badgeContent(state, n) {
+  if(state==='done') return '✓';
+  if(state==='gate') return '!';
+  if(state==='active') return '●';
+  return n;
+}
+
+function renderSidebar() {
+  const sb = document.getElementById('sidebar-steps');
+  let html = '<div class="sidebar-label">Pipeline de deploy</div>';
+  STEPS.forEach((s,i) => {
+    const state = stepStates[i];
+    const sc = stateClass(state);
+    const active = viewingStep === s.id ? ' active' : '';
+    html += `<div class="step-item ${sc}${active}" onclick="viewStep(${s.id})">
+      <div class="step-badge">${badgeContent(state, s.id)}</div>
+      <div class="step-info">
+        <div class="step-name">${s.name}</div>
+        <div class="step-status-text">${stateText(state)}</div>
+      </div>
+    </div>`;
+    html += '<div class="step-connector"></div>';
+  });
+  if (stepStates[4] === 'done') {
+    const active = viewingStep === 'done' ? ' active' : '';
+    html += `<div class="step-item s-done${active}" onclick="viewDone()">
+      <div class="step-badge">★</div>
+      <div class="step-info">
+        <div class="step-name">Resumen</div>
+        <div class="step-status-text">Deploy completado</div>
+      </div>
+    </div>`;
+  }
+  sb.innerHTML = html;
+}
+
+function viewDone() {
+  viewingStep = 'done';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-done').classList.add('visible');
+  renderSidebar();
+}
+
+// TOOLS — acciones sueltas, fuera de los 5 pasos numerados (S20 y las que
+// se añadan con el tiempo). No tocan el estado del pipeline (stepStates,
+// viewingStep de un paso): al cerrar, se vuelve a donde estaba.
+const TOOL_LOG_LINES = [
+  { text: '$ leyendo definitions/... por metadata.cx_id', cls: 'dim' },
+  { text: '✓ archivo local encontrado', cls: 'ok' },
+  { text: '$ GET recurso actual en CX (borrador)', cls: 'dim' },
+  { text: '✓ recurso leído', cls: 'ok' },
+  { text: '$ PATCH — Full Update, sin updateMask', cls: 'dim' },
+  { text: '✓ aplicado en el borrador', cls: 'ok' },
+];
+
+function viewTool(name) {
+  viewingStepBeforeTool = viewingStep;
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-tool-' + name).classList.add('visible');
+  const prefix = name === 'deploy-resource' ? 'tool-deploy' : 'tool-onboarding';
+  document.getElementById(prefix + '-start').style.display = 'block';
+  document.getElementById(prefix + '-log').style.display = 'none';
+  document.getElementById(prefix + '-done').style.display = 'none';
+  document.getElementById(prefix + '-log-block').innerHTML = '';
+}
+
+function cerrarTool() {
+  if (viewingStepBeforeTool === 'done') { viewDone(); return; }
+  if (typeof viewingStepBeforeTool === 'number') { viewStep(viewingStepBeforeTool); return; }
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-1').classList.add('visible');
+  renderSidebar();
+}
+
+const TOOL_ONBOARDING_LOG_LINES = [
+  { text: '$ creando estructura del repositorio', cls: 'dim' },
+  { text: '✓ cx-deploy.yaml creado (S23)', cls: 'ok' },
+  { text: '$ registrando mapeo agente→repo en Firestore (S4)', cls: 'dim' },
+  { text: '✓ mapeo guardado', cls: 'ok' },
+  { text: '$ detectando región del agente (17 regiones probadas)', cls: 'dim' },
+  { text: '✓ región: europe-west1', cls: 'ok' },
+  { text: '$ trayendo lo que ya existe en CX al repositorio', cls: 'dim' },
+  { text: '✓ pull inicial completado', cls: 'ok' },
+];
+
+function copiarComandoIam(btn) {
+  const code = document.getElementById('tool-comando-iam').textContent;
+  navigator.clipboard?.writeText(code);
+  const original = btn.textContent;
+  btn.textContent = 'Copiado';
+  setTimeout(() => { btn.textContent = original; }, 1500);
+}
+
+function ejecutarToolOnboarding() {
+  const agentId = document.getElementById('tool-agent-id-input').value.trim();
+  const repoUrl = document.getElementById('tool-repo-url-input').value.trim();
+  if (!agentId || !repoUrl) {
+    (agentId ? document.getElementById('tool-repo-url-input') : document.getElementById('tool-agent-id-input')).focus();
+    return;
+  }
+  setRunning(true);
+  document.getElementById('tool-onboarding-start').style.display = 'none';
+  document.getElementById('tool-onboarding-log').style.display = 'block';
+  const logBlock = document.getElementById('tool-onboarding-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if (i >= TOOL_ONBOARDING_LOG_LINES.length) {
+      setTimeout(() => { document.getElementById('tool-onboarding-done').style.display = 'block'; setRunning(false); }, 300);
+      return;
+    }
+    const line = TOOL_ONBOARDING_LOG_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    logBlock.scrollTop = logBlock.scrollHeight;
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function ejecutarToolDeployResource() {
+  const cxId = document.getElementById('tool-cxid-input').value.trim();
+  if (!cxId) { document.getElementById('tool-cxid-input').focus(); return; }
+  setRunning(true);
+  document.getElementById('tool-deploy-start').style.display = 'none';
+  document.getElementById('tool-deploy-log').style.display = 'block';
+  const logBlock = document.getElementById('tool-deploy-log-block');
+  logBlock.innerHTML = '';
+  let i = 0;
+  function showLine() {
+    if (i >= TOOL_LOG_LINES.length) {
+      setTimeout(() => { document.getElementById('tool-deploy-done').style.display = 'block'; setRunning(false); }, 300);
+      return;
+    }
+    const line = TOOL_LOG_LINES[i];
+    const span = document.createElement('span');
+    span.className = line.cls;
+    span.textContent = line.text;
+    logBlock.appendChild(span);
+    logBlock.appendChild(document.createTextNode('\n'));
+    logBlock.scrollTop = logBlock.scrollHeight;
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function viewStep(id) {
+  const idx = id - 1;
+  if(idx >= 0 && stepStates[idx] === 'pending') return;
+  viewingStep = id;
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  const v = document.getElementById('view-'+id);
+  if(v) v.classList.add('visible');
+  // Un paso ya ejecutado se puede volver a mirar, no a repetir: se ve tal y
+  // como quedó, sin los botones que lo volverían a ejecutar.
+  if(v) v.classList.toggle('paso-cerrado', idx >= 0 && stepStates[idx] === 'done');
+  if(id === 2) { renderStep3Diff(); refrescarDeriva(); }
+  if(id === 3) actualizarPies();
+  if(id === 5) {
+    const campo = document.getElementById('version-batch-label');
+    campo.value = campo.value || generateVersionLabel();
+    validarVersionLabel();
+    // La comparación se hace al entrar, no al salir del Paso 4: entre uno y
+    // otro puede haber pasado cualquier cosa.
+    const movido = draftAlValidar !== null && draftAlValidar !== huellaDraft();
+    document.getElementById('aviso-draft-movido').style.display = movido ? 'block' : 'none';
+    // El servidor aborta igual, mande lo que mande el panel. Deshabilitar aquí
+    // es para que se entienda que el paso está detenido, no la garantía.
+    const botonProd = document.getElementById('btn-confirm-prod');
+    if (botonProd) { botonProd.disabled = movido; botonProd.style.opacity = movido ? '0.4' : ''; }
+  }
+  syncSpecsPanel(id);
+  renderSidebar();
+}
+
+function syncSpecsPanel(id) {
+  document.querySelectorAll('[id^="spec-step-"]').forEach(el => el.style.display = 'none');
+  const spec = document.getElementById('spec-step-' + id);
+  if(spec) spec.style.display = 'block';
+}
+
+function advance(fromStep) {
+  if(stepStates[fromStep] !== 'pending') return; // SM-02: ya completado o en curso
+  const idx = fromStep - 1;
+  stepStates[idx] = 'done';
+  const nextIdx = idx + 1;
+  if(nextIdx < STEPS.length) {
+    if (stepStates[nextIdx] === 'done' || stepStates[nextIdx] === 'gate') return;
+    stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
+    if(!STEPS[nextIdx].gate) {
+      setTimeout(() => completeAuto(nextIdx), 600);
+    }
+    current = STEPS[nextIdx].id;
+    viewStep(current);
+  }
+}
+
+// La ruta se recuerda: el comando tiene que apuntar al repositorio correcto,
+// no a la carpeta donde por casualidad esté abierto el terminal.
+function comandoSync() {
+  const campo = document.getElementById('ruta-local');
+  const ruta = (campo && campo.value.trim()) || '~/cx-automation-template';
+  return `git -C ${ruta} fetch origin main:main`;
+}
+
+function actualizarComandoSync() {
+  document.getElementById('comando-sync').textContent = comandoSync();
+  try { localStorage.setItem('act_ruta_local', document.getElementById('ruta-local').value); } catch (e) {}
+}
+
+function copiarComandoSync(boton) {
+  navigator.clipboard.writeText(comandoSync()).then(() => {
+    boton.textContent = '\u2713';
+    setTimeout(() => boton.textContent = 'Copiar', 1500);
+  });
+}
+
+function toggleSyncCheck() {
+  const checked = document.getElementById('check-sync-local').checked;
+  const title = document.getElementById('done-sync-title');
+  title.style.color = checked ? 'var(--success)' : 'var(--text-2)';
+}
+
+function confirmProduction() {
+  // El nombre que se publica es el que hay en el campo, no una fecha cacheada.
+  if (!validarVersionLabel()) return;
+  setVersionLabel(document.getElementById('version-batch-label').value.trim());
+  const r = document.getElementById('prod-conflict-reminder');
+  if(r) r.remove();
+  const v = ++animVersion;
+  setRunning(true);
+  document.getElementById('prod-gate').style.display = 'none';
+  document.getElementById('prod-log').style.display = 'block';
+  const logBlock = document.getElementById('prod-log-block');
+  logBlock.innerHTML = '';
+  const mergeLines = [
+    {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
+    {cls:'ok',   text:'✓ Fast-forward merge completado'},
+    {cls:'ok',   text:'✓ main actualizado — ' + versionLabel},
+  ];
+  const conflictLines = [
+    {cls:'ok',   text:'✓ Iniciando merge staging → main en GitHub...'},
+    {cls:'del',  text:'✗ CONFLICT: merge conflict en definitions/playbooks/compra.yaml'},
+    {cls:'warn', text:'  Merge abortado — main no ha sido modificado'},
+  ];
+  const snapLines = [
+    // Las tres cosas que anuncia el gate tienen que verse las tres: el merge,
+    // la creación de la versión y la promoción a producción.
+    {cls:'ok', text:'✓ Creando la versión "' + versionLabel + '" con el estado actual del draft...'},
+    {cls:'ok', text:'✓ Versión "' + versionLabel + '" creada'},
+    {cls:'ok', text:'✓ Asignando la versión "' + versionLabel + '" al entorno de producción...'},
+    {cls:'ok', text:'✓ Entorno producción apuntando a "' + versionLabel + '"'},
+  ];
+  const lines = PRODUCTION_SIMULATE_CONFLICT ? conflictLines : [...mergeLines, ...snapLines];
+  let i = 0;
+  function showLine() {
+    if (animVersion !== v) return;
+    if (i >= lines.length) {
+      setTimeout(() => {
+        if (PRODUCTION_SIMULATE_CONFLICT) {
+          document.getElementById('prod-conflict').style.display = 'block';
+          setRunning(false);
+        } else {
+          advanceToDone();
+        }
+      }, 300);
+      return;
+    }
+    appendLogLine(logBlock, lines[i].cls, lines[i].text);
+    i++;
+    setTimeout(showLine, 400);
+  }
+  showLine();
+}
+
+function abortProduction() {
+  document.getElementById('prod-conflict').style.display = 'none';
+  document.getElementById('prod-log').style.display = 'none';
+  document.getElementById('prod-log-block').innerHTML = '';
+  document.getElementById('prod-gate').style.display = 'block';
+  const existing = document.getElementById('prod-conflict-reminder');
+  if (!existing) {
+    const rem = document.createElement('p');
+    rem.id = 'prod-conflict-reminder';
+    rem.style.cssText = 'color:var(--gate);font-size:12px;margin-top:10px';
+    rem.textContent = 'Conflicto de merge pendiente — resuélvelo en GitHub antes de reintentar.';
+    document.getElementById('prod-gate').appendChild(rem);
+  }
+  setRunning(false);
+}
+
+function advanceToDone() {
+  if (stepStates[4] !== 'gate') return;
+  // El pipeline ha terminado: sin esto el panel se queda "en marcha" para
+  // siempre y ni la lista de pasos ni "Nuevo deploy" vuelven a responder.
+  setRunning(false);
+  stepStates[4] = 'done';
+  viewingStep = 'done';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-done').classList.add('visible');
+  const badge = document.getElementById('topbar-env');
+  badge.textContent = 'PRODUCCIÓN';
+  badge.style.background = 'rgba(34,197,94,.15)';
+  badge.style.color = '#4ade80';
+  badge.style.borderColor = 'rgba(34,197,94,.3)';
+  document.getElementById('last-deploy-time').textContent = 'ahora mismo';
+  const _d = new Date(), _p = n => String(n).padStart(2,'0');
+  document.getElementById('done-timestamp').textContent = _d.getUTCFullYear() + '-' + _p(_d.getUTCMonth()+1) + '-' + _p(_d.getUTCDate()) + ' · ' + _p(_d.getUTCHours()) + ':' + _p(_d.getUTCMinutes()) + ' UTC';
+  renderSidebar();
+}
+
+function completeAuto(idx) {
+  const v = ++animVersion;
+  stepStates[idx] = 'done';
+  const nextIdx = idx + 1;
+  if(nextIdx < STEPS.length) {
+    stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
+    current = STEPS[nextIdx].id;
+    viewStep(current);
+    if(!STEPS[nextIdx].gate) setTimeout(() => { if(animVersion !== v) return; completeAuto(nextIdx); }, 800);
+  }
+  renderSidebar();
+}
+
+function resetVersionUI() {
+  document.getElementById('snap-gate').style.display = 'block';
+  document.getElementById('snap-log').style.display = 'none';
+  document.getElementById('snap-done').style.display = 'none';
+  document.getElementById('snap-log-block').innerHTML = '';
+  document.getElementById('version-batch-label').value = generateVersionLabel();
+}
+
+function cancelDeploy(afterDeploy) {
+  if(afterDeploy) {
+    if(confirm('El draft de CX ya tiene los cambios del deploy.\n\n¿Ir al rollback para revertirlos?')) {
+      stepStates[4] = 'gate';  // desbloquea el paso del snapshot para que viewStep lo acepte
+      stepStates[4] = 'pending'; // bloquea el siguiente
+      renderSidebar();
+      viewStep(5);
+      setTimeout(() => showRollbackConfirm(), 100);
+    }
+  } else {
+    if(confirm('¿Cancelar el deploy?\n\nEl inventario local no se ha modificado.')) resetDeploy();
+  }
+}
+
+/* Se guarda el HTML de partida de las dos tablas y del aviso de deriva nada
+   más cargar la página, y el reinicio lo repone tal cual. En una maqueta es
+   lo más seguro: volver al estado exacto de partida en vez de deshacer paso
+   a paso lo que hicieron el Paso 2 y el Paso 3.                            */
+const ESTADO_INICIAL = {
+  tablaCx:      document.getElementById('tabla-cx').innerHTML,
+  tablaRepo:    document.getElementById('tabla-repo').innerHTML,
+  avisoDeriva:  document.getElementById('aviso-deriva').innerHTML,
+  numDeriva:    document.getElementById('num-deriva') ? document.getElementById('num-deriva').textContent : '',
+};
+
+function resetTablas() {
+  document.getElementById('tabla-cx').innerHTML   = ESTADO_INICIAL.tablaCx;
+  document.getElementById('tabla-repo').innerHTML = ESTADO_INICIAL.tablaRepo;
+  document.getElementById('aviso-deriva').innerHTML = ESTADO_INICIAL.avisoDeriva;
+  const n = document.getElementById('num-deriva');
+  if (n) n.textContent = ESTADO_INICIAL.numDeriva;
+  ['sel-todos-cx','sel-todos-repo'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) { c.checked = false; c.disabled = false; }
+  });
+  // El Paso 2 vuelve a su estado de partida: sin traída hecha, sin panel de
+  // borrado abierto y con la salida "continuar sin modificar" de vuelta.
+  ['traer-log','traer-done','confirmar-borrado'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = 'none';
+  });
+  document.getElementById('traer-log-block').innerHTML = '';
+  document.getElementById('lista-borrado').innerHTML = '';
+  document.getElementById('traer-gate').style.display = 'block';
+  document.getElementById('sin-modificar-2').style.display = 'flex';
+}
+
+function resetDeploy() {
+  setRunning(false);
+  animVersion++;
+  stepStates = ['active','pending','pending','pending','pending'];
+  current = 1; viewingStep = 1;
+  versionLabel = '';
+  draftAlValidar = null;
+  resetInventoryUI();
+  resetTablas();
+  resetDeployStep4();
+  ['tests-fail','prod-log','aviso-draft-movido'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = 'none';
+  });
+  ['tests-gate','prod-gate'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = 'block';
+  });
+  const logProd = document.getElementById('prod-log-block');
+  if (logProd) logProd.innerHTML = '';
+  const campoVersion = document.getElementById('version-batch-label');
+  if (campoVersion) campoVersion.value = generateVersionLabel();
+  actualizarPies();
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '\u2014');
+  const badge = document.getElementById('topbar-env');
+  badge.textContent = 'DRAFT';
+  badge.style.background = 'rgba(59,130,246,.15)';
+  badge.style.color = '#60a5fa';
+  badge.style.borderColor = 'rgba(59,130,246,.3)';
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  viewStep(1);
+}
+
+document.getElementById('specs-panel').classList.add('collapsed');
+actualizarPies();   // nada marcado al arrancar: contadores a cero y botones bloqueados
+document.getElementById('version-batch-label').value = generateVersionLabel();
+validarVersionLabel();
+document.getElementById('topbar-commit-time').textContent =
+  new Date().toLocaleString('es-ES', {timeZone:'Europe/Madrid', day:'numeric', month:'short',
+                                      hour:'2-digit', minute:'2-digit'}).replace(',', '');
+try {
+  const guardada = localStorage.getItem('act_ruta_local');
+  if (guardada) { document.getElementById('ruta-local').value = guardada; actualizarComandoSync(); }
+} catch (e) {}
+viewStep(1);
+renderSidebar();
+</script>
+
+
+</body></html>

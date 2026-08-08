@@ -1,3 +1,8 @@
+metadata:
+  tipo: example
+  padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+  cx_id: 1bf27027-1f37-4427-8715-dc39c69ce749
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Compra
 id: 1bf27027-1f37-4427-8715-dc39c69ce749
 displayName: 'ExD v14: Exploración genérica inventario (schema normalizado)'

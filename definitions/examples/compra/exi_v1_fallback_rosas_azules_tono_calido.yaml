@@ -1,3 +1,8 @@
+metadata:
+  tipo: example
+  padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
+  cx_id: 76841217-4cd5-4d4f-85b1-6999f8ffa21a
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Compra
 id: fa4e35a0-c22d-40bf-af4e-15a79337f4fc
 displayName: 'ExI v2: Fallback rosas azules → tono cálido → ofrece alternativas (schema normalizado)'

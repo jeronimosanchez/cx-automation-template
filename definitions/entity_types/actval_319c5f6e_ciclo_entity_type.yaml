@@ -1,0 +1,10 @@
+metadata:
+  tipo: entity_type
+  padre: null
+  cx_id: null
+displayName: actval_319c5f6e_ciclo_entity_type
+kind: KIND_MAP
+entities:
+- value: a
+  synonyms:
+  - a

@@ -1,3 +1,8 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: 5a71c8f2-1272-475f-ae61-de055738764d
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 displayName: Calculo_Entrega_Task
 goal: Calcular si la entrega es posible hoy y en qué franja horaria, usando la hora real del servidor.
 playbookType: TASK

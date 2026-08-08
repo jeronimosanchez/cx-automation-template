@@ -55,6 +55,7 @@ agent_definition:
     speechSettings:
       endpointerSensitivity: 90
       noSpeechTimeout: 5s
-    loggingSettings: {}
+    loggingSettings:
+      enableStackdriverLogging: true
   start_playbook_id: 00000000-0000-0000-0000-000000000000
   enableMultiLanguageTraining: true

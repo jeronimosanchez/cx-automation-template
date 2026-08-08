@@ -1,0 +1,13 @@
+metadata:
+  tipo: agent_config
+  padre: null
+  cx_id: 8d15e440-ab8f-4072-b144-d44919296cd9
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: act-desechable-tests
+defaultLanguageCode: es
+timeZone: Europe/Madrid
+description: Agente desechable para las pruebas de escritura del pipeline ACT Cloud
+  Run. Se borra al terminar.
+startFlow: projects/floristeria-petal-digital/locations/europe-west1/agents/8d15e440-ab8f-4072-b144-d44919296cd9/flows/00000000-0000-0000-0000-000000000000
+advancedSettings:
+  loggingSettings: {}

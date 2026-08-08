@@ -1,0 +1,27 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: 375c2e48-524b-41b4-859e-d8f465aa687c
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
+playbook: Petal CX Orchestrator
+id: 375c2e48-524b-41b4-859e-d8f465aa687c
+displayName: Ex — frustración desde inicio → registro solemne + frustrado
+description: |
+  El usuario llega con frustración explícita por un problema de entrega. Petal detecta señales de frustración, activa registro=solemne y frustrado=true. Sin frases de empatía vacía — acción directa.
+actions:
+- userUtterance:
+    text: |
+      Pedí flores hace tres días y no han llegado. Esto es inaceptable, era para el cumpleaños de mi madre.
+- agentUtterance:
+    text: |
+      Entendido. Vamos a solucionarlo ahora mismo. ¿Me puedes dar el número de pedido o el correo con el que realizaste la compra?
+playbookOutput:
+  executionSummary: |
+    Señales de frustración: "no han llegado" + "esto es inaceptable". Fija registro=solemne, frustrado=true. Acción inmediata sin empatía performativa.
+  actionParameters:
+    frustrado: true
+    emocion: frustración
+    registro: solemne
+    intencion_detectada: reclamacion_entrega
+conversationState: OUTPUT_STATE_OK
+languageCode: es

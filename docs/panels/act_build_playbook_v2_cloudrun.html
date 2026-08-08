@@ -1,0 +1,1452 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACT Build Playbook v2 — intento 2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --accent-indigo: #6366f1;
+    --accent-emerald: #10b981;
+    --accent-amber: #f59e0b;
+
+    --bg: #ffffff;
+    --bg-2: #f6f8fa;
+    --bg-3: #eaeef2;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --text-2: #57606a;
+    --text-3: #5c6872;
+
+    --nav-bg: #0d1117;
+    --nav-border: #21262d;
+
+    --llm-bg: #eff6ff;
+    --llm-border: #bfdbfe;
+    --llm-header: #1d4ed8;
+    --val-bg: #fffbeb;
+    --val-border: #fde68a;
+    --val-header: #92400e;
+    --ctx-bg: #f0fdf4;
+    --ctx-border: #bbf7d0;
+    --ctx-header: #166534;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --bg-2: #161b22; --bg-3: #21262d; --border: #30363d;
+      --text: #e6edf3; --text-2: #ffffff; --text-3: #ffffff;
+      --llm-bg: #0f172a; --llm-border: #1e3a5f; --llm-header: #93c5fd;
+      --val-bg: #1c1400; --val-border: #78350f; --val-header: #fcd34d;
+      --ctx-bg: #052e16; --ctx-border: #14532d; --ctx-header: #86efac;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --bg-2: #f6f8fa; --bg-3: #eaeef2; --border: #d0d7de;
+    --text: #1f2328; --text-2: #57606a; --text-3: #5c6872;
+    --llm-bg: #eff6ff; --llm-border: #bfdbfe; --llm-header: #1d4ed8;
+    --val-bg: #fffbeb; --val-border: #fde68a; --val-header: #92400e;
+    --ctx-bg: #f0fdf4; --ctx-border: #bbf7d0; --ctx-header: #166534;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --bg-2: #161b22; --bg-3: #21262d; --border: #30363d;
+    --text: #e6edf3; --text-2: #ffffff; --text-3: #ffffff;
+    --llm-bg: #0f172a; --llm-border: #1e3a5f; --llm-header: #93c5fd;
+    --val-bg: #1c1400; --val-border: #78350f; --val-header: #fcd34d;
+    --ctx-bg: #052e16; --ctx-border: #14532d; --ctx-header: #86efac;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--nav-border);
+    flex-shrink: 0;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .topbar-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0 10px;
+    border-bottom: 1px solid var(--nav-border);
+  }
+  .topbar-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #e6edf3;
+  }
+  .topbar-sub {
+    font-size: 11px;
+    color: #8b949e;
+  }
+  .topbar-progress-wrap {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar-progress-bar {
+    width: 120px;
+    height: 3px;
+    background: #21262d;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .topbar-progress-fill {
+    height: 100%;
+    background: var(--accent-emerald);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .topbar-progress-label {
+    font-size: 11px;
+    color: #8b949e;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── PHASE TABS ── */
+  .phase-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .phase-tabs::-webkit-scrollbar { display: none; }
+
+  .phase-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+    min-width: 100px;
+    max-width: 130px;
+    transition: background 0.12s, border-color 0.12s;
+    position: relative;
+  }
+  .phase-tab:hover { background: #161b22; border-color: #30363d; }
+  .phase-tab.active {
+    background: #1f2937;
+    border-color: var(--accent-indigo);
+  }
+  .phase-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 2px;
+    background: var(--accent-indigo);
+    border-radius: 1px;
+  }
+
+  .tab-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+  .tab-num {
+    font-size: 13px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: #8b949e;   /* dark non-active: gris visible ~5:1 sobre #0d1117 */
+  }
+  .phase-tab.active .tab-num { color: #e6edf3; } /* dark active: blanco ~14:1 sobre #1f2937 */
+  /* Pastillas sólidas — fondo + texto blanco. Ratios WCAG 2.0 AA (#fff sobre fondo):
+     .tag-py  #2563eb ~5.9:1 ✓ | .tag-html #c2410c ~4.6:1 ✓ | .tag-ci #7c3aed ~4.7:1 ✓
+     .tag-audit #4b5563 ~7.2:1 ✓ | .tag-goal #047857 ~5.5:1 ✓                         */
+  .tab-tag {
+    margin-left: auto;
+    font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.03em;
+  }
+  .tag-py    { background: #2563eb; }
+  .tag-html  { background: #c2410c; }
+  .tag-ci    { background: #7c3aed; }
+  .tag-discarded { background: #3d2b2b; color: #e57373; }
+  .phase-tab.discarded-tab .tab-name { color: #7d8590; text-decoration: line-through; }
+  .tag-audit { background: #4b5563; }
+  .tag-goal  { background: #047857; }
+  /* .tag-build #4f46e5 ~5.4:1 ✓ | .tag-validate #0f766e ~5.6:1 ✓ — etiqueta semántica del patrón Build→Validate del pipeline */
+  .tag-build    { background: #4f46e5; }
+  .tag-validate { background: #0f766e; }
+  .tab-filetype {
+    font-size: 8px; font-weight: 700; color: #6b7280; letter-spacing: 0.05em;
+    text-transform: uppercase; margin-top: 1px;
+  }
+
+  .tab-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: #8b949e;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+  .phase-tab.active .tab-name { color: #e6edf3; }
+  .phase-tab.done-tab .tab-name { color: #7d8590; } /* #7d8590 on #0d1117 ≈ 5.1:1 */
+
+  /* ── LIGHT MODE — tab cards presencia visual + contraste ── */
+  @media (prefers-color-scheme: light) {
+    .tab-num { color: #4b5563; } /* light non-active: ~7.7:1 sobre #f6f8fa ✓ */
+    .phase-tab { background: #f6f8fa; border-color: #d0d7de; }
+    .phase-tab:hover { background: #eaeef2; border-color: #d0d7de; }
+    .phase-tab.active { background: #1f2937; border-color: var(--accent-indigo); }
+    .phase-tab.active .tab-num { color: #e6edf3; } /* #1f2328 on #1f2937 = 1.08:1 ✗ → #e6edf3 on #1f2937 = 12.42:1 ✓ */
+    .tab-name { color: #4b5563; }          /* ~7.7:1 sobre #f6f8fa ✓ */
+    .phase-tab.active .tab-name { color: #e6edf3; }
+    .phase-tab.done-tab .tab-name { color: #6b7280; }
+  }
+  :root[data-theme="light"] .tab-num { color: #4b5563; } /* light non-active: ~7.7:1 sobre #f6f8fa ✓ */
+  :root[data-theme="light"] .phase-tab { background: #f6f8fa; border-color: #d0d7de; }
+  :root[data-theme="light"] .phase-tab:hover { background: #eaeef2; border-color: #d0d7de; }
+  :root[data-theme="light"] .phase-tab.active { background: #1f2937; border-color: var(--accent-indigo); }
+  :root[data-theme="light"] .phase-tab.active .tab-num { color: #e6edf3; } /* idem — 12.42:1 ✓ */
+  :root[data-theme="light"] .tab-name { color: #4b5563; }
+  :root[data-theme="light"] .phase-tab.active .tab-name { color: #e6edf3; }
+  :root[data-theme="light"] .phase-tab.done-tab .tab-name { color: #6b7280; }
+
+  /* ── CONTENT ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+  .content::-webkit-scrollbar { width: 6px; }
+  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .content-inner {
+    max-width: 820px;
+    padding: 28px 32px;
+    margin: 0 auto;
+  }
+
+  .phase-header {
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 5px;
+  }
+  .phase-title { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .phase-subtitle { font-size: 13px; color: var(--text-2); margin-top: 4px; }
+
+  /* ── BLOCKS ── */
+  .block { border-radius: 6px; border: 1px solid; overflow: hidden; margin-bottom: 14px; }
+  .block-header {
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    cursor: pointer; user-select: none;
+  }
+  .block-header .bh-toggle { margin-left: auto; font-size: 10px; opacity: 0.6; transition: transform 0.2s; }
+  .block-header.collapsed .bh-toggle { transform: rotate(-90deg); }
+
+  .block.ctx { border-color: var(--ctx-border); }
+  .block.ctx .block-header { background: var(--ctx-bg); color: var(--ctx-header); }
+  .block.llm { border-color: var(--llm-border); }
+  .block.llm .block-header { background: var(--llm-bg); color: var(--llm-header); }
+  .block.val { border-color: var(--val-border); }
+  .block.val .block-header { background: var(--val-bg); color: var(--val-header); }
+  .block.proceso { border-color: #2d4a3e; }
+  .block.proceso .block-header { background: #1a3329; color: #4caf87; }
+  :root[data-theme="light"] .block.proceso { border-color: #a8d5bf; }
+  :root[data-theme="light"] .block.proceso .block-header { background: #eaf7f0; color: #1a6641; }
+  .block.criterios { border-color: #2d3a4a; }
+  .block.criterios .block-header { background: #1a2535; color: #7eb8e8; }
+  :root[data-theme="light"] .block.criterios { border-color: #b8d0e8; }
+  :root[data-theme="light"] .block.criterios .block-header { background: #eaf2fb; color: #1a4a6e; }
+
+  .paso-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+  .paso-chip { flex-shrink:0; font-size:11px; font-weight:600; padding:3px 8px; border-radius:4px; cursor:pointer; border:none; }
+  .paso-chip.pending { background:#333; color:#888; }
+  .paso-chip.running { background:#3d2f00; color:#f0a500; }
+  .paso-chip.done    { background:#1a3329; color:#4caf87; }
+  .paso-chip.error   { background:#3d0000; color:#f44; }
+  .paso-text { flex:1; font-size:13px; color:var(--text-1); line-height:1.5; }
+  .paso-expand-btn { flex-shrink:0; font-size:11px; color:var(--text-2); background:none; border:none; cursor:pointer; padding:2px 6px; }
+  .paso-output { display:none; margin-top:6px; margin-left:80px; }
+  .paso-output textarea { width:100%; min-height:60px; font-size:12px; padding:8px 10px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text); font-family:inherit; resize:vertical; }
+  :root[data-theme="light"] .paso-chip.pending { background:#e8e8e8; color:#666; }
+  :root[data-theme="light"] .paso-chip.running { background:#fff8e0; color:#8a6000; }
+  :root[data-theme="light"] .paso-chip.done    { background:#eaf7f0; color:#1a6641; }
+  :root[data-theme="light"] .paso-chip.error   { background:#fff0f0; color:#c00; }
+  .proceso-section-label { font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-3); margin-bottom:8px; margin-top:4px; }
+  .proceso-separator { border:none; border-top:1px solid var(--border); margin:16px 0 14px; }
+  .validate-btn:disabled { opacity:0.45; cursor:not-allowed; }
+  .validate-btn:disabled:hover { background:var(--accent-indigo); transform:none; }
+
+  .block-body { padding: 20px; background: var(--bg); }
+  .block-body.hidden { display: none; }
+
+  /* LLM content */
+  .llm-section { margin-bottom: 18px; }
+  .llm-section:last-child { margin-bottom: 0; }
+  .llm-section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 8px;
+  }
+  .llm-section p { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+
+  .llm-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .llm-list li { font-size: 13px; color: var(--text-2); padding-left: 14px; position: relative; line-height: 1.5; }
+  .llm-list li::before { content: '·'; position: absolute; left: 0; color: var(--text-3); font-weight: 700; }
+  .llm-list.steps { counter-reset: steps; }
+  .llm-list.steps li { padding-left: 22px; }
+  .llm-list.steps li::before { counter-increment: steps; content: counter(steps) '.'; font-size: 11px; font-weight: 600; color: var(--text-3); top: 1px; }
+
+  /* Context grid */
+  .ctx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ctx-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 5px; padding: 12px 14px; }
+  .ctx-card-title { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+  .ctx-card p { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+  .ctx-card ul { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+  .ctx-card ul li { font-size: 12px; color: var(--text-2); padding-left: 10px; position: relative; }
+  .ctx-card ul li::before { content: '·'; position: absolute; left: 0; color: var(--text-3); }
+
+  code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px; background: var(--bg-3); padding: 1px 5px; border-radius: 3px; }
+
+  .code-block {
+    background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 12px; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px; color: var(--text); line-height: 1.6;
+    overflow-x: auto; margin-top: 8px; white-space: pre;
+  }
+
+  .output-path {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 4px; margin-bottom: 8px;
+  }
+  .output-path:last-child { margin-bottom: 0; }
+  .op-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .op-path { font-family: 'SF Mono', monospace; font-size: 12px; color: var(--accent-indigo); font-weight: 500; }
+  .op-desc { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  .template-block { background: var(--bg-2); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .template-label { padding: 6px 12px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border); background: var(--bg-3); }
+
+  /* Checklist */
+  .checklist-group { margin-bottom: 18px; }
+  .checklist-group:last-child { margin-bottom: 0; }
+  .checklist-group-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-3); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+  .checklist-group-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .checklist-group-header {
+    background: none; border: none; padding: 0; margin: 0 0 8px; text-align: left; font-family: inherit;
+    cursor: pointer; width: 100%; display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3);
+  }
+  .checklist-group-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .checklist-group-header:hover { color: var(--text-2); }
+  .checklist-group-header .cg-toggle { font-size: 16px; opacity: 0.85; transition: transform 0.2s; flex-shrink: 0; line-height: 1; }
+  .checklist-group-header.collapsed .cg-toggle { transform: rotate(-90deg); }
+  .cg-body.hidden { display: none; }
+
+  .checklist { display: flex; flex-direction: column; gap: 7px; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px;
+    border-radius: 4px; border: 1px solid var(--border); background: var(--bg-2);
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  }
+  .check-item:hover { border-color: var(--accent-amber); }
+  .check-item.checked { border-color: var(--accent-emerald); background: rgba(16,185,129,0.05); }
+  .check-box {
+    width: 15px; height: 15px; border-radius: 3px; border: 1.5px solid var(--border);
+    flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: transparent; transition: all 0.15s;
+  }
+  .check-item.checked .check-box { background: var(--accent-emerald); border-color: var(--accent-emerald); color: #fff; }
+  .check-text { font-size: 13px; color: var(--text-2); line-height: 1.5; flex: 1; }
+  .check-item.checked .check-text { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--accent-emerald); }
+
+  /* Decisions */
+  .decisions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .decision-item { padding: 12px 14px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-2); }
+  .decision-q { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+  .decision-opts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .decision-opt {
+    padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); cursor: pointer; color: var(--text-2);
+    background: var(--bg); transition: all 0.15s;
+  }
+  .decision-opt:hover { border-color: var(--accent-indigo); color: var(--accent-indigo); }
+  .decision-opt.selected { background: var(--accent-indigo); border-color: var(--accent-indigo); color: #fff; }
+
+  .notes-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; margin-top: 18px; }
+  .notes-area {
+    width: 100%; min-height: 68px; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;
+    line-height: 1.5; resize: vertical; margin-bottom: 14px; transition: border-color 0.15s;
+  }
+  .notes-area:focus { outline: 2px solid var(--accent-indigo); outline-offset: 0; border-color: var(--accent-indigo); }
+  .notes-area::placeholder { color: var(--text-3); }
+
+  .validate-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px;
+    border-radius: 5px; border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+    font-family: inherit; background: var(--accent-indigo); color: #fff;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .validate-btn:hover { background: #5254cc; }
+  .validate-btn:active { transform: scale(0.98); }
+  .validate-btn.validated { background: var(--accent-emerald); cursor: default; }
+  .validate-btn.validated:hover { background: var(--accent-emerald); }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 50vh; color: var(--text-3); text-align: center;
+  }
+  .empty-state .es-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.35; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── REF BLOCKS ── */
+  .block.ref { border-color: #30363d; }
+  .block.ref .block-header { background: #161b22; color: #8b949e; }
+  :root[data-theme="light"] .block.ref { border-color: var(--border); }
+  :root[data-theme="light"] .block.ref .block-header { background: var(--bg-2); color: var(--text-2); }
+  /* ── MD BLOCK ── */
+  .block.md { border-color: #30363d; }
+  .block.md .block-header { background: #161b22; color: #8b949e; }
+  :root[data-theme="light"] .block.md { border-color: var(--border); }
+  :root[data-theme="light"] .block.md .block-header { background: var(--bg-2); color: var(--text-2); }
+  @media (prefers-color-scheme: light) {
+    .block.md { border-color: var(--border); }
+    .block.md .block-header { background: var(--bg-2); color: var(--text-2); }
+  }
+  .md-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .md-toolbar-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+    border-radius: 4px; border: 1px solid var(--border); cursor: pointer;
+    font-size: 11px; font-weight: 600; font-family: inherit;
+    background: var(--bg-2); color: var(--text-2); transition: all 0.15s;
+  }
+  .copy-btn:hover { border-color: var(--accent-indigo); color: var(--accent-indigo); }
+  .copy-btn.copied { background: var(--accent-emerald); border-color: var(--accent-emerald); color: #fff; }
+  .md-preview {
+    background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px;
+    padding: 14px 16px; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px; color: var(--text-2); line-height: 1.7;
+    overflow-x: auto; white-space: pre; max-height: 400px; overflow-y: auto;
+  }
+  .md-files { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .md-file-chip {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    border-radius: 4px; background: var(--bg-2); border: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .md-file-chip code { font-size: 11px; color: var(--accent-indigo); }
+  .md-file-chip span { color: var(--text-3); font-size: 11px; }
+
+  /* ── STATUS TABLE ── */
+  .ref-block { margin-bottom: 24px; }
+  .ref-title { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .ref-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .st-table { width: 100%; border-collapse: collapse; font-size: 12px; overflow-x: auto; display: block; }
+  .st-table th { text-align: left; padding: 7px 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); border-bottom: 2px solid var(--border); white-space: nowrap; }
+  .st-table td { padding: 7px 10px; color: var(--text-2); border-bottom: 1px solid var(--border); vertical-align: top; }
+  .st-table td:first-child { word-break: break-word; white-space: normal; min-width: 160px; max-width: 220px; }
+  .st-table tr:last-child td { border-bottom: none; }
+  .st-table tr:hover td { background: var(--bg-2); }
+  .st-table code { font-size: 10.5px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px;
+    border-radius: 10px; font-size: 10px; font-weight: 600; white-space: nowrap;
+  }
+  .badge-ok { background: rgba(16,185,129,0.12); color: #059669; }
+  .badge-warn { background: rgba(245,158,11,0.12); color: #d97706; }
+  .badge-del { background: rgba(239,68,68,0.12); color: #dc2626; }
+  .badge-new { background: rgba(99,102,241,0.12); color: var(--accent-indigo); }
+
+  /* ── TREE VIEW ── */
+  .tree-view {
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px;
+    line-height: 1.8; background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: 4px; padding: 14px 16px; overflow-x: auto; white-space: pre;
+    color: var(--text-2);
+  }
+  .tree-new { color: var(--accent-indigo); font-weight: 600; }
+  .tree-comment { color: var(--text-3); }
+
+  /* ── BUTTON RESETS (phase-tab, block-header convert to <button>) ── */
+  .phase-tab {
+    appearance: none;
+    font-family: inherit;
+    text-align: left;
+  }
+  .block-header {
+    appearance: none;
+    font-family: inherit;
+    width: 100%;
+    text-align: left;
+  }
+  .check-item {
+    font-family: inherit;
+    text-align: left;
+    width: 100%;
+    background: var(--bg-2);
+  }
+  .decision-opt {
+    appearance: none;
+    font-family: inherit;
+  }
+
+  /* ── WCAG 2.0 AA — light theme contrast fixes ─────────────────────────────
+     Scope: only @media (prefers-color-scheme: light) and [data-theme="light"].
+     Dark theme values are untouched.
+     Rationale for each value is documented in the change report.
+  ── */
+  @media (prefers-color-scheme: light) {
+    /* Badges — 10px text on tinted bg, needs 4.5:1 */
+    .badge-ok   { color: #047857; }   /* was #059669 (~3.4:1) → now ~4.9:1 */
+    .badge-warn { color: #92400e; }   /* was #d97706 (~2.9:1) → now ~6.4:1 */
+    .badge-del  { color: #b91c1c; }   /* was #dc2626 (~4.1:1) → now ~5.5:1 */
+    .badge-new  { color: #4338ca; }   /* was #6366f1 (~3.8:1) → now ~6.8:1 */
+
+    /* Accent-indigo as text color — #6366f1 on light bgs fails 4.5:1 */
+    .tree-new          { color: #4338ca; } /* was #6366f1 (~3.8:1 on bg-3) → ~6.8:1 */
+    .op-path           { color: #4338ca; } /* was #6366f1 (~4.2:1 on bg-2) → ~7.4:1 */
+    .md-file-chip code { color: #4338ca; } /* was #6366f1 (~4.2:1 on bg-2) → ~7.4:1 */
+    .decision-opt:hover          { color: #4338ca; border-color: #4338ca; }
+    .decision-opt.selected       { background: #4338ca; border-color: #4338ca; }
+    .copy-btn:hover              { color: #4338ca; border-color: #4338ca; }
+
+    /* Validate button — white text on #6366f1 = 4.47:1, fails */
+    .validate-btn                { background: #4f46e5; } /* white on #4f46e5 = 6.3:1 */
+    .validate-btn:hover          { background: #4338ca; }
+    /* Validated state — white on #10b981 (emerald) = 2.5:1, fails */
+    .validate-btn.validated      { background: #047857; } /* white on #047857 = 5.5:1 */
+    .validate-btn.validated:hover{ background: #047857; }
+
+    /* Check-box checked state — white ✓ on #10b981 = 2.5:1 */
+    .check-item.checked .check-box { background: #047857; border-color: #047857; }
+
+    /* Check-box border (unchecked) — UI component needs 3:1 on adjacent bg */
+    .check-box { border-color: #767e86; } /* was #d0d7de (~1.4:1 on bg-2) → ~3.8:1 */
+  }
+
+  :root[data-theme="light"] .badge-ok   { color: #047857; }
+  :root[data-theme="light"] .badge-warn { color: #92400e; }
+  :root[data-theme="light"] .badge-del  { color: #b91c1c; }
+  :root[data-theme="light"] .badge-new  { color: #4338ca; }
+  :root[data-theme="light"] .tree-new          { color: #4338ca; }
+  :root[data-theme="light"] .op-path           { color: #4338ca; }
+  :root[data-theme="light"] .md-file-chip code { color: #4338ca; }
+  :root[data-theme="light"] .decision-opt:hover          { color: #4338ca; border-color: #4338ca; }
+  :root[data-theme="light"] .decision-opt.selected       { background: #4338ca; border-color: #4338ca; }
+  :root[data-theme="light"] .copy-btn:hover              { color: #4338ca; border-color: #4338ca; }
+  :root[data-theme="light"] .validate-btn                { background: #4f46e5; }
+  :root[data-theme="light"] .validate-btn:hover          { background: #4338ca; }
+  :root[data-theme="light"] .validate-btn.validated      { background: #047857; }
+  :root[data-theme="light"] .validate-btn.validated:hover{ background: #047857; }
+  :root[data-theme="light"] .check-item.checked .check-box { background: #047857; border-color: #047857; }
+  :root[data-theme="light"] .check-box { border-color: #767e86; }
+
+  /* ── FOCUS VISIBLE — outline clar en todos los focusables ── */
+  :focus-visible {
+    outline: 2px solid var(--accent-indigo);
+    outline-offset: 2px;
+  }
+  /* Para elementos donde el outline choca con el borde propio */
+  .check-item:focus-visible,
+  .decision-opt:focus-visible {
+    outline-offset: 0;
+  }
+</style>
+
+<header class="topbar">
+  <div class="topbar-header">
+    <div class="topbar-title">ACT Build Playbook</div>
+    <div class="topbar-sub">cx-automation-template</div>
+    <div class="topbar-progress-wrap" aria-label="Progreso general">
+      <div class="topbar-progress-bar"
+           role="progressbar"
+           aria-valuenow="0" aria-valuemin="0" aria-valuemax="8"
+           aria-labelledby="progressLabel">
+        <div class="topbar-progress-fill" id="progressFill"></div>
+      </div>
+      <div class="topbar-progress-label" id="progressLabel" aria-live="polite">0 / 8 fases</div>
+    </div>
+  </div>
+  <nav class="phase-tabs" id="phaseTabs" role="tablist" aria-label="Fases del playbook"></nav>
+</header>
+
+<main class="content">
+  <div class="content-inner" id="contentInner" aria-live="polite" aria-atomic="false">
+    <div class="empty-state">
+      <div class="es-icon" aria-hidden="true">🏗️</div>
+      <p>Selecciona una fase para comenzar</p>
+    </div>
+  </div>
+</main>
+
+<script>
+const PHASES = [
+  {
+    id: 1,
+    title: 'Objetivo del proyecto',
+    subtitle: 'Por qué existe ACT y qué construimos',
+    tag: 'goal',
+    tagLabel: 'GOAL',
+    special: 'goal',
+    goal: {
+      que: 'Construir el pipeline de deploy automático ACT para Dialogflow CX, agnóstico de proyecto y agente, que corre en Cloud Run — <code>act_cx_resources_deploy_cloudrun.py</code>, con el servidor que lo expone. El pipeline sincroniza las definiciones declaradas en un repositorio de GitHub con el estado real de un agente de Dialogflow CX: lee el repositorio vía la API de GitHub, empareja cada recurso con su correspondiente en CX por tipo + <code>cx_id</code> (S18, nunca por nombre), y aplica en 5 pasos solo lo que cambió.',
+      output: 'El panel es el artifact ya existente <code>docs/panels/act_cx_resources_deploy_v2.html</code> — hoy incluye una pestaña "Specs" (referencia de diseño, con las specs de cada paso y de las Tools). Esta fase produce <code>docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html</code> — archivo nuevo y aparte, no una sustitución: mismo contenido visual, sin la pestaña Specs (ya no hace falta, el propio comportamiento la reemplaza), con las llamadas conectadas al servidor real. Mantener los dos archivos permite comparar uno contra otro.',
+      scope: [
+        'Agente de referencia: Petal (floristería online en español) — el pipeline es agnóstico, Petal es la instancia sobre la que se construye y se prueba',
+        'Plataforma: Dialogflow CX. La región no es fija — se detecta automáticamente por proyecto registrado (S4, verificado contra las 17 regiones reales de Dialogflow CX). El proyecto GCP y el agente se seleccionan en el panel: ningún módulo puede fijarlos como constante.',
+        'El sistema ACT puede crear, modificar y eliminar recursos CX — 13 tipos en la lista actual (Playbooks, Examples, Tools, Agent Config, Flows, Pages, Intents, Entity Types, Webhooks, Generators, Environments, Versions, Transition Route Groups), lista abierta a ampliarse: los tipos nuevos se declaran en <code>cx-deploy.yaml</code> (S15).',
+        'La vinculación agente↔repositorio se hace una vez, en el onboarding (S22). A partir de ahí, el repositorio es lo que se compara contra CX en cada deploy — escribir en GitHub nunca publica nada por sí solo, siempre hace falta pasar por el paso de aplicar en CX, con su gate.'
+      ],
+      constraints: [
+        'Auth hacia CX: dos caminos, según dónde corra. Local: <code>gcloud auth print-access-token</code>. En Cloud Run no hay sesión humana — se usa ADC (Application Default Credentials). Verificado a nivel de API que ADC funciona igual que la sesión local con la cabecera correcta (ver siguiente punto) — lo que todavía no está verificado es que ese mismo mecanismo funcione sin cambios dentro de un contenedor Cloud Run real, sin sesión interactiva, con la identidad inyectada por la plataforma. Eso lo confirma el Nivel 5 de la Fase 4 — hasta entonces, es una asunción, no un hecho cerrado.',
+        'Headers obligatorios en toda llamada: Authorization: Bearer &lt;token&gt; · Content-Type: application/json · x-goog-user-project: &lt;proyecto seleccionado&gt;. El proyecto no es una constante fija — es el que corresponde al agente elegido. Sin alguno de estos headers, la API rechaza la petición.',
+        'Playbooks: Full Update sin updateMask — al modificar un playbook, mandar el objeto completo aunque solo haya cambiado una línea. Bug confirmado del backend de Dialogflow CX, verificado en <code>europe-west1</code> — no probado todavía en otras regiones. Antes de asumir que aplica igual en una región nueva, hay que remedirlo contra la API real.',
+        'Idempotencia: patrón LIST→diff→PATCH/POST solo lo que cambió. Nunca recrear recursos existentes que ya están igual.',
+        'Un solo deploy a la vez, nunca dos en paralelo. El candado que lo garantiza vive en una base de datos compartida (Firestore), no en la memoria del propio servidor — así funciona igual aunque haya más de una copia del servidor corriendo a la vez.',
+        'displayName obligatorio en POST /versions — sin él la API devuelve 200 OK pero la operación falla silenciosamente con code:3. Incluirlo siempre.',
+        'LRO polling real: POST /versions responde 200 OK al instante pero el snapshot sigue procesando. Consultar GET /operations/{id} en bucle hasta done:true. Nunca sleep() fijo.',
+        'Nomenclatura: todo archivo de este pipeline lleva la palabra cloudrun añadida como sufijo en su nombre — nunca como prefijo, sin excepción. Aplica a los que se crean desde cero y también a los que se reutilizan: si el pipeline necesita el contenido de un archivo que ya existe en el pipeline local (por ejemplo, una utilidad de conexión), nunca se importa ni se reutiliza directamente desde ahí — se clona en un archivo nuevo con el sufijo cloudrun, aunque el contenido arranque siendo idéntico. Ningún archivo de este pipeline se queda con el nombre exacto de un archivo del pipeline local, ni siquiera los que no cambian de contenido al principio. Cuando un archivo nuevo cumple la misma función que uno que ya existe en el pipeline local, mantiene el mismo nombre base y solo añade el sufijo. Así se distingue de un vistazo qué pertenece a esta construcción nueva y qué es del pipeline anterior, y el pipeline cloud nunca depende en tiempo de ejecución de un archivo del pipeline local.',
+        'Nunca escribir sobre Petal, con una única excepción. Toda prueba automática (Fases 4 y 6) corre siempre contra un agente y repositorio desechables, sin ninguna excepción — ni siquiera para lecturas, porque comparar contra un agente real que puede cambiar entre dos llamadas produce falsos fallos. Una lectura manual puntual sí puede ir contra Petal cuando es genuinamente de solo lectura y no arriesga nada (el inventario del Paso 1 en el recorrido visual de la Fase 7). La única excepción real es el recorrido manual y supervisado de la Fase 8: ahí, y solo ahí, se puede crear un recurso de prueba claramente ficticio sobre Petal — nunca modificar ni tocar nada existente — porque cada paso lo ejecuta Jero en persona, lo que funciona como la aprobación explícita que exige el proyecto, y porque el propio criterio de esa fase obliga a eliminar cualquier rastro al terminar, incluida una segunda publicación si el recurso llegó a producción.'
+      ],
+      estandares: [
+        'Piezas separadas, una sola dirección. El pipeline y el servidor son piezas distintas: el servidor usa el pipeline, nunca al revés. Así, el pipeline se puede ejecutar y comprobar por su cuenta, sin necesidad de tener el servidor ni ningún panel visual corriendo a la vez.',
+        'Nombres claros en vez de explicaciones. El código se escribe con nombres tan claros que no hace falta un comentario al lado explicando qué hace cada cosa — el nombre ya lo dice. Solo se añade una nota cuando hay una razón oculta detrás de una decisión (por ejemplo, un fallo concreto de la API que se está evitando a propósito).',
+        'Queda constancia de cada ejecución real. Cada vez que el pipeline se ejecuta de verdad (no en modo de prueba), se guarda un registro con qué pasó, cuándo, y dónde falló si algo falló — no solo lo que se ve en pantalla en el momento, que se pierde en cuanto se cierra.',
+        'Las partes que no necesitan conexión se prueban solas. Las piezas del código que no dependen de hablar con Dialogflow CX tienen sus propias pruebas automáticas — se pueden ejecutar en cualquier momento, sin internet ni un agente real de por medio, para comprobar rápido que siguen funcionando.',
+        'Si durante la construcción de cualquier fase necesitas un archivo .py transitorio para probar o depurar algo, créalo en act/scaffolding/ y elimínalo al terminar — nunca lo dejes como residuo ni lo cuentes como output de la fase.'
+      ],
+      filosofia: {
+        norte: 'Liberar a la persona de leer e interpretar documentación técnica.',
+        porQue: 'Validar documentación técnica exige un esfuerzo cognitivo alto, genera errores, y crea el riesgo de que los gates los complete el propio LLM en lugar de la persona. Cuando eso ocurre, se pierde lo único que la persona aporta de forma insustituible: conocimiento de dominio, criterio, dirección y capacidad creativa en la definición.',
+        rolLlm: 'Co-crear, no co-validar. El LLM propone estructura, implementa y ejecuta. La persona aporta criterio, dirección y decisiones de diseño. El resultado es de los dos — y ninguno lo habría producido igual solo.',
+        principios: [
+          { n: 1, titulo: 'Lenguaje natural primero', desc: 'Las instrucciones de cada fase están escritas en lenguaje natural, no como comandos técnicos. Opus lee, interpreta y escribe en el área de validación qué ha entendido y qué va a hacer. Solo cuando Jero confirma, Opus ejecuta.' },
+          { n: 2, titulo: 'El criterio de dominio es de la persona', desc: 'Jero conoce el negocio, el sistema y las decisiones de diseño. Opus puede proponer y asesorar, pero la decisión final sobre qué construir, cómo y por qué siempre pertenece a Jero.' },
+          { n: 3, titulo: 'Las fases tienen roles diferentes', desc: 'Algunas fases son de contextualización (leer, entender, auditar), otras son de ejecución (construir, escribir código), otras son de validación (comprobar que el output es correcto).' },
+          { n: 4, titulo: 'Los inputs de cada fase los define Jero', desc: 'Los inputs necesarios para ejecutar cada fase — documentos, HTMLs, imágenes u otro formato — los proporciona Jero y están especificados en las instrucciones de esa fase.' },
+          { n: 5, titulo: 'Las fases son secuenciales', desc: 'No se avanza a la siguiente fase hasta que Jero la ha validado. El orden no es opcional.' },
+          { n: 6, titulo: 'El LLM como traductor', desc: 'Jero describe en lenguaje natural qué construir y hacia dónde. Opus traduce eso en ejecución técnica concreta. Por ejemplo: "necesito un script que compare lo que hay en el repo con lo que hay en producción y solo suba las diferencias" → Opus implementa la lógica, maneja los casos edge y verifica. La premisa: esta división es más eficiente que cualquiera de los dos trabajando solo.' },
+          { n: 7, titulo: 'Validar comprensión y resultado, no el proceso', desc: 'Jero valida que Opus entendió correctamente y tiene un plan claro antes de ejecutar. La ejecución técnica es responsabilidad exclusiva de Opus.' },
+          { n: 8, titulo: 'El trabajo es conjunto, el control es de Jero', desc: 'Jero define, dirige y decide — es la parte pensante del proceso. Opus ejecuta y puede asesorar en la parte técnica, pero Jero siempre tiene la última palabra.' },
+          { n: 9, titulo: 'Cada artefacto tiene su propia validación', desc: 'Cada fase construye un artefacto concreto — un .py, un .html u otro archivo. Ese artefacto tiene sus propios criterios de validación, definidos en el bloque "Criterios de validación" de esa fase. No son criterios genéricos — son específicos del artefacto que se está construyendo: qué tiene que producir, cómo se comprueba que funciona y qué condiciones tiene que cumplir antes de avanzar a la siguiente fase.' }
+        ]
+      }
+    }
+  },
+  { id: 2, title: "Discovery", subtitle: "Inventario del repo — verifica lo que hay y dónde está", tag: "py", tagLabel: "Discovery",
+    llm: {
+      objetivo: "Fase de discovery — lee el repo y verifica que los scripts están en su sitio correcto. No muevas ni modifiques nada. Cuando llegues a esta fase, la estructura del repo ya debería coincidir con el árbol de la Fase 1 (Goal) — confírmalo, no lo des por hecho. Tu trabajo es confirmar que la estructura es la correcta e inventariar lo que existe. Esta fase no produce ningún artefacto — es una confirmación en conversación de que la estructura del repo es correcta antes de avanzar a la Fase 3.",
+      contexto: [
+        { title: "Agente Petal", body: "Floristería online en español sobre Dialogflow CX (europe-west1). Es el agente de referencia sobre el que construyes y pruebas — el pipeline es genérico pero Petal es la instancia real." },
+        { title: "Proyecto y agente son seleccionables — no fijos", body: "El panel va a tener 2 selectores (proyecto, agente). La región no es fija — se detecta automáticamente por agente (S4), probando las regiones reales de Dialogflow CX. europe-west1 es la región de Petal, el agente de referencia, pero el código nunca la asume como constante. Ningún módulo del pipeline puede fijar proyecto, agente o región como constante. <code>definitions/</code> no se reestructura en esta construcción — sigue siendo la carpeta plana de siempre, con contenido real solo para Petal. Lo que cambia es que el código deja de asumir que Petal es el único destino posible." },
+        { title: "Terminología clave — definitions/ vs resources", body: "<code>definitions/</code> son los YAMLs del repo — la fuente de verdad local de cómo deben ser los recursos. <em>Resources</em> es el término de la API de CX para lo que hay desplegado en el agente en este momento. El deploy sincroniza <code>definitions/</code> → CX: compara lo que hay en el repo contra lo que hay en la API, y aplica solo las diferencias. Nunca uses <em>definitions</em> para referirte a recursos de CX, ni <em>resources</em> para los YAMLs del repo." }
+      ],
+      leer: ['docs/cloudrun_diseno_servidor.md — es la base de construcción del servidor de este pipeline, no solo una referencia para esta fase: el propio documento se define como "el diseño del servicio que sustituye a act/server.py... con soporte multi-repo y multi-agente". Contiene las decisiones S1 a S23 citadas en el resto de fases (auto-detección de región, candado en Firestore, GitHub App, correspondencia por tipo + cx_id, etc.). Léelo entero antes de inventariar y vuelve a leerlo antes de construir el servidor en la fase correspondiente. Aviso del propio documento: §2, §10 y §11 se escribieron cuando el pipeline tenía 8 pasos, no 5 — léelas con esa reserva.'],
+      pasos: [],
+      outputs: [],
+      operaciones: []
+    },
+    val: { grupos: [{ title: "Confirmación de discovery · Automático (LLM)", items: [
+      "Ejecuta ls en act/, act/scaffolding/, act/tests/ y act/utils/. Esperado: la lista de archivos en las cuatro carpetas coincide con el árbol del Goal — sin sorpresas.",
+      "Compara la estructura del repo contra el árbol de la Fase 1 (Goal). Esperado: coinciden — cualquier diferencia se reporta antes de continuar.",
+      "Identifica qué scripts de act/ ya existen y cuáles faltan por crear según Fase 3 en adelante. Esperado: lista explícita de 'ya existe' vs 'falta crear', no una afirmación genérica."
+    ] }], decisions: [] } },
+  { id: 3, title: "act_cx_resources_deploy_cloudrun.py", subtitle: "Construye el backend del pipeline — los 5 pasos y las capacidades sueltas que el panel solo simula, hechos realidad", tag: "py", tagLabel: ".py", llm: { objetivo: "Esta fase construye <code>act_cx_resources_deploy_cloudrun.py</code>, el script que va a ejecutar de verdad los 5 pasos que hoy <code>act_cx_resources_deploy_v2.html</code> simula con datos de mentira — y también las 4 capacidades que no pertenecen a ningún paso numerado (Descubrimiento, Vincular agente y repositorio, Versiones existentes, desplegar un resource suelto), porque la Fase 5 va a exigir que el servidor delegue en funciones de este módulo para las 9, no solo para los 5 pasos. Antes de escribir una línea, lee ese panel entero — su parte visual y su pestaña Specs — porque ahí está descrito con detalle qué hace cada paso, qué produce, y qué escribe y dónde. El panel es la especificación; esta fase la hace real.", reglas: [
+        '<strong>0. No son solo 5 funciones — son 9.</strong> Además de una función por paso, esta fase construye una función para cada una de las 4 capacidades sueltas: Descubrimiento (lista proyectos y agentes), Vincular agente y repositorio (S22 — crea la estructura, registra el mapeo en Firestore, detecta la región, hace el pull inicial), Versiones existentes (lista y borra), y desplegar un resource suelto (S20). Sin esto, la Fase 5 se encuentra con 4 endpoints que no tienen dónde delegar, y su propio criterio de "no reimplementar lógica en el endpoint" queda imposible de cumplir tal cual.',
+        '<strong>1. La especificación completa está en el panel — léelo entero antes de escribir código.</strong> act_cx_resources_deploy_v2.html, su parte visual y su pestaña Specs, describe paso a paso qué hace cada uno, qué produce, qué escribe y dónde, cómo se recalcula el diff al entrar a un paso, cómo se comporta un fallo a medias, cómo se detecta la región la primera vez que se vincula un agente, y el orden estricto de las tres acciones del Paso 5. Constrúyelo tal como está descrito ahí — es la especificación, no una guía aproximada. No repitas aquí lo que ya está dicho con detalle en el panel. Si encuentras una contradicción entre la parte visual/interacción/estados y la pestaña Specs, para — no decidas tú cuál de las dos tiene prioridad. Propón una resolución sencilla, en lenguaje natural, con su justificación, y espera confirmación antes de construir sobre ella.',
+        '<strong>2. El registro de cada paso se emite en vivo, no de golpe al terminar.</strong> Esto no está escrito como requisito técnico en el panel — se deduce de que el registro se ve llenar una caja de tamaño fijo mientras el paso corre. Tradúcelo a un backend que va mandando lo que hace según lo hace, no uno que devuelve un resultado final único.',
+        '<strong>3. Mientras un paso que escribe está corriendo, hace falta un candado real de concurrencia.</strong> Tampoco está como requisito técnico explícito — se deduce de que el panel bloquea el resto de la interfaz mientras se escribe. Sin un candado de verdad en el backend, dos escrituras podrían solaparse aunque el panel visualmente lo impida.',
+        '<strong>4. Ningún archivo de esta fase tiene una constante de módulo para proyecto, agente o región — los tres se reciben siempre como parámetro.</strong> El panel no habla de esto, es una regla de arquitectura del código.',
+        '<strong>5. 13 tipos de recurso, no 12.</strong> La lista completa incluye Transition Route Groups — el panel tampoco enumera esto, viene de la verificación contra la API real.',
+        '<strong>6. Nomenclatura y clonado, según Constraints.</strong> Todo lo que se cree en esta fase lleva el sufijo cloudrun, y lo que se reutilice del pipeline local se clona, nunca se importa directo. No es del panel — ya está firmado en Constraints, aquí es donde se aplica por primera vez.'
+      ], leer: ['act_cx_resources_deploy_v2.html — completo, visual y Specs. Es la fuente de todo lo de arriba.', 'docs/cloudrun_diseno_servidor.md — las decisiones S1 a S23 que estas reglas dan por hechas.', 'act/utils/cx_client.py y act/utils/cx_payloads.py — como referencia para clonar su lógica, no para importarlos.', 'CLAUDE.md §3 — los constraints de headers y Full Update siguen vigentes; el de autenticación local (gcloud auth print-access-token) no aplica aquí, se usa ADC.'], outputs: [{ path: 'act/act_cx_resources_deploy_cloudrun.py', desc: 'El backend de los 5 pasos y las 4 capacidades sueltas' }, { path: 'act/utils/cx_client_cloudrun.py', desc: 'Clon de la capa de conexión' }, { path: 'act/utils/cx_payloads_cloudrun.py', desc: 'Clon de la capa de adaptación' }, { path: 'act/tests/test_cx_payloads_cloudrun.py', desc: 'Tests sin red del clon de payloads' }], pasos: [] }, val: { grupos: [
+      { title: "Construcción · Automático (LLM)", items: [
+        { criterio: "El script se importa sin errores (python -c 'import act_cx_resources_deploy_cloudrun')", porQue: "Confirma que la sintaxis y los imports son correctos antes de pasar a la Fase 4." },
+        { criterio: "Existen 9 funciones con la firma esperada: una por cada uno de los 5 pasos, más Descubrimiento, Vincular agente y repositorio, Versiones existentes, y desplegar un resource suelto", porQue: "La Fase 5 (server_cloudrun.py) exige que sus 9 endpoints deleguen en una función de este módulo, sin excepción — si faltan las 4 sueltas, la Fase 5 se queda sin dónde delegarlas." },
+        { criterio: "La función de desplegar un resource suelto no tiene, en ningún camino de código, forma de construir una URL que contenga /environments/ — solo sabe llamar al borrador", porQue: "Es la garantía de seguridad de esa capacidad (S20): no puede alcanzar producción aunque se le pida, porque el código nunca aprendió a escribir esa URL." },
+        { criterio: "Ningún archivo tiene una constante de módulo para proyecto, agente o región — los tres llegan siempre por parámetro", porQue: "Es la propiedad que hace posible el multi-proyecto/multi-agente/multi-región — si sobrevive una constante fija, todo lo demás (selectores, descubrimiento, autodetección) queda operando sobre un destino que en realidad no cambia." },
+        { criterio: "python -m pytest act/tests/test_cx_payloads_cloudrun.py pasa en verde sin conexión a red", porQue: "Es la comprobación directa del estándar 'pruebas aisladas por pieza' de la Fase 1 — si necesita red para pasar, no está probando la función pura, está probando la API." },
+        { criterio: "Dos llamadas seguidas al Paso 3, contra el agente desechable, con datos distintos en CX, devuelven diffs distintos", porQue: "Confirma que el diff se recalcula fresco en cada llamada y no se reutiliza nada guardado de una ejecución anterior (Regla 1)." }
+      ]}
+    ], decisions: [] } },
+  { id: 4, title: "validate_pipeline_cloudrun.py", subtitle: "Smoke test del pipeline en 5 niveles, de estático a caos — todo sin necesitar el panel conectado", tag: "py", tagLabel: ".py", llm: { objetivo: "Esta fase construye act/validate_pipeline_cloudrun.py — el script que verifica que act_cx_resources_deploy_cloudrun.py (Fase 3) funciona de verdad, en cinco niveles de riesgo creciente, contra un agente y un repositorio desechables — nunca contra Petal. Nada de esto requiere un panel conectado: eso no existe hasta la Fase 7, así que cada verificación se ejecuta por CLI o llamando directamente a las funciones del pipeline, nunca haciendo clic en algo. La validación de extremo a extremo a través del panel real queda para la Fase 8.", reglas: [
+        'Nivel 0 — Estático, sin red ni credenciales reales. Atrapa violaciones de arquitectura antes de gastar una sola llamada API — si esto falla, ningún nivel posterior es de fiar.',
+        'Nivel 1 — Solo lectura, contra CX y el repositorio reales, usando el agente desechable. Cero riesgo, se puede correr con la frecuencia que se quiera.',
+        'Nivel 2 — Simulación (dry-run). No escribe nada real en CX ni en el repositorio salvo, como mucho, una escritura de prueba reversible para validar que el plan simulado coincide con la ejecución real.',
+        'Nivel 3 — Escritura real automatizada, contra un agente y repositorio desechables. Cubre los 4 pasos que escriben, incluida la publicación en producción — automatizada por CLI, sin ningún panel de por medio.',
+        'Nivel 4 — Fallo inyectado y concurrencia (caos). El nivel que existe específicamente para encontrar lo que no se nota: residuos, candados colgados, fugas de datos entre agentes.',
+        'La validación contra un Cloud Run real NO es de esta fase: exige un servicio desplegado con su Service Account de runtime, y el servidor y el Dockerfile son outputs de la Fase 5. Un nivel que solo puede saltarse no es cobertura, es un hueco con nombre — se ejecuta en la Fase 6, que es la que valida el servidor. El script rechaza --levels 5 diciendo dónde vive ahora.'
+      ], leer: ['act/act_cx_resources_deploy_cloudrun.py — construido en Fase 3, es lo que este script verifica.', 'act_cx_resources_deploy_v2.html — para conocer el comportamiento esperado de cada paso.'], outputs: [{ path: 'act/validate_pipeline_cloudrun.py', desc: 'Smoke test en 5 niveles del backend de la Fase 3, del análisis estático al caos' }], pasos: [] }, val: { grupos: [
+      { title: "Nivel 0 — Estático · Automático (script)", items: [
+        { criterio: "Ningún literal de proyecto, agente o región real aparece hardcodeado fuera de tests/fixtures", porQue: "Es la regresión más fácil de reintroducir sin darse cuenta al portar lógica desde el pipeline local, que sí estaba atado a Petal." },
+        { criterio: "Invocar cualquier función de entrada sin project/agent/region explícitos falla con error claro, nunca cae a un valor por defecto real", porQue: "Un default silencioso convierte un test de otro agente en una escritura real sobre Petal." },
+        { criterio: "El documento de Firestore del candado, del mapeo agente→repositorio y de la región tiene un esquema con campos obligatorios — un documento incompleto hace fallar el arranque", porQue: "Continuar con un campo faltante como None implícito es exactamente el tipo de fallo que no se nota hasta que ya causó daño." },
+        { criterio: "Ningún archivo temporal usa una ruta fija o predecible solo por nombre de agente — cada invocación usa un identificador único", porQue: "Dos peticiones concurrentes para el mismo agente en el mismo contenedor reutilizado colisionarían si comparten ruta." },
+        { criterio: "Ningún log interpola el token de acceso completo ni el token de GitHub", porQue: "Los logs de Cloud Run se comparten entre invocaciones del mismo servicio — una fuga de token en logs es un problema de seguridad, no solo de higiene." },
+        { criterio: "Se confirma explícitamente si gcloud auth print-access-token funciona dentro de un contenedor Cloud Run sin sesión interactiva, o si hace falta ADC puro — no se asume la respuesta", porQue: "El CLAUDE.md fija esa regla para ejecución local; en Cloud Run puede no haber gcloud instalado ni una identidad interactiva. Es una asunción sin verificar, exactamente el tipo que se rompe en silencio la primera vez que falta." }
+      ]},
+      { title: "Nivel 1 — Solo lectura · Automático (script)", items: [
+        { criterio: "Auth válido, conectividad con CX, LIST completa para los 13 tipos sin errores", porQue: "Base mínima antes de confiar en cualquier resultado de niveles posteriores." },
+        { criterio: "Un recurso con displayName cambiado pero mismo cx_id sigue emparejando con su entrada existente en el repositorio", porQue: "Si el emparejamiento cae a nombre como fallback silencioso, un rename en CX produce un duplicado fantasma en el repositorio." },
+        { criterio: "Dos recursos con nombres colisionantes (mismo displayName, distinto cx_id) no se confunden entre sí", porQue: "Es el caso adversarial directo del emparejamiento por tipo + cx_id — si falla, falla justo donde más importa." },
+        { criterio: "Un recurso presente en el repositorio pero ausente en CX se reporta como categoría propia, no se ignora ni se confunde con 'nuevo en CX'", porQue: "Puede significar que alguien lo borró directamente desde la consola de CX — tratarlo como 'nuevo' generaría un intento de creación duplicada." },
+        { criterio: "Correr el Paso 1 contra dos pares proyecto+agente distintos en el mismo proceso no contamina el inventario de uno con el del otro", porQue: "Es la prueba directa de que no sobrevive ninguna variable de estado compartida entre invocaciones." },
+        { criterio: "La región se lee de Firestore y no se vuelve a sondear en una segunda ejecución sobre el mismo agente — verificado contando las llamadas de sondeo", porQue: "El sondeo de región prueba las 17 regiones reales — repetirlo en cada ejecución sería lento y ruidoso sin necesidad." },
+        { criterio: "Un valor de región inválido en Firestore falla con un error claro de región inconsistente, no con un 404 críptico de la API", porQue: "Un error sin contexto deja a quien lo depura sin pistas de por dónde empezar." },
+        { criterio: "Cero llamadas de escritura durante todo el paso, verificado por instrumentación del cliente HTTP, no por inspección del código", porQue: "Inspeccionar el código para confirmar 'solo lectura' es fiarse de que nadie añadió una llamada de escritura sin darse cuenta — instrumentar lo prueba de verdad." },
+        { criterio: "Ejecutar sin --project o sin --agent termina con un mensaje claro, nunca con un valor por defecto", porQue: "Es la prueba de que no sobrevive ninguna constante oculta de un agente fijo." }
+      ]},
+      { title: "Nivel 2 — Dry-run · Automático (script)", items: [
+        { criterio: "El plan de dry-run y la ejecución real producen exactamente el mismo diff sobre el mismo estado de entrada", porQue: "Un dry-run que miente sobre lo que va a pasar no sirve de nada como previsualización." },
+        { criterio: "El modo dry-run nunca invoca al cliente HTTP real — reutiliza el inventario ya leído en el Paso 1", porQue: "Si dry-run vuelve a leer con permisos de escritura activados por accidente, deja de ser seguro ejecutarlo sin cuidado." },
+        { criterio: "Un recurso modificado a la vez en CX (fuera del pipeline) y en el repositorio se señala como conflicto explícito, nunca se resuelve arbitrariamente a favor de un lado", porQue: "Resolver un conflicto en silencio puede perder un cambio hecho a propósito por otra vía." },
+        { criterio: "El plan respeta Full Update sin updateMask para Playbooks y updateMask obligatorio para Environments — forzar el camino equivocado falla el dry-run antes de llegar a la API real", porQue: "Detectarlo en dry-run es gratis; detectarlo en el Paso 3 real ya cuesta una escritura fallida." },
+        { criterio: "Marcar un borrado durante el dry-run no borra nada — el recurso sigue intacto en CX al terminar", porQue: "Dry-run significa que nada se toca de verdad, sin excepciones." },
+        { criterio: "Si no hay cambios, el pipeline lo dice claramente y no continúa como si hubiera algo que aplicar", porQue: "Continuar con una lista vacía desperdicia el paso siguiente sin ningún propósito." }
+      ]},
+      { title: "Nivel 3 — Escritura real automatizada, en el agente desechable · Automático (script)", items: [
+        { criterio: "Traer al repositorio deja un único commit por operación, usando la API de Git Data (árbol/commit) y no N llamadas de la Contents API", porQue: "La Contents API por archivo no es atómica — puede dejar un commit a medias si el proceso muere entre un archivo y el siguiente." },
+        { criterio: "Repetir la misma operación de traer al repositorio sin cambios intermedios no produce un segundo commit", porQue: "Confirma que el paso es idempotente, no solo que funciona la primera vez." },
+        { criterio: "Una operación conocida por fallar en silencio (versión sin displayName) se detecta por polling real a GET /operations/{id}, nunca se da por buena solo por el 200 inicial", porQue: "Es la comprobación directa del workaround del bug de code:3 silencioso — sin esto, el bug puede reaparecer sin que nada lo note." },
+        { criterio: "Full Update en un Playbook con event handlers implícitos no borra esos handlers — verificado con un diff del objeto en CX antes y después", porQue: "Es la reproducción exacta del bug ya documentado (borrar sys.no-match-default) — si el mecanismo GET completo → modificar → PUT completo no está bien implementado, este test lo demuestra con evidencia concreta." },
+        { criterio: "Un PATCH de Environment sin updateMask falla limpio y se captura como error esperado, no como fallo inexplicable", porQue: "Es la confirmación positiva del comportamiento inverso al de Playbooks — Environments exige la máscara." },
+        { criterio: "Repetir los dos checks anteriores (Full Update en Playbooks, updateMask obligatorio en Environments) contra un agente desechable en una región distinta de europe-west1 — confirmar si el comportamiento se reproduce igual, es distinto, o no existe", porQue: "El bug de Full Update solo está verificado en europe-west1. Con la región autodetectada, el pipeline puede terminar operando de verdad contra un agente en otra región — sin esta prueba, ese día sería la primera vez que se descubre el comportamiento real." },
+        { criterio: "Antes y después de aplicar cambios en el Paso 3, el puntero de producción del agente desechable no cambia", porQue: "El Paso 3 escribe solo en el borrador — cualquier cambio en producción aquí sería un error grave." },
+        { criterio: "Un cambio en Agent Config o Generator se refleja de inmediato en el entorno de producción del agente desechable, y el pipeline lo expone como advertencia explícita antes de aplicar", porQue: "Estos tipos no admiten versión — el usuario tiene que saberlo antes de confirmar, no descubrirlo después." },
+        { criterio: "Aplicar el mismo diff dos veces seguidas produce el mismo estado final en CX, sin duplicar recursos ni reenviar un create ya aplicado", porQue: "Es la idempotencia del CLAUDE.md llevada a un caso end-to-end, no solo unitario." },
+        { criterio: "Publicar en producción, llamando directamente a la función del Paso 5 contra el agente desechable sin ningún panel de por medio: las tres acciones (fusión, versión, apuntar entorno) ocurren en ese orden exacto, verificado por código", porQue: "Es la automatización explícita de lo que antes se pensaba como verificación manual — no hace falta un panel para confirmar el orden de tres llamadas." },
+        { criterio: "Publicar dos veces seguidas sobre el mismo commit ya publicado es no-op seguro — no crea una segunda versión ni falla de forma confusa", porQue: "Un reintento accidental del Paso 5 no debería tener ningún efecto visible si ya se completó." },
+        { criterio: "Cada uno de los 13 tipos de recurso se prueba con al menos un create, un update y un delete reales contra el agente desechable — no solo los 4 que ya se sabe que tienen comportamiento especial (Playbooks, Environments, Agent Config, Generators)", porQue: "Los tipos menos comunes podrían tener su propio comportamiento peculiar que nunca se descubre si solo se prueban los ya conocidos." }
+      ]},
+      { title: "Nivel 4 — Fallo inyectado y concurrencia (caos) · Automático (script)", items: [
+        { criterio: "Matar el proceso con SIGKILL (no una excepción capturable) a mitad de una escritura del Paso 3 — el candado de Firestore se libera solo por expiración de un TTL/heartbeat, nunca porque el código alcanzó a ejecutar un bloque de liberación", porQue: "Un contenedor de Cloud Run terminado abruptamente (autoscaling, nueva revisión) no ejecuta ningún finally. Sin TTL, el agente queda bloqueado para siempre — el residuo más grave posible." },
+        { criterio: "Forzar un fallo a partir del recurso 3 de un lote de 5 en el Paso 3 — el reintento solo reenvía llamadas HTTP para los recursos 3, 4 y 5, confirmado por instrumentación", porQue: "Confirmarlo solo por el resultado final puede ocultar que también se reenviaron 1 y 2 sin efecto observable porque son idempotentes — eso esconde un bug real de tracking." },
+        { criterio: "El progreso por-recurso de un lote vive en Firestore, nunca en memoria del proceso ni en disco local — simular un contenedor nuevo recuperando el reintento y confirmar que recupera el estado correcto", porQue: "Un contenedor de Cloud Run reiniciado no conserva memoria ni disco — el estado tiene que sobrevivir en un sitio externo." },
+        { criterio: "Dos invocaciones concurrentes sobre el mismo agente — exactamente una procede, la otra se rechaza o se encola explícitamente, y ninguna de las dos deja el candado tomado al terminar", porQue: "Es la prueba directa de que el candado de concurrencia (S13/S13b) cumple su función bajo contención real, no solo en el caso feliz de una sola petición." },
+        { criterio: "Ejecutar el Agente A completo y luego el Agente B en el mismo proceso — ningún archivo temporal, token o cabecera x-goog-user-project de A se filtra a B", porQue: "Es el riesgo específico de Cloud Run: un contenedor reutilizado entre peticiones de agentes distintos. Un valor cacheado a nivel de módulo en vez de por-petición es el tipo de bug que solo aparece con dos agentes reales." },
+        { criterio: "Forzar fallo entre crear versión y apuntar el entorno en el Paso 5 — la versión huérfana no se interpreta como estado activo en ningún cálculo posterior, y el reintento apunta el entorno a la versión ya creada en vez de crear una nueva", porQue: "Sin esto, un fallo a mitad del Paso 5 puede dejar CX en un estado ambiguo que ningún reintento sabe resolver limpio." },
+        { criterio: "El gate del Paso 4 queda atado al commit/draft exacto que se aprobó — si algo cambia después de aprobar y antes de publicar, el Paso 5 lo detecta y aborta", porQue: "Sin esto, aprobar el commit X y luego publicar Y (porque cambió algo entre medias sin pasar por el pipeline) publicaría algo que nadie validó realmente." }
+      ]},
+      { title: "Scope · Automático (script)", items: [
+        { criterio: "git diff HEAD sobre act/utils/cx_client.py, act/utils/cx_payloads.py, act/act_cx_resources_deploy.py y act/server.py no devuelve ninguna diferencia", porQue: "Son archivos del pipeline local — esta fase no debía tocarlos en ningún momento, solo clonarlos." }
+      ]}
+    ], decisions: [] } },
+  { id: 5, title: "server_cloudrun.py", subtitle: "Servidor Flask para Cloud Run — reemplaza server.py local, corre en la nube", tag: "py", tagLabel: ".py", llm: { objetivo: "Esta fase construye act/server_cloudrun.py, el servidor Flask que expone por HTTP el pipeline construido en la Fase 3, pensado para correr en Cloud Run. Tres diferencias clave respecto a un servidor local: autenticación hacia CX vía ADC en vez de sesión personal de gcloud, acceso al repositorio vía la GitHub App en vez de disco local, y empaquetado como contenedor Docker. La lógica del pipeline no cambia — importa las funciones de act_cx_resources_deploy_cloudrun.py, nunca las reimplementa.", reglas: [
+      '<strong>1. Los endpoints que expone, y solo esos.</strong> Cinco numerados, uno por paso — <code>POST /step/1</code> a <code>/step/5</code> — más tres que no pertenecen a ningún paso: Descubrimiento (rellena los desplegables de proyecto y agente), Vincular agente y repositorio (el onboarding, S22) y Versiones existentes (listar y borrar). Además, el de desplegar un resource suelto (S20), <code>POST /deploy-resource</code>. Los que escriben reciben <code>{project, agent}</code> obligatorios en cada llamada — si falta alguno, 400 con mensaje claro, nunca un valor por defecto. El servidor no guarda estado entre peticiones: Cloud Run puede matar y rearrancar la instancia en cualquier momento.',
+      '<strong>2. Auth hacia CX: ADC, no gcloud auth print-access-token.</strong> En Cloud Run no hay sesión humana interactiva. Usar google.auth.default() con scope cloud-platform — verificado a nivel de API que funciona igual que gcloud auth print-access-token (200 OK) siempre que se mande la cabecera x-goog-user-project; sin ella, 403. Lo que todavía no está verificado es que esto funcione igual dentro de un contenedor Cloud Run real, sin sesión interactiva — confírmalo en el Nivel 5 de la Fase 4 antes de darlo por cerrado. Es la excepción documentada a la regla de CLAUDE.md que prohíbe google.auth.default() — aplica solo a este servidor, nunca al local.',
+      '<strong>3. Auth hacia GitHub: GitHub App, tokens de corta duración.</strong> Crear act/utils/github_app_client_cloudrun.py con una función que en cada llamada lee la clave privada del secreto en Secret Manager, genera un JWT firmado con el App ID de la GitHub App ya creada, pide un installation token, y lo devuelve. Nunca se almacena entre peticiones — se genera en el momento. El token dura aproximadamente una hora; si la operación tarda más, se regenera.',
+      '<strong>4. Puerto 8080.</strong> Cloud Run inyecta la variable PORT — el servidor escucha en esa variable, con 8080 como valor por defecto si no está presente. Nunca un puerto fijo distinto, como el 5000 del servidor local.',
+      '<strong>5. CORS: URL de Cloud Run, nunca hardcodeada.</strong> El origen permitido se lee de una variable de entorno.',
+      '<strong>6. El candado de concurrencia vive en Firestore — nunca se asume por la infraestructura de Cloud Run.</strong> Verificado contra la documentación real: una sola instancia de Cloud Run NO reproduce un candado global — encola las peticiones, no las rechaza. Sin un candado explícito, dos peticiones concurrentes sobre el mismo agente se procesarían una detrás de otra en vez de que la segunda se rechace — el efecto es distinto, y puede dejar corriendo un deploy que Jero cree cancelado. Todos los endpoints que escriben pasan por este candado, sin excepción — es el mismo mecanismo S13/S13b que valida la Fase 4.',
+      '<strong>7. El descubrimiento de proyecto incluye el repositorio asignado.</strong> El endpoint de Descubrimiento devuelve, para cada agente, el repositorio que le corresponde según el mapeo en Firestore (S4) — si un agente no tiene repositorio vinculado, se incluye igual en la lista pero sin repositorio, nunca se omite en silencio.',
+      '<strong>8. Dockerfile obligatorio, con su nombre literal.</strong> Es el único archivo de esta fase que no lleva el sufijo cloudrun — Docker exige ese nombre exacto por convención. Base python:3.11-slim, instala requirements.txt, copia act/, expone el puerto 8080, entrypoint python act/server_cloudrun.py. Sin credenciales en la imagen — las gestiona Cloud Run en tiempo de ejecución.',
+      '<strong>9. Los endpoints devuelven JSON con estructura {status, log, data}.</strong> El mismo sobre de respuesta para todos los endpoints, sin excepción — el panel espera ese formato exacto.',
+      '<strong>10. La región no es una constante — se resuelve por agente vía Firestore, igual que en la Fase 3.</strong> El servidor nunca asume europe-west1 como fija; la consulta para el agente y proyecto de cada petición.',
+      '<strong>11. Esta fase construye el servidor de forma aislada.</strong> La conexión real del panel HTML es trabajo de la Fase 7 — aquí basta con que el servidor responda correctamente a peticiones directas (curl) con Docker corriendo en local.'
+    ], leer: [
+      'docs/cloudrun_diseno_servidor.md — completo. Es la fuente de verdad de toda esta fase, incluida la infraestructura ya creada (§14).',
+      'act/server.py — como referencia para clonar su lógica de endpoints, nunca para importarlo.',
+      'act/act_cx_resources_deploy_cloudrun.py — funciones que importa el servidor. Entender la firma de cada una antes de escribir los endpoints.',
+      'act_cx_resources_deploy_v2.html — qué datos espera cada pantalla en la respuesta del servidor, para construir el campo data de cada endpoint acorde.'
+    ], outputs: [
+      { path: 'act/server_cloudrun.py', desc: 'Servidor Flask — 5 pasos + 3 endpoints sin numerar + deploy-resource' },
+      { path: 'act/utils/github_app_client_cloudrun.py', desc: 'Módulo para generar tokens de la GitHub App desde Secret Manager' },
+      { path: 'Dockerfile', desc: 'Contenedor para Cloud Run — base python:3.11-slim, puerto 8080' }
+    ], pasos: [] }, val: { grupos: [
+      { title: "Construcción · Automático (LLM)", items: [
+        { criterio: "docker build completa sin errores", porQue: "Confirma que el Dockerfile y las dependencias son correctos antes de probar el servidor en ejecución." },
+        { criterio: "Los endpoints existen y delegan en una función de act_cx_resources_deploy_cloudrun.py — ninguno reimplementa lógica dentro del propio endpoint", porQue: "server_cloudrun.py es un adaptador HTTP, no un segundo pipeline. Si reimplementa lógica, hay dos fuentes de verdad que pueden divergir." },
+        { criterio: "El módulo de la GitHub App lee el secreto de Secret Manager, genera el JWT y devuelve un token — nunca lo almacena en una variable de módulo", porQue: "Un token almacenado caduca en silencio. Regenerarlo en cada llamada garantiza que siempre es válido." },
+        { criterio: "Los endpoints que escriben devuelven 400 si falta project o agent en el body — nunca ejecutan con un valor por defecto", porQue: "El servidor no guarda estado — cada llamada tiene que traer su propio destino, o se rechaza." },
+        { criterio: "El servidor escucha en la variable PORT, con 8080 como valor por defecto — nunca puerto fijo 5000", porQue: "Cloud Run inyecta PORT en tiempo de ejecución. Si el servidor escucha en otro puerto, el health check falla y el despliegue no arranca." }
+      ]},
+      { title: "Docker local · Automático (LLM)", items: [
+        { criterio: "El contenedor arranca y responde en localhost:8080 al endpoint del Paso 1, con project/agent del agente de referencia — datos reales, no hardcodeados", porQue: "Es la comprobación de que el contenedor funciona de extremo a extremo en local antes de desplegarlo en Cloud Run." },
+        { criterio: "Sin project o agent en el body, responde 400 con mensaje claro, nunca 200", porQue: "Confirma que la validación del body funciona dentro del contenedor, no solo fuera." },
+        { criterio: "Sin credenciales ADC en el entorno, responde con un error claro, no un stacktrace crudo", porQue: "El error de credenciales es el más frecuente en primeros despliegues. Un mensaje claro ahorra depuración a ciegas." }
+      ]},
+      { title: "GitHub App · Automático (LLM)", items: [
+        { criterio: "El token generado dura una hora o menos, verificable inspeccionando el campo de expiración de la respuesta de GitHub", porQue: "Un token de larga duración equivale a un token fijo — anula la ventaja de la GitHub App." },
+        { criterio: "Dos llamadas consecutivas devuelven el mismo token si no ha expirado, o uno nuevo si sí — nunca un token caducado", porQue: "Regenerar tokens innecesariamente aumenta la latencia; reutilizar tokens caducados rompe las operaciones en silencio." }
+      ]}
+    ], decisions: [] } },
+  { id: 6, title: "validate_server_cloudrun.py", subtitle: "Smoke test del servidor Flask — valida los endpoints antes de conectar el HTML, sin dejar residuo", tag: "py", tagLabel: ".py", llm: { objetivo: "Esta fase construye act/validate_server_cloudrun.py — smoke test automático que arranca server_cloudrun.py, golpea cada endpoint con peticiones HTTP reales y verifica que responde con el formato correcto. Existe porque el servidor es una capa nueva entre el HTML y el pipeline — puede fallar por razones que validate_pipeline_cloudrun.py (Fase 4) no cubre: puerto mal configurado, CORS roto, JSON mal formado, un endpoint que no llama a la función correcta. Todo se ejecuta por script, sin ningún paso manual, contra un agente y repositorio desechables — nunca contra Petal, ni siquiera para las pruebas de solo lectura — y ninguna corrida puede dejar residuo.", reglas: [
+      '<strong>1. Arrancar el servidor como subproceso y cerrarlo siempre, incluso si se cuelga.</strong> No basta con matarlo cuando el proceso muere por su cuenta — si arranca pero no responde a tiempo, también hay que matarlo antes de fallar el test. Un arranque colgado que no se limpia deja un proceso huérfano ocupando el puerto para la siguiente corrida.',
+      '<strong>2. Para cada endpoint (los 5 numerados, los 3 sin numerar, y el de resource suelto): 200, JSON válido, con status, log y data.</strong>',
+      '<strong>3. JSON mal formado en el body responde 400 con mensaje claro, nunca un 500 crudo.</strong> Es uno de los motivos declarados de esta fase — hay que probarlo de verdad, no darlo por hecho.',
+      '<strong>4. CORS se verifica en la respuesta real y en el preflight OPTIONS.</strong> Un panel en otro origen dispara primero un OPTIONS antes de la petición real — si el servidor no lo maneja, el navegador bloquea la llamada aunque la respuesta POST llevara la cabecera correcta.',
+      '<strong>5. dry_run se verifica comparando el estado antes y después, no solo confiando en lo que el servidor dice que hizo.</strong> Que el servidor devuelva éxito no prueba que no escribió nada — hay que comprobarlo leyendo el resultado.',
+      '<strong>6. Conexión real: para todos los endpoints, sin excepción, invocar la función del pipeline directamente y comparar su resultado contra lo que devuelve el endpoint.</strong> Esto va contra el agente y repositorio desechables, nunca contra Petal — ni siquiera los endpoints de solo lectura, porque comparar contra un agente real que puede cambiar entre las dos llamadas produce falsos fallos por condición de carrera, además de ser justo lo que la restricción de seguridad prohíbe.',
+      '<strong>7. Cero residuo: nombre predecible con ID de corrida.</strong> Todo recurso que el test crea (versión, commit) lleva un prefijo fijo más un identificador de la corrida — permite saber qué borrar y de qué ejecución es, incluso si dos corridas se solapan.',
+      '<strong>8. Cero residuo: barrido al empezar, no solo al terminar.</strong> Antes de crear nada, el script busca y borra cualquier recurso con el prefijo de corridas anteriores. Un finally no protege contra un SIGKILL real — el residuo de una corrida que murió a medias se limpia en la siguiente, no se acumula para siempre.',
+      '<strong>9. Cero residuo: el bloque de escritura corre dentro de un try/finally que limpia de verdad.</strong> Al terminar (o al fallar), borra el recurso creado en CX y verifica el borrado leyendo el resultado — nunca fiándose del código HTTP. Revierte el repositorio desechable a su estado previo. Libera el candado de Firestore explícitamente, sin depender solo del TTL.',
+      '<strong>10. Un test dedicado mata el servidor con SIGKILL a mitad de una escritura.</strong> Esperado: el candado de Firestore se libera por TTL, no queda ninguna versión a medio crear, y la siguiente corrida del smoke test arranca limpia. Es el mismo criterio que ya se exigió para el pipeline en la Fase 4, aplicado ahora a la capa HTTP.',
+      '<strong>11. Ninguna operación asíncrona queda huérfana si el cliente de test hace timeout.</strong> Si el test deja de esperar una respuesta mientras el servidor sigue poleando una operación larga, hay que comprobar si esa operación remota sigue viva antes de dar la prueba por cerrada — puede terminar creando la versión igualmente, después de que el test ya haya reportado fallo.',
+      '<strong>12. El check de permisos prueba comportamiento real, nunca un grep del código fuente.</strong> Buscar una cadena de texto en server_cloudrun.py pasa aunque el código sea inalcanzable o esté mal manejado — hay que forzar el caso y observar la respuesta real.',
+      '<strong>13. La provisión del agente y repositorio desechables es un paso de infraestructura de una sola vez, separado del test.</strong> El smoke test asume que ya existen y usa su identificador — documentar cómo se crean, igual que el proyecto ya documenta el comando IAM manual de onboarding (S11), no improvisarlo dentro del propio test.'
+    ], leer: [
+      'act/server_cloudrun.py — Fase 5. Entender los endpoints antes de escribir los tests.',
+      'act/validate_pipeline_cloudrun.py — Fase 4. Reutilizar el mismo patrón de niveles y el mismo criterio de cero residuo, no inventar uno nuevo. Esta fase hereda además la validación contra un Cloud Run real, que la Fase 4 declaraba como su Nivel 5 y no podía ejecutar: exige el servidor y el Dockerfile, que son outputs de la Fase 5.',
+      'docs/cloudrun_diseno_servidor.md — S13/S13b (candado de concurrencia) y el hallazgo H4 sobre el límite de versiones por playbook, relevante para no agotar la cuota del agente desechable en corridas repetidas.'
+    ], outputs: [{ path: 'act/validate_server_cloudrun.py', desc: 'Smoke test del servidor, en corridas automáticas sin residuo' }], pasos: [] }, val: { grupos: [
+      { title: "Arranque y cierre · Automático (script)", items: [
+        { criterio: "El servidor arranca como subproceso y el script lo cierra siempre al terminar, incluso si un test falla", porQue: "Sin cierre garantizado, un test fallido deja el puerto ocupado y bloquea la siguiente corrida." },
+        { criterio: "Si el arranque se cuelga sin responder antes del timeout, el subproceso se mata igual, no solo cuando muere por su cuenta", porQue: "Un arranque colgado sin limpiar es un proceso huérfano — el mismo problema que un cierre mal hecho, con otra causa." }
+      ]},
+      { title: "Estructura de los endpoints · Automático (script)", items: [
+        { criterio: "Todos los endpoints devuelven 200 y JSON válido con status, log y data", porQue: "El panel depende de ese formato exacto para actualizar la UI." },
+        { criterio: "Un body con JSON mal formado responde 400 con mensaje claro, nunca 500 crudo", porQue: "Es uno de los motivos declarados de esta fase — sin este test, queda sin probar." },
+        { criterio: "La cabecera CORS está presente tanto en la respuesta real como en el preflight OPTIONS", porQue: "Sin manejar el preflight, el navegador bloquea la llamada real aunque el POST llevara la cabecera correcta — el fallo solo se ve abriendo la consola del navegador." },
+        { criterio: "Una petición de escritura sin project o sin agent en el body devuelve 400, nunca 200", porQue: "Confirma que el servidor no rellena valores por defecto." }
+      ]},
+      { title: "Conexión real, agente desechable · Automático (script)", items: [
+        { criterio: "Para cada endpoint, invocar la función del pipeline directamente y comparar su resultado contra lo que devuelve el endpoint — coinciden", porQue: "Un endpoint que devuelve datos de ejemplo pasaría los checks de estructura sin estar conectado de verdad al pipeline." },
+        { criterio: "Todas estas pruebas corren contra el agente y repositorio desechables — nunca contra Petal, tampoco las de solo lectura", porQue: "Es la restricción de seguridad no negociable del proyecto, sin excepción para lectura." },
+        { criterio: "dry_run: el estado del agente desechable antes y después de la llamada es idéntico", porQue: "Confirma que dry_run no escribe de verdad, no solo que el servidor dice que no escribió." },
+        { criterio: "La respuesta del endpoint del Paso 1 (Inventario) trae exactamente los 3 nombres de grupo que el panel espera pintar: emparejados, solo en CX, solo en el repositorio", porQue: "Es el campo más estructural y complejo de toda la respuesta — el que más se presta a que alguien invente su propia forma en vez de seguir la del panel. No se verifica el resto de campos aquí (ver la Fase 3, que remite al panel completo como especificación), solo este punto de mayor riesgo." }
+      ]},
+      { title: "Cero residuo · Automático (script)", items: [
+        { criterio: "Todo recurso creado durante el test lleva un prefijo fijo más el ID de la corrida", porQue: "Permite identificar y borrar exactamente lo que creó cada ejecución, incluso si dos corridas se solapan." },
+        { criterio: "Al empezar, el script busca y borra cualquier recurso con ese prefijo que haya quedado de una corrida anterior", porQue: "Un finally no protege contra un SIGKILL real — el residuo de una corrida abortada se limpia en la siguiente, no se acumula." },
+        { criterio: "Al terminar (con éxito o con fallo), el recurso creado en CX se borra y el borrado se verifica leyendo el resultado", porQue: "Fiarse del código HTTP de la petición de borrado no confirma que el borrado ocurrió de verdad." },
+        { criterio: "El repositorio desechable vuelve a su estado previo al test", porQue: "Un commit de prueba sin revertir es residuo permanente en el historial." },
+        { criterio: "Matar el servidor con SIGKILL a mitad de una escritura — el candado de Firestore se libera por TTL, no queda ninguna versión a medio crear, y la siguiente corrida arranca limpia", porQue: "Es la comprobación de que la capa HTTP hereda la misma garantía de cero residuo que ya se exigió para el pipeline." },
+        { criterio: "Si el cliente de test hace timeout mientras el servidor sigue poleando una operación larga, el test comprueba si la operación remota sigue viva antes de darse por cerrado", porQue: "Una operación que sigue corriendo del lado de Google puede crear la versión igualmente, después de que el test ya reportó fallo — dejando un recurso sin cuenta en la limpieza." }
+      ]},
+      { title: "Cloud Run real, en staging · Automático (script)", items: [
+        { criterio: "Desplegar el contenedor a un servicio de Cloud Run de staging real (nunca producción) y repetir el Paso 3 (aplicar) contra el agente desechable — con el Service Account de runtime real, no la sesión gcloud personal de Jero", porQue: "El Service Account de runtime puede tener permisos distintos a la sesión personal usada en local — es la única forma de descubrir un problema de IAM antes de que ocurra en el primer despliegue real." },
+        { criterio: "Confirmar que todas las variables de entorno que el servidor espera (PORT, ALLOWED_ORIGIN, credenciales) llegan inyectadas por la plataforma, no por un .env local que no existe en Cloud Run", porQue: "Un valor que solo funciona porque local tiene un .env de conveniencia es un fallo que aparece la primera vez en producción, no en ningún test anterior." },
+        { criterio: "Lanzar dos peticiones de escritura concurrentes sobre el mismo agente desde dos revisiones o instancias físicamente distintas del servicio de staging — no dos llamadas en el mismo proceso", porQue: "El Nivel 4 ya probó la concurrencia dentro de un mismo proceso — este nivel prueba que el candado de Firestore sigue funcionando igual entre instancias que ni siquiera comparten memoria." }
+      ]},
+
+      { title: "Permisos · Automático (script)", items: [
+        { criterio: "Forzar la falta del permiso IAM de Resource Manager y comprobar que el endpoint de Descubrimiento responde con un error claro, no un 500 crudo", porQue: "Un grep del código fuente pasa aunque el manejo esté roto o sea inalcanzable — solo forzar el caso real lo prueba." }
+      ]},
+      { title: "Onboarding, proyecto nunca vinculado · Automático (script)", items: [
+        { criterio: "Contra un tercer proyecto GCP desechable sin ningún documento previo en Firestore, llamar al endpoint real de Vincular agente y repositorio y confirmar que se crea el documento con el esquema correcto", porQue: "Todas las demás pruebas de esta fase asumen que el vínculo agente↔repositorio ya existe — la lógica que lo crea por primera vez nunca se ejecuta de verdad en ningún otro sitio." },
+        { criterio: "La región se detecta correctamente la primera vez, contra ese mismo proyecto sin historial", porQue: "Es la única llamada real al sondeo de las regiones que no parte de un mapeo ya resuelto en Firestore." },
+        { criterio: "Provocar un fallo de IAM en ese proyecto nuevo (por ejemplo, sin el rol dialogflow.admin) — el endpoint lo reporta con un error claro y no deja un documento a medias en Firestore", porQue: "Un documento de Firestore a medio crear por un fallo de IAM sería residuo silencioso que ningún otro check de esta fase detecta." }
+      ]}
+    ], decisions: [] } },
+  { id: 7, title: "Producción", subtitle: "Panel operativo final — sin specs, conectado al servidor real", tag: "html", tagLabel: ".html",
+    llm: {
+      objetivo: "Esta fase duplica docs/panels/act_cx_resources_deploy_v2.html en un archivo nuevo, docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html, y convierte esa copia en el panel de producción real: elimina la columna de specs y reemplaza toda la lógica de simulación (setTimeout, datos hardcodeados) por llamadas fetch() reales al servidor construido en la Fase 5 (server_cloudrun.py). El archivo original no se toca — queda como documentación de referencia, tal como se usó durante las Fases 3-6. A partir de esta fase, cada paso de act_cx_resources_deploy_v2_output_cloudrun.html llama de verdad al servidor, que a su vez ejecuta act_cx_resources_deploy_cloudrun.py contra el agente real.",
+      reglas: [
+        'Eliminar el elemento &lt;aside class="specs-panel"&gt; completo y todo su contenido interno — no dejar ningún rastro del elemento ni de su estructura HTML.',
+        'Eliminar el CSS exclusivo de specs: .specs-panel, .specs-tab, .specs-content, .specs-section y cualquier otra clase o regla que solo exista para la columna de specs. No eliminar CSS compartido con el resto del panel.',
+        'Eliminar la función JavaScript toggleSpecsPanel() y cualquier llamada a ella, así como cualquier variable o lógica JS exclusiva de specs.',
+        'Reemplazar cada función de simulación por una llamada fetch() real a la URL del servidor, usando el puerto de la variable PORT (8080 por defecto) y el formato de respuesta {status, log, data} definidos en server_cloudrun.py (Fase 5). Localiza TODAS las funciones de simulación leyendo el HTML completo — no asumas que ya las conoces por haber visto un ejemplo.',
+        'Manejar el caso de que el servidor no esté arrancado: si el fetch falla (conexión rechazada), mostrar un mensaje claro al usuario — nunca dejar el paso en un estado ambiguo ni fingir éxito.',
+        'El log que se muestra en cada paso pasa a ser el campo log devuelto por el servidor — no un array de líneas escritas de antemano en el HTML.',
+        'Conservar intactos sin ninguna modificación: topbar, sidebar de navegación, panel principal de steps, todos los estados (pending/active/done) e interacciones de los 5 pasos, botones de acción y lógica de progreso.',
+        'Las 2 Tools (desplegar un resource suelto y vincular agente y repositorio, en el sidebar) también se conectan con fetch real al servidor — no son parte de los 5 pasos numerados, pero tampoco deben quedar simuladas por accidente.',
+        'El desplegable "Ver versiones existentes" del Paso 5 (listar y borrar versiones) también se conecta con fetch real — es un endpoint que construye la Fase 5 y que, igual que las Tools, no pertenece a ningún paso numerado y es fácil dejarlo simulado por no aparecer en el flujo principal.',
+        'Trabajar únicamente sobre la copia nueva, docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html. No modificar docs/panels/act_cx_resources_deploy_v2.html bajo ningún concepto — es la documentación de referencia. Verificar que el layout del panel principal ocupa el 100% del ancho disponible después de la eliminación, sin romper ningún estilo existente.',
+        'Persistir el estado del pipeline en localStorage, con una clave propia de este panel (no reutilizar la del Build Playbook): qué paso está activo, cuáles se completaron, y el proyecto/agente seleccionados. Sin esto, cerrar la pestaña o recargar la página a mitad de una operación real (por ejemplo, con un LRO todavía en curso) pierde todo el progreso visual — y sin la selección guardada, se perdería también el destino correcto de las llamadas siguientes.',
+        'Los 2 selectores (proyecto, agente) del Paso 1 se rellenan con fetch() real al endpoint de Descubrimiento — nunca con una lista hardcodeada en el HTML. Es cascada: agente solo se habilita tras elegir proyecto. "Iniciar inventario" permanece deshabilitado hasta que los 2 tienen un valor. A partir de ahí, esos 2 valores viajan en el body de cada llamada siguiente. La región no se pide ni se muestra en el panel — no porque esté fija, sino porque el servidor la resuelve por su cuenta vía Firestore en cuanto conoce el agente; el panel nunca necesita saberla.',
+        'Deshabilitar el botón de acción de cada paso justo al pulsarlo, hasta que llegue la respuesta del servidor — así un doble clic no dispara dos peticiones. Volver a habilitarlo solo si la petición falla (para permitir reintentar); si tiene éxito, el paso avanza y el botón deja de ser relevante.',
+        'Los gates de confirmación del Paso 3 (Aplicar en CX) y del Paso 5 (Publicar en producción) muestran el proyecto y el agente reales sobre los que se va a actuar — no un valor fijo de ejemplo. Son los dos momentos de más consecuencia del pipeline (uno escribe en el borrador, el otro afecta a usuarios reales); Jero tiene que ver claramente el destino en el propio texto de confirmación, sin depender de acordarse de mirar la topbar.'
+      ],
+      leer: [
+        'docs/panels/act_cx_resources_deploy_v2.html — leer el archivo completo antes de editar: identificar exactamente qué pertenece a specs (aside, CSS y JS) y qué pertenece al panel operativo (topbar, sidebar, steps, Tools) para no eliminar nada incorrecto.',
+        'act/server_cloudrun.py — Fase 5. Entender la URL, el puerto y el formato exacto de respuesta {status, log, data} de cada endpoint antes de reescribir el JS de cada paso y de las Tools.'
+      ],
+      outputs: [{ path: "docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html", desc: "Panel de producción — copia de act_cx_resources_deploy_v2.html sin specs, con fetch real a server_cloudrun.py (los setTimeout y arrays hardcodeados se eliminan; el manejo de errores de red es código nuevo, no simulación)" }],
+      pasos: []
+    },
+    val: { grupos: [
+      { title: "Limpieza · Automático (LLM)", items: [
+        "No existe ningún elemento &lt;aside class=\"specs-panel\"&gt; en el HTML",
+        "No existe CSS de .specs-panel ni de .specs-tab ni de .specs-content",
+        "No existe la función toggleSpecsPanel() ni ninguna llamada a ella",
+        "El área de steps ocupa el 100% del ancho — sin columna lateral vacía"
+      ]},
+      { title: "Funcionalidad · Automático (LLM)", items: [
+        "Los 5 pasos cargan correctamente y muestran su contenido",
+        "Los botones de navegación entre pasos funcionan",
+        "Los estados (pending/active/done) se aplican correctamente",
+        "El progreso se actualiza al avanzar entre pasos",
+        "Iniciar inventario está deshabilitado hasta elegir proyecto y agente, y se habilita solo cuando los 2 tienen valor",
+        "El selector de proyecto y agente llaman al endpoint de Descubrimiento real — no muestran una lista fija en el HTML",
+        "Las 2 Tools del sidebar llaman de verdad al servidor al usarse — ninguna sigue con datos o comportamiento simulado",
+        "El desplegable de versiones existentes del Paso 5 llama de verdad al servidor para listar y para borrar — no muestra datos simulados"
+      ]},
+      { title: "Visual · Manual (Jero)", items: [
+        { criterio: "Abre el panel en una ventana ancha (landscape/desktop). <strong>Esperado:</strong> el área de steps ocupa todo el ancho disponible, sin espacios vacíos ni columnas huérfanas donde antes estaba el panel de specs.", porQue: "Es la comprobación directa de que la eliminación de specs no dejó un hueco visual — el objetivo explícito de esta fase." },
+        { criterio: "Redimensiona la ventana a un ancho estrecho (portrait/móvil). <strong>Esperado:</strong> el layout se adapta sin overflow horizontal ni elementos cortados.", porQue: "El panel de producción puede abrirse en pantallas distintas al escritorio de Jero — confirma que sigue siendo usable." },
+        { criterio: "Recorre los 5 pasos completos observando cada pantalla. <strong>Esperado:</strong> ningún elemento aparece roto, desplazado o superpuesto — el resultado visual es idéntico al de antes de eliminar specs, salvo por el ancho.", porQue: "La eliminación de CSS de specs puede arrastrar sin querer alguna regla compartida — este recorrido lo detecta antes de dar la fase por buena." },
+        { criterio: "Elige Petal en los 2 selectores y pulsa Iniciar inventario. <strong>Esperado:</strong> el inventario devuelve datos reales de Petal, no de otro agente ni datos vacíos.", porQue: "Es la comprobación de extremo a extremo de que la selección de proyecto/agente llega correctamente hasta la llamada real a CX — de solo lectura, por eso es seguro hacerlo contra Petal." }
+      ]}
+    ], decisions: [] } },
+  { id: 8, title: "validate_html_cloudrun.py", subtitle: "Valida que el panel conectado funciona de extremo a extremo — HTML + servidor + pipeline", tag: "py", tagLabel: ".py", llm: { objetivo: "Esta fase construye act/validate_html_cloudrun.py — verifica automáticamente que docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html quedó conectado al servidor real tras la Fase 7: sin simulaciones residuales, con llamadas fetch() a los endpoints correctos. Es un chequeo de código fuente (grep/parseo), no un test de navegador — complementa, no sustituye, el recorrido visual que hace Jero.", reglas: [
+      'Verificar que no queda ninguna simulación: buscar patrones como setTimeout asociados a los flujos de pasos y arrays hardcodeados de resultado — si encuentras un patrón de simulación que no está en esta lista, añádelo al informe igualmente — y confirmar que fueron reemplazados por llamadas fetch reales.',
+      'Verificar que existe una llamada fetch (o XMLHttpRequest) hacia el servidor local para cada uno de los 5 pasos, y que el body de cada una incluye project y agent — no solo el Paso 1. Verificar lo mismo para las 2 Tools del sidebar — no son parte de los 5 pasos numerados, pero también deben llamar de verdad al servidor.',
+      'Verificar que los 2 selectores (proyecto, agente) llaman de verdad al endpoint de Descubrimiento — nunca una lista de option hardcodeada en el HTML sin fetch detrás.',
+      'Verificar que hay manejo de error cuando el servidor no responde — el panel no debe quedarse colgado en silencio ni parecer un éxito falso; debe mostrar un mensaje claro (por ejemplo, "No se pudo conectar con el servidor local — ¿está arrancado?").',
+      'No requiere que el servidor esté corriendo para este chequeo — es análisis estático del HTML, no una petición real. Eso ya lo cubren la Fase 6 y el recorrido manual de esta misma fase.',
+      'Exit 0 si todos los checks pasan, exit 1 con el patrón exacto que falta o que sigue presente indebidamente.',
+      'Además de los checks automáticos, esta fase propone una lista de TCs (mismo concepto que los TCs de calidad conversacional del proyecto) que recorren cada función del panel conectado de principio a fin — los 5 pasos y las 2 Tools. Cada TC es seguro por diseño: datos simulados, corre contra el agente y repositorio desechables (nunca Petal), y se limpia solo al terminar. Son una propuesta — no se ejecutan dentro de esta fase, quedan documentados para que Jero decida cuándo correrlos.'
+    ], leer: [
+      'docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html — el archivo ya editado en la Fase 7, para verificar qué quedó dentro.',
+      'act/server_cloudrun.py — Fase 5. Para saber la URL y el puerto exactos que el HTML debe llamar.'
+    ], outputs: [{ path: 'act/validate_html_cloudrun.py', desc: 'Análisis estático — confirma que el HTML llama al servidor real y no simula' }, { path: 'docs/data/tc_deploy_pipeline_cloudrun.yaml', desc: 'Catálogo de TCs propuestos que ejercitan el panel conectado de principio a fin, contra el agente desechable' }], pasos: [] }, val: { grupos: [
+      { title: "Sin simulación residual · Automático (LLM)", items: [
+        { criterio: "No quedan funciones de simulación con setTimeout generando datos falsos para ningún paso", porQue: "Si sobrevive una simulación, ese paso parece funcionar en el panel sin haber tocado nunca el pipeline real — un fallo invisible que solo se descubre en el peor momento." },
+        { criterio: "No quedan arrays de datos hardcodeados usados para renderizar el resultado de un paso", porQue: "Son el rastro de la versión simulada — si el LLM olvida alguno, ese paso sigue mostrando datos de mentira aunque el resto ya esté conectado." }
+      ]},
+      { title: "Conexión real · Automático (LLM)", items: [
+        { criterio: "Existe una llamada fetch (o equivalente) al endpoint correcto para cada uno de los 5 pasos, y el body de cada una incluye project y agent", porQue: "Es la verificación mínima de que el botón de cada paso realmente dispara una petición al servidor con el destino correcto, no solo actualiza el estado visual." },
+        { criterio: "Las 2 Tools también disparan una llamada fetch real al usarse, con project y agent en el body", porQue: "Antes no se conectaban al servidor real en ninguna fase — es fácil que queden simuladas por descuido al no ser parte del flujo numerado." },
+        { criterio: "El desplegable de versiones existentes del Paso 5 dispara una llamada fetch real para listar y otra para borrar", porQue: "Es un endpoint de la Fase 5 sin consumidor declarado en ninguna otra fase — sin este check, podría quedar simulado sin que nada lo detectara." },
+        { criterio: "Los 2 selectores llaman al endpoint de Descubrimiento por fetch real, no a una lista de option escrita en el HTML", porQue: "Sin esto, el panel parecería multi-agente pero en realidad solo mostraría Petal siempre, hardcodeado." },
+        { criterio: "Hay manejo explícito de error cuando el servidor no responde — mensaje visible, no un estado colgado o un falso OK", porQue: "El servidor es un proceso local que Jero puede olvidar arrancar — sin este manejo, el panel fallaría de forma confusa en el peor momento: durante un deploy real." }
+      ]},
+      { title: "Persistencia de estado · Automático (LLM)", items: [
+        { criterio: "Recargar la página (F5) a mitad de cualquier paso recupera el estado exacto — qué paso estaba activo y qué se había completado — desde localStorage", porQue: "El estado del pipeline vivía solo en memoria del navegador — recargar por costumbre, o porque la pantalla parece congelada durante una llamada real más lenta que la animación simulada, perdía todo el progreso sin ningún aviso." },
+        { criterio: "Cerrar y reabrir la pestaña tiene el mismo efecto: el estado persiste entre sesiones del navegador", porQue: "Cerrar la pestaña a mitad de una operación real no debe dejar a Jero sin ninguna señal de que la operación siguió completándose en CX." }
+      ]},
+      { title: "Recorrido completo · Manual (Jero)", items: [
+        { criterio: "Con server_cloudrun.py arrancado, crea en el panel real un Playbook nuevo y claramente ficticio (por ejemplo, nombrado 'prueba-buildplaybook') — nunca modifiques ni toques ningún Playbook o resource que ya exista. Antes de empezar, comprueba cuántas versiones tiene ya el agente para no acercarte al límite por playbook. Recorre los 5 pasos desde cero en el panel real (sin recargar), contra Petal, hasta publicarlo en producción. <strong>Esperado:</strong> cada paso muestra datos reales de Petal — nunca los ejemplos que tenía la versión simulada — y el Playbook de prueba llega a producción sin que ningún resource existente cambie.", porQue: "Es la única verificación que confirma la experiencia real de uso — los checks automáticos validan piezas sueltas, este paso valida que la pieza completa se siente bien y hace lo que promete. Se hace contra Petal, no contra el agente desechable, porque este recorrido es manual y supervisado por Jero en persona — cada clic es la aprobación explícita que exige el proyecto, a diferencia de las Fases 4 y 6, que son 100% automáticas y por eso nunca tocan Petal." },
+        { criterio: "Tras confirmar que el Playbook de prueba llegó a producción, elimínalo del borrador y publica una segunda vez sin él. <strong>Esperado:</strong> la nueva versión de producción ya no lo incluye — verifícalo leyendo el resultado real (consulta el entorno de producción), no solo confiando en que el borrado se aplicó. Confirma también que puedes localizar la versión de producción anterior a esta prueba, por si hiciera falta un rollback inmediato.", porQue: "Publicar crea una versión y apunta producción a ella — borrar el Playbook del borrador después no retira esa versión ya publicada. Mientras no se publique una segunda vez sin él, producción real está sirviendo el Playbook de prueba a usuarios reales; hacerlo en una ventana de bajo tráfico reduce ese riesgo, pero no lo elimina — por eso la limpieza es un paso obligatorio, no opcional." },
+        { criterio: "A mitad de un paso de este recorrido, detén el proceso de server_cloudrun.py en la terminal. <strong>Esperado:</strong> el panel muestra un mensaje de error claro (por ejemplo, no se pudo conectar con el servidor) — nunca queda colgado en silencio ni simula un éxito.", porQue: "Es el escenario más probable de fallo en el día a día — Jero cierra sin querer el terminal del servidor mientras el panel sigue abierto." },
+        { criterio: "Repite la prueba anterior específicamente durante el Paso 5 (Publicar en producción). <strong>Esperado:</strong> el mensaje de error añade una advertencia explícita — no se sabe si la fusión, la versión o el apuntado a producción llegaron a completarse — en vez del mensaje genérico de conexión.", porQue: "Publicar hace tres cosas seguidas y no todas son idempotentes de la misma forma — si el servidor muere a mitad, reintentar a ciegas puede fusionar dos veces o crear una versión duplicada. El resto de pasos (incluido Aplicar en CX) son idempotentes por diseño y no necesitan esta advertencia especial." }
+      ]},
+      { title: "TCs propuestos · Automático (LLM)", items: [
+        { criterio: "Existe al menos un TC por cada uno de los 5 pasos y cada una de las 2 Tools — ninguna función del panel se queda sin al menos un caso de prueba propuesto", porQue: "Es la cobertura mínima para que el catálogo sirva de algo — un paso sin TC es un paso sin forma sistemática de probarse." },
+        { criterio: "Cada TC especifica explícitamente que corre contra el agente y repositorio desechables — ninguno queda ambiguo sobre su destino", porQue: "Un TC sin destino explícito es exactamente el tipo de ambigüedad que ya causó, en otra fase de este mismo documento, una prueba que terminaba escribiendo contra Petal sin querer." },
+        { criterio: "Cada TC incluye su propio paso de limpieza, sin depender de que otro TC o un proceso externo lo limpie después", porQue: "Un TC que no se limpia solo deja residuo acumulado cada vez que alguien lo corre — la misma exigencia de cero residuo que ya se aplicó al resto del pipeline." },
+        { criterio: "Al menos un TC cubre un fallo a mitad de camino (por ejemplo, Publicar en producción interrumpido), no solo caminos felices", porQue: "Los caminos felices ya los prueba el recorrido manual de esta misma fase — el catálogo de TCs aporta valor propio si cubre lo que ese recorrido no llega a provocar." }
+      ]}
+    ], decisions: [] } }
+];
+
+const KEY = 'act_playbook_v5';
+function loadState() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
+function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
+function getPS(s, id) { return s[id] || { status: 'pending', notes: '', checked: [], decisions: {} }; }
+
+let currentPhaseId = null;
+let state = loadState();
+
+function computeStatus(id) {
+  const ps = getPS(state, id);
+  if (ps.status === 'done' || ps.status === 'continued') return 'done';
+  if ((ps.checked || []).some(Boolean)) return 'active-s';
+  return 'pending';
+}
+
+function updateProgress() {
+  const trackable = PHASES;
+  const done = trackable.filter(p => ['done','continued'].includes((state[p.id] || {}).status)).length;
+  document.getElementById('progressFill').style.width = Math.round(done / trackable.length * 100) + '%';
+  document.getElementById('progressLabel').textContent = `${done} / ${trackable.length} fases`;
+  const bar = document.querySelector('.topbar-progress-bar');
+  if (bar) { bar.setAttribute('aria-valuenow', done); bar.setAttribute('aria-valuemax', trackable.length); }
+}
+
+function renderTabs() {
+  const nav = document.getElementById('phaseTabs');
+  nav.innerHTML = '';
+  PHASES.forEach(p => {
+    const status = computeStatus(p.id);
+    const isActive = p.id === currentPhaseId;
+    const tab = document.createElement('button');
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    tab.setAttribute('aria-controls', 'contentInner');
+    tab.className = 'phase-tab' + (isActive ? ' active' : '') + (status === 'done' ? ' done-tab' : '') + (p.discarded ? ' discarded-tab' : '');
+    const isGoal = p.special === 'goal';
+    const isFileTyped = p.tagLabel.startsWith('.');
+    const semantic = p.title.startsWith('validate_') ? 'Validate' : 'Build';
+    const primaryTagHtml = (isFileTyped && !p.discarded)
+      ? `<span class="tab-tag tag-${semantic.toLowerCase()}" aria-hidden="true">${semantic}</span>`
+      : `<span class="tab-tag ${p.discarded ? 'tag-discarded' : 'tag-'+p.tag}" aria-hidden="true">${p.discarded ? 'Descartada' : p.tagLabel}</span>`;
+    const fileTypeBadgeHtml = (isFileTyped && !p.discarded)
+      ? `<span class="tab-filetype" aria-hidden="true">${p.tagLabel}</span>` : '';
+    tab.setAttribute('aria-label', p.special === 'goal' ? `Objetivo del proyecto` : `Fase ${p.id}: ${semantic} · ${p.title} — estado: ${status === 'done' ? 'completada' : status === 'active-s' ? 'en progreso' : 'pendiente'}`);
+    tab.innerHTML = `
+      <div class="tab-top">
+        <span class="tab-num" aria-hidden="true">${p.id}</span>
+        ${primaryTagHtml}
+      </div>
+      <div class="tab-name">${p.title}</div>
+      ${fileTypeBadgeHtml}`;
+    tab.addEventListener('click', () => loadPhase(p.id));
+    nav.appendChild(tab);
+  });
+  updateProgress();
+}
+
+function toggleBlock(id) {
+  const body = document.getElementById('bb-' + id);
+  const hdr = document.getElementById('bh-' + id);
+  if (!body) return;
+  const hidden = body.classList.toggle('hidden');
+  hdr.classList.toggle('collapsed', hidden);
+  hdr.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+}
+
+function groupCollapseWrap(idPrefix, idx, title, bodyHtml) {
+  const id = idPrefix + '-g' + idx;
+  const startCollapsed = !/Manual/i.test(title || '');
+  return `<div class="checklist-group">
+    <button class="checklist-group-header${startCollapsed ? ' collapsed' : ''}" id="bh-${id}"
+            onclick="toggleBlock('${id}')" aria-expanded="${startCollapsed ? 'false' : 'true'}" aria-controls="bb-${id}">
+      <span>${title}</span><span class="cg-toggle" aria-hidden="true">▾</span>
+    </button>
+    <div class="cg-body${startCollapsed ? ' hidden' : ''}" id="bb-${id}">${bodyHtml}</div>
+  </div>`;
+}
+
+function makeBlock(type, icon, label, id, bodyHtml, startOpen) {
+  return `<div class="block ${type}">
+    <button class="block-header${startOpen ? '' : ' collapsed'}" id="bh-${id}"
+            onclick="toggleBlock('${id}')"
+            aria-expanded="${startOpen ? 'true' : 'false'}"
+            aria-controls="bb-${id}">
+      <span aria-hidden="true">${icon}</span><span>${label}</span>
+      <span class="bh-toggle" aria-hidden="true">▾</span>
+    </button>
+    <div class="block-body${startOpen ? '' : ' hidden'}" id="bb-${id}" role="region" aria-labelledby="bh-${id}">${bodyHtml}</div>
+  </div>`;
+}
+
+function renderList(items, ordered) {
+  return `<ul class="llm-list${ordered ? ' steps' : ''}">${items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+}
+
+function renderGoalPhase(p, ps) {
+  const g = p.goal;
+
+  const ctxHtml = `
+    <div class="llm-section">
+      <div class="llm-section-title">Qué construimos</div>
+      <p>${g.que}</p>
+    </div>`;
+
+  const llmHtml = `
+    <div class="llm-section">
+      <div class="llm-section-title">Output esperado</div>
+      <p>${g.output}</p>
+    </div>
+    <div class="llm-section">
+      <div class="llm-section-title">Scope</div>
+      ${renderList(g.scope, false)}
+    </div>`;
+
+  const f = g.filosofia;
+  const filosofiaHtml = `
+    <div class="llm-section">
+      <div class="llm-section-title">Norte</div>
+      <p style="font-size:14px;font-weight:600;color:var(--text)">${f.norte}</p>
+      <p style="margin-top:8px;color:var(--text-2);font-size:13px">${f.porQue}</p>
+    </div>
+    <div class="llm-section">
+      <div class="llm-section-title">El rol del LLM</div>
+      <p style="color:var(--text-2);font-size:13px">${f.rolLlm}</p>
+    </div>
+    <div class="llm-section">
+      <div class="llm-section-title">Principios</div>
+      <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px">
+        ${f.principios.map(p => `<li style="color:var(--text)">
+          <span style="font-weight:600">${p.titulo}</span>
+          <span style="color:var(--text-2);font-size:12px;display:block;margin-top:2px">${p.desc}</span>
+        </li>`).join('')}
+      </ol>
+    </div>`;
+
+  const constraintsHtml = `
+    <div class="llm-section">
+      <div class="llm-section-title">Constraints no negociables</div>
+      ${renderList(g.constraints, false)}
+    </div>`;
+
+  const estandaresHtml = `
+    <div class="llm-section">
+      <div class="llm-section-title">Estándares de ingeniería</div>
+      ${renderList(g.estandares, false)}
+    </div>`;
+
+  const refHtml = `<p style="font-size:13px; color:var(--text-2); line-height:1.6;">
+    Las fases de este proyecto están definidas en la cabecera de este mismo archivo — las pestañas que aparecen en la parte superior. Lee las pestañas para conocer qué fases existen, su número y su título. No hay una lista separada: la cabecera es la fuente de verdad. Si las fases cambian, la cabecera lo refleja automáticamente.
+  </p>`;
+
+  const isDone = ps.status === 'done';
+  const goalValHtml = `
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
+      Antes de avanzar, escribe aquí tu comprensión del objetivo. Incluye: qué vas a construir, por qué existe este pipeline, qué constraints son críticos y cuántas fases tiene el proyecto según la cabecera.
+    </p>
+    <label class="notes-label" for="notesArea-1">Comprensión de Opus</label>
+    <textarea class="notes-area" id="notesArea-1" placeholder="Escribe qué vas a construir, para qué existe, qué constraints son críticos y cuántas fases tiene el proyecto..." style="min-height:120px">${ps.notes||''}</textarea>
+    <p style="font-size:11px;color:var(--text-3);margin-bottom:14px">Jero confirma después de leer lo que has escrito.</p>
+    <button class="validate-btn${isDone?' validated':''}" id="validateBtn-1" onclick="validatePhase(1)"
+            aria-label="${isDone?'Objetivo ya confirmado':'Confirmar que Opus ha entendido el objetivo'}">
+      <span aria-hidden="true">✓</span> ${isDone?'Objetivo confirmado':'Confirmar objetivo — Jero'}
+    </button>`;
+
+  return makeBlock('ctx', '🎯', 'Qué construimos — contexto del proyecto', 'goal-ctx', ctxHtml, true)
+    + makeBlock('ctx', '🤝', 'Protocolo de colaboración — cómo trabajamos', 'goal-filosofia', filosofiaHtml, false)
+    + makeBlock('llm', '📦', 'Output esperado y scope', 'goal-llm', llmHtml, true)
+    + makeBlock('val', '⚠️', 'Constraints no negociables', 'goal-constraints', constraintsHtml, true)
+    + makeBlock('val', '🛠️', 'Estándares de ingeniería', 'goal-estandares', estandaresHtml, true)
+    + makeBlock('ref', '🗺️', 'Mapa de fases', 'goal-ref', refHtml, true)
+    + makeBlock('ref', '📁', 'Estructura del repo', 'goal-tree', `<p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
+      <span class="tree-new">azul</span> = archivo nuevo de este pipeline (sufijo <code>_cloudrun</code>, regla de Constraints) · <span style="color:var(--accent-amber)">ámbar</span> = nombre todavía sin confirmar
+    </p><div class="tree-view">cx-automation-template/
+├── act/                         <span class="tree-comment">← scripts del pipeline de deploy</span>
+│   ├── act_cx_resources_deploy.py      <span class="tree-comment">← pipeline local · existe ✓ · no se toca</span>
+│   ├── <span class="tree-new">act_cx_resources_deploy_cloudrun.py</span>  <span class="tree-comment">← pipeline Cloud Run · crear</span>
+│   ├── server.py                <span class="tree-comment">← servidor local · existe ✓ · no se toca</span>
+│   ├── <span class="tree-new">server_cloudrun.py</span>            <span class="tree-comment">← servidor Cloud Run · antes "cloudrun_server.py" (prefijo), renombrado por la regla de sufijo</span>
+│   ├── validate_pipeline.py     <span class="tree-comment">← smoke test del pipeline local · existe ✓</span>
+│   ├── <span class="tree-new">validate_pipeline_cloudrun.py</span>  <span class="tree-comment">← crear</span>
+│   ├── validate_server.py       <span class="tree-comment">← smoke test del servidor local · existe ✓</span>
+│   ├── <span class="tree-new">validate_server_cloudrun.py</span>    <span class="tree-comment">← crear</span>
+│   ├── validate_html.py         <span class="tree-comment">← análisis estático del panel local · existe ✓</span>
+│   ├── <span class="tree-new">validate_html_cloudrun.py</span>      <span class="tree-comment">← crear</span>
+│   ├── validate_resource_cycle.py  <span class="tree-comment">← existe ✓ · sin equivalente cloud todavía</span>
+│   ├── tests/
+│   │   ├── test_cx_payloads.py  <span class="tree-comment">← tests del pipeline local · existe ✓</span>
+│   │   └── <span class="tree-new">test_cx_payloads_cloudrun.py</span>  <span class="tree-comment">← tests de cx_payloads_cloudrun.py, el clon</span>
+│   ├── utils/                   <span class="tree-comment">← soporte del pipeline local</span>
+│   │   ├── cx_client.py         <span class="tree-comment">← conexión HTTP + auth · existe ✓ · pipeline local, no se toca</span>
+│   │   ├── <span class="tree-new">cx_client_cloudrun.py</span>  <span class="tree-comment">← clon de cx_client.py — arranca igual, ya es un archivo propio del pipeline cloud</span>
+│   │   ├── cx_payloads.py       <span class="tree-comment">← Full Update + ignore fields · existe ✓ · pipeline local, no se toca</span>
+│   │   ├── <span class="tree-new">cx_payloads_cloudrun.py</span>  <span class="tree-comment">← clon de cx_payloads.py — arranca igual, ya es un archivo propio del pipeline cloud</span>
+│   │   └── <span class="tree-new">github_app_client_cloudrun.py</span>  <span class="tree-comment">← lee/escribe el repo vía GitHub App · sin equivalente local</span>
+│   └── scaffolding/             <span class="tree-comment">← .py transitorios que el LLM crea para sus propias pruebas y acciones durante la construcción, y elimina al terminar — no son un output de ninguna fase</span>
+│       └── validate_api.py      <span class="tree-comment">← validación conectividad API · Sprint 1 · existe ✓ · pipeline local, no se toca</span>
+├── definitions/                 <span class="tree-comment">← YAMLs fuente de verdad · 13 tipos de recurso CX · existe ✓</span>
+└── docs/
+    └── panels/                  <span class="tree-comment">← HTMLs interactivos · existe ✓</span>
+        ├── act_cx_resources_deploy_v2.html         <span class="tree-comment">← con specs, queda de referencia · existe ✓</span>
+        ├── <span class="tree-new">act_cx_resources_deploy_v2_output_cloudrun.html</span>  <span class="tree-comment">← panel conectado al servidor real, sin la pestaña Specs</span>
+        ├── act_build_playbook_v2.html   <span class="tree-comment">← este archivo, ya en el repo — se queda como está, sin tocar</span>
+        └── <span class="tree-new">act_build_playbook_v2_cloudrun.html</span>  <span class="tree-comment">← volcado del artifact al terminar las 8 fases · reemplaza al de arriba como fuente de verdad</span></div>`, true)
+    + makeBlock('val', '✋', 'Validación — confirmar objetivo del proyecto', 'goal-val', goalValHtml, true)
+}
+
+function renderGenericPhase(p, ps) {
+  const contextoHtml = p.llm.contexto && p.llm.contexto.length
+    ? `<div class="ctx-grid" style="margin-bottom:16px">${p.llm.contexto.map(c=>`<div class="ctx-card" style="grid-column:1/-1"><div class="ctx-card-title">${c.title}</div><p>${c.body}</p></div>`).join('')}</div>` : '';
+  const porQueHtml = p.llm.porQue
+    ? `<div class="llm-section"><div class="llm-section-title">Por qué</div><p>${p.llm.porQue}</p></div>` : '';
+  const reglasHtml = p.llm.reglas && p.llm.reglas.length
+    ? `<div class="llm-section"><div class="llm-section-title">Reglas de construcción obligatorias</div>${renderList(p.llm.reglas, false)}</div>` : '';
+  const leerHtml = p.llm.leer && p.llm.leer.length
+    ? `<div class="llm-section"><div class="llm-section-title">Qué leer antes de empezar</div>${renderList(p.llm.leer, false)}</div>` : '';
+  const pasosHtml = p.llm.pasos && p.llm.pasos.length
+    ? `<div class="llm-section"><div class="llm-section-title">Pasos de ejecución</div>${renderList(p.llm.pasos, true)}</div>` : '';
+  const opHtml = p.llm.operaciones && p.llm.operaciones.length
+    ? `<div class="llm-section"><div class="llm-section-title">Operaciones</div>${renderOperaciones(p.llm.operaciones)}</div>` : '';
+  const outputsHtml = p.llm.outputs && p.llm.outputs.length
+    ? `<div class="llm-section"><div class="llm-section-title">Outputs</div>${p.llm.outputs.map(o=>`<div class="output-path"><div class="op-icon" aria-hidden="true">📄</div><div><div class="op-path">${o.path||o}</div>${o.desc?`<div class="op-desc">${o.desc}</div>`:''}</div></div>`).join('')}</div>` : '';
+  const renderCriteriosTablas = () => p.val && p.val.grupos && p.val.grupos.length
+    ? `<p style="font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.5">La fase no está completa hasta que estos criterios se cumplen. Verifícalos tú mismo antes de marcar la fase como hecha.</p>
+      ${p.val.grupos.map((g, idx) => {
+        const hasObj = g.items.length && typeof g.items[0] === 'object';
+        const tableRows = hasObj
+          ? g.items.map(it => `<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;font-family:monospace;color:var(--text-1);vertical-align:top">${it.criterio}</td><td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2);vertical-align:top">${it.porQue}</td></tr>`).join('')
+          : g.items.map(it => `<tr><td colspan="2" style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-1)">${typeof it==='object'?it.criterio:it}</td></tr>`).join('');
+        const tableHtml = `<table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:6px;overflow:hidden;table-layout:fixed"><colgroup><col style="width:45%"><col style="width:55%"></colgroup>
+            ${hasObj ? `<thead><tr><th style="padding:6px 10px;background:var(--bg-2);font-size:11px;font-weight:600;color:var(--text-2);text-align:left;border-bottom:1px solid var(--border)">Criterio</th><th style="padding:6px 10px;background:var(--bg-2);font-size:11px;font-weight:600;color:var(--text-2);text-align:left;border-bottom:1px solid var(--border)">Por qué es necesario</th></tr></thead>` : ''}
+            <tbody>${tableRows}</tbody>
+          </table>`;
+        return g.title
+          ? groupCollapseWrap('crit'+p.id, idx, g.title, tableHtml)
+          : `<div style="margin-bottom:16px">${tableHtml}</div>`;
+      }).join('')}`
+    : '';
+  const valCriteriosHtml = null;
+  const hasContent = porQueHtml || reglasHtml || leerHtml || pasosHtml || opHtml || outputsHtml;
+  const llmHtml = contextoHtml
+    + `<div class="llm-section"><div class="llm-section-title">Objetivo</div><p>${p.llm.objetivo}</p></div>`
+    + porQueHtml + reglasHtml + leerHtml + opHtml + pasosHtml + outputsHtml
+    + (!hasContent ? `<p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:12px">Contenido en construcción — se completa fase por fase en conversación.</p>` : '');
+
+  let checkIdx = 0;
+  const gruposHtml = p.val.grupos.map(g => {
+    const items = g.items.map(item => {
+      const i = checkIdx++;
+      const checked = (ps.checked||[])[i] === true;
+      return `<div class="check-item${checked?' checked':''}"
+                   role="checkbox"
+                   aria-checked="${checked}"
+                   tabindex="0"
+                   onclick="toggleCheck(${p.id},${i},this)">
+        <div class="check-box" aria-hidden="true">${checked?'✓':''}</div><div class="check-text">${item}</div></div>`;
+    }).join('');
+    return `<div class="checklist-group"><div class="checklist-group-title">${g.title}</div><div class="checklist" role="group" aria-label="${g.title}">${items}</div></div>`;
+  }).join('');
+
+  const isDone = ps.status === 'done';
+  const isContinued = ps.status === 'continued';
+
+  const valHtml = `
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
+      <strong>Instrucción:</strong> antes de ejecutar, escribe qué has entendido de esta fase y qué vas a hacer exactamente.
+    </p>
+    <label class="notes-label" for="notesArea-${p.id}">Comprensión y plan — Opus</label>
+    <textarea class="notes-area" id="notesArea-${p.id}" placeholder="Escribe qué vas a hacer, qué archivos vas a crear y cómo lo vas a verificar..." style="min-height:120px">${ps.notes||''}</textarea>
+    <button class="validate-btn${isDone||isContinued?' validated':''}" id="validateBtn-${p.id}" onclick="validatePhase(${p.id})"
+            aria-label="${isDone||isContinued?'Confirmado':'Confirmar — Jero'}">
+      <span aria-hidden="true">✓</span> ${isDone||isContinued?'Confirmado':'Confirmar — Jero'}</button>`;
+
+  let checkIdx2 = 0;
+  const valItems = p.val.grupos.flatMap(g => g.items);
+  const valChecksHtml = p.val.grupos.map((g, idx) => {
+    const items = g.items.map(item => {
+      const i = checkIdx2++;
+      const checked = (ps.checked||[])[i] === true;
+      const label = typeof item === 'object' ? item.criterio : item;
+      return `<div class="check-item${checked?' checked':''}"
+                   role="checkbox" aria-checked="${checked}" tabindex="0"
+                   onclick="toggleCheck(${p.id},${i},this)">
+        <div class="check-box" aria-hidden="true">${checked?'✓':''}</div>
+        <div class="check-text">${label}</div></div>`;
+    }).join('');
+    const checklistHtml = `<div class="checklist" role="group">${items}</div>`;
+    return g.title
+      ? groupCollapseWrap('proc'+p.id, idx, g.title, checklistHtml)
+      : `<div class="checklist-group">${checklistHtml}</div>`;
+  }).join('');
+
+  const allChecked = valItems.length > 0 && valItems.every((_,i) => (ps.checked||[])[i] === true);
+  const continuarDisabled = !allChecked && !isContinued ? ' disabled' : '';
+
+  const procesoHtml = `
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.6">
+      <strong>Instrucción:</strong> actualiza este log mientras ejecutas — pega lo que va pasando, errores y cómo los resolviste. Cuando termines, marca los criterios de verificación.
+    </p>
+    <label class="notes-label" for="procesoArea-${p.id}">Log de ejecución — Opus</label>
+    <textarea class="notes-area" id="procesoArea-${p.id}" placeholder="Pega aquí lo que va ocurriendo: comandos ejecutados, archivos creados, errores encontrados..." style="min-height:160px;font-family:monospace;font-size:12px">${ps.proceso||''}</textarea>
+    <div style="margin-top:16px">${valChecksHtml}</div>
+    <div style="margin-top:16px">
+      <button class="validate-btn${isContinued?' validated':''}"${continuarDisabled} id="continuarBtn-${p.id}" onclick="continuarPhase(${p.id})"
+              aria-label="${isContinued?'Fase completada':'Continuar →'}">
+        <span aria-hidden="true">${isContinued?'✓':'→'}</span> ${isContinued?'Fase completada':'Continuar →'}</button>
+    </div>`;
+
+  const statusTableBlock = p.llm.leyenda
+    ? makeBlock('ref','📊','Estado actual de componentes del repo','ref-status-'+p.id,
+        (p.llm.targetTree ? `<div class="tree-view" style="margin-bottom:16px">${p.llm.targetTree}</div>` : '')
+        + `<p style="font-size:12px;color:var(--text-2);margin-bottom:12px">${p.llm.leyenda}</p>`, true)
+    : '';
+
+  const criteriosBody = renderCriteriosTablas();
+  const criteriosBlock = criteriosBody
+    ? makeBlock('criterios','✅','Criterios de validación','criterios'+p.id, criteriosBody, true)
+    : '';
+
+  const procesoBlock = p.val.grupos && p.val.grupos.length
+    ? makeBlock('proceso','⚙️','Proceso — ejecución y verificación','proceso'+p.id,procesoHtml,true)
+    : '';
+
+  return makeBlock('llm','🤖','Para el LLM — instrucciones de construcción','llm'+p.id,llmHtml,true)
+    + statusTableBlock
+    + criteriosBlock
+    + makeBlock('val','✋','Gate de Jero — comprensión y plan','val'+p.id,valHtml,true)
+    + procesoBlock;
+}
+
+function loadPhase(id) {
+  currentPhaseId = id;
+  const p = PHASES.find(x => x.id === id);
+  const ps = getPS(state, id);
+  const inner = document.getElementById('contentInner');
+
+  let bodyHtml;
+  if (p.special === 'goal') {
+    bodyHtml = renderGoalPhase(p, ps);
+  } else {
+    bodyHtml = renderGenericPhase(p, ps);
+  }
+
+  const eyebrow = p.special === 'goal'
+    ? `Fase ${p.id} — Objetivo`
+    : `Fase ${p.id} de ${PHASES.filter(x => x.special !== 'goal').length}`;
+
+  inner.innerHTML = `
+    <div class="phase-header">
+      <div class="phase-eyebrow">${eyebrow}</div>
+      <div class="phase-title">${p.title}</div>
+      <div class="phase-subtitle">${p.subtitle}</div>
+    </div>
+    ${bodyHtml}`;
+
+  const notesEl = document.getElementById('notesArea-' + id);
+  if (notesEl) {
+    notesEl.addEventListener('input', e => {
+      if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
+      state[id].notes = e.target.value;
+      saveState(state);
+    });
+  }
+  const procesoEl = document.getElementById('procesoArea-' + id);
+  if (procesoEl) {
+    procesoEl.addEventListener('input', e => {
+      if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
+      state[id].proceso = e.target.value;
+      saveState(state);
+    });
+  }
+  renderTabs();
+}
+
+function toggleCheck(phaseId, index, el) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  const ps = state[phaseId];
+  if (!ps.checked) ps.checked = [];
+  ps.checked[index] = !ps.checked[index];
+  saveState(state);
+  el.classList.toggle('checked', ps.checked[index]);
+  el.setAttribute('aria-checked', ps.checked[index] ? 'true' : 'false');
+  el.querySelector('.check-box').textContent = ps.checked[index] ? '✓' : '';
+  renderTabs();
+}
+
+function selectDecision(phaseId, decIdx, optIdx, el) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].decisions) state[phaseId].decisions = {};
+  state[phaseId].decisions[decIdx] = optIdx;
+  saveState(state);
+  el.closest('.decision-opts').querySelectorAll('.decision-opt').forEach(o => {
+    o.classList.remove('selected');
+    o.setAttribute('aria-pressed', 'false');
+  });
+  el.classList.add('selected');
+  el.setAttribute('aria-pressed', 'true');
+}
+
+function validatePhase(id) {
+  const btn = document.getElementById('validateBtn-' + id);
+  if (!btn || btn.classList.contains('validated')) return;
+  if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
+  state[id].status = 'done';
+  saveState(state);
+  btn.classList.add('validated');
+  const isGoal = id === 1;
+  btn.innerHTML = `<span aria-hidden="true">✓</span> ${isGoal ? 'Objetivo confirmado' : 'Confirmado'}`;
+  btn.setAttribute('aria-label', isGoal ? 'Objetivo ya confirmado' : 'Confirmado');
+  renderTabs();
+}
+
+function continuarPhase(id) {
+  const btn = document.getElementById('continuarBtn-' + id);
+  if (!btn || btn.classList.contains('validated')) return;
+  if (!state[id]) state[id] = { status:'pending', notes:'', checked:[], decisions:{} };
+  state[id].status = 'continued';
+  saveState(state);
+  btn.classList.add('validated');
+  btn.innerHTML = `<span aria-hidden="true">✓</span> Fase completada`;
+  btn.setAttribute('aria-label', 'Fase completada');
+  renderTabs();
+}
+
+function setPasoStatus(phaseId, i, newStatus) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].pasoStatus) state[phaseId].pasoStatus = [];
+  state[phaseId].pasoStatus[i] = newStatus;
+  saveState(state);
+  loadPhase(phaseId);
+}
+
+function setValStatus(phaseId, i, newStatus) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].valStatus) state[phaseId].valStatus = [];
+  state[phaseId].valStatus[i] = newStatus;
+  saveState(state);
+  loadPhase(phaseId);
+}
+
+function togglePasoOutput(phaseId, i) {
+  const el = document.getElementById(`pasoOutput-${phaseId}-${i}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleValOutput(phaseId, i) {
+  const el = document.getElementById(`valOutput-${phaseId}-${i}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function savePasoOutput(phaseId, i, value) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].pasoOutput) state[phaseId].pasoOutput = [];
+  state[phaseId].pasoOutput[i] = value;
+  saveState(state);
+}
+
+function saveValOutput(phaseId, i, value) {
+  if (!state[phaseId]) state[phaseId] = { status:'pending', notes:'', checked:[], decisions:{} };
+  if (!state[phaseId].valOutput) state[phaseId].valOutput = [];
+  state[phaseId].valOutput[i] = value;
+  saveState(state);
+}
+
+function renderTreeView(text) {
+  const lines = text.split('\n').map(line => {
+    const esc = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (esc.includes('← NUEVO') || esc.includes('← NUEVO:') || esc.includes('NUEVO')) {
+      return esc.replace(/(← NUEVO[^<]*)/g, '<span class="tree-new">$1</span>');
+    }
+    if (esc.includes('←')) {
+      return esc.replace(/(←[^<]*)/g, '<span class="tree-comment">$1</span>');
+    }
+    return esc;
+  }).join('\n');
+  return `<div class="tree-view" role="img" aria-label="Árbol de estructura target del worktree">${lines}</div>`;
+}
+
+
+/* ── Teclado: Enter/Space activan role="checkbox" ── */
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = document.activeElement;
+  if (!el) return;
+  if (el.getAttribute('role') === 'checkbox') {
+    e.preventDefault();
+    el.click();
+  }
+});
+
+loadPhase(1);
+</script>
+
+</body></html>

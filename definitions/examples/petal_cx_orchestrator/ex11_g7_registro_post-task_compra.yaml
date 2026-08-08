@@ -1,3 +1,8 @@
+metadata:
+  tipo: example
+  padre: 00000000-0000-0000-0000-000000000000
+  cx_id: b03947cb-07c9-4c5b-bd12-015d5bf47054
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: b03947cb-07c9-4c5b-bd12-015d5bf47054
 displayName: Ex11 — REGISTRO → post-Task → Compra

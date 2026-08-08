@@ -1,3 +1,8 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000000
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 displayName: Petal CX Orchestrator
 goal: Identificar al cliente, entender su necesidad, detectar el registro de tono y transferir al playbook correcto. Sin ejecutar lógica de compra, registro ni checkout.
 playbookType: ROUTINE
@@ -8,6 +13,8 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/871d4bbb-5c90-443b-bbb1-1d83d254c2c3
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/5a71c8f2-1272-475f-ae61-de055738764d  # Calculo_Entrega_Task
+- projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/16a48a05-aef4-44f3-a7f2-e9e42cb9e311  # Identificacion_Task
 outputParameterDefinitions:
 - name: intencion
   description: Intención inicial del usuario.
