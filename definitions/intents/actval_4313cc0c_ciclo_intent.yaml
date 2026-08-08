@@ -1,7 +1,7 @@
 metadata:
   tipo: intent
   padre: null
-  cx_id: null
+  cx_id: 9c8e5368-19e2-48c6-bc1b-a0112c05a92e
   agente: 8d15e440-ab8f-4072-b144-d44919296cd9
 displayName: actval_4313cc0c_ciclo_intent
 trainingPhrases:
