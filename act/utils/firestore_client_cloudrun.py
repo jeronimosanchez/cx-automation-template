@@ -69,8 +69,8 @@ LOCK_TTL_SECONDS = 3900
 # últimos deploys.
 HISTORIAL_MAX_EJECUCIONES = 50
 
-CAMPOS_OBLIGATORIOS_PROYECTO = ("project", "repo", "rama")
-CAMPOS_OBLIGATORIOS_AGENTE = ("project", "agent_id", "region")
+CAMPOS_OBLIGATORIOS_PROYECTO = ("project", "repo", "rama_principal")
+CAMPOS_OBLIGATORIOS_AGENTE = ("project", "agent_id", "region", "rama")
 
 
 class LockBusy(RuntimeError):
@@ -131,17 +131,23 @@ def _doc_id(project, agent_id):
 # La región NO sube al proyecto: es del agente. Dos agentes del mismo proyecto
 # pueden estar en regiones distintas — la API declara 17.
 
-def save_project_mapping(client, project, repo, rama, rama_principal="main"):
-    """Vincula un proyecto con su repositorio. Una vez por proyecto."""
-    if not all([project, repo, rama]):
+def save_project_mapping(client, project, repo, rama_principal="main"):
+    """Vincula un proyecto con su repositorio. Una vez por proyecto.
+
+    La **rama de trabajo no está aquí: es de cada agente**. Publicar fusiona la
+    rama de trabajo en la principal, y con una rama compartida publicar un
+    agente arrastraría a `main` todo lo que sus hermanos tuvieran sin publicar.
+    Lo que se comparte es el repositorio y su rama principal, no el trabajo en
+    curso de cada uno.
+    """
+    if not all([project, repo, rama_principal]):
         raise ValueError(
-            "El mapeo de proyecto exige project, repo y rama — ninguno admite "
-            "valor por defecto."
+            "El mapeo de proyecto exige project, repo y rama_principal — "
+            "ninguno admite valor por defecto."
         )
     documento = {
         "project": project,
         "repo": repo,
-        "rama": rama,
         "rama_principal": rama_principal,
         "vinculado_en": _now(),
     }
@@ -166,8 +172,12 @@ def get_project_mapping(client, project):
     return documento
 
 
-def save_agent_mapping(client, project, agent_id, region, carpeta_raiz="definitions"):
-    """Registra la región de un agente. El repositorio lo pone su proyecto.
+def save_agent_mapping(client, project, agent_id, region, rama,
+                       carpeta_raiz="definitions"):
+    """Registra la región y la rama de trabajo de un agente.
+
+    El repositorio lo pone su proyecto; la rama es suya, para que publicar no
+    arrastre lo que sus hermanos no han publicado.
 
     `carpeta_raiz` es de dónde cuelgan sus archivos dentro del repositorio.
     Por defecto `definitions`. Los agentes desechables usan `act/scaffolding`,
@@ -175,15 +185,16 @@ def save_agent_mapping(client, project, agent_id, region, carpeta_raiz="definiti
     pipeline le da igual, porque empareja por la cabecera y no por la ruta,
     pero mantiene separado lo real de lo que se tira.
     """
-    if not all([project, agent_id, region]):
+    if not all([project, agent_id, region, rama]):
         raise ValueError(
-            "El registro de agente exige project, agent_id y region — ninguno "
-            "admite valor por defecto."
+            "El registro de agente exige project, agent_id, region y rama — "
+            "ninguno admite valor por defecto."
         )
     documento = {
         "project": project,
         "agent_id": agent_id,
         "region": region,
+        "rama": rama,
         "carpeta_raiz": carpeta_raiz,
         "registrado_en": _now(),
     }
@@ -193,11 +204,14 @@ def save_agent_mapping(client, project, agent_id, region, carpeta_raiz="definiti
 
 
 def get_agent_mapping(client, project, agent_id):
-    """Región de un agente, más el repositorio y la rama que hereda de su proyecto.
+    """Todo lo que define el destino de un agente, de sus dos documentos.
 
-    Devuelve las dos cosas juntas porque todo el pipeline las necesita a la
-    vez, pero vienen de dos documentos distintos: la región es del agente y no
-    se puede compartir, el repositorio es del proyecto y sí.
+    Del agente: la región, su rama de trabajo y de qué carpeta cuelgan sus
+    archivos. Del proyecto: el repositorio y la rama principal.
+
+    Vienen separados porque se comparten de formas distintas — el repositorio
+    lo comparten todos los agentes del proyecto; la región y la rama de
+    trabajo, ninguno.
     """
     snapshot = (client.collection(COL_AGENTES)
                 .document(_doc_id(project, agent_id)).get())

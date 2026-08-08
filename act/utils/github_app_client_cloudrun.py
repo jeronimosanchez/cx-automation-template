@@ -27,7 +27,9 @@ reutilizado entre peticiones de dos repositorios distintos no comparte token.
 """
 
 import base64
+import io
 import os
+import tarfile
 import time
 from datetime import datetime, timezone
 
@@ -226,6 +228,47 @@ class GitHubAppClient:
             if item.get("type") == "blob"
             and (not sufijos or item["path"].endswith(sufijos))
         ]
+
+    def read_repo_files(self, ref, sufijos=(".yaml", ".yml")):
+        """Todo el contenido del repositorio en **una sola petición**.
+
+        Devuelve {ruta: bytes}. GitHub sirve el árbol completo como tarball, y
+        eso sustituye a una lectura por archivo: el pipeline pasaba de leer un
+        blob por YAML —158 peticiones en un repositorio con tres agentes— a
+        una. Con el repositorio compartido entre los agentes de un proyecto,
+        esa cuenta crece con cada agente que se añade, y el límite de la API de
+        GitHub (5.000 peticiones/hora por instalación) se alcanzó en un día de
+        trabajo real.
+
+        No se filtra por carpeta para descartar archivos ajenos: la estructura
+        del repositorio es libre y lo que dice de quién es un archivo es su
+        cabecera, no dónde está. Leerlo todo y repartir después es lo único
+        que respeta esa regla — y ahora cuesta una petición.
+        """
+        respuesta = requests.get(
+            f"{GITHUB_API}/repos/{self.repo}/tarball/{ref}",
+            headers=self._headers(), timeout=120,
+        )
+        if respuesta.status_code != 200:
+            raise GitHubError(
+                f"No se pudo descargar el repositorio {self.repo}@{ref}: "
+                f"{respuesta.status_code} {respuesta.text[:200]}",
+                status_code=respuesta.status_code,
+            )
+
+        archivos = {}
+        with tarfile.open(fileobj=io.BytesIO(respuesta.content), mode="r:gz") as tar:
+            for miembro in tar.getmembers():
+                if not miembro.isfile():
+                    continue
+                # El tarball cuelga todo de una carpeta <owner>-<repo>-<sha>.
+                ruta = miembro.name.split("/", 1)[-1]
+                if sufijos and not ruta.endswith(sufijos):
+                    continue
+                extraido = tar.extractfile(miembro)
+                if extraido is not None:
+                    archivos[ruta] = extraido.read()
+        return archivos
 
     def read_blob(self, sha):
         datos = self._request("GET", f"/repos/{self.repo}/git/blobs/{sha}")

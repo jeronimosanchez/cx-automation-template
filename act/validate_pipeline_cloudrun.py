@@ -288,11 +288,24 @@ def nivel_0(runner):
                  contexto_rechaza_vacios)
 
     def esquema_firestore_obligatorio():
-        faltan = set(store.CAMPOS_OBLIGATORIOS_AGENTE) - {
-            "project", "agent_id", "region", "repo", "rama"}
-        return not faltan and len(store.CAMPOS_OBLIGATORIOS_AGENTE) == 5, ""
+        """El repositorio es del proyecto y la región del agente: son dos
+        documentos con dos esquemas, y ninguno puede quedarse sin sus campos."""
+        agente = set(store.CAMPOS_OBLIGATORIOS_AGENTE)
+        proyecto = set(store.CAMPOS_OBLIGATORIOS_PROYECTO)
+        problemas = []
+        if agente != {"project", "agent_id", "region", "rama"}:
+            problemas.append(f"agente: {sorted(agente)}")
+        if proyecto != {"project", "repo", "rama_principal"}:
+            problemas.append(f"proyecto: {sorted(proyecto)}")
+        if "repo" in agente:
+            problemas.append("el agente exige repositorio, y el repositorio es del proyecto")
+        if "rama" in proyecto:
+            problemas.append("el proyecto fija la rama de trabajo, y esa es de cada agente: "
+                             "compartirla haría que publicar uno arrastrara a sus hermanos")
+        return not problemas, " · ".join(problemas)
 
-    runner.check(0, "El documento del agente declara sus campos obligatorios",
+    runner.check(0, "Los documentos de proyecto y de agente declaran sus campos "
+                    "obligatorios, y el repositorio vive en el del proyecto",
                  esquema_firestore_obligatorio)
 
     def mapeo_incompleto_falla():
@@ -319,12 +332,17 @@ def nivel_0(runner):
         # persistir va a Firestore o a GitHub. Se comprueba que sigue siendo
         # verdad, porque una ruta fija por agente colisionaría entre dos
         # peticiones concurrentes en el mismo contenedor reutilizado.
+        # `open(` a secas cazaba `tarfile.open(fileobj=...)`, que lee de
+        # memoria y no toca el disco. Lo que importa es escribir en una ruta.
         sucios = []
         for ruta in ARCHIVOS_PIPELINE:
-            texto = (REPO_ROOT / ruta).read_text()
-            for patron in ("/tmp/", "tempfile.", "NamedTemporary", "open("):
-                if patron in texto:
-                    sucios.append(f"{ruta}: {patron}")
+            for i, linea in enumerate((REPO_ROOT / ruta).read_text().splitlines(), 1):
+                if linea.strip().startswith("#"):
+                    continue
+                for patron in ("/tmp/", "tempfile.", "NamedTemporary",
+                               ".write_text(", ".write_bytes(", "open(\"w"):
+                    if patron in linea:
+                        sucios.append(f"{ruta}:{i} {patron}")
         return not sucios, "; ".join(sucios)
 
     runner.check(0, "El pipeline no escribe archivos temporales en disco",
@@ -419,7 +437,7 @@ def nivel_0(runner):
 
 # ── Nivel 1 · Solo lectura ───────────────────────────────────────────────────
 
-def nivel_1(runner, project, agent_id, region, run_id):
+def nivel_1(runner, project, agent_id, region, run_id, hermano=None):
     print("\nNIVEL 1 — Solo lectura · contra el agente desechable")
 
     contexto = pipeline.Contexto(project, agent_id)
@@ -593,18 +611,12 @@ def nivel_1(runner, project, agent_id, region, run_id):
         ningún grupo del reparto ni en el diff — el repositorio tiene YAML que
         nunca fueron resources: taxonomías, configuraciones, specs OpenAPI.
         """
-        original_tree, original_blob = contexto.gh.list_tree, contexto.gh.read_blob
-        commit = contexto.gh.branch_head(contexto.rama)
-        archivos = original_tree(commit)
-        intruso = {"path": "definitions/intents/sin_cabecera.yaml", "sha": "falso"}
-        contexto.gh.list_tree = lambda *_a, **_k: archivos + [intruso]
-
-        def leer(sha):
-            if sha == "falso":
-                return b"displayName: sin_cabecera\ndescription: no soy un resource\n"
-            return original_blob(sha)
-
-        contexto.gh.read_blob = leer
+        original = contexto.gh.read_repo_files
+        archivos = dict(original(contexto.gh.branch_head(contexto.rama)))
+        intruso = {"path": "definitions/intents/sin_cabecera.yaml"}
+        archivos[intruso["path"]] = (
+            b"displayName: sin_cabecera\ndescription: no soy un resource\n")
+        contexto.gh.read_repo_files = lambda *_a, **_k: archivos
         try:
             repositorio, _ = pipeline.cargar_repositorio(contexto)
             inventario, _, _ = pipeline.inventariar_cx(contexto)
@@ -616,7 +628,7 @@ def nivel_1(runner, project, agent_id, region, run_id):
             )
             return not aparece, "el archivo sin cabecera entró en el reparto o en el diff"
         finally:
-            contexto.gh.list_tree, contexto.gh.read_blob = original_tree, original_blob
+            contexto.gh.read_repo_files = original
 
     runner.check(1, "Un YAML sin cabecera no es un resource: ni entra en el "
                     "reparto ni genera operación",
@@ -716,6 +728,119 @@ def nivel_1(runner, project, agent_id, region, run_id):
 
     runner.check(1, "Los 13 tipos devuelven contenido real, no solo responden",
                  los_trece_tipos_traen_contenido)
+
+    if hermano:
+        def cada_agente_ve_solo_lo_suyo():
+            """Un repositorio compartido no puede filtrar los archivos de un
+            agente en la vista de otro.
+
+            Sin el filtro por agente, los archivos del hermano aparecerían
+            como "solo en el repositorio" del nuestro — pendientes de crear en
+            CX, cuando ya existen en su propio agente.
+            """
+            resultados = {}
+            for quien in (agent_id, hermano):
+                ctx = pipeline.Contexto(project, quien)
+                inv, _, _ = pipeline.inventariar_cx(ctx)
+                repo, _ = pipeline.cargar_repositorio(ctx)
+                grupos = pipeline.emparejar(inv, repo)
+                resultados[quien] = {
+                    "mios": {e["cx_id"] for e in grupos["emparejados"]},
+                    "rutas": {e["ruta"] for e in grupos["emparejados"]},
+                    "solo_repo": len(grupos["solo_repo"]),
+                    "otros": len(repo["otros_agentes"]),
+                }
+            a, b = resultados[agent_id], resultados[hermano]
+            comunes = a["rutas"] & b["rutas"]
+            if comunes:
+                return False, f"{len(comunes)} archivos aparecen en los dos agentes"
+            if not a["otros"] or not b["otros"]:
+                return False, ("ninguno de los dos ve archivos del otro: no "
+                               "están compartiendo repositorio de verdad")
+            return True, (f"{a['otros']} y {b['otros']} archivos ajenos, "
+                          f"contados aparte y fuera del reparto")
+
+        runner.check(1, "Dos agentes comparten repositorio sin mezclarse: "
+                        "ningún archivo aparece en los dos, y los ajenos se "
+                        "cuentan aparte en vez de salir como pendientes",
+                     cada_agente_ve_solo_lo_suyo)
+
+        def el_mismo_cx_id_en_dos_agentes_no_colisiona():
+            """CX reutiliza identificadores entre agentes.
+
+            Verificado con agentes reales: sus "Default Start Flow" y "Default
+            Welcome Intent" comparten cx_id. Con la clave sin el agente, la
+            defensa de duplicados saltaría el primer día y nada arrancaría.
+            """
+            ids = {}
+            for quien in (agent_id, hermano):
+                ctx = pipeline.Contexto(project, quien)
+                inv, _, _ = pipeline.inventariar_cx(ctx)
+                for tipo, items in inv.items():
+                    for cx_id in items:
+                        ids.setdefault((tipo, cx_id), set()).add(quien)
+            compartidos = {k: v for k, v in ids.items() if len(v) > 1}
+            if not compartidos:
+                return False, ("los dos agentes no comparten ningún cx_id, así "
+                               "que el caso no se llega a probar")
+            # Y aun compartiéndolos, cargar el repositorio no protesta.
+            pipeline.cargar_repositorio(pipeline.Contexto(project, agent_id))
+            return True, (f"{len(compartidos)} identificadores compartidos entre "
+                          f"los dos agentes, sin colisión")
+
+        runner.check(1, "Dos agentes con el mismo cx_id no disparan la defensa "
+                        "de duplicados: la clave lleva el agente",
+                     el_mismo_cx_id_en_dos_agentes_no_colisiona)
+
+        def un_resource_ajeno_no_entra_en_el_diff():
+            datos = pipeline.step_3_apply_to_cx(project, agent_id, dry_run=True)["data"]
+            ctx = pipeline.Contexto(project, hermano)
+            repo_hermano, _ = pipeline.cargar_repositorio(ctx)
+            suyas = {e["ruta"] for por_tipo in repo_hermano["por_tipo"].values()
+                     for e in por_tipo.values()}
+            intrusas = [o["ruta"] for o in datos["operaciones"] if o.get("ruta") in suyas]
+            return not intrusas, f"el diff propone tocar archivos del hermano: {intrusas[:3]}"
+
+        runner.check(1, "El diff de un agente no propone nada sobre los archivos "
+                        "de su hermano",
+                     un_resource_ajeno_no_entra_en_el_diff)
+    else:
+        runner.skip(1, "Dos agentes comparten repositorio sin mezclarse",
+                    "hace falta --agente-hermano: un segundo agente desechable "
+                    "del mismo proyecto")
+
+    def un_archivo_sin_agente_se_cuenta_aparte():
+        """Un archivo con cabecera pero sin `agente` no es de nadie.
+
+        Filtrando por agente desaparecería de todas las vistas sin dejar
+        rastro: no se puede aplicar en ninguno y nadie sabría por qué. El
+        Paso 1 es el único momento que lee el repositorio entero antes de
+        repartirlo, así que es el único sitio donde se puede contar.
+        """
+        original = contexto.gh.read_repo_files
+        archivos = dict(original(contexto.gh.branch_head(contexto.rama)))
+        huerfano = {"path": "definitions/intents/sin_dueno.yaml"}
+        archivos[huerfano["path"]] = (
+            b"metadata:\n  tipo: intent\n  padre: null\n"
+            b"  cx_id: null\ndisplayName: sin_dueno\n")
+        contexto.gh.read_repo_files = lambda *_a, **_k: archivos
+        try:
+            repositorio, _ = pipeline.cargar_repositorio(contexto)
+            sin_agente = [e["ruta"] for e in repositorio["sin_agente"]]
+            en_el_reparto = any(
+                e["ruta"] == huerfano["path"]
+                for por_tipo in repositorio["por_tipo"].values()
+                for e in por_tipo.values()
+            ) or any(e["ruta"] == huerfano["path"] for e in repositorio["sin_cx_id"])
+            return (huerfano["path"] in sin_agente and not en_el_reparto), (
+                f"sin_agente={sin_agente[:2]} · entró en el reparto={en_el_reparto}"
+            )
+        finally:
+            contexto.gh.read_repo_files = original
+
+    runner.check(1, "Un archivo con cabecera pero sin agente se cuenta aparte y "
+                    "no entra en el reparto de ningún agente",
+                 un_archivo_sin_agente_se_cuenta_aparte)
 
     runner.skip(1, "Dos pares proyecto+agente en el mismo proceso no se contaminan",
                 "exige un segundo agente desechable; la propiedad que probaría "
@@ -835,27 +960,28 @@ def nivel_2(runner, project, agent_id):
 
     def cx_id_duplicado_para():
         contexto = pipeline.Contexto(project, agent_id)
-        original = contexto.gh.list_tree
-        commit = contexto.gh.branch_head(contexto.rama)
-        archivos = original(commit)
-        yaml_real = next((a for a in archivos
-                          if a["path"].startswith("definitions/")), None)
-        if yaml_real is None:
-            return True, "(el repositorio no tiene YAML de resources)"
+        original = contexto.gh.read_repo_files
+        archivos = original(contexto.gh.branch_head(contexto.rama))
+        # Tiene que ser un archivo que de verdad sea un resource de este
+        # agente: copiar uno sin cabecera no dispara nada, y copiar uno de otro
+        # agente tampoco tiene por que — su clave lleva otro agente.
+        repositorio, _ = pipeline.cargar_repositorio(contexto)
+        propias = [e["ruta"] for por_tipo in repositorio["por_tipo"].values()
+                   for e in por_tipo.values()]
+        origen = next((r for r in propias if r in archivos), None)
+        if origen is None:
+            return True, "(el agente no tiene ningun resource en el repositorio)"
 
-        # Se simula un segundo archivo con el mismo blob: mismo tipo y mismo
-        # cx_id en dos rutas distintas, que es el caso real de duplicar un
-        # archivo y olvidar vaciar el id.
-        contexto.gh.list_tree = lambda *_a, **_k: archivos + [
-            {**yaml_real, "path": yaml_real["path"].replace(".yaml", "_copia.yaml")}
-        ]
+        copia = dict(archivos)
+        copia[origen.replace(".yaml", "_copia.yaml")] = archivos[origen]
+        contexto.gh.read_repo_files = lambda *_a, **_k: copia
         try:
             pipeline.cargar_repositorio(contexto)
-            return False, "aceptó dos archivos con el mismo tipo y cx_id"
+            return False, "acepto dos archivos con el mismo tipo y cx_id"
         except pipeline.PipelineError as error:
             return "cx_id" in str(error), str(error)[:90]
         finally:
-            contexto.gh.list_tree = original
+            contexto.gh.read_repo_files = original
 
     runner.check(2, "Dos archivos con el mismo tipo y cx_id paran el pipeline — "
                     "duplicar un YAML y olvidar vaciar el id deja dos "
@@ -864,18 +990,18 @@ def nivel_2(runner, project, agent_id):
 
     def tipo_desconocido_da_error_explicito():
         contexto = pipeline.Contexto(project, agent_id)
-        original_tree, original_blob = contexto.gh.list_tree, contexto.gh.read_blob
-        contexto.gh.list_tree = lambda *_a, **_k: [
-            {"path": "definitions/raro/x.yaml", "sha": "falso"}]
-        contexto.gh.read_blob = lambda *_a, **_k: (
-            b"metadata:\n  tipo: tipo_inventado\n  cx_id: abc\ndisplayName: x\n")
+        original = contexto.gh.read_repo_files
+        contexto.gh.read_repo_files = lambda *_a, **_k: {
+            "definitions/raro/x.yaml":
+                b"metadata:\n  tipo: tipo_inventado\n  cx_id: abc\n"
+                b"  agente: x\ndisplayName: x\n"}
         try:
             pipeline.cargar_repositorio(contexto)
             return False, "aceptó un tipo que no existe"
         except pipeline.PipelineError as error:
             return "tipo_inventado" in str(error), str(error)[:90]
         finally:
-            contexto.gh.list_tree, contexto.gh.read_blob = original_tree, original_blob
+            contexto.gh.read_repo_files = original
 
     runner.check(2, "Un YAML con un tipo que no existe da error nombrándolo, "
                     "no se vuelve invisible",
@@ -883,17 +1009,16 @@ def nivel_2(runner, project, agent_id):
 
     def yaml_mal_formado_dice_que_archivo():
         contexto = pipeline.Contexto(project, agent_id)
-        original_tree, original_blob = contexto.gh.list_tree, contexto.gh.read_blob
-        contexto.gh.list_tree = lambda *_a, **_k: [
-            {"path": "definitions/roto.yaml", "sha": "falso"}]
-        contexto.gh.read_blob = lambda *_a, **_k: b"metadata:\n  tipo: [sin cerrar\n"
+        original = contexto.gh.read_repo_files
+        contexto.gh.read_repo_files = lambda *_a, **_k: {
+            "definitions/roto.yaml": b"metadata:\n  tipo: [sin cerrar\n"}
         try:
             pipeline.cargar_repositorio(contexto)
             return False, "aceptó un YAML mal formado"
         except pipeline.PipelineError as error:
             return "definitions/roto.yaml" in str(error), str(error)[:90]
         finally:
-            contexto.gh.list_tree, contexto.gh.read_blob = original_tree, original_blob
+            contexto.gh.read_repo_files = original
 
     runner.check(2, "Un YAML mal formado dice qué archivo lo provocó",
                  yaml_mal_formado_dice_que_archivo)
@@ -902,8 +1027,8 @@ def nivel_2(runner, project, agent_id):
         cliente = store.get_client()
         mapeo = store.get_agent_mapping(cliente, project, agent_id)
         store.save_agent_mapping(cliente, project, agent_id, mapeo["region"],
-                                 mapeo["repo"], "rama-que-no-existe",
-                                 mapeo.get("rama_principal", "main"))
+                                 "rama-que-no-existe",
+                                 mapeo.get("carpeta_raiz", "definitions"))
         try:
             pipeline.step_1_inventory(project, agent_id)
             return False, "no falló con una rama inexistente"
@@ -912,8 +1037,8 @@ def nivel_2(runner, project, agent_id):
                 str(error)[:90]
         finally:
             store.save_agent_mapping(cliente, project, agent_id, mapeo["region"],
-                                     mapeo["repo"], mapeo["rama"],
-                                     mapeo.get("rama_principal", "main"))
+                                     mapeo["rama"],
+                                     mapeo.get("carpeta_raiz", "definitions"))
 
     runner.check(2, "Una rama que no existe en el mapeo falla, no devuelve un "
                     "repositorio vacío",
@@ -1218,7 +1343,8 @@ def nivel_3(runner, project, agent_id, run_id):
         """
         ruta = f"definitions/intents/{etiqueta}_ciclo.yaml"
         documento = {
-            "metadata": {"tipo": "intent", "padre": None, "cx_id": None},
+            "metadata": {"tipo": "intent", "padre": None, "cx_id": None,
+                         "agente": agent_id},
             "displayName": f"{etiqueta}_ciclo",
             "trainingPhrases": [{"parts": [{"text": "ciclo"}], "repeatCount": 1}],
         }
@@ -1233,11 +1359,10 @@ def nivel_3(runner, project, agent_id, run_id):
         if resultado["status"] != "ok":
             return False, f"el Paso 3 falló: {resultado['status']}"
 
-        arbol = contexto.gh.list_tree(contexto.gh.branch_head(contexto.rama))
-        blob = next((a for a in arbol if a["path"] == ruta), None)
-        if blob is None:
+        archivos = contexto.gh.read_repo_files(contexto.gh.branch_head(contexto.rama))
+        if ruta not in archivos:
             return False, "el archivo desapareció del repositorio"
-        guardado = (__import__("yaml").safe_load(contexto.gh.read_blob(blob["sha"]))
+        guardado = (__import__("yaml").safe_load(archivos[ruta])
                     .get("metadata", {}).get("cx_id"))
         if not guardado:
             return False, ("el cx_id no volvió al archivo: la cabecera sigue "
@@ -1292,7 +1417,8 @@ def nivel_3(runner, project, agent_id, run_id):
             nombre = f"{etiqueta}_ciclo_{tipo}"
             ruta = f"definitions/{tipo}s/{nombre}.yaml"
             archivos[ruta] = __import__("yaml").safe_dump(
-                {"metadata": {"tipo": tipo, "padre": padre_id, "cx_id": None},
+                {"metadata": {"tipo": tipo, "padre": padre_id, "cx_id": None,
+                              "agente": agent_id},
                  "displayName": nombre, **CUERPO_MINIMO[tipo]},
                 allow_unicode=True, sort_keys=False)
             esperados[tipo] = {"ruta": ruta, "nombre": nombre, "padre": padre_id}
@@ -1311,8 +1437,7 @@ def nivel_3(runner, project, agent_id, run_id):
                         if o.get("result") == "ERROR"]
             return False, f"el Paso 3 falló · {' | '.join(fallidas)}"
 
-        arbol = {a["path"]: a["sha"] for a in
-                 contexto.gh.list_tree(contexto.gh.branch_head(contexto.rama))}
+        arbol = contexto.gh.read_repo_files(contexto.gh.branch_head(contexto.rama))
         inventario, _, _ = pipeline.inventariar_cx(contexto)
         fallos = []
         for tipo, esperado in esperados.items():
@@ -1321,12 +1446,11 @@ def nivel_3(runner, project, agent_id, run_id):
             if creado is None:
                 fallos.append(f"{tipo}: no se creó en CX")
                 continue
-            sha = arbol.get(esperado["ruta"])
-            if sha is None:
+            crudo = arbol.get(esperado["ruta"])
+            if crudo is None:
                 fallos.append(f"{tipo}: su archivo desapareció del repositorio")
                 continue
-            meta = (__import__("yaml").safe_load(contexto.gh.read_blob(sha))
-                    .get("metadata") or {})
+            meta = (__import__("yaml").safe_load(crudo).get("metadata") or {})
             if meta.get("cx_id") != pipeline._cx_id_de(creado):
                 fallos.append(f"{tipo}: el archivo guarda {meta.get('cx_id')!r} "
                               f"y CX dice {pipeline._cx_id_de(creado)!r}")
@@ -1692,7 +1816,7 @@ def nivel_3(runner, project, agent_id, run_id):
 
 # ── Nivel 4 · Caos ───────────────────────────────────────────────────────────
 
-def nivel_4(runner, project, agent_id, run_id):
+def nivel_4(runner, project, agent_id, run_id, hermano=None):
     print("\nNIVEL 4 — Fallo inyectado y concurrencia")
 
     cliente = store.get_client()
@@ -1713,6 +1837,29 @@ def nivel_4(runner, project, agent_id, run_id):
     runner.check(4, "Dos invocaciones concurrentes sobre el mismo agente: solo "
                     "una procede",
                  dos_invocaciones_concurrentes)
+
+    if hermano:
+        def el_candado_cubre_a_los_agentes_hermanos():
+            """El candado es del proyecto, no del agente.
+
+            Lo que protege no es solo el agente: es también el repositorio, y
+            ese lo comparten todos los agentes de un proyecto. Con un candado
+            por agente, dos deploys hermanos escribirían en la misma rama de
+            git sin verse.
+            """
+            primero = store.acquire_lock(cliente, project, agent_id, "deploy A")
+            try:
+                store.acquire_lock(cliente, project, hermano, "deploy B")
+                return False, ("el hermano tomó el candado mientras el otro "
+                               "escribía: los dos irían a la misma rama")
+            except store.LockBusy:
+                return True, ""
+            finally:
+                store.release_lock(cliente, project, agent_id, primero)
+
+        runner.check(4, "Un deploy sobre un agente bloquea a sus hermanos del "
+                        "mismo proyecto: comparten repositorio",
+                     el_candado_cubre_a_los_agentes_hermanos)
 
     def el_candado_caduca_solo():
         token = store.acquire_lock(cliente, project, agent_id, "prueba TTL",
@@ -1826,7 +1973,8 @@ def nivel_4(runner, project, agent_id, run_id):
             rutas[sufijo] = f"definitions/intents/{nombre}.yaml"
         contexto.gh.commit_files(contexto.rama, {
             ruta: __import__("yaml").safe_dump(
-                {"metadata": {"tipo": "intent", "padre": None, "cx_id": None},
+                {"metadata": {"tipo": "intent", "padre": None, "cx_id": None,
+                              "agente": agent_id},
                  "displayName": pathlib_stem(ruta),
                  "trainingPhrases": [{"parts": [{"text": "hola"}],
                                       "repeatCount": 1}]},
@@ -2080,6 +2228,9 @@ def main(argv=None):
     )
     parser.add_argument("--project", help="Proyecto GCP del agente")
     parser.add_argument("--agent", help="ID del agente CX desechable")
+    parser.add_argument("--agente-hermano", dest="hermano",
+                        help="Segundo agente desechable del mismo proyecto, "
+                             "para probar que comparten repositorio sin mezclarse")
     parser.add_argument("--levels", default="0",
                         help="Niveles a ejecutar: '0', '0-2', '3,4'")
     args = parser.parse_args(argv)
@@ -2104,13 +2255,13 @@ def main(argv=None):
     if 0 in niveles:
         nivel_0(runner)
     if 1 in niveles:
-        nivel_1(runner, args.project, args.agent, region, run_id)
+        nivel_1(runner, args.project, args.agent, region, run_id, args.hermano)
     if 2 in niveles:
         nivel_2(runner, args.project, args.agent)
     if 3 in niveles:
         nivel_3(runner, args.project, args.agent, run_id)
     if 4 in niveles:
-        nivel_4(runner, args.project, args.agent, run_id)
+        nivel_4(runner, args.project, args.agent, run_id, args.hermano)
 
     c = runner.counts()
     print(f"\nRESUMEN: {c[PASS]} PASS · {c[FAIL]} FAIL · {c[SKIP]} SKIP")

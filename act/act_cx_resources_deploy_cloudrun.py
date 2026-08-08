@@ -257,7 +257,10 @@ def cargar_repositorio(contexto, on_log=None, log=None):
     """
     log = log if log is not None else []
     commit_sha = contexto.gh.branch_head(contexto.rama)
-    archivos = contexto.gh.list_tree(commit_sha)
+    # Todo el repositorio en una petición, no una por archivo. Con el
+    # repositorio compartido entre los agentes de un proyecto, leer blob a
+    # blob crece con cada agente que se añade y agota el límite de la API.
+    archivos = contexto.gh.read_repo_files(commit_sha)
 
     recursos = {tipo: {} for tipo in RESOURCE_TYPES}
     sin_cx_id = []
@@ -267,13 +270,12 @@ def cargar_repositorio(contexto, on_log=None, log=None):
     ignorados = 0
     vistos = {}   # (agente, tipo, cx_id) -> ruta
 
-    for archivo in archivos:
-        crudo = contexto.gh.read_blob(archivo["sha"])
+    for ruta, crudo in archivos.items():
         try:
             documento = yaml.safe_load(crudo)
         except yaml.YAMLError as error:
             raise PipelineError(
-                f"{archivo['path']} no es YAML válido: {error}"
+                f"{ruta} no es YAML válido: {error}"
             ) from error
 
         metadata = payloads.read_metadata(documento)
@@ -284,13 +286,13 @@ def cargar_repositorio(contexto, on_log=None, log=None):
         tipo = metadata.get("tipo")
         if tipo not in RESOURCE_TYPES:
             raise PipelineError(
-                f"{archivo['path']} declara tipo '{tipo}', que no existe. "
+                f"{ruta} declara tipo '{tipo}', que no existe. "
                 f"Tipos válidos: {', '.join(sorted(RESOURCE_TYPES))}."
             )
 
         agente = metadata.get("agente")
         entrada = {
-            "ruta": archivo["path"],
+            "ruta": ruta,
             "documento": documento,
             "tipo": tipo,
             "padre": metadata.get("padre"),
@@ -316,10 +318,10 @@ def cargar_repositorio(contexto, on_log=None, log=None):
             if clave in vistos:
                 duplicados.append(
                     f"{tipo}/{cx_id} del agente {agente}: "
-                    f"{vistos[clave]} y {archivo['path']}"
+                    f"{vistos[clave]} y {ruta}"
                 )
                 continue
-            vistos[clave] = archivo["path"]
+            vistos[clave] = ruta
 
         if agente != contexto.agent_id:
             otros_agentes.append(entrada)
@@ -1566,19 +1568,23 @@ def discover(project=None, client=None, on_log=None):
     except store.MappingNotFound:
         proyecto = None
 
-    registrados = {m["agent_id"] for m in
+    registrados = {m["agent_id"]: m for m in
                    store.list_agent_mappings(firestore_client, project)}
     agentes = []
     for agente in cx.list_cx_agents_everywhere(project):
+        registro = registrados.get(agente["agentId"])
         agentes.append({
             **agente,
+            # El repositorio lo hereda del proyecto; la rama de trabajo es suya
+            # — publicar un agente no puede arrastrar lo que sus hermanos
+            # tengan sin publicar.
             "repo": proyecto["repo"] if proyecto else None,
-            "rama": proyecto["rama"] if proyecto else None,
+            "rama": registro["rama"] if registro else None,
             "vinculado": proyecto is not None,
             # Un agente del proyecto que todavía no se ha dado de alta: hereda
-            # el repositorio, pero le falta su región. Se incluye marcado,
-            # nunca se omite.
-            "registrado": agente["agentId"] in registrados,
+            # el repositorio, pero le faltan su región y su rama. Se incluye
+            # marcado, nunca se omite.
+            "registrado": registro is not None,
         })
     _emit(log, on_log,
           f"✓ {len(agentes)} agentes · repositorio del proyecto: "
@@ -1588,7 +1594,7 @@ def discover(project=None, client=None, on_log=None):
     return step_result("ok", log, {
         "proyectos": [], "agentes": agentes,
         "repo": proyecto["repo"] if proyecto else None,
-        "rama": proyecto["rama"] if proyecto else None,
+        "rama_principal": proyecto["rama_principal"] if proyecto else None,
         "ninguno_vinculado": proyecto is None,
     })
 
@@ -1626,15 +1632,17 @@ def link_agent_repo(project, agent_id, repo_url, rama="staging",
                 f"proyecto tiene un solo repositorio, y todos sus agentes viven "
                 f"dentro. Para usar otro, desvincula el proyecto primero."
             )
-        _emit(log, on_log, f"· El proyecto ya usaba {repo} — se añade el agente")
+        _emit(log, on_log,
+              f"· El proyecto ya usaba {repo} — se añade el agente con su "
+              f"propia rama de trabajo")
         nuevo_proyecto = False
     except store.MappingNotFound:
-        store.save_project_mapping(firestore_client, project, repo, rama,
+        store.save_project_mapping(firestore_client, project, repo,
                                    rama_principal)
         _emit(log, on_log, "✓ Repositorio del proyecto registrado")
         nuevo_proyecto = True
 
-    store.save_agent_mapping(firestore_client, project, agent_id, region,
+    store.save_agent_mapping(firestore_client, project, agent_id, region, rama,
                              carpeta_raiz=carpeta_raiz)
     _emit(log, on_log, f"✓ Agente dado de alta en {region}")
 
