@@ -1,0 +1,43 @@
+metadata:
+  tipo: flow
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000000
+  agente: 3eef28e8-8ed1-4460-9123-cff8be0ab5b1
+displayName: Default Start Flow
+description: A start flow created along with the agent
+transitionRoutes:
+- intent: projects/floristeria-petal-digital/locations/europe-west1/agents/3eef28e8-8ed1-4460-9123-cff8be0ab5b1/intents/00000000-0000-0000-0000-000000000000
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - ¡Hola!
+        - ¡Hey!
+        - ¡Buenos días!
+  name: 6936e5c6-93c8-440f-8c97-f605362fe791
+eventHandlers:
+- event: sys.no-match-default
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - Ups, no he entendido a que te refieres.
+        - ¿Podrías repetirlo, por favor?
+        - ¿Disculpa?
+        - ¿Decías?
+        - ¿Cómo?
+  name: 8dd2502c-37b8-456a-9f9c-33cace41503c
+- event: sys.no-input-default
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - Ups, no he entendido a que te refieres.
+        - ¿Podrías repetirlo, por favor?
+        - ¿Disculpa?
+        - ¿Decías?
+        - ¿Cómo?
+  name: 748153ba-2f87-4b6e-bfe5-7fe82d3adecd
+nluSettings:
+  modelType: MODEL_TYPE_ADVANCED
+  classificationThreshold: 0.3

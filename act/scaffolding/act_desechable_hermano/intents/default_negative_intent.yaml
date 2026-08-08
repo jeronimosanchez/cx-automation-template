@@ -1,0 +1,8 @@
+metadata:
+  tipo: intent
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000001
+  agente: 3eef28e8-8ed1-4460-9123-cff8be0ab5b1
+displayName: Default Negative Intent
+priority: 500000
+isFallback: true

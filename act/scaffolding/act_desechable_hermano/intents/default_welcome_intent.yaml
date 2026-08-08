@@ -1,0 +1,28 @@
+metadata:
+  tipo: intent
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000000
+  agente: 3eef28e8-8ed1-4460-9123-cff8be0ab5b1
+displayName: Default Welcome Intent
+trainingPhrases:
+- id: b30f410b-3a01-4c04-8a77-6c8d518da53a
+  parts:
+  - text: hola
+  repeatCount: 1
+- id: f7faaa8c-f617-4bb0-9252-871ffe547d84
+  parts:
+  - text: hey
+  repeatCount: 1
+- id: 448b596d-62b7-46fe-97f1-e5ce99bc40cd
+  parts:
+  - text: saludos
+  repeatCount: 1
+- id: 7f3b04b3-028a-4794-be0c-a2f297aa7004
+  parts:
+  - text: hey ho
+  repeatCount: 1
+- id: 55e33b87-3519-4301-9605-7f8d5db3df70
+  parts:
+  - text: chao
+  repeatCount: 1
+priority: 500000
