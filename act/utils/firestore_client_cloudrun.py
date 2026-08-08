@@ -286,7 +286,8 @@ def _sub(client, project, agent_id, subcoleccion):
 
 
 def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
-                          display_name=None, operacion=None, huella_cx=None):
+                          display_name=None, operacion=None, huella_cx=None, padre=None,
+                          pendiente_publicar=True):
     """Deja constancia de qué archivo del repo escribió este resource.
 
     Se sobrescribe: solo interesa el último estado, así que esta parte no
@@ -319,8 +320,15 @@ def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
         "display_name": display_name,
         "operacion": operacion,
         "huella_cx": huella_cx,
+        # De quién colgaba. Se guarda sobre todo por los borrados: al publicar,
+        # el hijo ya no está en el agente y no hay forma de averiguar a qué
+        # playbook o flow pertenecía para versionarlo.
+        "padre": padre,
         "escrito_en": _now(),
-        "pendiente_publicar": True,
+        # Traer un resource al repositorio no cambia nada en CX, así que no
+        # cuenta como pendiente de publicar: marcarlo hacía que la siguiente
+        # publicación versionara el agente entero.
+        "pendiente_publicar": pendiente_publicar,
     })
 
 

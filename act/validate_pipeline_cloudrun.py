@@ -55,6 +55,25 @@ from act.utils import firestore_client_cloudrun as store
 
 PASS, FAIL, SKIP = "PASS", "FAIL", "SKIP"
 
+
+def _lleva_la_marca(tipo, item):
+    """Si un resource lo creó una corrida de este validador.
+
+    Las **versiones** llevan la marca en `description` cuando cuelgan de un
+    playbook, porque ese endpoint no acepta `displayName`. El resto de tipos
+    solo en `displayName`: buscar en la descripción de cualquier resource caza
+    también los que una prueba se limitó a *modificar* — y así el barrido
+    intentaba borrar el flow de arranque del agente, que CX no deja borrar.
+    """
+    if tipo == "version":
+        return PREFIJO in f"{item.get('displayName','')} {item.get('description','')}"
+    return str(item.get("displayName", "")).startswith(PREFIJO)
+
+
+def pathlib_stem(ruta):
+    """El nombre del archivo sin carpeta ni extensión."""
+    return ruta.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+
 # Marca que un agente tiene que llevar en su nombre para que este script acepte
 # escribir en él. No es una lista de agentes prohibidos —una lista se queda
 # desactualizada— sino lo contrario: solo se admite lo que se declara
@@ -400,7 +419,7 @@ def nivel_0(runner):
 
 # ── Nivel 1 · Solo lectura ───────────────────────────────────────────────────
 
-def nivel_1(runner, project, agent_id, region):
+def nivel_1(runner, project, agent_id, region, run_id):
     print("\nNIVEL 1 — Solo lectura · contra el agente desechable")
 
     contexto = pipeline.Contexto(project, agent_id)
@@ -447,20 +466,44 @@ def nivel_1(runner, project, agent_id, region):
                  region_invalida_da_error_claro)
 
     def rename_sigue_emparejando():
+        """Se renombra de verdad un resource en CX y se comprueba que sigue
+        emparejando con su archivo.
+
+        Mirar el estado tal cual está no prueba nada: justo después de un pull
+        no hay ningún nombre distinto entre los dos lados, así que el escenario
+        no llega a existir y el check pasaría siempre.
+        """
         inventario, _, _ = pipeline.inventariar_cx(contexto)
         repositorio, _ = pipeline.cargar_repositorio(contexto)
-        grupos = pipeline.emparejar(inventario, repositorio)
-        # Un displayName distinto entre repo y CX no puede producir un
-        # "solo en el repositorio": el emparejamiento va por cx_id.
-        renombrados = [
-            e for e in grupos["emparejados"]
-            if repositorio["por_tipo"][e["tipo"]][e["cx_id"]]["display_name"]
-            != e["display_name"]
-        ]
-        fantasmas = [s for s in grupos["solo_repo"] if s["motivo"] == "cx_id fantasma"]
-        return not fantasmas, (
-            f"{len(renombrados)} renombrados · {len(fantasmas)} fantasmas"
-        )
+        emparejados = pipeline.emparejar(inventario, repositorio)["emparejados"]
+        objetivo = next((e for e in emparejados if e["tipo"] == "intent"),
+                        None) or (emparejados[0] if emparejados else None)
+        if objetivo is None:
+            return False, "no hay ningún resource emparejado que renombrar"
+
+        remoto = inventario[objetivo["tipo"]][objetivo["cx_id"]]
+        original = remoto.get("displayName")
+        cuerpo = {k: v for k, v in remoto.items()
+                  if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
+        cuerpo["displayName"] = f"{PREFIJO}_{run_id}_renombrado"
+        respuesta = cx.api_patch(project, contexto.region, remoto["name"], cuerpo)
+        if respuesta.status_code not in (200, 201):
+            return False, f"no se pudo renombrar: {respuesta.status_code}"
+        try:
+            inv2, _, _ = pipeline.inventariar_cx(contexto)
+            grupos = pipeline.emparejar(inv2, repositorio)
+            sigue = any(e["cx_id"] == objetivo["cx_id"]
+                        for e in grupos["emparejados"])
+            fantasma = any(s.get("cx_id") == objetivo["cx_id"]
+                           for s in grupos["solo_repo"])
+            return sigue and not fantasma, (
+                f"tras renombrar: emparejado={sigue} · fantasma={fantasma}. "
+                f"Si el emparejamiento cayera al nombre, el renombrado "
+                f"produciría un duplicado en el repositorio"
+            )
+        finally:
+            cuerpo["displayName"] = original
+            cx.api_patch(project, contexto.region, remoto["name"], cuerpo)
 
     runner.check(1, "Un displayName cambiado con el mismo cx_id sigue emparejando, "
                     "sin duplicado fantasma",
@@ -525,6 +568,11 @@ def nivel_1(runner, project, agent_id, region):
                 if not meta.get("padre"):
                     fallos.append(f"{tipo}: cuelga de {spec['padre']} y padre "
                                   f"viene vacío")
+                elif meta["padre"] == pipeline.PADRE_AGENTE:
+                    # Los tipos que existen en los dos niveles lo declaran así
+                    # cuando cuelgan del agente. Es lo correcto, no un hueco.
+                    if not spec.get("tambien_en_agente"):
+                        fallos.append(f"{tipo}: dice colgar del agente y no puede")
                 elif meta["padre"] not in inventario.get(spec["padre"], {}):
                     fallos.append(f"{tipo}: declara padre {meta['padre']}, que "
                                   f"no existe como {spec['padre']}")
@@ -954,17 +1002,54 @@ def nivel_3(runner, project, agent_id, run_id):
     # Nivel 1 falló por el residuo que había dejado el Nivel 3.
     rama_al_empezar = contexto.gh.branch_head(contexto.rama)
 
+    def _desanclar_lo_de_las_pruebas(inventario):
+        """Quita del entorno de producción las versiones de resources de prueba.
+
+        Es el primer eslabón de la cadena de residuo, y sin él los otros dos no
+        se pueden romper: publicar crea una versión del flow o playbook de
+        prueba, esa versión queda fijada en producción, y entonces CX se niega
+        a borrar el resource — *"cannot be deleted because it is still
+        referenced in the following environments"*. El resource se queda, su
+        versión se queda, y a la corrida siguiente hay dos.
+
+        Devuelve cuántas desancló.
+        """
+        entornos = list(inventario.get("environment", {}).values())
+        desancladas = 0
+        for entorno in entornos:
+            fijadas = [c["version"] for c in entorno.get("versionConfigs", [])]
+            sobreviven = []
+            for version in fijadas:
+                padre = version.rsplit("/versions/", 1)[0]
+                respuesta = cx.api_get(project, contexto.region, padre)
+                nombre = (respuesta.json().get("displayName", "")
+                          if respuesta.status_code == 200 else "")
+                if str(nombre).startswith(PREFIJO):
+                    desancladas += 1
+                else:
+                    sobreviven.append(version)
+            if len(sobreviven) != len(fijadas):
+                pipeline._apuntar_entorno(contexto, entorno, sobreviven)
+        return desancladas
+
     def barrer_restos_previos():
         """Barrido al empezar: un finally no sobrevive a un SIGKILL, así que el
         residuo de una corrida muerta se limpia en la siguiente."""
         inventario, _, _ = pipeline.inventariar_cx(contexto)
-        restos = [
-            item for items in inventario.values() for item in items.values()
-            if str(item.get("displayName", "")).startswith(PREFIJO)
+        desancladas = _desanclar_lo_de_las_pruebas(inventario)
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        # Las versiones primero: mientras exista una version de un resource de
+        # prueba, CX se niega a borrar el resource.
+        restos = [item for item in inventario.get("version", {}).values()
+                  if _lleva_la_marca("version", item)]
+        restos += [
+            item for tipo, items in inventario.items() if tipo != "version"
+            for item in items.values() if _lleva_la_marca(tipo, item)
         ]
         for resto in restos:
             cx.api_delete(project, contexto.region, resto["name"])
-        return True, f"{len(restos)} restos de corridas anteriores borrados"
+        return True, (f"{desancladas} versiones desancladas de un entorno · "
+                      f"{len(restos)} restos borrados")
 
     runner.check(3, "Barrido de restos antes de empezar", barrer_restos_previos)
 
@@ -1538,15 +1623,21 @@ def nivel_3(runner, project, agent_id, run_id):
         sí ocurrió.
         """
         inventario, _, _ = pipeline.inventariar_cx(contexto)
+        desancladas = _desanclar_lo_de_las_pruebas(inventario)
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
         en_uso = {
             config["version"]
             for entorno in inventario.get("environment", {}).values()
             for config in entorno.get("versionConfigs", [])
         }
+        # Las versiones de playbook llevan la marca en `description` y no en
+        # `displayName`, porque el endpoint de versiones de playbook no acepta
+        # displayName. Buscar solo por displayName las dejaba fuera del barrido
+        # para siempre, y se acumulaban contra el limite de 20 por playbook.
         objetivos = set(creados) | {
             item["name"]
-            for items in inventario.values() for item in items.values()
-            if str(item.get("displayName", "")).startswith(PREFIJO)
+            for tipo, items in inventario.items() for item in items.values()
+            if _lleva_la_marca(tipo, item)
         }
 
         pendientes, servidos = [], []
@@ -1560,8 +1651,8 @@ def nivel_3(runner, project, agent_id, run_id):
                 pendientes.append(nombre)
 
         detalle = f"no se borraron: {pendientes}" if pendientes else (
-            f"{len(servidos)} versiones siguen en uso por un entorno y se "
-            f"barrerán en la corrida siguiente" if servidos else ""
+            f"{desancladas} desancladas · {len(servidos)} siguen en uso"
+            if (desancladas or servidos) else ""
         )
         return not pendientes, detalle
 
@@ -1661,10 +1752,32 @@ def nivel_4(runner, project, agent_id, run_id):
                  el_candado_no_vive_en_memoria)
 
     def el_progreso_sobrevive_al_contenedor():
-        pendientes = store.list_pending_publication(cliente, project, agent_id)
-        # Basta con que la consulta funcione contra Firestore: el progreso por
-        # resource vive ahí y no en memoria del proceso.
-        return isinstance(pendientes, list), ""
+        """Se anota un progreso y se lee con un cliente nuevo, como haría un
+        contenedor recién arrancado.
+
+        Comprobar que una función devuelve una lista no prueba nada: devolvería
+        una lista vacía igual si el progreso se estuviera guardando en memoria
+        del proceso, que es justo el fallo que este check existe para detectar.
+        """
+        marca = f"{PREFIJO}_{run_id}_progreso"
+        store.record_resource_write(
+            cliente, project, agent_id, "intent", marca,
+            "sintetico/progreso.yaml", display_name=marca, operacion="PATCH",
+        )
+        try:
+            otro_cliente = store.get_client()   # como un contenedor nuevo
+            leidos = store.list_pending_publication(otro_cliente, project, agent_id)
+            encontrado = any(r.get("cx_id") == marca for r in leidos)
+            registro = store.get_resource_record(otro_cliente, project, agent_id,
+                                                 "intent", marca)
+            return (encontrado and registro is not None
+                    and registro.get("archivo") == "sintetico/progreso.yaml"), (
+                "el progreso anotado no se ve desde un cliente nuevo: no está "
+                "sobreviviendo fuera del proceso"
+            )
+        finally:
+            store.mark_published(cliente, project, agent_id,
+                                 [{"tipo": "intent", "cx_id": marca}])
 
     runner.check(4, "El progreso por resource vive en Firestore, no en memoria",
                  el_progreso_sobrevive_al_contenedor)
@@ -1695,17 +1808,56 @@ def nivel_4(runner, project, agent_id, run_id):
                  sin_fugas_entre_agentes)
 
     def reintento_solo_lo_pendiente():
+        """Reintentar tras un fallo parcial reenvía lo fallido y lo no
+        intentado, nunca lo que ya salió bien: repetirlo lo escribiría dos
+        veces.
+
+        Se fabrican tres resources nuevos, se reintenta declarando solo uno
+        como pendiente, y se cuentan las escrituras HTTP reales. Confirmarlo
+        por el resultado final no valdría: como las operaciones son
+        idempotentes, reenviar las tres daría el mismo estado y ocultaría el
+        fallo de seguimiento.
+        """
         contexto = pipeline.Contexto(project, agent_id)
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        repositorio, _ = pipeline.cargar_repositorio(contexto)
-        operaciones = pipeline.calcular_diff(contexto, inventario, repositorio)
-        if len(operaciones) < 2:
-            return True, "(no hay suficientes operaciones pendientes que probar)"
-        pendientes = [{"tipo": o["tipo"], "cx_id": o["cx_id"]} for o in operaciones[1:]]
-        with ContadorHttp() as contador:
-            pipeline.step_3_apply_to_cx(project, agent_id, only_pending=pendientes,
-                                        dry_run=True)
-        return True, f"{len(contador.escrituras())} escrituras en el reintento simulado"
+        rama0 = contexto.gh.branch_head(contexto.rama)
+        rutas = {}
+        for sufijo in ("uno", "dos", "tres"):
+            nombre = f"{PREFIJO}_{run_id}_reint_{sufijo}"
+            rutas[sufijo] = f"definitions/intents/{nombre}.yaml"
+        contexto.gh.commit_files(contexto.rama, {
+            ruta: __import__("yaml").safe_dump(
+                {"metadata": {"tipo": "intent", "padre": None, "cx_id": None},
+                 "displayName": pathlib_stem(ruta),
+                 "trainingPhrases": [{"parts": [{"text": "hola"}],
+                                      "repeatCount": 1}]},
+                allow_unicode=True, sort_keys=False)
+            for ruta in rutas.values()
+        }, f"test: tres resources para el reintento ({run_id})")
+
+        try:
+            elegido = rutas["dos"]
+            with ContadorHttp() as contador:
+                pipeline.step_3_apply_to_cx(
+                    project, agent_id,
+                    aplicar=[{"tipo": "intent", "ruta": elegido}],
+                    only_pending=[{"tipo": "intent", "ruta": elegido}],
+                )
+            creaciones = [c for c in contador.escrituras()
+                          if c[0] == "POST" and c[1].endswith("/intents")]
+            return len(creaciones) == 1, (
+                f"{len(creaciones)} altas de intent en el reintento; se declaró "
+                f"pendiente solo una. Reenviar las tres significa que el "
+                f"seguimiento de lo ya aplicado no funciona"
+            )
+        finally:
+            inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["intent"])
+            for item in inventario.get("intent", {}).values():
+                if str(item.get("displayName", "")).startswith(f"{PREFIJO}_{run_id}_reint"):
+                    cx.api_delete(project, contexto.region, item["name"])
+            requests.patch(
+                f"https://api.github.com/repos/{contexto.repo}/git/refs/heads/"
+                f"{contexto.rama}", headers=contexto.gh._headers(),
+                json={"sha": rama0, "force": True}, timeout=30)
 
     runner.check(4, "El reintento solo reenvía lo pendiente", reintento_solo_lo_pendiente)
 
@@ -1952,7 +2104,7 @@ def main(argv=None):
     if 0 in niveles:
         nivel_0(runner)
     if 1 in niveles:
-        nivel_1(runner, args.project, args.agent, region)
+        nivel_1(runner, args.project, args.agent, region, run_id)
     if 2 in niveles:
         nivel_2(runner, args.project, args.agent)
     if 3 in niveles:

@@ -599,11 +599,19 @@ def _operaciones_de_borrado(inventario, repositorio, eliminar):
             "tipo": tipo,
             "cx_id": cx_id,
             "ruta": None,
-            "padre": None,
+            # De quién cuelga, capturado ANTES de borrarlo: después ya no
+            # existe en el agente y el Paso 5 no sabría qué versionar.
+            "padre": (_padre_id_de(tipo, remoto)
+                      if RESOURCE_TYPES[tipo].get("padre") else None),
             "resource": remoto.get("displayName", cx_id),
             "local": None,
             "remote_name": remoto.get("name"),
             "sin_version": tipo in TIPOS_SIN_VERSION,
+            # Las mismas claves que pone _operacion(): los dos caminos tienen
+            # que producir la misma forma, o el resto del código tendría que
+            # acordarse de cuál le falta a cuál.
+            "conflicto": False,
+            "cambio_externo": None,
             "result": None,
         })
     return operaciones
@@ -611,10 +619,27 @@ def _operaciones_de_borrado(inventario, repositorio, eliminar):
 
 # ── Escritura en CX ──────────────────────────────────────────────────────────
 
+PADRE_AGENTE = "agente"
+
+
 def _ruta_padre(contexto, operacion, inventario):
-    """Dónde cuelga un resource: del agente, o de su playbook o flow."""
+    """Dónde cuelga un resource: del agente, o de su playbook o flow.
+
+    Hay tipos que pueden colgar de las dos cosas — un transition route group
+    existe tanto bajo un flow como directamente bajo el agente. Para poder
+    distinguirlo, la cabecera dice `padre: "agente"` en ese caso: con el campo
+    vacío, "cuelga del agente" y "no cuelga de nada" se escribían igual y el
+    resource no se podía crear.
+    """
     spec = TIPOS_DESPLEGABLES[operacion["tipo"]]
     if not spec.get("padre"):
+        return contexto.parent
+    if operacion.get("padre") == PADRE_AGENTE:
+        if not spec.get("tambien_en_agente"):
+            raise PipelineError(
+                f"{operacion['ruta']} declara que cuelga del agente, pero un "
+                f"{operacion['tipo']} solo puede colgar de un {spec['padre']}."
+            )
         return contexto.parent
     padre_id = operacion.get("padre")
     padre = inventario.get(spec["padre"], {}).get(padre_id)
@@ -783,6 +808,11 @@ def aplicar_operaciones(contexto, operaciones, inventario, repositorio=None,
                     # Cómo queda CX tras esta escritura. Es contra esto contra
                     # lo que el diff siguiente detecta un cambio externo.
                     huella_cx=huella_resource(creado),
+                    # De quién cuelga. Al publicar, un resource borrado ya no
+                    # está en el agente: sin este dato no habría forma de saber
+                    # qué playbook o flow hay que versionar para que el borrado
+                    # llegue a producción.
+                    padre=operacion.get("padre"),
                 )
         except PipelineError as error:
             operacion["result"] = "ERROR"
@@ -980,6 +1010,8 @@ def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
                 contexto.store, project, agent_id, traido["tipo"],
                 traido["cx_id"], traido["ruta"],
                 display_name=traido["display_name"], operacion="PULL",
+                # Traer al repositorio no toca CX: nada que publicar.
+                pendiente_publicar=False,
             )
 
         _emit(log, on_log,
@@ -996,12 +1028,18 @@ def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
 
 
 def _padre_id_de(tipo, item):
-    """El cx_id del padre, sacado de la propia ruta del recurso en CX."""
+    """El cx_id del padre, sacado de la propia ruta del recurso en CX.
+
+    Si el tipo admite colgar directamente del agente y su ruta no menciona
+    ningún padre, se declara así explícitamente en vez de dejarlo vacío: con
+    el campo vacío no habría forma de saber si cuelga del agente o si el dato
+    se perdió, y el resource no se podría volver a crear desde el repositorio.
+    """
     spec = RESOURCE_TYPES[tipo]
     segmento = {"playbook": "/playbooks/", "flow": "/flows/"}[spec["padre"]]
     nombre = item.get("name") or ""
     if segmento not in nombre:
-        return None
+        return PADRE_AGENTE if spec.get("tambien_en_agente") else None
     return nombre.split(segmento)[-1].split("/")[0]
 
 
@@ -1027,12 +1065,18 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
     operaciones = calcular_diff(contexto, inventario, repositorio, eliminar)
 
     if aplicar is not None:
-        marcados = {(m.get("tipo"), m.get("cx_id")) for m in aplicar}
+        # Un resource que aún no existe en CX no tiene id —y es correcto que no
+        # lo tenga—, así que lo identifica su archivo. Marcar por (tipo, id)
+        # metía a todas las creaciones de un tipo en la misma tupla
+        # (tipo, None) y marcar una las aplicaba todas.
+        por_id = {(m.get("tipo"), m.get("cx_id")) for m in aplicar
+                  if m.get("cx_id")}
+        por_ruta = {(m.get("tipo"), m.get("ruta")) for m in aplicar
+                    if m.get("ruta")}
         operaciones = [
             op for op in operaciones
-            if (op["tipo"], op["cx_id"]) in marcados
-            or (op["cx_id"] is None and (op["tipo"], op["ruta"]) in
-                {(m.get("tipo"), m.get("ruta")) for m in aplicar})
+            if (op["cx_id"] and (op["tipo"], op["cx_id"]) in por_id)
+            or (op["ruta"] and (op["tipo"], op["ruta"]) in por_ruta)
         ]
     if only_pending:
         pendientes = {(p.get("tipo"), p.get("cx_id")) for p in only_pending}
@@ -1135,14 +1179,16 @@ def step_4_validate_tests(project, agent_id, resultado, client=None, gh=None,
 def _huella_borrador(inventario):
     """Marca del estado del borrador, para detectar si se movió después.
 
-    Se construye con los tiempos de última modificación que devuelve la API,
-    no con el contenido entero: basta para saber que algo cambió, y no obliga
-    a guardar una copia del agente.
+    Se construye con el **contenido** de cada resource, no con su fecha de
+    modificación: verificado contra la API real, CX no devuelve `updateTime`
+    en ningún tipo. Con la fecha, la huella se reducía a la lista de nombres y
+    solo cambiaba al añadir o quitar un resource — nunca al modificar uno, que
+    es justo el caso que el gate del Paso 5 tiene que detectar.
     """
     marcas = []
     for tipo in sorted(inventario):
         for cx_id, item in sorted(inventario[tipo].items()):
-            marcas.append(f"{tipo}:{cx_id}:{item.get('updateTime', '')}")
+            marcas.append(f"{tipo}:{cx_id}:{huella_resource(item)}")
     return hashlib.sha256("|".join(marcas).encode()).hexdigest()[:16]
 
 
@@ -1244,9 +1290,18 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
         # tenía; lo que cambió estrena la recién creada.
         finales = _combinar_versiones(anteriores, versiones)
         _apuntar_entorno(contexto, produccion, finales)
-        _emit(log, on_log,
-              f"✓ Producción sirviendo {version_label} · "
-              f"{len(finales)} versiones fijadas")
+        if versiones:
+            _emit(log, on_log,
+                  f"✓ Producción sirviendo {version_label} · "
+                  f"{len(versiones)} versiones nuevas · {len(finales)} fijadas")
+        else:
+            # Anunciar la etiqueta sin haber creado ninguna versión daría a
+            # entender que existe. Los tipos sin versión (intents, entity
+            # types, webhooks) llegan aquí sin nada que versionar.
+            _emit(log, on_log,
+                  "✓ Publicado · no se creó ninguna versión: lo aplicado es de "
+                  "tipos que CX no versiona, así que producción sirve lo mismo "
+                  f"que antes ({len(finales)} versiones fijadas, sin cambios)")
 
         store.mark_published(contexto.store, project, agent_id, pendientes)
         store.clear_inflight_versions(contexto.store, project, agent_id)
@@ -1321,7 +1376,7 @@ def _crear_versiones(contexto, inventario, pendientes, etiqueta, on_log, log):
             )
             creadas.append(creada["name"])
             _emit(log, on_log, f"OK    versión de {nombre_padre.rsplit('/', 1)[-1]}")
-        except PipelineError as error:
+        except (PipelineError, cx.ApiError, cx.OperationTimeout) as error:
             _emit(log, on_log, f"ERROR {nombre_padre}: {error}")
             _emit(log, on_log,
                   f"Se pararon las versiones — {len(creadas)} ya creadas, "
@@ -1345,16 +1400,25 @@ def _padres_versionables(inventario, pendientes):
             item = inventario.get(tipo, {}).get(cx_id)
             if item:
                 objetivos.add((item["name"], tipo))
-        elif tipo == "example":
-            for nombre, item in _por_nombre(inventario, "playbook"):
-                if cx_id in inventario.get("example", {}) and \
-                        nombre in (inventario["example"][cx_id].get("name") or ""):
-                    objetivos.add((nombre, "playbook"))
-        elif tipo in ("page", "transition_route_group"):
-            for nombre, item in _por_nombre(inventario, "flow"):
-                hijo = inventario.get(tipo, {}).get(cx_id, {})
-                if nombre in (hijo.get("name") or ""):
-                    objetivos.add((nombre, "flow"))
+            continue
+
+        tipo_padre = RESOURCE_TYPES.get(tipo, {}).get("padre")
+        if not tipo_padre:
+            continue
+
+        # Primero, el padre que quedó anotado al escribir. Es la única vía que
+        # funciona con un borrado: el hijo ya no está en el agente, así que
+        # buscarlo en el inventario no encuentra nada y el borrado nunca
+        # llegaría a producción.
+        padre_id = pendiente.get("padre")
+        if padre_id == PADRE_AGENTE:
+            continue  # cuelga del agente, no de un padre versionable
+        if not padre_id:
+            hijo = inventario.get(tipo, {}).get(cx_id) or {}
+            padre_id = _padre_id_de(tipo, hijo) if hijo else None
+        padre = inventario.get(tipo_padre, {}).get(padre_id)
+        if padre:
+            objetivos.add((padre["name"], tipo_padre))
     return sorted(objetivos)
 
 
@@ -1480,6 +1544,32 @@ def link_agent_repo(project, agent_id, repo_url, rama="staging",
     if commit:
         _emit(log, on_log, f"✓ cx-deploy.yaml · commit {commit[:7]}")
 
+    # El pull inicial: sin él, vincular deja el repositorio con un solo archivo
+    # y hay que recorrer los Pasos 1 y 2 a mano para llegar a donde el
+    # onboarding decía haber llegado. Es lo que convierte "he apuntado el
+    # enlace" en "el proyecto está listo".
+    _emit(log, on_log, "· Trayendo al repositorio lo que ya existe en el agente")
+    traidos, aviso_pull = [], None
+    try:
+        inventario = step_1_inventory(project, agent_id, client=firestore_client,
+                                      gh=github)["data"]
+        traibles = [{"tipo": x["tipo"], "cx_id": x["cx_id"]}
+                    for x in inventario["solo_cx"] if x["traible"]]
+        if traibles:
+            traidos = step_2_pull_to_repo(
+                project, agent_id, traibles, client=firestore_client, gh=github,
+                on_log=on_log,
+            )["data"]["traidos"]
+        _emit(log, on_log, f"✓ {len(traidos)} resources traídos al repositorio")
+    except Exception as error:
+        # El vínculo ya está registrado y es lo que cuesta deshacer. Fallar
+        # aquí no lo invalida: el pull se puede repetir desde el Paso 2.
+        aviso_pull = (
+            f"El agente quedó vinculado, pero no se pudo traer su contenido: "
+            f"{error}. Hazlo desde el Paso 2 cuando quieras."
+        )
+        _emit(log, on_log, f"⚠ {aviso_pull}")
+
     comando_iam = (
         f"gcloud projects add-iam-policy-binding {project} "
         f"--member=serviceAccount:$ACT_SERVICE_ACCOUNT "
@@ -1491,6 +1581,7 @@ def link_agent_repo(project, agent_id, repo_url, rama="staging",
     return step_result("ok", log, {
         "project": project, "agent_id": agent_id, "region": region,
         "repo": repo, "rama": rama, "commit": commit,
+        "traidos": traidos, "aviso_pull": aviso_pull,
         "comando_iam": comando_iam,
     })
 
@@ -1550,6 +1641,18 @@ def manage_versions(project, agent_id, action="list", version_names=None,
     borradas, protegidas = [], []
     with store.agent_lock(contexto.store, project, agent_id, "borrar versiones"):
         for nombre in version_names or ():
+            # La ruta llega del cliente, así que se comprueba contra el destino
+            # elegido antes de tocarla. Sin esto, una petición con la ruta de
+            # otro agente borraba sus versiones con el token del servicio —
+            # incluida la que ese agente estuviera sirviendo en producción,
+            # porque `en_uso` se calcula sobre el agente del contexto, no sobre
+            # el afectado. Es la regla C3: el servidor construye o comprueba
+            # todas las rutas, nunca las obedece.
+            if not nombre.startswith(f"{contexto.parent}/"):
+                raise PipelineError(
+                    f"La versión {nombre} no pertenece al agente {agent_id}. "
+                    f"Esta herramienta solo borra versiones del agente elegido."
+                )
             if nombre in en_uso:
                 protegidas.append(nombre)
                 _emit(log, on_log,
