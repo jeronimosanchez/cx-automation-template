@@ -977,6 +977,19 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
         "emparejados": grupos["emparejados"],
         "solo_cx": grupos["solo_cx"],
         "solo_repo": grupos["solo_repo"],
+        # Los archivos que no dicen de quién son. No entran en las tres
+        # tarjetas —no pertenecen a ningún agente— pero tampoco pueden
+        # desaparecer: es el único momento que lee el repositorio entero antes
+        # de repartirlo, y en cualquier otro punto ya se han filtrado.
+        "sin_agente": [
+            {"ruta": e["ruta"], "tipo": e["tipo"],
+             "display_name": e["display_name"],
+             "motivo": "sin campo agente"}
+            for e in repositorio["sin_agente"]
+        ],
+        # Los de otros agentes del proyecto. Se cuentan para que las cifras
+        # cuadren, no se enseñan como pendientes de nada.
+        "otros_agentes": len(repositorio["otros_agentes"]),
     })
 
 

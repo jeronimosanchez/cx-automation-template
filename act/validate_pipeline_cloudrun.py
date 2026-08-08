@@ -458,6 +458,54 @@ def nivel_0(runner):
                     "de entorno: la tabla no tiene la entrada (S20)",
                  herramienta_no_alcanza_entornos)
 
+    def el_panel_y_el_pipeline_declaran_los_mismos_grupos():
+        """El Paso 1 devuelve exactamente los grupos que el panel pinta.
+
+        El panel es la especificación, y el pipeline la implementa. Si el panel
+        enseña una tarjeta que el pipeline no alimenta, esa tarjeta no puede
+        mostrar nada real — y nadie se entera hasta conectarlos, en la Fase 7.
+        Se comprueba aquí, sin red, comparando las etiquetas del panel contra
+        los campos que devuelve el paso.
+        """
+        panel = (REPO_ROOT / "docs/panels/act_cx_resources_deploy_v2.html").read_text()
+        bloque = panel[panel.find('id="inv-done"'):panel.find('id="view-2"')]
+        etiquetas = re.findall(r'class="grupo-label">([^<]+)<', bloque)
+        esperado = {
+            "Emparejados": "emparejados",
+            "Solo en CX": "solo_cx",
+            "Solo en el repositorio": "solo_repo",
+            "Sin agente asignado": "sin_agente",
+        }
+
+        faltan_en_panel = [e for e in esperado if e not in etiquetas]
+        sobran_en_panel = [e for e in etiquetas if e not in esperado]
+
+        # Y que el paso devuelva de verdad un campo por cada tarjeta.
+        fuente = (REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py").read_text()
+        arbol = ast.parse(fuente)
+        paso1 = next(n for n in ast.walk(arbol)
+                     if isinstance(n, ast.FunctionDef) and n.name == "step_1_inventory")
+        devueltos = {
+            k.value for nodo in ast.walk(paso1) if isinstance(nodo, ast.Dict)
+            for k in nodo.keys
+            if isinstance(k, ast.Constant) and isinstance(k.value, str)
+        }
+        sin_fuente = [campo for tarjeta, campo in esperado.items()
+                      if tarjeta in etiquetas and campo not in devueltos]
+
+        problemas = []
+        if faltan_en_panel:
+            problemas.append(f"el panel no pinta: {faltan_en_panel}")
+        if sobran_en_panel:
+            problemas.append(f"el panel pinta tarjetas que nadie alimenta: {sobran_en_panel}")
+        if sin_fuente:
+            problemas.append(f"el Paso 1 no devuelve: {sin_fuente}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El panel y el Paso 1 declaran los mismos grupos: ninguna "
+                    "tarjeta se queda sin datos que mostrar",
+                 el_panel_y_el_pipeline_declaran_los_mismos_grupos)
+
     def trece_tipos():
         return len(pipeline.RESOURCE_TYPES) == 13 and \
             "transition_route_group" in pipeline.RESOURCE_TYPES, \
@@ -1157,6 +1205,10 @@ def nivel_3(runner, project, agent_id, run_id):
     # reporta como cx_id fantasma para siempre. Encontrado ejecutando: el
     # Nivel 1 falló por el residuo que había dejado el Nivel 3.
     rama_al_empezar = contexto.gh.branch_head(contexto.rama)
+    # También la principal: el nivel publica, y publicar fusiona una en
+    # otra. Revertir solo la de trabajo las dejaba divergidas y la corrida
+    # siguiente no podía fusionar.
+    principal_al_empezar = contexto.gh.branch_head(contexto.rama_principal)
 
     def _desanclar_lo_de_las_pruebas(inventario):
         """Quita del entorno de producción las versiones de resources de prueba.
@@ -1816,7 +1868,13 @@ def nivel_3(runner, project, agent_id, run_id):
                  limpiar_cx)
 
     def limpiar_repositorio():
-        """Devuelve la rama al commit en el que estaba antes del nivel.
+        """Devuelve la rama de trabajo Y la principal al commit de partida.
+
+        Las dos, no solo la de trabajo: el nivel prueba la publicación, y
+        publicar fusiona una en otra. Revertir solo la de trabajo las dejaba
+        divergidas —la principal conservaba el merge que la otra ya no tiene— y
+        la corrida siguiente no podía fusionar. Las dos son desechables, y el
+        guardarraíl del arranque garantiza que la principal no es una rama real.
 
         Es un force update, y por eso solo se hace contra el repositorio
         desechable. Revertir archivo por archivo dejaría fuera cualquiera que
@@ -1824,21 +1882,21 @@ def nivel_3(runner, project, agent_id, run_id):
         pasó: el nivel traía al repositorio un resource que luego borraba de
         CX, y el archivo se quedaba reclamando un cx_id que ya no existe.
         """
-        actual = contexto.gh.branch_head(contexto.rama)
-        if actual == rama_al_empezar:
-            return True, "la rama no se movió"
-        respuesta = requests.patch(
-            f"https://api.github.com/repos/{contexto.repo}/git/refs/heads/"
-            f"{contexto.rama}",
-            headers=contexto.gh._headers(),
-            json={"sha": rama_al_empezar, "force": True}, timeout=30,
-        )
-        if respuesta.status_code != 200:
-            return False, f"{respuesta.status_code} {respuesta.text[:120]}"
-        vuelto = contexto.gh.branch_head(contexto.rama)
-        return vuelto == rama_al_empezar, (
-            f"la rama quedó en {vuelto[:7]}, no en {rama_al_empezar[:7]}"
-        )
+        fallos = []
+        for rama, destino in ((contexto.rama, rama_al_empezar),
+                              (contexto.rama_principal, principal_al_empezar)):
+            if not destino or contexto.gh.branch_head(rama) == destino:
+                continue
+            respuesta = requests.patch(
+                f"https://api.github.com/repos/{contexto.repo}/git/refs/heads/{rama}",
+                headers=contexto.gh._headers(),
+                json={"sha": destino, "force": True}, timeout=30,
+            )
+            if respuesta.status_code != 200:
+                fallos.append(f"{rama}: {respuesta.status_code}")
+            elif contexto.gh.branch_head(rama) != destino:
+                fallos.append(f"{rama}: no volvió a {destino[:7]}")
+        return not fallos, " · ".join(fallos)
 
     runner.check(3, "Cero residuo en el repositorio: la rama vuelve al commit en "
                     "el que estaba antes del nivel",
