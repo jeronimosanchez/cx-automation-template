@@ -200,6 +200,37 @@ class ContadorHttp:
 
 # ── Guardas ──────────────────────────────────────────────────────────────────
 
+# Ramas que este script no puede tocar bajo ningún concepto. El Paso 5 fusiona
+# la rama de trabajo en la principal, así que si la principal de un proyecto es
+# `main`, probar la publicación escribe en ella. Ocurrió: una tanda de checks
+# dejó cinco commits de merge en `main` con nombres como "Publicar
+# corte_inyectado en producción".
+RAMAS_INTOCABLES = ("main", "master", "produccion", "production")
+
+
+def exigir_rama_principal_desechable(project, client=None):
+    """Se niega a arrancar si publicar acabaría escribiendo en la rama real.
+
+    Nada impedía que un check de publicar fusionara en `main`: el agente estaba
+    marcado como desechable, pero la rama principal no la miraba nadie.
+    """
+    from act.utils import firestore_client_cloudrun as _store
+    try:
+        proyecto = _store.get_project_mapping(client or _store.get_client(), project)
+    except Exception:
+        return None
+    principal = proyecto.get("rama_principal", "")
+    if principal in RAMAS_INTOCABLES:
+        raise SystemExit(
+            f"La rama principal del proyecto {project} es '{principal}'. Este "
+            f"script prueba la publicación, y publicar fusiona la rama de "
+            f"trabajo en la principal: correría un merge real sobre '{principal}'. "
+            f"Apunta el proyecto a una rama principal desechable antes de "
+            f"lanzarlo. No se ha tocado nada."
+        )
+    return principal
+
+
 def exigir_agente_desechable(project, agent_id):
     """Se niega a seguir si el agente no se declara desechable en su nombre."""
     region = cx.detect_agent_region(project, agent_id)
@@ -2250,6 +2281,9 @@ def main(argv=None):
     region = None
     if necesita_destino:
         region, nombre = exigir_agente_desechable(args.project, args.agent)
+        if 3 in niveles:
+            # El Nivel 3 publica de verdad, y publicar fusiona en la principal.
+            exigir_rama_principal_desechable(args.project)
         print(f"Destino: {nombre} · {args.project} · {region} · corrida {run_id}")
 
     if 0 in niveles:

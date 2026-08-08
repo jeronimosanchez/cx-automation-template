@@ -782,7 +782,7 @@ def _documento_de(repositorio, ruta):
     return None
 
 
-def _guardar_cx_id(contexto, operacion, repositorio, on_log, log):
+def _guardar_cx_id(contexto, operacion, repositorio, on_log, log, base_sha=None):
     """Escribe en el repositorio el `cx_id` que CX acaba de asignar.
 
     Es lo que cierra el ciclo del resource. Un resource que nace en el
@@ -805,7 +805,7 @@ def _guardar_cx_id(contexto, operacion, repositorio, on_log, log):
               f"⚠ No se encontró {operacion['ruta']} para guardarle el cx_id "
               f"{operacion['cx_id']} — escríbelo a mano en su metadata")
         operacion["cx_id_sin_guardar"] = True
-        return
+        return base_sha
 
     metadata = dict(documento.get("metadata") or {})
     metadata["cx_id"] = operacion["cx_id"]
@@ -819,10 +819,12 @@ def _guardar_cx_id(contexto, operacion, repositorio, on_log, log):
                                                sort_keys=False)},
             f"chore(cx_id): {operacion['tipo']}/{operacion['resource']} "
             f"creado en CX como {operacion['cx_id']}",
+            base_sha=base_sha,
         )
         _emit(log, on_log,
               f"      cx_id guardado en {operacion['ruta']}"
               + (f" · commit {commit[:7]}" if commit else ""))
+        return commit or base_sha
     except Exception as error:
         # El resource ya está en CX. Reportar el paso como fallido asustaría
         # más de lo que corresponde: lo que falta es una línea en un archivo.
@@ -832,6 +834,7 @@ def _guardar_cx_id(contexto, operacion, repositorio, on_log, log):
               f"{operacion['ruta']}: {error}. Escríbelo a mano en su metadata, "
               f"o el próximo deploy lo creará otra vez.")
         operacion["cx_id_sin_guardar"] = True
+        return base_sha
 
 
 def aplicar_operaciones(contexto, operaciones, inventario, repositorio=None,
@@ -844,6 +847,9 @@ def aplicar_operaciones(contexto, operaciones, inventario, repositorio=None,
     """
     log = log if log is not None else []
     fallo = False
+    # Encadena los commits del cx_id: cada uno parte del anterior en vez de
+    # releer la rama, que puede devolver el estado de antes.
+    ultimo_commit = None
 
     for operacion in operaciones:
         etiqueta = f"{operacion['tipo']}/{operacion['resource']}"
@@ -860,7 +866,9 @@ def aplicar_operaciones(contexto, operaciones, inventario, repositorio=None,
                 # no al final: si el paso muere después, este ya está a salvo.
                 operacion["cx_id"] = _cx_id_de(creado)
                 if repositorio is not None and operacion["ruta"]:
-                    _guardar_cx_id(contexto, operacion, repositorio, on_log, log)
+                    ultimo_commit = _guardar_cx_id(
+                        contexto, operacion, repositorio, on_log, log,
+                        base_sha=ultimo_commit)
             if operacion["cx_id"]:
                 store.record_resource_write(
                     contexto.store, contexto.project, contexto.agent_id,

@@ -310,7 +310,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **C3** | El servidor **construye todas las URLs** desde `project`/`agent`. Nunca acepta rutas del panel | Hoy `cx_client.py:108` acepta URLs completas del cliente: podría apuntar a otro agente, otro proyecto o un host externo | ✅ |
 | **S2** | El campo de `agent.yaml` se llama **`agent_id`**, no `agent` | Con `agent` el código no lo encuentra, el Paso 3 devuelve OK con cero operaciones y el deploy no aplica nada sin avisar | ✅ |
 | ~~S3~~ | ~~El panel tiene dos pestañas: Deploy (por defecto) y Proyectos (onboarding y sincronización)~~ | **Sustituida (2026-08-06), durante el maquetado del panel.** Una sola pantalla, sin pestañas: el pipeline de 5 pasos ocupa el área principal, y una sección **"Tools"** al pie del sidebar (~25% de su altura, con espacio para crecer) reúne las acciones sueltas que no son parte del flujo secuencial — el wizard de onboarding (S22, vincular agente↔repositorio) y desplegar un resource suelto (S20). Más simple que mantener dos pestañas separadas para dos pantallas que en la práctica se usan poco | ❌ |
-| **S4** | El **mapeo agente→repo vive en Firestore**. Al elegir agente, el repo se asigna solo. Amplía 2026-08-06 (hallazgo de la ronda adversarial — región hardcodeada): el mapeo también guarda la **región** del agente, **detectada automáticamente** al registrar el proyecto — probando las 17 regiones reales de Dialogflow CX una vez (verificado contra Petal: solo `europe-west1` devolvió resultado, las otras 16 dieron cero) y guardando la que responda. El servidor construye las URLs con esa región guardada, nunca con una constante fija | Elimina el selector manual de repo y el caso de dos repos reclamando el mismo agente. La región no se puede pedir a Jero a mano sin riesgo de error — detectarla es más fiable que preguntarla | ✅ |
+| ~~S4~~ | ~~El mapeo agente→repo vive en Firestore~~ | **Sustituida por S24 (§15, 2026-08-08).** Un proyecto puede tener varios agentes relacionados y con un repositorio por agente esa relación quedaba partida en repositorios sueltos. La región y la autodetección de S4 siguen vigentes; lo que cambia es de quién es el repositorio | ❌ |
 | **S5** | Leer los YAML con **Git Trees API `recursive=1`**, no Contents API | Contents API solo devuelve el primer nivel; `definitions/examples/` tiene 4 subdirectorios | ✅ |
 | **S6** | Paso 8: **merge directo de ramas por API**, no `gh pr merge` | Solo necesita `contents:write`, que la GitHub App ya tiene. Sin permiso nuevo | ✅ |
 | **S6b** | El servidor **no concede IAM**. El panel muestra el comando exacto y Jero lo ejecuta una vez | Conceder permisos automáticamente exige un privilegio muy alto sobre proyectos ajenos, y CLAUDE.md §7.1 pide aprobación explícita | ✅ |
@@ -551,3 +551,98 @@ corregidas hoy en el propio handoff).
 
 ### Servicio Cloud Run
 - *(pendiente — Fase B, sin construir)*
+
+---
+
+## 15. El repositorio es del proyecto (S24 · 2026-08-08)
+
+Sustituye a S4 en lo que toca al repositorio. Verificado contra dos agentes
+reales del mismo proyecto antes de aplicarse.
+
+### El mapeo se parte en dos
+
+```
+proyectos/<proyecto>          repo · rama_principal
+agentes/<proyecto>__<agente>  region · rama · carpeta_raiz
+```
+
+**Por qué el repositorio sube al proyecto:** un proyecto de GCP puede tener
+varios agentes relacionados —uno de texto y uno de voz para el mismo negocio— y
+con un repositorio por agente esa relación queda partida en repositorios
+sueltos, sin historial común.
+
+**Por qué la región no sube:** es del agente. Dos agentes del mismo proyecto
+pueden estar en regiones distintas — la API declara 17.
+
+**Por qué la rama de trabajo tampoco:** publicar fusiona la rama de trabajo en
+la principal. Con una rama compartida, publicar un agente arrastraría a la
+principal todo lo que sus hermanos tuvieran sin publicar. Se comparte el
+repositorio y su rama principal, no el trabajo en curso de cada uno.
+
+### La clave de emparejamiento pasa a ser `agente` + `tipo` + `cx_id`
+
+No es una preferencia: **CX reutiliza los mismos identificadores en todos los
+agentes.** Medido sobre 86 resources de dos agentes reales — sus *Default Start
+Flow* y *Default Welcome Intent* comparten `cx_id`. Con la clave anterior salían
+**4 colisiones**; con la nueva, **0**. Sin el agente en la clave, la defensa de
+`cx_id` duplicados salta el primer día con los resources que CX crea solo por
+existir, y nada arranca.
+
+### La cabecera gana `agente`
+
+`metadata: {tipo, padre, cx_id, agente}`. **`proyecto` no entra**: se deduce del
+repositorio. Lo escribe el pull; solo se pone a mano al crear un archivo desde
+cero, igual que `tipo`.
+
+**Un archivo con cabecera y sin `agente` no es de nadie.** No se puede aplicar
+en ningún agente y, filtrando por agente, desaparecería de todas las vistas sin
+dejar rastro. El Paso 1 es el único momento que lee el repositorio entero antes
+de repartirlo, así que es el único sitio donde se puede avisar — y se cuenta
+aparte, en su propia categoría.
+
+### Cada agente tiene su carpeta
+
+`<carpeta_raiz>/<nombre-del-agente>/<tipo>/…`, con `carpeta_raiz` por agente
+(`definitions` de serie; `act/scaffolding` para los desechables).
+
+Al pipeline la estructura le da igual —empareja por la cabecera, no por la
+ruta— pero **el nombre del archivo sí tiene que ser único**, y no lo era: los
+*Default Start Flow* de dos agentes caían en la misma ruta y el segundo pisaba
+al primero. 4 rutas repetidas con el esquema anterior, 0 con el nuevo.
+
+Se usa el nombre del agente y no su identificador porque quien abra el
+repositorio tiene que entender qué mira. Si el agente se renombra, la carpeta
+queda desfasada y no pasa nada: la verdad está en la cabecera.
+
+### El candado pasa a ser del proyecto
+
+Amplía S13/S13b. Lo que protege no es solo el agente: es también el
+repositorio, y ese lo comparten todos sus agentes. Con un candado por agente,
+dos deploys hermanos escribirían en el mismo repositorio sin verse.
+
+### El repositorio se lee en una sola petición
+
+Amplía S5. La Git Trees API sigue siendo la vía para conocer el árbol, pero el
+**contenido** se descarga entero con el tarball: una petición en vez de una por
+archivo.
+
+No es una optimización cosmética. Con el repositorio compartido, leer archivo a
+archivo crece con cada agente que se añade: **el límite de la API de GitHub
+(5.000 peticiones/hora por instalación) se agotó en un día de trabajo real**. De
+111 peticiones a 2, y de 40 segundos a 2.
+
+Y no se filtra por carpeta para descartar archivos ajenos: la estructura es
+libre y lo que dice de quién es un archivo es su cabecera. Leerlo todo y
+repartir después es lo único que respeta esa regla — y ahora cuesta una
+petición.
+
+### Incidente registrado
+
+Mientras la rama de trabajo era del proyecto, las pruebas de publicación
+fusionaron **la rama de trabajo en `main`**: cinco commits de merge con nombres
+como *"Publicar corte_inyectado en producción"*. No hubo pérdida de trabajo —un
+merge añade— pero fue una escritura en `main` no autorizada.
+
+De ahí salen dos cosas de este documento: la rama por agente, y que el smoke
+test se niegue a arrancar su nivel de escritura si la rama principal del
+proyecto es `main`, `master` o `production`.

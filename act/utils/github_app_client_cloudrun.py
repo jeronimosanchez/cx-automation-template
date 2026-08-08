@@ -280,18 +280,26 @@ class GitHubAppClient:
 
     # ── Escritura ────────────────────────────────────────────────────────────
 
-    def commit_files(self, rama, archivos, mensaje):
+    def commit_files(self, rama, archivos, mensaje, base_sha=None):
         """Escribe varios archivos en un único commit, o ninguno.
 
         `archivos` es {ruta: contenido en texto}. Devuelve el SHA del commit,
         o None si el contenido ya coincidía con lo que había — repetir la
         misma traída sin cambios intermedios no debe producir un segundo
         commit vacío.
+
+        `base_sha` encadena commits seguidos sin volver a leer la referencia.
+        Hace falta porque la lectura de una rama recién escrita puede devolver
+        el estado anterior: con varios commits en pocos segundos —uno por
+        resource, para que un fallo a mitad no pierda los ids ya guardados— el
+        siguiente se construía sobre un padre desactualizado y se llevaba por
+        delante el cambio del anterior. Encadenando, cada commit parte del que
+        acaba de crearse.
         """
         if not archivos:
             return None
 
-        base_sha = self.branch_head(rama)
+        base_sha = base_sha or self.branch_head(rama)
         commit_base = self._request(
             "GET", f"/repos/{self.repo}/git/commits/{base_sha}"
         )
