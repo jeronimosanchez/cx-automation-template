@@ -1,0 +1,8 @@
+metadata:
+  tipo: tool
+  padre: null
+  cx_id: null
+displayName: actval_0e00f4fe_ciclo_tool
+description: herramienta de prueba
+openApiSpec:
+  textSchema: "openapi: 3.0.0\ninfo:\n  title: x\n  version: '1'\npaths: {}\n"
