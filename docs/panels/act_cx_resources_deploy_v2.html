@@ -543,8 +543,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <div id="prod-gate">
         <div id="aviso-draft-movido" style="display:none;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.08);border-radius:8px;padding:14px 16px;margin-bottom:16px">
-          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:4px">&#9888; El draft ha cambiado desde que pasaste los tests</div>
-          <p style="font-size:12px;color:var(--text-2);margin:0;line-height:1.6">Has aplicado cambios despu&eacute;s de validar. Lo que subas a producci&oacute;n no es exactamente lo que probaste.</p>
+          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:6px">&#9888; El draft ha cambiado &mdash; no se puede publicar</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">Lo que subir&iacute;a a producci&oacute;n no es lo que validaste, as&iacute; que el paso est&aacute; detenido.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6"><strong style="color:var(--text)">Los cambios se quedan en el draft</strong>, que no ve ning&uacute;n usuario, y producci&oacute;n sigue sirviendo lo de antes. No se ha fusionado nada ni se ha creado ninguna versi&oacute;n: <strong style="color:var(--text)">no hay nada que revertir</strong>.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 14px;line-height:1.6">Para publicar, arranca el pipeline otra vez desde el principio y vuelve a validar.</p>
+          <button class="btn btn-gate" onclick="resetDeploy()">Empezar de nuevo</button>
         </div>
 
         <div style="margin-bottom:18px">
@@ -1119,8 +1122,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <p>El orden no es decorativo: si se promoviera antes de fusionar y el merge fallara, producción estaría sirviendo algo cuyo código no está en la rama principal, y nadie podría reconstruir después qué está corriendo.</p>
         </div>
         <div class="spec-block">
-          <div class="spec-block-label">5.5.2 — El aviso de draft movido</div>
-          <p>Si el borrador ha cambiado desde que se declararon los tests superados, se avisa antes de confirmar: lo que se va a publicar no es exactamente lo que se probó. No bloquea — pero sin este aviso, el gate del Paso 4 no garantizaría nada.</p>
+          <div class="spec-block-label">5.5.2 — El borrador movido detiene el paso</div>
+          <p>Si el borrador ha cambiado desde que se declararon los tests superados, el paso se detiene y no publica: lo que subiría no es lo que se probó, y publicarlo llevaría a usuarios reales algo que nadie validó.</p>
+          <p>Detenerse no deshace nada. Lo aplicado permanece en el borrador, que no ve ningún usuario; no se fusiona nada, no se crea ninguna versión y producción sigue sirviendo lo de antes. No hay nada que revertir. La salida es arrancar el pipeline de nuevo y volver a validar, igual que cuando los tests fallan.</p>
+          <p>Quien lo garantiza es el servidor, no el panel: comprueba el estado del borrador antes de fusionar y antes de crear ninguna versión, así que se detiene sin dejar nada a medias. El panel lo bloquea para que se entienda, no para que el sistema esté protegido.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">5.5.3 — La versión se crea aquí</div>
@@ -1131,7 +1136,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <p>1. Antes de confirmar, se recuerda que la acción afecta a usuarios reales, y sobre qué proyecto y agente.<br>
 2. Se enumeran las tres acciones y su orden antes de confirmar.<br>
 3. Se propone un nombre de versión y se puede cambiar.<br>
-4. Si el borrador cambió después de declarar los tests, se avisa — y aun así se puede seguir.<br>
+4. Si el borrador cambió después de declarar los tests, el paso queda detenido: el botón de publicar no responde, y la única salida que se ofrece es arrancar el pipeline de nuevo.<br>
 5. Mientras se publica, se ve cada acción a medida que ocurre, con el mismo orden anunciado.<br>
 6. Al terminar, el resumen enumera las mismas tres acciones que anunció el cuadro de confirmación.<br>
 7. El comando para poner al día la copia local lleva la ruta propia dentro, y se recuerda entre publicaciones.<br>
@@ -1974,6 +1979,10 @@ function viewStep(id) {
     // otro puede haber pasado cualquier cosa.
     const movido = draftAlValidar !== null && draftAlValidar !== huellaDraft();
     document.getElementById('aviso-draft-movido').style.display = movido ? 'block' : 'none';
+    // El servidor aborta igual, mande lo que mande el panel. Deshabilitar aquí
+    // es para que se entienda que el paso está detenido, no la garantía.
+    const botonProd = document.getElementById('btn-confirm-prod');
+    if (botonProd) { botonProd.disabled = movido; botonProd.style.opacity = movido ? '0.4' : ''; }
   }
   syncSpecsPanel(id);
   renderSidebar();
