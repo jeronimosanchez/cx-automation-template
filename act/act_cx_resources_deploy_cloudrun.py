@@ -1076,7 +1076,12 @@ def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
             archivos[ruta] = _yaml_para_repo(tipo, item, padre_id,
                                              agente=agent_id)
             traidos.append({"tipo": tipo, "cx_id": cx_id, "ruta": ruta,
-                            "display_name": item.get("displayName", "")})
+                            "display_name": item.get("displayName", ""),
+                            # Cómo está el resource en CX ahora mismo. Sin
+                            # anotarlo, traer un resource dejaría su registro
+                            # sin huella y la detección de conflicto quedaría
+                            # ciega justo para lo que se acaba de traer.
+                            "huella": huella_resource(item)})
             _emit(log, on_log, f"✓ {ruta}")
 
         if not archivos:
@@ -1096,6 +1101,7 @@ def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
                 contexto.store, project, agent_id, traido["tipo"],
                 traido["cx_id"], traido["ruta"],
                 display_name=traido["display_name"], operacion="PULL",
+                huella_cx=traido["huella"],
                 # Traer al repositorio no toca CX: nada que publicar.
                 pendiente_publicar=False,
             )
@@ -1344,20 +1350,23 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
         # el entorno. Esas versiones existen en CX y no las sirve nadie: si el
         # reintento crea otras, las primeras quedan huérfanas, consumiendo
         # hueco contra el límite por playbook sin que nada las reclame.
-        versiones = _versiones_reutilizables(contexto, on_log, log)
-        if versiones:
-            fallo = False
-        else:
-            _emit(log, on_log,
-                  f"· 2/3 Creando versiones · {len(pendientes)} resources tocados "
-                  f"desde la última publicación")
-            versiones, fallo = _crear_versiones(
-                contexto, inventario, pendientes, version_label, on_log, log
+        _emit(log, on_log,
+              f"· 2/3 Versionando · {len(pendientes)} resources tocados desde "
+              f"la última publicación")
+        reutilizables, faltan = _versiones_reutilizables(
+            contexto, inventario, pendientes, on_log, log
+        )
+        nuevas, fallo = [], False
+        if faltan:
+            nuevas, fallo = _crear_versiones(
+                contexto, inventario, pendientes, version_label, on_log, log,
+                solo=faltan,
             )
-            if versiones:
-                store.save_inflight_versions(
-                    contexto.store, project, agent_id, versiones, version_label
-                )
+        versiones = reutilizables + nuevas
+        if versiones:
+            store.save_inflight_versions(
+                contexto.store, project, agent_id, versiones, version_label
+            )
         if fallo:
             return step_result("error", log, {
                 "fusionado": True, "publicado": False,
@@ -1402,36 +1411,83 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
     return resultado
 
 
-def _versiones_reutilizables(contexto, on_log, log):
+def _versiones_reutilizables(contexto, inventario, pendientes, on_log, log):
     """Versiones que un intento anterior creó y no llegó a fijar en el entorno.
 
-    Se comprueba que sigan existiendo en CX antes de reutilizarlas: si alguien
-    las borró a mano entre medias, reutilizar una ruta muerta haría fallar el
-    PATCH del entorno con un error que no diría por qué.
+    Devuelve (reutilizables, padres_que_siguen_faltando).
+
+    Reutilizar lo que sobró evita crear versiones duplicadas y quemar huecos
+    contra el límite por playbook. Pero **no basta con que sobren**: hay que
+    comprobar tres cosas antes de darlas por buenas, y cada una tapa un camino
+    por el que se publicaría algo equivocado sin ningún aviso.
+
+    1. **Que sigan existiendo.** Alguien pudo borrarlas a mano entre intentos.
+
+    2. **Que su padre siga pendiente.** Si ya no lo está, esa versión no la
+       pide nadie: fijarla en producción sería publicar una foto que nadie
+       pidió. Se deja fuera y se reporta como huérfana.
+
+    3. **Que no se hayan quedado viejas.** Si el mismo resource se volvió a
+       escribir *después* de crearse la versión, esa versión es una foto del
+       borrador anterior. Reutilizarla publicaría el cambio antiguo y daría el
+       nuevo por publicado — el mismo fallo que esto viene a arreglar,
+       entrando por otra puerta.
+
+    Lo que no cubran queda como "sigue faltando", y el paso crea solo eso.
     """
     anotadas = store.get_inflight_versions(
         contexto.store, contexto.project, contexto.agent_id
     )
+    objetivos = _padres_versionables(inventario, pendientes)
+    necesarios = {nombre for nombre, _ in objetivos}
+    por_padre = {nombre: pend for (nombre, _), pend in objetivos.items()}
+
     if not anotadas or not anotadas.get("version_names"):
-        return []
+        return [], necesarios
 
-    vivas = [
-        nombre for nombre in anotadas["version_names"]
-        if cx.api_get(contexto.project, contexto.region, nombre).status_code == 200
-    ]
-    if not vivas:
-        store.clear_inflight_versions(
-            contexto.store, contexto.project, contexto.agent_id
-        )
-        return []
+    creado_en = anotadas.get("creado_en")
+    reutilizables, huerfanas, caducadas, muertas = [], [], [], []
 
-    _emit(log, on_log,
-          f"· 2/3 Reutilizando {len(vivas)} versiones que un intento anterior "
-          f"dejó creadas sin fijar ({anotadas.get('etiqueta')})")
-    return vivas
+    for nombre in anotadas["version_names"]:
+        padre = nombre.rsplit("/versions/", 1)[0]
+        if cx.api_get(contexto.project, contexto.region, nombre).status_code != 200:
+            muertas.append(nombre)
+            continue
+        if padre not in necesarios:
+            huerfanas.append(nombre)
+            continue
+        posterior = [
+            p for p in por_padre.get(padre, [])
+            if creado_en and p.get("escrito_en") and p["escrito_en"] > creado_en
+        ]
+        if posterior:
+            caducadas.append(nombre)
+            continue
+        reutilizables.append(nombre)
+
+    if reutilizables:
+        _emit(log, on_log,
+              f"· Reutilizando {len(reutilizables)} versiones que un intento "
+              f"anterior dejó creadas sin fijar, etiquetadas "
+              f"'{anotadas.get('etiqueta')}'")
+    for lista, motivo in ((caducadas, "el resource cambió después de crearse"),
+                          (huerfanas, "su resource ya no está pendiente"),
+                          (muertas, "ya no existen en el agente")):
+        if lista:
+            _emit(log, on_log,
+                  f"· {len(lista)} versiones del intento anterior no se "
+                  f"reutilizan: {motivo}")
+    if huerfanas:
+        _emit(log, on_log,
+              f"⚠ {len(huerfanas)} versiones quedan sin usar en el agente y "
+              f"nadie las reclama — bórralas desde el desplegable de versiones")
+
+    cubiertos = {n.rsplit("/versions/", 1)[0] for n in reutilizables}
+    return reutilizables, necesarios - cubiertos
 
 
-def _crear_versiones(contexto, inventario, pendientes, etiqueta, on_log, log):
+def _crear_versiones(contexto, inventario, pendientes, etiqueta, on_log, log,
+                    solo=None):
     """Crea una versión por cada padre versionable que el diff tocó.
 
     Registra cada versión con su resultado y se para en el primer fallo, igual
@@ -1439,7 +1495,9 @@ def _crear_versiones(contexto, inventario, pendientes, etiqueta, on_log, log):
     lanzaba el error y las versiones ya creadas quedaban huérfanas, sin
     registrar ni limpiar.
     """
-    objetivos = _padres_versionables(inventario, pendientes)
+    objetivos = sorted(_padres_versionables(inventario, pendientes))
+    if solo is not None:
+        objetivos = [o for o in objetivos if o[0] in solo]
     creadas = []
 
     for nombre_padre, tipo in objetivos:
@@ -1473,19 +1531,25 @@ def _crear_versiones(contexto, inventario, pendientes, etiqueta, on_log, log):
 
 
 def _padres_versionables(inventario, pendientes):
-    """Qué flows, playbooks y tools hay que versionar por lo que se tocó.
+    """Qué flows, playbooks y tools hay que versionar, y qué pide cada uno.
+
+    Devuelve {(nombre_del_padre, tipo): [pendientes que lo piden]}. La lista
+    hace falta para saber si una versión que sobró de un intento anterior
+    sigue valiendo: si algún pendiente se escribió después de crearse esa
+    versión, la versión es una foto vieja.
+
 
     Un example no tiene versión propia: la tiene su playbook. Una page, la
     suya el flow. Por eso lo tocado se traduce a su padre versionable antes de
     crear nada.
     """
-    objetivos = set()
+    objetivos = {}
     for pendiente in pendientes:
         tipo, cx_id = pendiente.get("tipo"), pendiente.get("cx_id")
         if tipo in ("playbook", "flow", "tool"):
             item = inventario.get(tipo, {}).get(cx_id)
             if item:
-                objetivos.add((item["name"], tipo))
+                objetivos.setdefault((item["name"], tipo), []).append(pendiente)
             continue
 
         tipo_padre = RESOURCE_TYPES.get(tipo, {}).get("padre")
@@ -1504,8 +1568,8 @@ def _padres_versionables(inventario, pendientes):
             padre_id = _padre_id_de(tipo, hijo) if hijo else None
         padre = inventario.get(tipo_padre, {}).get(padre_id)
         if padre:
-            objetivos.add((padre["name"], tipo_padre))
-    return sorted(objetivos)
+            objetivos.setdefault((padre["name"], tipo_padre), []).append(pendiente)
+    return objetivos
 
 
 def _por_nombre(inventario, tipo):

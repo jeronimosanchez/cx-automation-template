@@ -2131,6 +2131,90 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                     "el reintento reutiliza la versión ya creada",
                  fallo_entre_crear_version_y_apuntar_entorno)
 
+    def un_cambio_posterior_al_corte_tambien_se_versiona():
+        """Publicar falla, tocas OTRA cosa, y reintentas.
+
+        Lo que sobró del intento anterior cubre lo de antes, no lo nuevo. Si se
+        da por buena la cobertura entera, el cambio nuevo se marca como
+        publicado sin haberse versionado — y no llega a producción nunca,
+        porque el deploy siguiente ya no lo ve pendiente.
+        """
+        cliente = store.get_client()
+        contexto = pipeline.Contexto(project, agent_id)
+        inventario, _, _ = pipeline.inventariar_cx(
+            contexto, tipos=["playbook", "flow"])
+        playbooks = list(inventario.get("playbook", {}).values())
+        flows = list(inventario.get("flow", {}).values())
+        if not playbooks or not flows:
+            return False, "hacen falta un playbook y un flow para provocarlo"
+
+        store.mark_published(cliente, project, agent_id,
+                             store.list_pending_publication(cliente, project, agent_id))
+        store.clear_inflight_versions(cliente, project, agent_id)
+
+        # Los registros que este check va a sobrescribir, para devolverlos: si
+        # no, se llevaría por delante su huella y dejaría ciega la detección de
+        # conflicto de esos resources.
+        tocados = [("playbook", pipeline._cx_id_de(playbooks[0])),
+                   ("flow", pipeline._cx_id_de(flows[0]))]
+        previos = {(tp, ci): store.get_resource_record(cliente, project, agent_id, tp, ci)
+                   for tp, ci in tocados}
+
+        # 1 · Solo el playbook está pendiente. Se corta al apuntar el entorno.
+        store.record_resource_write(
+            cliente, project, agent_id, "playbook",
+            pipeline._cx_id_de(playbooks[0]), "sintetico/a.yaml",
+            display_name=playbooks[0].get("displayName"), operacion="PATCH")
+        original = pipeline._apuntar_entorno
+        pipeline._apuntar_entorno = lambda *_a, **_k: (_ for _ in ()).throw(
+            pipeline.PipelineError("corte inyectado"))
+        try:
+            pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_antes")
+        except pipeline.PipelineError:
+            pass
+        finally:
+            pipeline._apuntar_entorno = original
+
+        en_vuelo = store.get_inflight_versions(cliente, project, agent_id)
+        if not en_vuelo or not en_vuelo.get("version_names"):
+            return False, "el corte no dejó ninguna versión anotada"
+        del_playbook = set(en_vuelo["version_names"])
+
+        # 2 · Entre el fallo y el reintento se toca ADEMÁS el flow.
+        store.record_resource_write(
+            cliente, project, agent_id, "flow",
+            pipeline._cx_id_de(flows[0]), "sintetico/b.yaml",
+            display_name=flows[0].get("displayName"), operacion="PATCH")
+
+        resultado = pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_despues")
+        if resultado["status"] != "ok":
+            return False, f"el reintento falló: {resultado['status']}"
+
+        fijadas = resultado["data"]["versiones_creadas"]
+        padres = {v.rsplit("/versions/", 1)[0] for v in fijadas}
+        tiene_flow = flows[0]["name"] in padres
+        reuso = bool(del_playbook & set(fijadas))
+        for (tp, ci), previo in previos.items():
+            if previo:
+                store.record_resource_write(
+                    cliente, project, agent_id, tp, ci, previo.get("archivo"),
+                    display_name=previo.get("display_name"),
+                    operacion=previo.get("operacion"),
+                    huella_cx=previo.get("huella_cx"),
+                    padre=previo.get("padre"),
+                    pendiente_publicar=bool(previo.get("pendiente_publicar")))
+
+        return tiene_flow and reuso, (
+            f"reutilizó lo del playbook: {reuso} · versionó el flow nuevo: "
+            f"{tiene_flow}. Sin versionar el flow, su cambio queda marcado como "
+            f"publicado y no llega a producción nunca"
+        )
+
+    runner.check(4, "Un cambio hecho entre el fallo y el reintento también se "
+                    "versiona: reutilizar lo que sobró no puede darse por "
+                    "cobertura completa",
+                 un_cambio_posterior_al_corte_tambien_se_versiona)
+
     def el_gate_del_paso_4_aborta_si_el_borrador_se_movio():
         """La huella se toma al declarar los tests y se compara al publicar.
 
