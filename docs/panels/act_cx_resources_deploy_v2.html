@@ -42,8 +42,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .grupo-card .grupo-toggle{font-size:11px;color:var(--accent-light);margin-top:10px;display:inline-block}
 .grupo-card .grupo-desc{font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.5}
 .grupo-card.emp{border-left:3px solid var(--success)}
-.grupo-card.cx{border-left:3px solid var(--gate)}
+.grupo-card.cx{border-left:3px solid var(--border)}
 .grupo-card.repo{border-left:3px solid var(--accent)}
+.grupo-card.huerfano{border-left:3px solid var(--gate);background:rgba(245,158,11,.06)}
 .grupo-lista{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-2);margin-top:10px;line-height:1.7}
 .topbar-tool{font-family:monospace;font-size:12px;color:var(--text-3);letter-spacing:.02em}
 .topbar-agent{font-weight:700;font-size:15px}
@@ -243,8 +244,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <!-- Estado inicial: selectores de proyecto / agente + botón para iniciar (región fija: europe-west1) -->
       <div id="inv-start">
         <div id="aviso-sin-repos" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
-          <strong style="color:var(--gate)">&#9888; Ning&uacute;n agente de este proyecto tiene repositorio vinculado.</strong><br>
-          <span style="color:var(--text-2)">El pipeline compara CX contra un repositorio de GitHub, as&iacute; que sin vincular al menos uno no hay nada que desplegar.</span>
+          <strong style="color:var(--gate)">&#9888; Este proyecto no tiene repositorio vinculado.</strong><br>
+          <span style="color:var(--text-2)">El repositorio es del proyecto, no de cada agente: sin vincular uno, ninguno de sus agentes tiene con qu&eacute; comparar.</span>
           <button class="btn btn-gate" style="margin-top:10px;font-size:12px;padding:5px 12px" onclick="alert('Abre la pestaña Proyectos para vincular un repositorio.')">Vincular un repositorio &rarr;</button>
         </div>
         <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap">
@@ -294,7 +295,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           </div>
           <div class="grupo-card cx" onclick="toggleGrupo(this)">
             <div class="grupo-label">Solo en CX</div>
-            <div class="grupo-num" style="color:var(--gate)">4</div>
+            <div class="grupo-num" style="color:var(--text)">4</div>
             <div class="grupo-desc">Existen en el agente y ning&uacute;n archivo los reclama.</div>
             <div class="grupo-lista">Example &middot; compra_tulipanes_002<br>Example &middot; despedida_larga<br>Generator &middot; resumen_pedido
               <span class="grupo-extra" style="display:none"><br>Tool &middot; code-interpreter <span style="color:var(--text-3)">(nativo de CX)</span></span>
@@ -310,8 +311,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             </div>
             <div class="grupo-toggle">Ver los 2 &#9662;</div>
           </div>
+          <div class="grupo-card huerfano" onclick="toggleGrupo(this)">
+            <div class="grupo-label">Sin agente asignado</div>
+            <div class="grupo-num" style="color:var(--gate)">2</div>
+            <div class="grupo-desc">Tienen cabecera pero no dicen a qu&eacute; agente pertenecen.</div>
+            <div class="grupo-lista">corte_inyectado.yaml <span style="color:var(--text-3)">&middot; sin campo <code>agente</code></span>
+              <span class="grupo-extra" style="display:none"><br>ex_legado_09.yaml <span style="color:var(--text-3)">&middot; agente <code>petal-clasico</code> no existe en este proyecto</span></span>
+            </div>
+            <div class="grupo-toggle">Ver los 2 &#9662;</div>
+            <div class="grupo-desc" style="margin-top:8px;color:var(--gate)">Para que cuenten en alg&uacute;n agente, escribe <code>agente</code> en su cabecera.</div>
+          </div>
         </div>
-        <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">48 resources en total &middot; le&iacute;dos de <code>staging</code> &middot; commit <code>98fcbdd</code></div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">48 resources en total &middot; le&iacute;dos de <code>staging</code> &middot; commit <code>98fcbdd</code> &middot; <span style="color:var(--gate)">2 sin agente asignado</span></div>
         <div class="action-bar re-ejecuta">
           <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
         </div>
@@ -818,10 +829,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div>
         <div class="spec-block">
           <div class="spec-block-label">M.1 — Resolución del repositorio</div>
-          <p>No hay selector de repositorio: se elige agente y el repositorio <strong>aparece resuelto</strong>, sin poder editarse. El selector de agente arranca bloqueado hasta elegir proyecto, y cambiar de proyecto borra el agente elegido.</p>
-          <p>Esa asociación no vive en el navegador ni se decide en este paso: la resuelve el servicio que corre en Cloud Run, consultando un almacén propio que persiste aunque el servicio se reinicie. Aquí solo se consulta y se enseña.</p>
-          <p>La caja muestra el repositorio y su rama, o un aviso de que ese agente no tiene repositorio, con un botón para vincularlo — que no vincula nada aquí, solo remite a otra pantalla.</p>
-          <p>Sin repositorio resuelto, el botón de iniciar sigue apagado: no hay contra qué comparar. Si ningún agente del proyecto tiene repositorio, un aviso lo dice arriba antes de tener que descubrirlo uno a uno.</p>
+          <p>No hay selector de repositorio: se elige <strong>proyecto</strong> y el repositorio <strong>aparece resuelto</strong>, sin poder editarse. El selector de agente sigue existiendo y sigue haciendo falta —hay que saber con cuál se trabaja— pero ya no es el que resuelve el repositorio: un proyecto puede tener varios agentes relacionados, y todos comparten el mismo repositorio. El selector de agente arranca bloqueado hasta elegir proyecto, y cambiar de proyecto borra el agente elegido.</p>
+          <p>La rama de trabajo, en cambio, sí es de cada agente, aunque el repositorio se comparta: publicar fusiona la rama de trabajo en la principal, y con una rama compartida publicar un agente arrastraría a la principal todo lo que sus hermanos tuvieran sin publicar.</p>
+          <p>Ninguna de las dos asociaciones vive en el navegador ni se decide en este paso: las resuelve el servicio que corre en Cloud Run, consultando un almacén propio que persiste aunque el servicio se reinicie. Aquí solo se consultan y se enseñan.</p>
+          <p>La caja muestra el repositorio y la rama del agente elegido, o un aviso si algo falta —el proyecto no tiene repositorio, o este agente no tiene rama propia—, con un botón para vincularlo que no vincula nada aquí, solo remite a otra pantalla.</p>
+          <p>Sin repositorio y rama resueltos, el botón de iniciar sigue apagado: no hay contra qué comparar. Si el proyecto no tiene repositorio, un aviso lo dice arriba antes de tener que descubrirlo agente a agente — ahora es del proyecto, así que o lo tienen todos sus agentes o ninguno.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">M.2 — Comprobación de conexión</div>
@@ -844,6 +856,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <strong>Solo en CX</strong> — existen en el agente y ningún archivo los reclama. Incluye lo nativo del agente, que el Paso 2 filtra aparte.<br>
           <strong>Solo en el repositorio</strong> — tienen archivo pero no existen en el agente: o nunca se aplicaron, o apuntaban a algo que ya no está.</p>
           <p>Cada tarjeta enseña su número, una lista desplegable y no cambia nada al abrirse. El registro cierra con estos mismos tres números.</p>
+          <p>Hay una cuarta categoría, aparte de las tres: <strong>Sin agente asignado</strong> — archivos con cabecera pero sin un agente válido de este proyecto, porque no traen el campo o traen uno que no existe. El sistema no sabe de quién son, así que no puede meterlos en ninguna de las tres tarjetas ni contarlos en el agente elegido. Solo se puede detectar aquí: el Paso 1 es el único momento que lee el repositorio entero antes de repartirlo por agente, así que en cualquier otro punto del pipeline ese archivo ya se filtró y no aparece. No bloquea el avance — es un aviso, no un error.</p>
         </div>
       </div>
 
@@ -912,15 +925,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div>
         <div class="spec-block" style="border-color:rgba(245,158,11,.4)">
           <div class="spec-block-label" style="color:var(--gate)">Criterios de evaluación</div>
-          <p>1. El destino se elige en orden: sin proyecto no hay agente, y sin un agente con repositorio no se puede iniciar. Repositorio y rama nunca se editan a mano — los resuelve el agente elegido, y cambiar de agente los actualiza siempre.<br>
-          2. Vincular no vincula nada aquí: remite a otra pantalla, y si ningún agente del proyecto tiene repositorio, lo avisa antes de tener que comprobarlo uno a uno.<br>
+          <p>1. El destino se elige en orden: sin proyecto no hay agente, y sin repositorio de proyecto y rama de agente resueltos no se puede iniciar. Repositorio y rama nunca se editan a mano — el proyecto resuelve el repositorio y el agente resuelve la rama, y cambiar cualquiera de los dos los actualiza siempre.<br>
+          2. Vincular no vincula nada aquí: remite a otra pantalla, y si el proyecto no tiene repositorio, lo avisa antes de tener que comprobarlo agente a agente.<br>
           3. El registro arranca comprobando conexión antes de leer nada; si falla, el paso se detiene ahí.<br>
           4. Mientras corre, nada más responde: ni selectores, ni lista lateral, ni empezar de nuevo. Y el registro tiene alto fijo — no crece ni empuja lo de abajo.<br>
-          5. Las cifras cuadran entre sí: el desglose por tipo suma el total del agente, el total es emparejados más solo en CX, los archivos del repositorio son emparejados más solo en el repositorio, y la línea de cierre suma las tres tarjetas. Ningún resource aparece en dos grupos a la vez.<br>
+          5. Las cifras cuadran entre sí, pero solo sobre los resources <strong>de ese agente</strong>: el desglose por tipo suma el total del agente, y el total es emparejados más solo en CX. El repositorio es compartido, así que sus archivos no son solo emparejados más solo en el repositorio — hay además los de otros agentes y los que no dicen de quién son, y esos se cuentan aparte, no dentro de las tres tarjetas del agente elegido. La línea de cierre suma las tres tarjetas más los sin agente asignado. Ningún resource aparece en dos grupos a la vez.<br>
           6. Lo que produce este paso es justo lo que consumen los siguientes: «solo en CX» es lo que el Paso 2 ofrece traer, «solo en el repositorio» son las creaciones del Paso 3, y el agente elegido aquí es el que nombran la barra superior y los pasos siguientes.<br>
           7. Terminado el inventario, el único botón es Continuar, y hasta pulsarlo el Paso 2 sigue bloqueado.<br>
           8. Al volver a un paso ya hecho, se ve tal cual quedó: sin botones que lo repitan ni forma de cambiar el destino.<br>
-          9. Empezar de nuevo vacía el resultado y mantiene el destino elegido. Repetir el inventario sobre el mismo destino da el mismo resultado, sin mezclar registros.</p>
+          9. Empezar de nuevo vacía el resultado y mantiene el destino elegido. Repetir el inventario sobre el mismo destino da el mismo resultado, sin mezclar registros.<br>
+          10. La tarjeta «sin agente asignado» aparece igual sin importar qué agente esté elegido — el sistema no sabe de quién es el archivo, así que avisa siempre, no solo cuando coincide con el agente activo.<br>
+          11. Un archivo nunca está en dos tarjetas a la vez: emparejado, solo en CX, solo en el repositorio y sin agente asignado son categorías excluyentes.</p>
         </div>
       </div>
       </div>
@@ -1216,24 +1231,28 @@ const INV_LINES = [
 
 function onProjectSelected() {
   const proj = document.getElementById('project-select').value;
-  // Si ningún agente del proyecto tiene repositorio, el paso es inútil:
-  // más vale decirlo antes de que Jero recorra los selectores uno a uno.
-  const agentes = [...document.getElementById('agent-select').options]
-    .map(o => o.value).filter(Boolean);
-  const alguno = agentes.some(a => REPOS_POR_AGENTE[a]);
+  // El repositorio es del proyecto: si el proyecto no tiene uno, ninguno
+  // de sus agentes tiene con qué comparar. Se avisa aquí, no agente a agente.
   document.getElementById('aviso-sin-repos').style.display =
-    (proj && agentes.length && !alguno) ? 'block' : 'none';
+    (proj && !REPOS_POR_PROYECTO[proj]) ? 'block' : 'none';
   const agentSel = document.getElementById('agent-select');
   agentSel.disabled = !proj;
   agentSel.value = '';
-  document.getElementById('btn-start-inventory').disabled = true;
+  actualizarCajaRepo();
 }
 
-// Un agente tiene como máximo un repositorio, y el mapeo lo guarda el
-// servidor. Por eso no hay selector de repositorio: elegir agente lo resuelve.
-const REPOS_POR_AGENTE = {
-  'petal-1.0': 'jeronimosanchez/cx-automation-template',
-  'petal-voz': null,          // registrado en CX pero aún sin vincular
+// El repositorio es del proyecto: todos sus agentes lo comparten. El mapeo
+// lo guarda el servidor, y persiste aunque se reinicie.
+const REPOS_POR_PROYECTO = {
+  'floristeria-petal-digital': 'jeronimosanchez/cx-automation-template',
+};
+
+// La rama de trabajo sí es de cada agente, aunque el repositorio se comparta:
+// publicar fusiona la rama en la principal, y compartirla arrastraría lo que
+// un agente hermano tuviera sin publicar.
+const RAMAS_POR_AGENTE = {
+  'petal-1.0': 'staging',
+  'petal-voz': null,          // repositorio ya vinculado al proyecto, pero este agente aún sin rama propia
 };
 
 // Cada agente tiene su propia dirección en la consola de CX. La genérica solo
@@ -1244,25 +1263,39 @@ const URL_AGENTE = {
 };
 
 function onAgentSelected() {
+  actualizarCajaRepo();
+}
+
+// El repositorio depende solo del proyecto; la rama depende solo del agente.
+// Se recalculan juntos aquí para que la caja y el botón de iniciar reflejen
+// siempre los dos a la vez, se acabe de tocar el selector que se toque.
+function actualizarCajaRepo() {
+  const proj = document.getElementById('project-select').value;
   const agentSelect = document.getElementById('agent-select');
   const agent = agentSelect.value;
   const caja = document.getElementById('repo-resuelto');
-  const repo = REPOS_POR_AGENTE[agent];
+  const repo = REPOS_POR_PROYECTO[proj];
+  const rama = RAMAS_POR_AGENTE[agent];
 
-  if (!agent) {
+  if (!repo) {
     caja.innerHTML = '<span style="color:var(--text-3)">&mdash;</span>';
-  } else if (repo) {
+  } else if (!agent) {
     caja.innerHTML = `<span style="color:var(--success)">&#10003;</span>
       <code style="color:var(--text-2)">${repo}</code>
-      <span style="color:var(--text-3);margin-left:auto">rama staging</span>`;
+      <span style="color:var(--text-3);margin-left:auto">elige un agente para ver su rama</span>`;
+  } else if (rama) {
+    caja.innerHTML = `<span style="color:var(--success)">&#10003;</span>
+      <code style="color:var(--text-2)">${repo}</code>
+      <span style="color:var(--text-3);margin-left:auto">rama ${rama}</span>`;
   } else {
-    // Sin repositorio no hay contra qué comparar: el paso no puede arrancar.
+    // Repositorio del proyecto resuelto, pero este agente no tiene rama propia: no hay contra qué comparar.
     caja.innerHTML = `<span style="color:var(--gate)">&#9888;</span>
-      <span style="color:var(--text-2)">Este agente no tiene repositorio vinculado</span>
+      <code style="color:var(--text-2)">${repo}</code>
+      <span style="color:var(--text-2)">&middot; este agente no tiene rama de trabajo propia</span>
       <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 10px"
               onclick="alert('Abre la pestaña Proyectos para vincularlo.')">Vincular &rarr;</button>`;
   }
-  document.getElementById('btn-start-inventory').disabled = !agent || !repo;
+  document.getElementById('btn-start-inventory').disabled = !repo || !agent || !rama;
   if (agent) {
     document.getElementById('topbar-agent').textContent = agentSelect.options[agentSelect.selectedIndex].textContent;
     const nombre = agentSelect.options[agentSelect.selectedIndex].textContent;
