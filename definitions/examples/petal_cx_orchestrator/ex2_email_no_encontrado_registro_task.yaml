@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: e91713f9-e6b6-4170-91f2-601aacd60602
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: e91713f9-e6b6-4170-91f2-601aacd60602
 displayName: Ex2_ Email no encontrado → Registro_task

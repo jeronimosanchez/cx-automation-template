@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: 0319e443-fd71-46da-bbcb-3e0ceacea5dc
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: 0319e443-fd71-46da-bbcb-3e0ceacea5dc
 displayName: 'Ex — cambio: frustracion mid-conversacion -> solemne + usuario_frustrado'

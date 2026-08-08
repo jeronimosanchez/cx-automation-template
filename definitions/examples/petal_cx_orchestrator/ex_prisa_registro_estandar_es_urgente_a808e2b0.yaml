@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: a808e2b0-0284-44f6-9ca8-4a318123504f
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: a808e2b0-0284-44f6-9ca8-4a318123504f
 displayName: Ex — prisa → registro estandar + es_urgente

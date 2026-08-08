@@ -2,6 +2,7 @@ metadata:
   tipo: playbook
   padre: null
   cx_id: 871d4bbb-5c90-443b-bbb1-1d83d254c2c3
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 displayName: Gestion_Deuda
 goal: |+
   Goal: Informar saldo o gestionar deuda pendiente y escalar a operador humano

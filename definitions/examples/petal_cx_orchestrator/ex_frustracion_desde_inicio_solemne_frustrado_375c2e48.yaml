@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: 375c2e48-524b-41b4-859e-d8f465aa687c
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: 375c2e48-524b-41b4-859e-d8f465aa687c
 displayName: Ex — frustración desde inicio → registro solemne + frustrado

@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 2d111e5e-e811-4098-b52b-ab1128a0d0e2
   cx_id: 8a3bc330-fb86-42d4-ac97-46252abc3367
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Registro_Task
 id: 8a3bc330-fb86-42d4-ac97-46252abc3367
 displayName: Ex_Reg_01 — Particular con bajo (captura planta + slot filling letra)

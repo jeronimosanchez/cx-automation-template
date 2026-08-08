@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: 08f809c7-fc4c-43ae-8d16-5018d935eb62
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: 08f809c7-fc4c-43ae-8d16-5018d935eb62
 displayName: Ex12 — Saludo + intención de compra → NO es saludo (G5)

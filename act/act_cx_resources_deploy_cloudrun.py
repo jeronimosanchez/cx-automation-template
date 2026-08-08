@@ -204,10 +204,27 @@ class Contexto:
         self.store = client or store.get_client()
         mapeo = store.get_agent_mapping(self.store, project, agent_id)
         self.region = mapeo["region"]
+        self.carpeta_raiz = mapeo.get("carpeta_raiz", "definitions")
         self.repo = mapeo["repo"]
         self.rama = mapeo["rama"]
         self.rama_principal = mapeo.get("rama_principal", "main")
         self.gh = gh or GitHubAppClient(self.repo)
+        self._agente_slug = None
+
+    @property
+    def agente_slug(self):
+        """Nombre legible del agente, para la carpeta del repositorio.
+
+        Se pide a CX la primera vez que hace falta y se guarda en el contexto:
+        solo lo necesita el Paso 2, y pedirlo siempre añadiría una llamada a
+        todos los demás.
+        """
+        if self._agente_slug is None:
+            respuesta = cx.api_get(self.project, self.region, self.parent)
+            nombre = (respuesta.json().get("displayName", "")
+                      if respuesta.status_code == 200 else "")
+            self._agente_slug = _slug(nombre) or self.agent_id
+        return self._agente_slug
 
     @property
     def parent(self):
@@ -219,15 +236,24 @@ class Contexto:
 def cargar_repositorio(contexto, on_log=None, log=None):
     """Todos los YAML del repositorio, agrupados por el `tipo` que declaran.
 
-    Devuelve (recursos, commit_sha, total_archivos). `recursos` es
-    {tipo: {cx_id: {"ruta", "documento", "display_name"}}} más una lista
-    aparte para los que aún no tienen `cx_id`.
-
     Un YAML sin bloque `metadata` no es un resource del pipeline: se ignora.
     Los resources se declaran de forma explícita al crearlos, así que la
     ausencia del bloque no es un error que haya que perseguir — hay YAML en el
     repositorio que nunca fueron resources (taxonomías, configuraciones de
     scoring, specs OpenAPI).
+
+    **El repositorio es del proyecto, no del agente**, así que contiene los
+    archivos de todos sus agentes. Lo que devuelve en `por_tipo` es solo lo del
+    agente de este contexto; el resto se cuenta aparte:
+
+      `otros_agentes`  — pertenecen a otro agente del mismo proyecto. No son un
+                         problema: son el motivo de que el repositorio se
+                         comparta.
+      `sin_agente`     — tienen cabecera pero no dicen de quién son. No pueden
+                         aplicarse en ningún agente y no aparecerían en ninguna
+                         vista, así que se cuentan explícitamente: es el único
+                         momento que lee el repositorio entero antes de
+                         repartirlo por agente.
     """
     log = log if log is not None else []
     commit_sha = contexto.gh.branch_head(contexto.rama)
@@ -235,8 +261,11 @@ def cargar_repositorio(contexto, on_log=None, log=None):
 
     recursos = {tipo: {} for tipo in RESOURCE_TYPES}
     sin_cx_id = []
+    sin_agente = []
+    otros_agentes = []
     duplicados = []
     ignorados = 0
+    vistos = {}   # (agente, tipo, cx_id) -> ruta
 
     for archivo in archivos:
         crudo = contexto.gh.read_blob(archivo["sha"])
@@ -259,23 +288,45 @@ def cargar_repositorio(contexto, on_log=None, log=None):
                 f"Tipos válidos: {', '.join(sorted(RESOURCE_TYPES))}."
             )
 
+        agente = metadata.get("agente")
         entrada = {
             "ruta": archivo["path"],
             "documento": documento,
             "tipo": tipo,
             "padre": metadata.get("padre"),
+            "agente": agente,
             "display_name": documento.get("displayName", ""),
         }
 
-        cx_id = metadata.get("cx_id")
-        if not cx_id:
-            sin_cx_id.append(entrada)
+        if not agente:
+            # Sin dueño: no se puede aplicar en ningún agente, y filtrando por
+            # agente desaparecería de todas las vistas sin dejar rastro.
+            sin_agente.append(entrada)
             continue
 
-        if cx_id in recursos[tipo]:
-            duplicados.append(
-                f"{tipo}/{cx_id}: {recursos[tipo][cx_id]['ruta']} y {archivo['path']}"
-            )
+        cx_id = metadata.get("cx_id")
+
+        # La clave lleva el agente porque CX reutiliza los mismos
+        # identificadores en todos: verificado con dos agentes reales del mismo
+        # proyecto — su Default Start Flow y su Default Welcome Intent
+        # comparten cx_id. Sin el agente en la clave, la defensa de duplicados
+        # saltaría el primer día con los resources que CX crea solo por existir.
+        if cx_id:
+            clave = (agente, tipo, cx_id)
+            if clave in vistos:
+                duplicados.append(
+                    f"{tipo}/{cx_id} del agente {agente}: "
+                    f"{vistos[clave]} y {archivo['path']}"
+                )
+                continue
+            vistos[clave] = archivo["path"]
+
+        if agente != contexto.agent_id:
+            otros_agentes.append(entrada)
+            continue
+
+        if not cx_id:
+            sin_cx_id.append(entrada)
             continue
         entrada["cx_id"] = cx_id
         recursos[tipo][cx_id] = entrada
@@ -285,8 +336,9 @@ def cargar_repositorio(contexto, on_log=None, log=None):
         # vaciar el cx_id deja dos YAML reclamando el mismo resource de CX, y
         # el último en aplicarse gana sin que nadie lo note.
         raise PipelineError(
-            "Hay archivos distintos con el mismo tipo y cx_id — vacía el "
-            "cx_id del que sea nuevo:\n  " + "\n  ".join(duplicados)
+            "Hay archivos distintos del mismo agente con el mismo tipo y "
+            "cx_id — vacía el cx_id del que sea nuevo:\n  "
+            + "\n  ".join(duplicados)
         )
 
     _emit(log, on_log,
@@ -295,8 +347,16 @@ def cargar_repositorio(contexto, on_log=None, log=None):
     if ignorados:
         _emit(log, on_log,
               f"· {ignorados} YAML sin bloque metadata — no son resources")
+    if otros_agentes:
+        _emit(log, on_log,
+              f"· {len(otros_agentes)} archivos de otros agentes del proyecto")
+    if sin_agente:
+        _emit(log, on_log,
+              f"⚠ {len(sin_agente)} archivos con cabecera pero sin agente: no "
+              f"pueden aplicarse en ninguno. Escribe `agente` en su metadata")
 
     return {"por_tipo": recursos, "sin_cx_id": sin_cx_id,
+            "sin_agente": sin_agente, "otros_agentes": otros_agentes,
             "commit": commit_sha, "total_archivos": len(archivos)}, log
 
 
@@ -912,23 +972,33 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
 
 # ── 2 · Traer al repositorio ─────────────────────────────────────────────────
 
-def _ruta_destino(tipo, item, inventario):
+def _ruta_destino(tipo, item, inventario, agente_slug, raiz="definitions"):
     """Dónde escribe el pull un resource que solo existe en CX.
 
-    La carpeta la fija el tipo. Los examples van además a una subcarpeta por
-    playbook padre: el servidor conoce el padre, y agruparlos es lo que hace
-    navegable una carpeta con decenas de archivos.
+    La primera carpeta es la del agente. Al pipeline la estructura le da igual
+    —empareja por la cabecera, no por la ruta— pero el nombre del archivo sí
+    tiene que ser único, y en un repositorio compartido no lo era: verificado
+    con dos agentes reales, sus "Default Start Flow" y "Default Welcome Intent"
+    caían en la misma ruta y el segundo pisaba al primero.
+
+    Se usa el nombre del agente y no su identificador porque quien abra el
+    repositorio tiene que entender qué mira. Si el agente se renombra, la
+    carpeta queda desfasada y no pasa nada: la verdad está en la cabecera.
+
+    Los examples van además a una subcarpeta por playbook padre — agruparlos es
+    lo que hace navegable una carpeta con decenas de archivos.
     """
     spec = RESOURCE_TYPES[tipo]
+    carpeta = spec["carpeta"].replace("definitions", f"{raiz}/{agente_slug}", 1)
     nombre = f"{_slug(item.get('displayName'))}.yaml"
     if tipo == "example":
         padre_id = (item.get("name") or "").split("/playbooks/")[-1].split("/")[0]
         padre = inventario.get("playbook", {}).get(padre_id, {})
-        return f"{spec['carpeta']}/{_slug(padre.get('displayName'))}/{nombre}"
-    return f"{spec['carpeta']}/{nombre}"
+        return f"{carpeta}/{_slug(padre.get('displayName'))}/{nombre}"
+    return f"{carpeta}/{nombre}"
 
 
-def _yaml_para_repo(tipo, item, padre_id=None):
+def _yaml_para_repo(tipo, item, padre_id=None, agente=None):
     """El YAML tal como queda en el repositorio, con su cabecera de metadata.
 
     Los campos que la API devuelve pero no acepta como entrada se quitan: si
@@ -941,6 +1011,10 @@ def _yaml_para_repo(tipo, item, padre_id=None):
             "tipo": tipo,
             "padre": padre_id,
             "cx_id": _cx_id_de(item),
+            # De qué agente es. El repositorio es del proyecto y lo comparten
+            # todos sus agentes, así que sin este campo el archivo no se puede
+            # colocar en ninguno.
+            "agente": agente,
         },
         **cuerpo,
     }
@@ -987,8 +1061,10 @@ def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
             padre_id = None
             if RESOURCE_TYPES[tipo].get("padre"):
                 padre_id = _padre_id_de(tipo, item)
-            ruta = _ruta_destino(tipo, item, inventario)
-            archivos[ruta] = _yaml_para_repo(tipo, item, padre_id)
+            ruta = _ruta_destino(tipo, item, inventario, contexto.agente_slug,
+                                 contexto.carpeta_raiz)
+            archivos[ruta] = _yaml_para_repo(tipo, item, padre_id,
+                                             agente=agent_id)
             traidos.append({"tipo": tipo, "cx_id": cx_id, "ruta": ruta,
                             "display_name": item.get("displayName", "")})
             _emit(log, on_log, f"✓ {ruta}")
@@ -1484,32 +1560,44 @@ def discover(project=None, client=None, on_log=None):
         _emit(log, on_log, f"✓ {len(proyectos)} proyectos GCP")
         return step_result("ok", log, {"proyectos": proyectos, "agentes": []})
 
-    mapeos = {m["agent_id"]: m for m in
-              store.list_agent_mappings(firestore_client, project)}
+    # El repositorio es del proyecto: o lo tienen todos sus agentes, o ninguno.
+    try:
+        proyecto = store.get_project_mapping(firestore_client, project)
+    except store.MappingNotFound:
+        proyecto = None
+
+    registrados = {m["agent_id"] for m in
+                   store.list_agent_mappings(firestore_client, project)}
     agentes = []
     for agente in cx.list_cx_agents_everywhere(project):
-        mapeo = mapeos.get(agente["agentId"])
         agentes.append({
             **agente,
-            "repo": mapeo["repo"] if mapeo else None,
-            "rama": mapeo["rama"] if mapeo else None,
-            "vinculado": mapeo is not None,
+            "repo": proyecto["repo"] if proyecto else None,
+            "rama": proyecto["rama"] if proyecto else None,
+            "vinculado": proyecto is not None,
+            # Un agente del proyecto que todavía no se ha dado de alta: hereda
+            # el repositorio, pero le falta su región. Se incluye marcado,
+            # nunca se omite.
+            "registrado": agente["agentId"] in registrados,
         })
     _emit(log, on_log,
-          f"✓ {len(agentes)} agentes · "
-          f"{sum(1 for a in agentes if a['vinculado'])} con repositorio")
+          f"✓ {len(agentes)} agentes · repositorio del proyecto: "
+          f"{proyecto['repo'] if proyecto else 'sin vincular'} · "
+          f"{sum(1 for a in agentes if a['registrado'])} dados de alta")
 
     return step_result("ok", log, {
         "proyectos": [], "agentes": agentes,
-        "ninguno_vinculado": bool(agentes) and not any(
-            a["vinculado"] for a in agentes),
+        "repo": proyecto["repo"] if proyecto else None,
+        "rama": proyecto["rama"] if proyecto else None,
+        "ninguno_vinculado": proyecto is None,
     })
 
 
 # ── 7 · Vincular agente y repositorio ────────────────────────────────────────
 
 def link_agent_repo(project, agent_id, repo_url, rama="staging",
-                    rama_principal="main", client=None, gh=None, on_log=None):
+                    rama_principal="main", carpeta_raiz="definitions",
+                    client=None, gh=None, on_log=None):
     """Onboarding de un proyecto nuevo: detecta la región, registra y trae.
 
     Con dos datos —ID del agente y URL del repositorio— deja el pipeline
@@ -1528,19 +1616,41 @@ def link_agent_repo(project, agent_id, repo_url, rama="staging",
     github.branch_head(rama)
     _emit(log, on_log, f"✓ Acceso al repositorio {repo}, rama {rama}")
 
-    store.save_agent_mapping(firestore_client, project, agent_id, region, repo,
-                             rama, rama_principal)
-    _emit(log, on_log, "✓ Mapeo agente → repositorio registrado")
+    # El repositorio es del proyecto y se vincula una sola vez. Un agente nuevo
+    # dentro de un proyecto que ya lo tiene no crea nada: se añade al que hay.
+    try:
+        ya = store.get_project_mapping(firestore_client, project)
+        if ya["repo"] != repo:
+            raise PipelineError(
+                f"El proyecto {project} ya está vinculado a {ya['repo']}. Un "
+                f"proyecto tiene un solo repositorio, y todos sus agentes viven "
+                f"dentro. Para usar otro, desvincula el proyecto primero."
+            )
+        _emit(log, on_log, f"· El proyecto ya usaba {repo} — se añade el agente")
+        nuevo_proyecto = False
+    except store.MappingNotFound:
+        store.save_project_mapping(firestore_client, project, repo, rama,
+                                   rama_principal)
+        _emit(log, on_log, "✓ Repositorio del proyecto registrado")
+        nuevo_proyecto = True
 
-    marcador = yaml.safe_dump({
-        "project": project, "agent_id": agent_id, "region": region,
-        "rama": rama, "rama_principal": rama_principal,
-        "vinculado_en": _ahora().isoformat(),
-    }, allow_unicode=True, sort_keys=False)
-    commit = github.commit_files(
-        rama, {"cx-deploy.yaml": marcador},
-        f"chore(onboarding): marcar el repositorio como proyecto CX {agent_id}",
-    )
+    store.save_agent_mapping(firestore_client, project, agent_id, region,
+                             carpeta_raiz=carpeta_raiz)
+    _emit(log, on_log, f"✓ Agente dado de alta en {region}")
+
+    # El marcador es del proyecto, no del agente: identifica el repositorio.
+    # Solo se escribe al vincular el proyecto por primera vez.
+    commit = None
+    if nuevo_proyecto:
+        marcador = yaml.safe_dump({
+            "project": project, "rama": rama,
+            "rama_principal": rama_principal,
+            "vinculado_en": _ahora().isoformat(),
+        }, allow_unicode=True, sort_keys=False)
+        commit = github.commit_files(
+            rama, {"cx-deploy.yaml": marcador},
+            f"chore(onboarding): marcar el repositorio como proyecto CX {project}",
+        )
     if commit:
         _emit(log, on_log, f"✓ cx-deploy.yaml · commit {commit[:7]}")
 

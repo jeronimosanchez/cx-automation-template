@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
   cx_id: 82fd8785-2b3f-4214-98a5-04eb15a3d684
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Compra
 id: 82fd8785-2b3f-4214-98a5-04eb15a3d684
 displayName: 'ExH v17: G5 especie suficiente → muestra directo (sin doble pregunta)'

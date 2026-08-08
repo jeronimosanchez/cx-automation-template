@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: 20c87029-b195-40cc-89db-e718b29d5ca1
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: 20c87029-b195-40cc-89db-e718b29d5ca1
 displayName: Ex — ocasión especial → registro celebracion

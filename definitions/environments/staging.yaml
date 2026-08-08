@@ -2,5 +2,6 @@ metadata:
   tipo: environment
   padre: null
   cx_id: 90ce0a8c-7e68-4526-ada5-ce8b600628fd
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 displayName: staging
 description: "Entorno de validacion — recibe cada version nueva antes de llegar a production"

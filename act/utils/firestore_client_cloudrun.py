@@ -13,8 +13,11 @@ siguiente— vive aquí. Son cuatro cosas, con cuatro vidas distintas:
    lo que hace que el panel no tenga selector de repositorio, y lo que evita
    que el servidor acepte un repositorio del cliente (C3).
 
-2. **Candado de concurrencia** (S13/S13b). Vive lo que dura la operación y se
-   libera solo, por caducidad. En Firestore y no en memoria del proceso porque
+2. **Candado de concurrencia** (S13/S13b). Es **del proyecto**, no del agente:
+   el repositorio lo comparten todos los agentes de un proyecto, así que dos
+   deploys sobre agentes hermanos escribirían en la misma rama de git sin
+   verse. Vive lo que dura la operación y se libera solo, por caducidad. En
+   Firestore y no en memoria del proceso porque
    una instancia de Cloud Run con concurrencia 1 **encola** las peticiones en
    vez de rechazarlas: sin candado explícito, un segundo deploy no rebota —
    espera y se ejecuta con un diff calculado antes de que aterrizara el
@@ -39,6 +42,7 @@ from google.cloud import firestore
 
 # Colecciones. Nombres en singular-plural del dominio, no técnicos: quien abra
 # la consola de Firestore tiene que entender qué mira sin un mapa aparte.
+COL_PROYECTOS = "proyectos"
 COL_AGENTES = "agentes"
 COL_CANDADOS = "candados"
 COL_VERSIONES_PREVIAS = "versiones_previas"
@@ -65,7 +69,8 @@ LOCK_TTL_SECONDS = 3900
 # últimos deploys.
 HISTORIAL_MAX_EJECUCIONES = 50
 
-CAMPOS_OBLIGATORIOS_AGENTE = ("project", "agent_id", "region", "repo", "rama")
+CAMPOS_OBLIGATORIOS_PROYECTO = ("project", "repo", "rama")
+CAMPOS_OBLIGATORIOS_AGENTE = ("project", "agent_id", "region")
 
 
 class LockBusy(RuntimeError):
@@ -116,41 +121,90 @@ def _doc_id(project, agent_id):
     return f"{project}__{agent_id}"
 
 
-# ── 1. Mapeo agente → repositorio ────────────────────────────────────────────
+# ── 1. Mapeo: el repositorio es del proyecto, la región del agente ──────────
+#
+# Un proyecto de GCP puede tener varios agentes relacionados —uno de texto y
+# uno de voz para el mismo negocio— y con un repositorio por agente esa
+# relación quedaría partida en repositorios sueltos sin conexión. El
+# repositorio pasa a ser del proyecto, y todos sus agentes viven dentro.
+#
+# La región NO sube al proyecto: es del agente. Dos agentes del mismo proyecto
+# pueden estar en regiones distintas — la API declara 17.
 
-def save_agent_mapping(client, project, agent_id, region, repo, rama,
-                       rama_principal="main"):
-    """Vincula un agente con su repositorio. Se llama una vez, al hacer onboarding."""
-    if not all([project, agent_id, region, repo, rama]):
+def save_project_mapping(client, project, repo, rama, rama_principal="main"):
+    """Vincula un proyecto con su repositorio. Una vez por proyecto."""
+    if not all([project, repo, rama]):
         raise ValueError(
-            "El mapeo exige project, agent_id, region, repo y rama — "
-            "ninguno admite valor por defecto."
+            "El mapeo de proyecto exige project, repo y rama — ninguno admite "
+            "valor por defecto."
         )
     documento = {
         "project": project,
-        "agent_id": agent_id,
-        "region": region,
         "repo": repo,
         "rama": rama,
         "rama_principal": rama_principal,
         "vinculado_en": _now(),
     }
-    client.collection(COL_AGENTES).document(_doc_id(project, agent_id)).set(documento)
+    client.collection(COL_PROYECTOS).document(project).set(documento)
+    return documento
+
+
+def get_project_mapping(client, project):
+    snapshot = client.collection(COL_PROYECTOS).document(project).get()
+    if not snapshot.exists:
+        raise MappingNotFound(
+            f"El proyecto {project} no tiene repositorio vinculado. Usa la "
+            f"herramienta de vincular."
+        )
+    documento = snapshot.to_dict()
+    faltan = [c for c in CAMPOS_OBLIGATORIOS_PROYECTO if not documento.get(c)]
+    if faltan:
+        raise MappingIncomplete(
+            f"El documento del proyecto {project} está incompleto — faltan: "
+            f"{', '.join(faltan)}. Vuelve a vincular el proyecto."
+        )
+    return documento
+
+
+def save_agent_mapping(client, project, agent_id, region, carpeta_raiz="definitions"):
+    """Registra la región de un agente. El repositorio lo pone su proyecto.
+
+    `carpeta_raiz` es de dónde cuelgan sus archivos dentro del repositorio.
+    Por defecto `definitions`. Los agentes desechables usan `act/scaffolding`,
+    que es la carpeta del proyecto para lo que existe solo para probar — al
+    pipeline le da igual, porque empareja por la cabecera y no por la ruta,
+    pero mantiene separado lo real de lo que se tira.
+    """
+    if not all([project, agent_id, region]):
+        raise ValueError(
+            "El registro de agente exige project, agent_id y region — ninguno "
+            "admite valor por defecto."
+        )
+    documento = {
+        "project": project,
+        "agent_id": agent_id,
+        "region": region,
+        "carpeta_raiz": carpeta_raiz,
+        "registrado_en": _now(),
+    }
+    client.collection(COL_AGENTES).document(
+        _doc_id(project, agent_id)).set(documento, merge=True)
     return documento
 
 
 def get_agent_mapping(client, project, agent_id):
-    """Repositorio, rama y región de un agente.
+    """Región de un agente, más el repositorio y la rama que hereda de su proyecto.
 
-    La región sale de aquí y no de una constante: es lo que permite que el
-    pipeline opere sobre agentes de cualquier región (S4).
+    Devuelve las dos cosas juntas porque todo el pipeline las necesita a la
+    vez, pero vienen de dos documentos distintos: la región es del agente y no
+    se puede compartir, el repositorio es del proyecto y sí.
     """
     snapshot = (client.collection(COL_AGENTES)
                 .document(_doc_id(project, agent_id)).get())
     if not snapshot.exists:
         raise MappingNotFound(
-            f"El agente {agent_id} del proyecto {project} no tiene repositorio "
-            f"vinculado. Usa la herramienta de vincular agente y repositorio."
+            f"El agente {agent_id} del proyecto {project} no está registrado. "
+            f"Usa la herramienta de vincular agente y repositorio."
         )
     documento = snapshot.to_dict()
     faltan = [c for c in CAMPOS_OBLIGATORIOS_AGENTE if not documento.get(c)]
@@ -159,14 +213,14 @@ def get_agent_mapping(client, project, agent_id):
             f"El documento del agente {agent_id} está incompleto — faltan: "
             f"{', '.join(faltan)}. Vuelve a vincular el agente."
         )
-    return documento
+    return {**documento, **get_project_mapping(client, project)}
 
 
 def list_agent_mappings(client, project=None):
-    """Los agentes vinculados, opcionalmente los de un solo proyecto.
+    """Los agentes registrados, opcionalmente los de un solo proyecto.
 
-    El descubrimiento lo usa para decir, agente por agente, cuál tiene
-    repositorio y cuál no — nunca para omitir los que no lo tienen.
+    El descubrimiento lo usa para decir, agente por agente, cuál está
+    registrado y cuál no — nunca para omitir los que no lo están.
     """
     coleccion = client.collection(COL_AGENTES)
     consulta = (
@@ -186,7 +240,9 @@ def acquire_lock(client, project, agent_id, motivo, ttl_seconds=LOCK_TTL_SECONDS
     Devuelve un token que hace falta para soltarlo — así una petición no puede
     liberar el candado de otra.
     """
-    referencia = client.collection(COL_CANDADOS).document(_doc_id(project, agent_id))
+    # Por proyecto, no por agente: lo que se protege no es solo el agente, es
+    # también el repositorio, y ese lo comparten todos sus agentes.
+    referencia = client.collection(COL_CANDADOS).document(project)
     token = uuid.uuid4().hex
     ahora = _now()
 
@@ -198,7 +254,8 @@ def acquire_lock(client, project, agent_id, motivo, ttl_seconds=LOCK_TTL_SECONDS
             caduca = actual.get("expires_at")
             if caduca and caduca > ahora:
                 raise LockBusy(
-                    f"Ya hay una operación en curso sobre {agent_id}: "
+                    f"Ya hay una operación en curso en el proyecto {project} "
+                    f"(agente {actual.get('agent_id', '?')}): "
                     f"{actual.get('motivo', 'sin motivo declarado')}. "
                     f"Caduca a las {caduca.isoformat()}.",
                     holder=actual.get("token"),
@@ -223,7 +280,7 @@ def release_lock(client, project, agent_id, token):
     Si no coincide, no borra nada: significaría que el candado ya caducó y lo
     tomó otra petición, y borrarlo dejaría a esa otra sin protección.
     """
-    referencia = client.collection(COL_CANDADOS).document(_doc_id(project, agent_id))
+    referencia = client.collection(COL_CANDADOS).document(project)
 
     @firestore.transactional
     def _soltar(transaction):

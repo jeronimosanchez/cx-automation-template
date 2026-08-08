@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: a8fc1353-e1e2-409c-8e1c-ea0d41d4c44f
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: a8fc1353-e1e2-409c-8e1c-ea0d41d4c44f
 displayName: Ex13 — G3 Regalo para madre sin producto → Compra

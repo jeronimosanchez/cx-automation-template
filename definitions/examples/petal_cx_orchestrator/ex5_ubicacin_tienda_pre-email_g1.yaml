@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: 99c5a6cb-2534-4ae2-bacc-6c19ea536e1b
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: 99c5a6cb-2534-4ae2-bacc-6c19ea536e1b
 displayName: EX5_Ubicación tienda PRE-email (G1)

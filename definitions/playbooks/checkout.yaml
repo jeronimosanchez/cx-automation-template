@@ -2,6 +2,7 @@ metadata:
   tipo: playbook
   padre: null
   cx_id: 1d2698dd-0027-4881-a9b4-6970d61885cb
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 displayName: Checkout
 goal: compra
 playbookType: ROUTINE

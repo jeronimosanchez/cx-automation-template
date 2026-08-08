@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: c3e31ae0-9389-45b5-9081-142f1ce0d3e0
   cx_id: e4b848ff-bd82-4e39-912a-c03a34225861
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Compra
 id: e4b848ff-bd82-4e39-912a-c03a34225861
 displayName: 'ExG v16: Refinamiento progresivo — filtros acumulados'

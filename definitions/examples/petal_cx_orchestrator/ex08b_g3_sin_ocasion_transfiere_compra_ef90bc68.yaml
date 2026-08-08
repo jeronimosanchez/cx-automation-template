@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: ef90bc68-6138-46a9-8d9b-08b5de371ece
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: ef90bc68-6138-46a9-8d9b-08b5de371ece
 displayName: EX08b — G3 Sin ocasión → transfiere Compra directo

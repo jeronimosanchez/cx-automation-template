@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: 73e1b0b4-bedb-4cd3-8ce3-b58b0d0a03ab
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: 73e1b0b4-bedb-4cd3-8ce3-b58b0d0a03ab
 displayName: Ex06 — G2→G5 con re-deteccion de solemne (lirios blancos) v2

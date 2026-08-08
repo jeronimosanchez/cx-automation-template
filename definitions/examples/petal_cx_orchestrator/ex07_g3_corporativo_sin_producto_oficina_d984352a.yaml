@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: d984352a-e5ad-46c2-abfe-52e104bb8521
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: d984352a-e5ad-46c2-abfe-52e104bb8521
 displayName: Ex07 — G3 Corporativo sin producto (oficina)

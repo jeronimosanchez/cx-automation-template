@@ -2,6 +2,7 @@ metadata:
   tipo: example
   padre: 00000000-0000-0000-0000-000000000000
   cx_id: ddf7b63c-8912-4a51-8bbf-2b2ea051de7e
+  agente: 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
 playbook: Petal CX Orchestrator
 id: ddf7b63c-8912-4a51-8bbf-2b2ea051de7e
 displayName: Ex10 — GESTION CUENTA Historial → pide email
