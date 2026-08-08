@@ -988,6 +988,106 @@ def nivel_3(runner, project, agent_id, run_id):
                     "confirmando el borrado leyendo el resultado",
                  los_trece_tipos_ciclo_completo)
 
+    def el_ciclo_del_cx_id_se_cierra():
+        """Un resource que nace en el repositorio recibe su id de CX y ese id
+        vuelve al archivo.
+
+        Es el ciclo completo de la cabecera: el archivo nace sin `cx_id`
+        —no puede tenerlo, no existe en ningún sitio y el id lo asigna CX—, se
+        sube, y el id que devuelve CX se escribe de vuelta en su `metadata`.
+
+        Si el id no vuelve, la cabecera queda incompleta para siempre y cada
+        deploy vuelve a tratar el archivo como inexistente en CX: un duplicado
+        por pasada, contra la idempotencia de CLAUDE.md §3.4.
+        """
+        ruta = f"definitions/intents/{etiqueta}_ciclo.yaml"
+        documento = {
+            "metadata": {"tipo": "intent", "padre": None, "cx_id": None},
+            "displayName": f"{etiqueta}_ciclo",
+            "trainingPhrases": [{"parts": [{"text": "ciclo"}], "repeatCount": 1}],
+        }
+        contexto.gh.commit_files(
+            contexto.rama,
+            {ruta: __import__("yaml").safe_dump(documento, allow_unicode=True,
+                                               sort_keys=False)},
+            f"test: resource nuevo sin cx_id ({etiqueta})",
+        )
+
+        resultado = pipeline.step_3_apply_to_cx(project, agent_id)
+        if resultado["status"] != "ok":
+            return False, f"el Paso 3 falló: {resultado['status']}"
+
+        arbol = contexto.gh.list_tree(contexto.gh.branch_head(contexto.rama))
+        blob = next((a for a in arbol if a["path"] == ruta), None)
+        if blob is None:
+            return False, "el archivo desapareció del repositorio"
+        guardado = (__import__("yaml").safe_load(contexto.gh.read_blob(blob["sha"]))
+                    .get("metadata", {}).get("cx_id"))
+        if not guardado:
+            return False, ("el cx_id no volvió al archivo: la cabecera sigue "
+                           "incompleta y el próximo deploy lo creará otra vez")
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["intent"])
+        real = next((pipeline._cx_id_de(i) for i in inventario["intent"].values()
+                     if i.get("displayName") == f"{etiqueta}_ciclo"), None)
+        if guardado != real:
+            return False, f"el archivo guarda {guardado} y CX dice {real}"
+
+        # La prueba de verdad: el deploy siguiente no propone nada sobre él.
+        pendientes = [o for o in pipeline.step_3_apply_to_cx(
+            project, agent_id, dry_run=True)["data"]["operaciones"]
+            if o["ruta"] == ruta]
+        if pendientes:
+            # El mensaje se construye solo cuando hay algo que contar: armarlo
+            # siempre indexaría una lista vacía en el camino bueno.
+            return False, (f"el segundo deploy propone "
+                           f"{pendientes[0]['operacion']} sobre el mismo "
+                           f"archivo: el ciclo no se cerró")
+        return True, ""
+
+    runner.check(3, "El cx_id que asigna CX vuelve al archivo, y el deploy "
+                    "siguiente no vuelve a crear el resource",
+                 el_ciclo_del_cx_id_se_cierra)
+
+    def la_cabecera_nunca_viaja_a_cx():
+        """El bloque `metadata` es del repositorio, no del agente.
+
+        Se comprueba sobre el cuerpo que sale de verdad y sobre el resource
+        leído de vuelta desde CX — no inspeccionando el código, que pasaría
+        aunque la línea que lo quita fuera inalcanzable.
+        """
+        enviados = []
+        original = cx.api_request
+
+        def espia(method, project_, region, path, body=None, **kw):
+            if method in ("POST", "PATCH") and isinstance(body, dict):
+                enviados.append((path, body))
+            return original(method, project_, region, path, body=body, **kw)
+
+        cx.api_request = espia
+        try:
+            pipeline.step_3_apply_to_cx(project, agent_id)
+        finally:
+            cx.api_request = original
+
+        con_cabecera = [p for p, b in enviados if "metadata" in b]
+        if con_cabecera:
+            return False, f"la cabecera viajó a la API en: {con_cabecera[:2]}"
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        en_borrador = [
+            item.get("displayName") for items in inventario.values()
+            for item in items.values() if "metadata" in item
+        ]
+        return not en_borrador, (
+            f"hay resources con metadata en el borrador: {en_borrador[:3]}"
+        )
+
+    runner.check(3, "La cabecera metadata no viaja a CX ni aparece en el "
+                    "borrador — comprobado sobre el cuerpo enviado y sobre el "
+                    "resource leído de vuelta",
+                 la_cabecera_nunca_viaja_a_cx)
+
     def full_update_no_borra_los_handlers_del_flow():
         """El bug ya documentado: un PATCH parcial intenta borrar los
         eventHandlers que ningún YAML declara, y la API responde 400."""

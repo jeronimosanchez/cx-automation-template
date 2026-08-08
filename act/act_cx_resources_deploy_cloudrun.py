@@ -683,7 +683,72 @@ def _patch_full_update(contexto, operacion):
     )
 
 
-def aplicar_operaciones(contexto, operaciones, inventario, on_log=None, log=None):
+def _documento_de(repositorio, ruta):
+    """El YAML original de un archivo del repositorio, por su ruta."""
+    for entrada in repositorio.get("sin_cx_id", []):
+        if entrada["ruta"] == ruta:
+            return entrada["documento"]
+    for por_tipo in repositorio.get("por_tipo", {}).values():
+        for entrada in por_tipo.values():
+            if entrada["ruta"] == ruta:
+                return entrada["documento"]
+    return None
+
+
+def _guardar_cx_id(contexto, operacion, repositorio, on_log, log):
+    """Escribe en el repositorio el `cx_id` que CX acaba de asignar.
+
+    Es lo que cierra el ciclo del resource. Un resource que nace en el
+    repositorio no puede llevar `cx_id`: no existe en ningún sitio hasta que
+    se sube, y el id lo asigna CX, nunca nosotros. Si ese id no vuelve al
+    archivo, la cabecera se queda incompleta para siempre y el deploy
+    siguiente vuelve a tratarlo como inexistente y lo crea otra vez — un
+    duplicado por cada pasada, contra la idempotencia de CLAUDE.md §3.4.
+
+    Un commit por resource, no uno para todos: si el paso falla a mitad, los
+    ids de los que sí llegaron a crearse ya están guardados y no se pierden.
+
+    Un fallo al guardar **no tumba la operación**: el resource ya existe en CX,
+    y decir que el paso falló sería mentir sobre lo que pasó. Se avisa con la
+    ruta y el id exactos para poder escribirlo a mano.
+    """
+    documento = _documento_de(repositorio, operacion["ruta"])
+    if documento is None:
+        _emit(log, on_log,
+              f"⚠ No se encontró {operacion['ruta']} para guardarle el cx_id "
+              f"{operacion['cx_id']} — escríbelo a mano en su metadata")
+        operacion["cx_id_sin_guardar"] = True
+        return
+
+    metadata = dict(documento.get("metadata") or {})
+    metadata["cx_id"] = operacion["cx_id"]
+    actualizado = {"metadata": metadata,
+                   **{k: v for k, v in documento.items() if k != "metadata"}}
+
+    try:
+        commit = contexto.gh.commit_files(
+            contexto.rama,
+            {operacion["ruta"]: yaml.safe_dump(actualizado, allow_unicode=True,
+                                               sort_keys=False)},
+            f"chore(cx_id): {operacion['tipo']}/{operacion['resource']} "
+            f"creado en CX como {operacion['cx_id']}",
+        )
+        _emit(log, on_log,
+              f"      cx_id guardado en {operacion['ruta']}"
+              + (f" · commit {commit[:7]}" if commit else ""))
+    except Exception as error:
+        # El resource ya está en CX. Reportar el paso como fallido asustaría
+        # más de lo que corresponde: lo que falta es una línea en un archivo.
+        _emit(log, on_log,
+              f"⚠ {operacion['tipo']}/{operacion['resource']} se creó en CX "
+              f"como {operacion['cx_id']}, pero no se pudo guardar el cx_id en "
+              f"{operacion['ruta']}: {error}. Escríbelo a mano en su metadata, "
+              f"o el próximo deploy lo creará otra vez.")
+        operacion["cx_id_sin_guardar"] = True
+
+
+def aplicar_operaciones(contexto, operaciones, inventario, repositorio=None,
+                        on_log=None, log=None):
     """Aplica en orden y se para en el primer fallo.
 
     Cada operación queda con su resultado —OK, ERROR o NO_INTENTADO— para que
@@ -702,9 +767,13 @@ def aplicar_operaciones(contexto, operaciones, inventario, on_log=None, log=None
         try:
             creado = _aplicar_operacion(contexto, operacion, inventario)
             operacion["result"] = "OK"
-            if operacion["operacion"] == "POST" and creado.get("name"):
-                operacion["cx_id"] = _cx_id_de(creado)
             _emit(log, on_log, f"OK    {operacion['operacion']} {etiqueta}")
+            if operacion["operacion"] == "POST" and creado.get("name"):
+                # El id lo acaba de asignar CX. Vuelve al archivo aquí mismo,
+                # no al final: si el paso muere después, este ya está a salvo.
+                operacion["cx_id"] = _cx_id_de(creado)
+                if repositorio is not None and operacion["ruta"]:
+                    _guardar_cx_id(contexto, operacion, repositorio, on_log, log)
             if operacion["cx_id"]:
                 store.record_resource_write(
                     contexto.store, contexto.project, contexto.agent_id,
@@ -1008,7 +1077,7 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
 
     with store.agent_lock(contexto.store, project, agent_id, "aplicar en CX"):
         resultados, fallo, _ = aplicar_operaciones(
-            contexto, operaciones, inventario, on_log, log
+            contexto, operaciones, inventario, repositorio, on_log, log
         )
 
     _emit(log, on_log,
@@ -1554,7 +1623,7 @@ def deploy_single_resource(project, agent_id, tipo, cx_id, client=None, gh=None,
     with store.agent_lock(contexto.store, project, agent_id,
                           f"desplegar {tipo}/{cx_id}"):
         resultados, fallo, _ = aplicar_operaciones(
-            contexto, [operacion], inventario, on_log, log
+            contexto, [operacion], inventario, repositorio, on_log, log
         )
 
     resultado = step_result("error" if fallo else "ok", log, {
