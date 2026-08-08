@@ -1,0 +1,11 @@
+metadata:
+  tipo: intent
+  padre: null
+  cx_id: db7bd5d9-538e-49a8-aad1-d243b95d2319
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: actval_0e00f4fe_intent
+trainingPhrases:
+- parts:
+  - text: hola prueba
+  repeatCount: 1
+priority: 500000
