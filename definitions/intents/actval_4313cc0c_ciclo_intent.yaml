@@ -1,0 +1,10 @@
+metadata:
+  tipo: intent
+  padre: null
+  cx_id: null
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: actval_4313cc0c_ciclo_intent
+trainingPhrases:
+- parts:
+  - text: hola
+  repeatCount: 1

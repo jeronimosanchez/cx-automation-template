@@ -1,0 +1,11 @@
+metadata:
+  tipo: entity_type
+  padre: null
+  cx_id: null
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: actval_4313cc0c_ciclo_entity_type
+kind: KIND_MAP
+entities:
+- value: a
+  synonyms:
+  - a
