@@ -1,9 +1,9 @@
 metadata:
   tipo: intent
   padre: null
-  cx_id: 42a2b6c2-e0af-4e24-be4a-ffae3daf9ffd
+  cx_id: 998cd136-d692-4d5d-b351-37e7161849e6
   agente: 8d15e440-ab8f-4072-b144-d44919296cd9
-displayName: actval_319c5f6e_intent
+displayName: actval_4313cc0c_intent
 trainingPhrases:
 - parts:
   - text: hola prueba

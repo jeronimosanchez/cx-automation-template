@@ -1,11 +1,10 @@
 metadata:
   tipo: intent
   padre: null
-  cx_id: 42a2b6c2-e0af-4e24-be4a-ffae3daf9ffd
+  cx_id: 58e585c9-3bf3-447c-ae9a-ffe59c3fc26c
   agente: 8d15e440-ab8f-4072-b144-d44919296cd9
-displayName: actval_319c5f6e_intent
+displayName: actval_4313cc0c_ciclo
 trainingPhrases:
 - parts:
-  - text: hola prueba
+  - text: ciclo
   repeatCount: 1
-priority: 500000
