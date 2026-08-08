@@ -65,6 +65,28 @@ MARCA_DESECHABLE = "desechable"
 # ejecución es, incluso si dos corridas se solapan.
 PREFIJO = "actval"
 
+# Cuerpo mínimo válido de cada tipo desplegable, para fabricar resources de
+# prueba. No es un fixture guardado: se construye en el momento, y solo lleva
+# los campos que la API exige para que el POST no se caiga por otra razón.
+CUERPO_MINIMO = {
+    "intent": {"trainingPhrases": [{"parts": [{"text": "hola"}], "repeatCount": 1}]},
+    "entity_type": {"kind": "KIND_MAP",
+                    "entities": [{"value": "a", "synonyms": ["a"]}]},
+    "webhook": {"genericWebService": {"uri": "https://example.invalid/x"},
+                "timeout": "5s"},
+    "generator": {"promptText": {"text": "resume"}},
+    "playbook": {"goal": "objetivo de prueba", "playbookType": "ROUTINE",
+                 "instruction": {"steps": [{"text": "haz algo"}]}},
+    "example": {"actions": [{"userUtterance": {"text": "hola"}},
+                            {"agentUtterance": {"text": "hola"}}],
+                "conversationState": "OUTPUT_STATE_OK"},
+    "flow": {},
+    "page": {},
+    "transition_route_group": {"transitionRoutes": []},
+    "tool": {"description": "herramienta de prueba", "openApiSpec": {
+        "textSchema": "openapi: 3.0.0\ninfo:\n  title: x\n  version: '1'\npaths: {}\n"}},
+}
+
 # Archivos del pipeline cloud que el Nivel 0 analiza.
 ARCHIVOS_PIPELINE = [
     "act/act_cx_resources_deploy_cloudrun.py",
@@ -464,6 +486,115 @@ def nivel_1(runner, project, agent_id, region):
 
     runner.check(1, "Dos resources de distinto tipo con el mismo cx_id no se confunden",
                  cx_id_repetido_entre_tipos_no_se_confunde)
+
+    def la_cabecera_nace_completa_tipo_por_tipo():
+        """La cabecera que escribe el pull, comprobada en los 13 tipos.
+
+        Es la función real del pull la que se ejercita, sobre los resources
+        reales del agente: se comprueba que `tipo` es el correcto, que el
+        `cx_id` es el que CX asigna, y que `padre` está relleno **solo** si el
+        tipo cuelga de otro — y que ese padre existe de verdad en el agente.
+
+        Un tipo con la cabecera a medias produce un archivo que el pipeline no
+        sabrá emparejar después, y eso no se ve hasta el deploy siguiente.
+        """
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        fallos, revisados = [], []
+        for tipo, items in inventario.items():
+            if tipo in pipeline.TIPOS_FUERA_DEL_REPARTO:
+                continue
+            item = next((i for i in items.values()
+                         if not pipeline.es_nativo(tipo, i)), None)
+            if item is None:
+                continue
+            spec = pipeline.RESOURCE_TYPES[tipo]
+            padre_id = pipeline._padre_id_de(tipo, item) if spec.get("padre") else None
+            documento = __import__("yaml").safe_load(
+                pipeline._yaml_para_repo(tipo, item, padre_id))
+            meta = documento.get("metadata") or {}
+            revisados.append(tipo)
+
+            if meta.get("tipo") != tipo:
+                fallos.append(f"{tipo}: metadata.tipo = {meta.get('tipo')!r}")
+            if meta.get("cx_id") != pipeline._cx_id_de(item):
+                fallos.append(f"{tipo}: cx_id {meta.get('cx_id')!r} != "
+                              f"{pipeline._cx_id_de(item)!r}")
+            if "metadata" in {k for k in documento if k != "metadata"}:
+                fallos.append(f"{tipo}: metadata duplicada en el cuerpo")
+            if spec.get("padre"):
+                if not meta.get("padre"):
+                    fallos.append(f"{tipo}: cuelga de {spec['padre']} y padre "
+                                  f"viene vacío")
+                elif meta["padre"] not in inventario.get(spec["padre"], {}):
+                    fallos.append(f"{tipo}: declara padre {meta['padre']}, que "
+                                  f"no existe como {spec['padre']}")
+            elif meta.get("padre") is not None:
+                fallos.append(f"{tipo}: no cuelga de nada y trae padre "
+                              f"{meta['padre']!r}")
+
+        return not fallos, f"revisados {len(revisados)} tipos · " + " | ".join(fallos)
+
+    runner.check(1, "El pull construye la cabecera completa y correcta en cada "
+                    "tipo: tipo, cx_id y padre solo cuando corresponde",
+                 la_cabecera_nace_completa_tipo_por_tipo)
+
+    def un_archivo_sin_cabecera_no_es_un_resource():
+        """Lo que convierte un archivo en resource es tener cabecera.
+
+        Un YAML sin ella no es un resource del pipeline y no puede aparecer en
+        ningún grupo del reparto ni en el diff — el repositorio tiene YAML que
+        nunca fueron resources: taxonomías, configuraciones, specs OpenAPI.
+        """
+        original_tree, original_blob = contexto.gh.list_tree, contexto.gh.read_blob
+        commit = contexto.gh.branch_head(contexto.rama)
+        archivos = original_tree(commit)
+        intruso = {"path": "definitions/intents/sin_cabecera.yaml", "sha": "falso"}
+        contexto.gh.list_tree = lambda *_a, **_k: archivos + [intruso]
+
+        def leer(sha):
+            if sha == "falso":
+                return b"displayName: sin_cabecera\ndescription: no soy un resource\n"
+            return original_blob(sha)
+
+        contexto.gh.read_blob = leer
+        try:
+            repositorio, _ = pipeline.cargar_repositorio(contexto)
+            inventario, _, _ = pipeline.inventariar_cx(contexto)
+            grupos = pipeline.emparejar(inventario, repositorio)
+            operaciones = pipeline.calcular_diff(contexto, inventario, repositorio)
+            aparece = (
+                any(x.get("ruta") == intruso["path"] for x in grupos["solo_repo"])
+                or any(o.get("ruta") == intruso["path"] for o in operaciones)
+            )
+            return not aparece, "el archivo sin cabecera entró en el reparto o en el diff"
+        finally:
+            contexto.gh.list_tree, contexto.gh.read_blob = original_tree, original_blob
+
+    runner.check(1, "Un YAML sin cabecera no es un resource: ni entra en el "
+                    "reparto ni genera operación",
+                 un_archivo_sin_cabecera_no_es_un_resource)
+
+    def un_padre_inexistente_se_rechaza_con_su_nombre():
+        """Resolver dónde cuelga un resource es el único punto donde el padre
+        declarado se usa. Un padre que no existe tiene que decirlo, no fallar
+        con un error que apunte a otro sitio."""
+        operacion = pipeline._operacion(
+            "POST", "example", None,
+            {"ruta": "definitions/examples/huerfano.yaml",
+             "display_name": "huerfano", "padre": "padre-que-no-existe"},
+            {"displayName": "huerfano"},
+        )
+        try:
+            pipeline._ruta_padre(contexto, operacion, {"playbook": {}})
+            return False, "aceptó un padre que no existe"
+        except pipeline.PipelineError as error:
+            texto = str(error)
+            return ("padre-que-no-existe" in texto and "playbook" in texto), \
+                f"el error no nombra el padre ni su tipo: {texto[:90]}"
+
+    runner.check(1, "Un padre declarado que no existe se rechaza nombrándolo, "
+                    "junto al tipo que se esperaba",
+                 un_padre_inexistente_se_rechaza_con_su_nombre)
 
     def cifras_cuadran():
         resultado = pipeline.step_1_inventory(project, agent_id)["data"]
@@ -1048,6 +1179,87 @@ def nivel_3(runner, project, agent_id, run_id):
     runner.check(3, "El cx_id que asigna CX vuelve al archivo, y el deploy "
                     "siguiente no vuelve a crear el resource",
                  el_ciclo_del_cx_id_se_cierra)
+
+    def el_ciclo_se_cierra_en_todos_los_tipos():
+        """El ciclo completo de la cabecera, barriendo todos los tipos.
+
+        Se escribe un YAML nuevo de cada tipo desplegable —con `tipo`, con
+        `padre` si cuelga de otro, y sin `cx_id`— en un solo commit. Se aplica
+        una vez. Y se comprueba, tipo por tipo, que CX lo creó donde tocaba,
+        que el id volvió al archivo, y que el deploy siguiente no propone nada
+        sobre ninguno.
+
+        Un tipo puede tener su propio comportamiento y no se descubre nunca si
+        solo se prueba con el fácil, que es el que cuelga del agente.
+        """
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        archivos, esperados = {}, {}
+
+        for tipo, spec in pipeline.TIPOS_DESPLEGABLES.items():
+            if spec.get("singular") or tipo not in CUERPO_MINIMO:
+                continue
+            padre_id = None
+            if spec.get("padre"):
+                padres = list(inventario.get(spec["padre"], {}))
+                if not padres:
+                    continue  # sin padre donde colgarlo, no aplica
+                padre_id = padres[0]
+            nombre = f"{etiqueta}_ciclo_{tipo}"
+            ruta = f"definitions/{tipo}s/{nombre}.yaml"
+            archivos[ruta] = __import__("yaml").safe_dump(
+                {"metadata": {"tipo": tipo, "padre": padre_id, "cx_id": None},
+                 "displayName": nombre, **CUERPO_MINIMO[tipo]},
+                allow_unicode=True, sort_keys=False)
+            esperados[tipo] = {"ruta": ruta, "nombre": nombre, "padre": padre_id}
+
+        if not archivos:
+            return False, "no se pudo fabricar ningún resource de prueba"
+
+        contexto.gh.commit_files(
+            contexto.rama, archivos,
+            f"test: un resource nuevo de cada tipo, sin cx_id ({etiqueta})")
+
+        resultado = pipeline.step_3_apply_to_cx(project, agent_id)
+        if resultado["status"] != "ok":
+            fallidas = [f"{o['tipo']}: {o.get('error', '')[:60]}"
+                        for o in resultado["data"]["operaciones"]
+                        if o.get("result") == "ERROR"]
+            return False, f"el Paso 3 falló · {' | '.join(fallidas)}"
+
+        arbol = {a["path"]: a["sha"] for a in
+                 contexto.gh.list_tree(contexto.gh.branch_head(contexto.rama))}
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        fallos = []
+        for tipo, esperado in esperados.items():
+            creado = next((i for i in inventario.get(tipo, {}).values()
+                           if i.get("displayName") == esperado["nombre"]), None)
+            if creado is None:
+                fallos.append(f"{tipo}: no se creó en CX")
+                continue
+            sha = arbol.get(esperado["ruta"])
+            if sha is None:
+                fallos.append(f"{tipo}: su archivo desapareció del repositorio")
+                continue
+            meta = (__import__("yaml").safe_load(contexto.gh.read_blob(sha))
+                    .get("metadata") or {})
+            if meta.get("cx_id") != pipeline._cx_id_de(creado):
+                fallos.append(f"{tipo}: el archivo guarda {meta.get('cx_id')!r} "
+                              f"y CX dice {pipeline._cx_id_de(creado)!r}")
+            if esperado["padre"] and esperado["padre"] not in creado.get("name", ""):
+                fallos.append(f"{tipo}: colgó de otro padre")
+
+        pendientes = [o["tipo"] for o in pipeline.step_3_apply_to_cx(
+            project, agent_id, dry_run=True)["data"]["operaciones"]
+            if o.get("ruta") in {e["ruta"] for e in esperados.values()}]
+        if pendientes:
+            fallos.append(f"el 2º deploy vuelve a proponer: {sorted(set(pendientes))}")
+
+        return not fallos, f"probados {len(esperados)} tipos · " + " | ".join(fallos)
+
+    runner.check(3, "El ciclo de la cabecera se cierra en todos los tipos: nacen "
+                    "sin cx_id, CX se lo da, vuelve al archivo, y el deploy "
+                    "siguiente no propone nada",
+                 el_ciclo_se_cierra_en_todos_los_tipos)
 
     def la_cabecera_nunca_viaja_a_cx():
         """El bloque `metadata` es del repositorio, no del agente.

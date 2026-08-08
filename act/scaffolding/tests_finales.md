@@ -386,3 +386,102 @@ borrado del Paso 3 completamente muerto.
 
 *Huecos de esta área:* Lo que sigue sin poder probarse, y por qué. (1) El modelo de confianza panel↔servidor sigue abierto (§8 del diseño): mientras no se decida qué recomprueba el servidor y qué se cree del cliente, no se puede escribir el esperado de ningún caso sobre identidad de quien llama, ni cerrar si la huella del Paso 4 debe ir firmada por el servidor o basta con devolverla. El caso de identidad en la auditoría se escribe con el esperado mínimo (guardar quién) y habrá que revisarlo cuando esa decisión exista. (2) El transporte del registro no está decidido (respuesta única o streaming): los dos casos de panel sobre la caja de registro y el bloqueo durante la escritura se escriben contra un servidor simulado, y habrá que repetirlos contra el transporte real cuando exista. (3) No hay servicio de Cloud Run desplegado (§14: 'pendiente — Fase B'), así que nada de lo relacionado con IAP, el timeout de 60 minutos y el reciclado de contenedores entre peticiones se puede provocar de verdad todavía; los casos que dependen de eso se prueban hoy en proceso local y son más débiles que el caso real. (4) Contradicción sin resolver que afecta al esperado de tres de estos casos: la Spec 5.5.2 dice que el aviso de borrador movido 'no bloquea' y el servidor aborta; hasta que se firme una de las dos, el caso del despliegue suelto entre el Paso 4 y el Paso 5 tiene dos esperados posibles. (5) El caso de la rama de trabajo igual a la rama principal y el de dos agentes sobre el mismo repositorio se prueban contra repositorios desechables; el daño real —perder un commit ajeno— solo se ve con volumen, y no hay forma de reproducirlo a escala sin un repositorio grande de mentira que habría que construir. (6) Ninguno de estos casos toca Petal: todos van contra agente y repositorio desechables, y los dos que se beneficiarían de un agente con historia real (el enlace del Paso 4 con una región distinta de europe-west1, y el orden de borrado con jerarquías profundas) quedan sin equivalente manual porque exigirían escribir en Petal.
 
+
+---
+
+## VAL — Comprobaciones ya automatizadas en el validador
+
+Estas **79 comprobaciones ya existen y se ejecutan**:
+
+```bash
+python3 act/validate_pipeline_cloudrun.py --project <proyecto> --agent <agente-desechable> --levels 0-4
+```
+
+No hay que volver a escribirlas. Al probar el sistema entero se lanza este script y despues se recorren los casos del catalogo que no esten cubiertos por el. Los marcados SKIP no son cobertura: cada uno explica en su salida que falta para poder ejecutarlo.
+
+*Extraido de `act/validate_pipeline_cloudrun.py` el 2026-08-08.*
+
+| ID | Nivel | Comprobacion | Estado |
+|---|---|---|---|
+| TC-VAL-01 | N0 · Estatico, sin red | Ningún literal de proyecto, agente o región real en el código | automatizado |
+| TC-VAL-02 | N0 · Estatico, sin red | Ninguna constante de módulo fija proyecto, agente o región | automatizado |
+| TC-VAL-03 | N0 · Estatico, sin red | Las funciones de entrada exigen project y agent explícitos | automatizado |
+| TC-VAL-04 | N0 · Estatico, sin red | Un destino vacío falla al construir el contexto, no más tarde | automatizado |
+| TC-VAL-05 | N0 · Estatico, sin red | El documento del agente declara sus campos obligatorios | automatizado |
+| TC-VAL-06 | N0 · Estatico, sin red | Un documento incompleto falla con error propio, no con None implícito | automatizado |
+| TC-VAL-07 | N0 · Estatico, sin red | El pipeline no escribe archivos temporales en disco | automatizado |
+| TC-VAL-08 | N0 · Estatico, sin red | Ningún registro interpola el token de acceso ni el de GitHub | automatizado |
+| TC-VAL-09 | N0 · Estatico, sin red | La autenticación es ADC, no gcloud — dentro del contenedor no hay sesión interactiva ni binario de gcloud | automatizado |
+| TC-VAL-10 | N0 · Estatico, sin red | El cliente rechaza URLs absolutas — el token no puede dirigirse a un host de fuera (C3) | automatizado |
+| TC-VAL-11 | N0 · Estatico, sin red | Ninguna escritura de resource puede resolver a un endpoint de entorno: la tabla no tiene la entrada (S20) | automatizado |
+| TC-VAL-12 | N0 · Estatico, sin red | 13 tipos de recurso, con Transition Route Groups | automatizado |
+| TC-VAL-13 | N1 · Solo lectura | LIST de los 13 tipos sin errores | automatizado |
+| TC-VAL-14 | N1 · Solo lectura | La región se lee de Firestore, no de una constante | automatizado |
+| TC-VAL-15 | N1 · Solo lectura | La región guardada no se vuelve a sondear en cada ejecución | automatizado |
+| TC-VAL-16 | N1 · Solo lectura | Una región inconsistente falla de forma reconocible | automatizado |
+| TC-VAL-17 | N1 · Solo lectura | Un displayName cambiado con el mismo cx_id sigue emparejando, sin duplicado fantasma | automatizado |
+| TC-VAL-18 | N1 · Solo lectura | Dos resources de distinto tipo con el mismo cx_id no se confunden | automatizado |
+| TC-VAL-19 | N1 · Solo lectura | El pull construye la cabecera completa y correcta en cada tipo: tipo, cx_id y padre solo cuando corresponde | automatizado |
+| TC-VAL-20 | N1 · Solo lectura | Un YAML sin cabecera no es un resource: ni entra en el reparto ni genera operación | automatizado |
+| TC-VAL-21 | N1 · Solo lectura | Un padre declarado que no existe se rechaza nombrándolo, junto al tipo que se esperaba | automatizado |
+| TC-VAL-22 | N1 · Solo lectura | Las cifras cuadran: total = emparejados + solo en CX | automatizado |
+| TC-VAL-23 | N1 · Solo lectura | Cero llamadas de escritura, verificado instrumentando el cliente HTTP y no leyendo el código | automatizado |
+| TC-VAL-24 | N1 · Solo lectura | Ejecutar sin project o sin agent termina con mensaje claro | automatizado |
+| TC-VAL-25 | N1 · Solo lectura | Descubrimiento sin proyecto devuelve la lista de proyectos GCP | automatizado |
+| TC-VAL-26 | N1 · Solo lectura | Descubrimiento devuelve cada agente con el repositorio que le corresponde — es lo que rellena los desplegables del panel | automatizado |
+| TC-VAL-27 | N1 · Solo lectura | Un agente sin repositorio se incluye marcado, nunca se omite en silencio | automatizado |
+| TC-VAL-28 | N1 · Solo lectura | Los 13 tipos devuelven contenido real, no solo responden | automatizado |
+| TC-VAL-29 | N1 · Solo lectura | Dos pares proyecto+agente en el mismo proceso no se contaminan | **SKIP** — motivo en la salida |
+| TC-VAL-30 | N2 · Dry-run | El dry-run no hace ninguna llamada de escritura | automatizado |
+| TC-VAL-31 | N2 · Dry-run | Dos dry-run sobre el mismo estado dan el mismo plan | automatizado |
+| TC-VAL-32 | N2 · Dry-run | El diff nunca propone DELETE por ausencia en el repositorio | automatizado |
+| TC-VAL-33 | N2 · Dry-run | Pedir borrar algo que sí tiene archivo en el repositorio se rechaza — el servidor comprueba, no obedece | automatizado |
+| TC-VAL-34 | N2 · Dry-run | Pedir borrar algo que no existe en el agente se rechaza | automatizado |
+| TC-VAL-35 | N2 · Dry-run | El Full Update genérico no manda updateMask | automatizado |
+| TC-VAL-36 | N2 · Dry-run | El PATCH del entorno sí manda updateMask — es la excepción inversa, sin él responde code:3 | automatizado |
+| TC-VAL-37 | N2 · Dry-run | Sin cambios, el paso lo dice y no continúa como si hubiera algo | automatizado |
+| TC-VAL-38 | N2 · Dry-run | Dos archivos con el mismo tipo y cx_id paran el pipeline — duplicar un YAML y olvidar vaciar el id deja dos reclamando el mismo resource | automatizado |
+| TC-VAL-39 | N2 · Dry-run | Un YAML con un tipo que no existe da error nombrándolo, no se vuelve invisible | automatizado |
+| TC-VAL-40 | N2 · Dry-run | Un YAML mal formado dice qué archivo lo provocó | automatizado |
+| TC-VAL-41 | N2 · Dry-run | Una rama que no existe en el mapeo falla, no devuelve un repositorio vacío | automatizado |
+| TC-VAL-42 | N2 · Dry-run | Un nombre de versión inválido se rechaza antes de tocar nada | automatizado |
+| TC-VAL-43 | N2 · Dry-run | Una URL de repositorio que no lo es se rechaza | automatizado |
+| TC-VAL-44 | N2 · Dry-run | Desplegar un resource suelto rechaza los tipos que no despliega, incluidos los entornos | automatizado |
+| TC-VAL-45 | N2 · Dry-run | Desplegar un resource suelto exige que algún archivo lo declare | automatizado |
+| TC-VAL-46 | N2 · Dry-run | Declarar los tests solo admite 'superados' o 'fallidos' | automatizado |
+| TC-VAL-47 | N3 · Escritura real | Barrido de restos antes de empezar | automatizado |
+| TC-VAL-48 | N3 · Escritura real | Crear un resource real en el agente desechable | automatizado |
+| TC-VAL-49 | N3 · Escritura real | Una versión sin displayName se detecta poleando la operación, nunca por el 200 inicial | automatizado |
+| TC-VAL-50 | N3 · Escritura real | El Paso 3 no mueve el puntero de ningún entorno — escribe solo en el borrador | automatizado |
+| TC-VAL-51 | N3 · Escritura real | Aplicar el mismo diff dos veces no vuelve a escribir | automatizado |
+| TC-VAL-52 | N3 · Escritura real | Traer al repositorio deja un solo commit, y repetirlo no crea un segundo | automatizado |
+| TC-VAL-53 | N3 · Escritura real | Create, update y delete real de cada tipo desplegable, confirmando el borrado leyendo el resultado | automatizado |
+| TC-VAL-54 | N3 · Escritura real | El cx_id que asigna CX vuelve al archivo, y el deploy siguiente no vuelve a crear el resource | automatizado |
+| TC-VAL-55 | N3 · Escritura real | El ciclo de la cabecera se cierra en todos los tipos: nacen sin cx_id, CX se lo da, vuelve al archivo, y el deploy siguiente no propone nada | automatizado |
+| TC-VAL-56 | N3 · Escritura real | La cabecera metadata no viaja a CX ni aparece en el borrador — comprobado sobre el cuerpo enviado y sobre el resource leído de vuelta | automatizado |
+| TC-VAL-57 | N3 · Escritura real | Full Update en un flow con eventHandlers implícitos no los borra — es la reproducción del bug ya documentado | automatizado |
+| TC-VAL-58 | N3 · Escritura real | Full Update en un playbook aplica de verdad, confirmado leyendo el objeto y no el código de respuesta | automatizado |
+| TC-VAL-59 | N3 · Escritura real | Desplegar un resource suelto no escribe si repo y CX ya coinciden | automatizado |
+| TC-VAL-60 | N3 · Escritura real | La huella del borrador cambia cuando el borrador cambia — sin eso, el aviso de 'draft movido' no avisa de nada | automatizado |
+| TC-VAL-61 | N3 · Escritura real | Borrar versiones se niega con las que un entorno está sirviendo, y las deja intactas | automatizado |
+| TC-VAL-62 | N3 · Escritura real | Borrar una versión libre funciona, y el borrado se confirma leyendo | automatizado |
+| TC-VAL-63 | N3 · Escritura real | Publicar hace tres cosas y en orden: fusionar, versionar y apuntar producción | automatizado |
+| TC-VAL-64 | N3 · Escritura real | Publicar versiona solo lo que el diff tocó, no el agente entero (H4) | automatizado |
+| TC-VAL-65 | N3 · Escritura real | Publicar dos veces seguidas sin cambios no crea una segunda versión | automatizado |
+| TC-VAL-66 | N3 · Escritura real | Publicar registra a qué versiones apuntaba producción antes — es lo único que hace posible el rollback | automatizado |
+| TC-VAL-67 | N3 · Escritura real | Cero residuo en CX: lo creado se borra y el borrado se confirma leyendo el resultado | automatizado |
+| TC-VAL-68 | N3 · Escritura real | Cero residuo en el repositorio: la rama vuelve al commit en el que estaba antes del nivel | automatizado |
+| TC-VAL-69 | N3 · Escritura real | Repetir los checks de Full Update en una región distinta de europe-west1 | **SKIP** — motivo en la salida |
+| TC-VAL-70 | N4 · Caos y concurrencia | Dos invocaciones concurrentes sobre el mismo agente: solo una procede | automatizado |
+| TC-VAL-71 | N4 · Caos y concurrencia | Un candado caducado deja de bloquear — se libera por tiempo, no porque el código llegue a soltarlo (un SIGKILL no ejecuta ningún finally) | automatizado |
+| TC-VAL-72 | N4 · Caos y concurrencia | Un token ajeno no libera el candado | automatizado |
+| TC-VAL-73 | N4 · Caos y concurrencia | El candado no es un threading.Lock — con más de una instancia no protegería nada | automatizado |
+| TC-VAL-74 | N4 · Caos y concurrencia | El progreso por resource vive en Firestore, no en memoria | automatizado |
+| TC-VAL-75 | N4 · Caos y concurrencia | Si la auditoría falla, la operación sigue siendo correcta | automatizado |
+| TC-VAL-76 | N4 · Caos y concurrencia | La cabecera x-goog-user-project no se cachea entre agentes | automatizado |
+| TC-VAL-77 | N4 · Caos y concurrencia | El reintento solo reenvía lo pendiente | automatizado |
+| TC-VAL-78 | N4 · Caos y concurrencia | Cero residuo: la rama vuelve al commit en el que estaba antes del nivel | automatizado |
+| TC-VAL-79 | N4 · Caos y concurrencia | Tras un corte entre crear la versión y apuntar el entorno, el reintento reutiliza la versión ya creada | automatizado |
+| TC-VAL-80 | N4 · Caos y concurrencia | Abortar por borrador movido no revierte nada: el borrador conserva lo aplicado, y producción, la rama de trabajo y la principal quedan intactas. Simplemente no avanza | automatizado |
+| TC-VAL-81 | N4 · Caos y concurrencia | Un resource cambiado a la vez en el repositorio y en CX se señala como conflicto, no se resuelve en silencio a favor del repositorio | automatizado |
+| TC-VAL-82 | N4 · Caos y concurrencia | SIGKILL a mitad de una escritura real del Paso 3 | **SKIP** — motivo en la salida |
