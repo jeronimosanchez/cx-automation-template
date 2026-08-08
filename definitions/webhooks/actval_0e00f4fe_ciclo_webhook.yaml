@@ -1,0 +1,8 @@
+metadata:
+  tipo: webhook
+  padre: null
+  cx_id: null
+displayName: actval_0e00f4fe_ciclo_webhook
+genericWebService:
+  uri: https://example.invalid/x
+timeout: 5s
