@@ -1,0 +1,9 @@
+metadata:
+  tipo: intent
+  padre: null
+  cx_id: null
+displayName: actval_0e00f4fe_ciclo
+trainingPhrases:
+- parts:
+  - text: ciclo
+  repeatCount: 1
