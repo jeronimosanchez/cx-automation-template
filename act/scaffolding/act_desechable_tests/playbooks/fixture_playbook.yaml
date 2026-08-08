@@ -1,0 +1,11 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: 5003baad-c139-4085-b6ae-ba2f361b3167
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: fixture_playbook
+goal: objetivo cambiado por actval_5e596de8
+instruction:
+  steps:
+  - text: Saluda y despidete.
+playbookType: ROUTINE

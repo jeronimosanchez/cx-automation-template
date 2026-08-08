@@ -1,0 +1,9 @@
+metadata:
+  tipo: webhook
+  padre: null
+  cx_id: 59dae6a4-a707-4014-b66a-c73a0af4e35e
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: fixture_webhook
+genericWebService:
+  uri: https://example.invalid/webhook
+timeout: 5s

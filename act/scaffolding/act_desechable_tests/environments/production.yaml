@@ -1,0 +1,11 @@
+metadata:
+  tipo: environment
+  padre: null
+  cx_id: a7ce9d5b-5785-4908-991f-83c0158b862d
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: production
+description: Entorno de produccion del agente desechable.
+versionConfigs:
+- version: projects/floristeria-petal-digital/locations/europe-west1/agents/8d15e440-ab8f-4072-b144-d44919296cd9/flows/00000000-0000-0000-0000-000000000000/versions/27
+- version: projects/floristeria-petal-digital/locations/europe-west1/agents/8d15e440-ab8f-4072-b144-d44919296cd9/playbooks/5003baad-c139-4085-b6ae-ba2f361b3167/versions/27
+webhookConfig: {}

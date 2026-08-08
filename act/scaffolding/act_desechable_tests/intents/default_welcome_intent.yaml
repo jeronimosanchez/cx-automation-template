@@ -1,0 +1,29 @@
+metadata:
+  tipo: intent
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000000
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: Default Welcome Intent
+trainingPhrases:
+- id: 1d0a8999-c82a-43a4-ad85-7025342c9e0e
+  parts:
+  - text: hola
+  repeatCount: 1
+- id: a96d705e-71ab-4be8-8fd2-64a85d1cc141
+  parts:
+  - text: hey
+  repeatCount: 1
+- id: f673fc30-2006-4c8f-bd42-29b629e461f0
+  parts:
+  - text: saludos
+  repeatCount: 1
+- id: 5535d08c-9588-4779-8818-2369e94f96ae
+  parts:
+  - text: hey ho
+  repeatCount: 1
+- id: 79d9c3f8-4dbf-4651-885f-9511fb3b576e
+  parts:
+  - text: chao
+  repeatCount: 1
+priority: 500000
+description: modificado para probar la huella

@@ -1,0 +1,43 @@
+metadata:
+  tipo: flow
+  padre: null
+  cx_id: 00000000-0000-0000-0000-000000000000
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: Default Start Flow
+description: tocado por fuera 5e596de8
+transitionRoutes:
+- intent: projects/floristeria-petal-digital/locations/europe-west1/agents/8d15e440-ab8f-4072-b144-d44919296cd9/intents/00000000-0000-0000-0000-000000000000
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - ¡Hola!
+        - ¡Hey!
+        - ¡Buenos días!
+  name: 247bba5c-f03e-479a-ae37-c48adc2ab0ee
+eventHandlers:
+- event: sys.no-match-default
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - Ups, no he entendido a que te refieres.
+        - ¿Podrías repetirlo, por favor?
+        - ¿Disculpa?
+        - ¿Decías?
+        - ¿Cómo?
+  name: 3484ca45-ec4a-4563-9464-c9cc1590064f
+- event: sys.no-input-default
+  triggerFulfillment:
+    messages:
+    - text:
+        text:
+        - Ups, no he entendido a que te refieres.
+        - ¿Podrías repetirlo, por favor?
+        - ¿Disculpa?
+        - ¿Decías?
+        - ¿Cómo?
+  name: ca097d1e-7e78-4626-bb51-b93a4f68cc3c
+nluSettings:
+  modelType: MODEL_TYPE_ADVANCED
+  classificationThreshold: 0.3

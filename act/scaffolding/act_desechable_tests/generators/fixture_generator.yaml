@@ -1,0 +1,8 @@
+metadata:
+  tipo: generator
+  padre: null
+  cx_id: d5d4de60-64c1-4755-b9b3-d97581e19f4f
+  agente: 8d15e440-ab8f-4072-b144-d44919296cd9
+displayName: fixture_generator
+promptText:
+  text: Resume la conversacion en una linea.
