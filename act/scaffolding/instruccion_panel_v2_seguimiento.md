@@ -51,7 +51,10 @@ registro en vivo emite una línea de aviso cuando falta.
 
 **En el resultado del Paso 1**, cuando `tiene_entorno_produccion` es `false`, un aviso
 naranja debajo de las cuatro tarjetas, del mismo estilo que el de «este proyecto no
-tiene repositorio vinculado»:
+tiene repositorio vinculado». **Su contenedor tiene que llevar
+`id="aviso-sin-entorno"`** —hermano de `aviso-sin-repos`— porque hay un check que lo
+busca por ese id: buscar el texto «entorno de producción» a secas lo encontraba en el
+Paso 5 y en la lista de puesta en marcha, y el check pasaba sin que el aviso existiera.
 
 > ⚠ **Este agente no tiene entorno de producción.**
 > El Paso 5 publica apuntando el entorno `production` a las versiones nuevas; sin él no

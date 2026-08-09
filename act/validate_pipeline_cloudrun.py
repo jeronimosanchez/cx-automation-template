@@ -47,6 +47,8 @@ import requests
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# El panel es la especificación: varios checks lo contrastan contra el código.
+PANEL = "docs/panels/act_cx_resources_deploy_v2.html"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -469,7 +471,7 @@ def nivel_0(runner):
         Se comprueba aquí, sin red, comparando las etiquetas del panel contra
         los campos que devuelve el paso.
         """
-        panel = (REPO_ROOT / "docs/panels/act_cx_resources_deploy_v2.html").read_text()
+        panel = (REPO_ROOT / PANEL).read_text()
         bloque = panel[panel.find('id="inv-done"'):panel.find('id="view-2"')]
         etiquetas = re.findall(r'class="grupo-label">([^<]+)<', bloque)
         esperado = {
@@ -516,6 +518,108 @@ def nivel_0(runner):
     runner.check(0, "13 tipos de recurso, con Transition Route Groups", trece_tipos)
 
     # ── El alta de agente es una escritura, y por eso es un botón ────────────
+
+    def el_panel_no_promete_escrituras_que_ya_no_ocurren():
+        """Lo que el panel dice que pasa tiene que seguir pasando.
+
+        Vincular dejaba un `cx-deploy.yaml` en la raíz del repositorio y se
+        retiró: nadie lo leía, y el Paso 1 lo contaba como un YAML más. El
+        panel siguió anunciándolo en cuatro sitios —specs y registro en vivo—,
+        y una promesa que el código ya no cumple no se distingue de un fallo
+        cuando el archivo no aparece.
+
+        Es un check por escritura retirada, no una lista de textos prohibidos:
+        se comprueba contra el código que la escritura ya no existe, y solo
+        entonces se exige que el panel tampoco la nombre.
+        """
+        panel = (REPO_ROOT / PANEL).read_text()
+        # Contra el árbol, no contra el texto del archivo: el código explica en
+        # un comentario por qué se retiró el marcador, y buscar la cadena a
+        # secas encontraba ese comentario y daba la escritura por viva. El
+        # árbol no lleva comentarios, así que aquí solo quedan los literales
+        # que el código usa de verdad.
+        funcion = next(n for n in ast.walk(ast.parse(
+            inspect.getsource(pipeline.link_project_repo)))
+            if isinstance(n, ast.FunctionDef))
+        escribe_marcador = any(
+            isinstance(n, ast.Constant) and isinstance(n.value, str)
+            and "cx-deploy" in n.value for n in ast.walk(funcion))
+        problemas = []
+        if not escribe_marcador and "cx-deploy" in panel.lower():
+            problemas.append(
+                f"vincular ya no escribe cx-deploy.yaml y el panel lo anuncia "
+                f"{panel.lower().count('cx-deploy')} veces")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El panel no anuncia escrituras que el pipeline ya no hace",
+                 el_panel_no_promete_escrituras_que_ya_no_ocurren)
+
+    def el_panel_ensena_lo_que_el_paso_1_averigua():
+        """Cada dato nuevo del Paso 1 tiene que llegar a la pantalla.
+
+        El Paso 1 empezó a devolver si al agente le falta el entorno de
+        producción — sin él, el Paso 5 no tiene dónde publicar, y antes eso se
+        descubría al final, con el agente ya escrito. Un dato que el paso
+        calcula y el panel no enseña no sirve de nada: el aviso solo existe si
+        se ve.
+
+        Se comprueba en las dos direcciones, contra el árbol del pipeline: si
+        el paso deja de devolverlo, este check también salta.
+        """
+        arbol = ast.parse((REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py")
+                          .read_text())
+        funcion = next(n for n in ast.walk(arbol)
+                       if isinstance(n, ast.FunctionDef)
+                       and n.name == "step_1_inventory")
+        devueltos = {
+            clave.value for nodo in ast.walk(funcion)
+            if isinstance(nodo, ast.Dict)
+            for clave in nodo.keys
+            if isinstance(clave, ast.Constant) and isinstance(clave.value, str)
+        }
+        panel = (REPO_ROOT / PANEL).read_text()
+        problemas = []
+        if "tiene_entorno_produccion" not in devueltos:
+            problemas.append("el Paso 1 ya no averigua si falta el entorno")
+        # Un `id` concreto, no un texto suelto: buscar "entorno de producción"
+        # en el panel lo encontraba en el Paso 5 y en la lista de puesta en
+        # marcha, así que el check pasaba sin que el aviso del Paso 1
+        # existiera. El aviso tiene que ser un elemento identificable, como
+        # `aviso-sin-repos`, que es su hermano.
+        elif "aviso-sin-entorno" not in panel:
+            problemas.append(
+                "el Paso 1 avisa de que falta el entorno de producción y el "
+                "panel no tiene el aviso (falta el id `aviso-sin-entorno`)")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El panel enseña lo que el Paso 1 averigua: el aviso de "
+                    "entorno de producción llega a la pantalla",
+                 el_panel_ensena_lo_que_el_paso_1_averigua)
+
+    def el_panel_tiene_el_boton_del_alta():
+        """El tercer estado de la caja del destino existe en la pantalla.
+
+        `discover` manda `rama_propuesta` justo para que el Paso 1 pueda
+        enseñar el nombre de la rama antes de crearla, y `register_agent` es lo
+        que dispara el botón. Sin botón, ese campo viaja para nada y un agente
+        sin rama deja el paso muerto sin decir por qué.
+        """
+        panel = (REPO_ROOT / PANEL).read_text()
+        problemas = []
+        if not hasattr(pipeline, "register_agent"):
+            problemas.append("el pipeline no expone el alta")
+        if "Dar de alta" not in panel:
+            problemas.append("el panel no tiene el botón de dar de alta")
+        # La rama propuesta se enseña, no se calcula en el navegador: si el
+        # panel la construyera por su cuenta podría crear una distinta de la
+        # que se leyó, y el botón dejaría de confirmar nada.
+        if "rama_propuesta" not in panel and "agente/" not in panel:
+            problemas.append("el panel no enseña la rama antes de crearla")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El panel tiene el botón de alta y enseña la rama antes de "
+                    "crearla",
+                 el_panel_tiene_el_boton_del_alta)
 
     def el_paso_1_no_da_de_alta_a_nadie():
         """Que el alta no cuelgue de mirar, sino de pulsar.
@@ -2237,9 +2341,14 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
     print("\nNIVEL 4 — Fallo inyectado y concurrencia")
 
     cliente = store.get_client()
-    # El check de conflicto escribe en el repositorio para provocar el caso.
-    rama_al_empezar = pipeline.Contexto(project, agent_id).gh.branch_head(
-        store.get_agent_mapping(cliente, project, agent_id)["rama"])
+    # Varios checks de este nivel escriben en el repositorio para provocar su
+    # caso, y uno publica — que fusiona la rama de trabajo en la principal. Se
+    # anotan las dos: antes solo se guardaba la de trabajo, así que la
+    # principal se quedaba con la fusión dentro y nadie la devolvía.
+    _contexto_inicial = pipeline.Contexto(project, agent_id)
+    rama_al_empezar = _contexto_inicial.gh.branch_head(_contexto_inicial.rama)
+    principal_al_empezar = _contexto_inicial.gh.branch_head(
+        _contexto_inicial.rama_principal)
 
     def dos_invocaciones_concurrentes():
         primero = store.acquire_lock(cliente, project, agent_id, "prueba A")
@@ -2431,26 +2540,6 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                 "exacto de una escritura. La garantía que probaría —el candado se "
                 "libera por caducidad— sí está cubierta arriba, sin depender del "
                 "momento del disparo")
-
-    def limpiar_repositorio_del_nivel_4():
-        """El check de conflicto escribió en el repositorio para provocar el caso."""
-        contexto = pipeline.Contexto(project, agent_id)
-        actual = contexto.gh.branch_head(contexto.rama)
-        if actual == rama_al_empezar:
-            return True, "la rama no se movió"
-        respuesta = requests.patch(
-            f"https://api.github.com/repos/{contexto.repo}/git/refs/heads/"
-            f"{contexto.rama}",
-            headers=contexto.gh._headers(),
-            json={"sha": rama_al_empezar, "force": True}, timeout=30,
-        )
-        if respuesta.status_code != 200:
-            return False, f"{respuesta.status_code} {respuesta.text[:120]}"
-        return contexto.gh.branch_head(contexto.rama) == rama_al_empezar, ""
-
-    runner.check(4, "Cero residuo: la rama vuelve al commit en el que estaba "
-                    "antes del nivel",
-                 limpiar_repositorio_del_nivel_4)
 
     def fallo_entre_crear_version_y_apuntar_entorno():
         """Se corta el Paso 5 justo después de crear la versión.
@@ -2702,6 +2791,41 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                     "del repositorio",
                  se_detecta_el_conflicto_de_los_dos_lados)
 
+    def limpiar_repositorio_del_nivel_4():
+        """Devuelve las dos ramas al punto en que empezó el nivel.
+
+        Va **la última** del nivel a propósito. Estaba en medio —el décimo de
+        catorce— y los cuatro checks siguientes seguían escribiendo: uno de
+        ellos publica, que fusiona la rama de trabajo en la principal. Así que
+        la suite entera dejaba el repositorio desplazado aunque cada nivel
+        declarase su limpieza en verde.
+
+        No lo vio nadie porque cada nivel comprueba su limpieza contra el punto
+        en que él empezó, y ninguno comparaba el repositorio antes y después de
+        la corrida completa.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        fallos = []
+        for rama, destino in ((contexto.rama, rama_al_empezar),
+                              (contexto.rama_principal, principal_al_empezar)):
+            if contexto.gh.branch_head(rama) == destino:
+                continue
+            respuesta = requests.patch(
+                f"https://api.github.com/repos/{contexto.repo}/git/refs/heads/"
+                f"{rama}",
+                headers=contexto.gh._headers(),
+                json={"sha": destino, "force": True}, timeout=30,
+            )
+            if respuesta.status_code != 200:
+                fallos.append(f"{rama}: {respuesta.status_code}")
+            elif contexto.gh.branch_head(rama) != destino:
+                fallos.append(f"{rama}: no volvió a {destino[:7]}")
+        return not fallos, " · ".join(fallos)
+
+    runner.check(4, "Cero residuo: las dos ramas vuelven al commit en el que "
+                    "estaban antes del nivel",
+                 limpiar_repositorio_del_nivel_4)
+
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
@@ -2721,6 +2845,18 @@ def parse_levels(texto):
             f"Cloud Run real es de la Fase 6, no de esta."
         )
     return sorted(niveles)
+
+
+def _huella_del_repositorio(project, agent_id):
+    """Dónde está cada rama del destino, para comparar antes y después.
+
+    Las dos ramas, no solo la de trabajo: publicar fusiona una en otra, así que
+    una corrida puede dejar la principal movida sin tocar la de trabajo.
+    """
+    contexto = pipeline.Contexto(project, agent_id)
+    return {contexto.rama: contexto.gh.branch_head(contexto.rama),
+            contexto.rama_principal:
+                contexto.gh.branch_head(contexto.rama_principal)}
 
 
 def main(argv=None):
@@ -2756,6 +2892,16 @@ def main(argv=None):
             exigir_rama_principal_desechable(args.project)
         print(f"Destino: {nombre} · {args.project} · {region} · corrida {run_id}")
 
+    # La foto del repositorio antes de tocar nada. Cada nivel comprueba su
+    # propia limpieza contra el punto en que él empezó, y eso no demuestra que
+    # el conjunto no deje nada: el Nivel 4 declaraba su limpieza en verde y aun
+    # así la suite entera dejaba las dos ramas desplazadas —su limpieza era el
+    # décimo check de catorce, y cuatro seguían escribiendo detrás—. Nadie lo
+    # vio hasta que algo comparó el antes y el después de la corrida completa.
+    huella_inicial = None
+    if necesita_destino:
+        huella_inicial = _huella_del_repositorio(args.project, args.agent)
+
     if 0 in niveles:
         nivel_0(runner)
     if 1 in niveles:
@@ -2766,6 +2912,20 @@ def main(argv=None):
         nivel_3(runner, args.project, args.agent, run_id)
     if 4 in niveles:
         nivel_4(runner, args.project, args.agent, run_id, args.hermano)
+
+    if huella_inicial is not None:
+        def la_corrida_entera_no_deja_rastro():
+            final = _huella_del_repositorio(args.project, args.agent)
+            if final == huella_inicial:
+                return True, ""
+            movidas = [f"{rama}: {huella_inicial[rama][:7]} → {sha[:7]}"
+                       for rama, sha in final.items()
+                       if huella_inicial.get(rama) != sha]
+            return False, " · ".join(movidas) or f"{huella_inicial} → {final}"
+
+        runner.check(max(niveles), "La corrida entera devuelve el repositorio "
+                                   "como lo encontró, no solo cada nivel el suyo",
+                     la_corrida_entera_no_deja_rastro)
 
     c = runner.counts()
     print(f"\nRESUMEN: {c[PASS]} PASS · {c[FAIL]} FAIL · {c[SKIP]} SKIP")

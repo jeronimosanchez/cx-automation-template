@@ -183,19 +183,43 @@ alta un proyecto incompatibles entre sí.
 
 **Flujo real, hoy:**
 
+Partido en dos tablas el 2026-08-08, con S24. *Por qué:* la tabla de seis
+filas seguidas era correcta cuando había un agente por repositorio —
+entonces todo se hacía una vez—. Con el repositorio del proyecto, tres de
+esas filas se repiten por cada agente y cuatro no, y leerlas seguidas hace
+pensar que hay que rehacer el vínculo cada vez que aparece un agente nuevo.
+
+**Por proyecto — una vez en la vida**
+
 | # | Dónde | Acción |
 |---|---|---|
-| 1 | Dialogflow CX | Crear el agente (manual, no se automatiza) |
-| 2 | Dialogflow CX | Crear el entorno de **producción** (manual, a propósito — ver por qué abajo) |
-| 3 | Panel · pestaña Proyectos | Wizard: **ID de agente + URL de repo** → el servidor crea la estructura, el `cx-deploy.yaml` (S23), registra el mapeo en Firestore (S4) y hace el `pull` inicial (S22) |
-| 4 | Local | Ejecutar el comando IAM que muestra el wizard (S6b) |
-| 5 | Local | `git pull` — el servidor ya escribió en GitHub |
-| 6 | Panel | Pipeline listo |
+| 1 | GCP | Crear el proyecto |
+| 2 | GitHub | Crear el repositorio con su rama principal |
+| 3 | Panel · Tool | **Vincular proyecto y repositorio**: proyecto + URL (S22) |
+| 4 | Terminal | Ejecutar el comando IAM que muestra el panel (S6b) |
 
-**El entorno de producción no se crea automáticamente** (paso 2), y esto
-no cambió con S22/S23. *Por qué:* el panel es para desplegar, no para
-crear infraestructura — y crearlo sería una escritura en el agente fuera
-de todos los gates.
+**Por agente — una vez cada uno**
+
+| # | Dónde | Acción |
+|---|---|---|
+| 5 | Dialogflow CX | Crear el agente (manual, no se automatiza) |
+| 6 | Dialogflow CX | Crear su entorno de **producción** (manual, a propósito — ver por qué abajo) |
+| 7 | Panel · Paso 1 | Elegir el agente y pulsar **Dar de alta** — le crea su rama de trabajo (S24) |
+
+Los agentes hermanos **heredan el repositorio y el permiso IAM del
+proyecto**: no repiten nada del bloque de arriba. Y traer lo que ya exista
+en CX es el Paso 2 del pipeline normal, no un mecanismo aparte.
+
+**La GitHub App no es un paso.** Está instalada en todos los repositorios
+de la cuenta, actuales y futuros (§14): un repositorio nuevo es accesible
+sin configurar nada. Si el acceso fallara, lo detecta el primer paso de
+vincular —leer la rama principal— antes de escribir nada.
+
+**El entorno de producción no se crea automáticamente** (paso 6), y esto
+no cambió con S22 ni con S24. *Por qué:* el panel es para desplegar, no
+para crear infraestructura — y crearlo sería una escritura en el agente
+fuera de todos los gates. Lo que sí cambió: **el Paso 1 avisa si falta**,
+en vez de dejar que se descubra en el Paso 5 con el agente ya escrito.
 
 ---
 
@@ -309,7 +333,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S1c** | El servidor acepta `project` y `agent` del panel | Con S1 y C3, el servidor nunca acepta un `repo` del cliente — siempre lo deriva fresco desde Firestore a partir de `agent` (S4), así que un `repo` desincronizado es estructuralmente imposible. Un `project`/`agent` erróneo falla en la propia llamada a CX si esa combinación no existe. **Riesgo residual aceptado** (revisado 2026-08-05, tras quitar el candado de §2): si el `project`/`agent` erróneos apuntan por coincidencia a un agente real que sí existe ahí, nada lo detecta antes de aplicar — mismo riesgo que S1b, mismo motivo para aceptarlo | ✅ |
 | **C3** | El servidor **construye todas las URLs** desde `project`/`agent`. Nunca acepta rutas del panel | Hoy `cx_client.py:108` acepta URLs completas del cliente: podría apuntar a otro agente, otro proyecto o un host externo | ✅ |
 | **S2** | El campo de `agent.yaml` se llama **`agent_id`**, no `agent` | Con `agent` el código no lo encuentra, el Paso 3 devuelve OK con cero operaciones y el deploy no aplica nada sin avisar | ✅ |
-| ~~S3~~ | ~~El panel tiene dos pestañas: Deploy (por defecto) y Proyectos (onboarding y sincronización)~~ | **Sustituida (2026-08-06), durante el maquetado del panel.** Una sola pantalla, sin pestañas: el pipeline de 5 pasos ocupa el área principal, y una sección **"Tools"** al pie del sidebar (~25% de su altura, con espacio para crecer) reúne las acciones sueltas que no son parte del flujo secuencial — el wizard de onboarding (S22, vincular agente↔repositorio) y desplegar un resource suelto (S20). Más simple que mantener dos pestañas separadas para dos pantallas que en la práctica se usan poco | ❌ |
+| ~~S3~~ | ~~El panel tiene dos pestañas: Deploy (por defecto) y Proyectos (onboarding y sincronización)~~ | **Sustituida (2026-08-06), durante el maquetado del panel.** Una sola pantalla, sin pestañas: el pipeline de 5 pasos ocupa el área principal, y una sección **"Tools"** al pie del sidebar (~25% de su altura, con espacio para crecer) reúne las acciones sueltas que no son parte del flujo secuencial — el wizard de onboarding (S22, hoy «vincular proyecto y repositorio») y desplegar un resource suelto (S20, **retirada 2026-08-08** — hoy las Tools son una sola). Más simple que mantener dos pestañas separadas para dos pantallas que en la práctica se usan poco | ❌ |
 | ~~S4~~ | ~~El mapeo agente→repo vive en Firestore~~ | **Sustituida por S24 (§15, 2026-08-08).** Un proyecto puede tener varios agentes relacionados y con un repositorio por agente esa relación quedaba partida en repositorios sueltos. La región y la autodetección de S4 siguen vigentes; lo que cambia es de quién es el repositorio | ❌ |
 | **S5** | Leer los YAML con **Git Trees API `recursive=1`**, no Contents API | Contents API solo devuelve el primer nivel; `definitions/examples/` tiene 4 subdirectorios | ✅ |
 | **S6** | Paso 8: **merge directo de ramas por API**, no `gh pr merge` | Solo necesita `contents:write`, que la GitHub App ya tiene. Sin permiso nuevo | ✅ |
@@ -324,7 +348,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S13** | **Todos** los endpoints que escriben en CX pasan por el lock, sin excepción | `/versions/protect` y `/cx-repo-check` lo saltaban: se podía renombrar una versión mientras el Paso 5 la rotaba | ✅ |
 | **S13b** | El lock vive en **Firestore**, no `threading.Lock` | `threading.Lock` es por proceso: con más de una instancia no protege nada | ✅ |
 | ~~S14~~ | ~~Nombres de carpeta como convención fija~~ | **Sustituida por S19** — la estructura es libre y el tipo lo declara el propio YAML | ❌ |
-| **S15** | **13 tipos built-in** (verificado 2026-08-06 contra el discovery document real de la API — eran 12 conocidos + Transition Route Groups, que cuelga de Flow igual que Pages y es un recurso de definición real, no algo exótico). Los **tipos adicionales de verdad exóticos se declaran en `cx-deploy.yaml`** con su endpoint | CX tiene más tipos que los 13 actuales — voz, NLU, telefonía. El sistema debe cubrirlos sin reescribirse | ✅ |
+| **S15** | **13 tipos built-in** (verificado 2026-08-06 contra el discovery document real de la API — eran 12 conocidos + Transition Route Groups, que cuelga de Flow igual que Pages y es un recurso de definición real, no algo exótico). ~~Los tipos adicionales de verdad exóticos se declaran en `cx-deploy.yaml` con su endpoint~~ — **el dónde queda abierto desde el 2026-08-08**: `cx-deploy.yaml` se retiró (S23) porque nadie lo leía, así que esta parte de S15 se quedó sin sitio. La decisión de fondo —que un tipo nuevo no obligue a reescribir el sistema— sigue en pie; **falta decidir dónde se declara**. No se resuelve aquí a propósito: recrear el archivo solo para esto sería reabrir el motivo por el que se retiró. Cuando haga falta un tipo exótico de verdad, se decide entonces, con el caso concreto delante y con quien lo vaya a leer | CX tiene más tipos que los 13 actuales — voz, NLU, telefonía. El sistema debe cubrirlos sin reescribirse | ✅ |
 | **S15b** | Cada tipo nuevo exige **medir si acepta `updateMask` o requiere Full Update** — y esto también aplica **por región**, no solo por tipo (añadido 2026-08-06, ligado a S4): el bug de `CLAUDE.md §3.8` está documentado específicamente para `europe-west1`, nunca verificado en otras regiones. Un proyecto nuevo en otra región no puede asumir el mismo comportamiento — hay que remedirlo la primera vez, no copiar el resultado de Petal | CLAUDE.md §3.8: varía por recurso y solo se sabe midiendo contra la API real | ✅ |
 | **S16** | La pestaña Proyectos guía el discovery de un tipo nuevo: endpoint, campos, comportamiento POST/PATCH. Una vez por tipo | Flexibilidad y cobertura para cualquier proyecto futuro | ✅ |
 | **H4** | El Paso 5 versiona **solo los recursos que el diff tocó** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ✅ **hay que construirlo** |
@@ -350,10 +374,10 @@ Acordadas el 2026-08-04, después de §10. **Sustituyen a S7 y S14.**
 | **S17** | Renombrar "artefactos" → **"resources"** en todo el sistema | Es el término oficial de la API de CX | ✅ |
 | **S18** | Cada YAML lleva **metadata: tipo, padre y `cx_id`**. El servidor escribe el `cx_id` al subirlo por primera vez | La correspondencia repo↔CX pasa a ser por `cx_id`, no por nombre de archivo ni por carpeta | ✅ |
 | **S19** | **La estructura de carpetas es libre.** El servidor la ignora — va por `cx_id` | Resuelve la contradicción entre S7 y S14 | ✅ |
-| **S20** | El servidor puede **desplegar un resource concreto** bajo demanda leyendo su `cx_id`, vía `POST /deploy-resource` con body `{project, agent, tipo, cx_id}` — el resto (contenido, comparación) se recalcula en fresco del repo y CX en ese momento, como el Paso 2/3. Pasa por el lock (S13) y el log de auditoría (S12), sin excepción. Revisado 2026-08-05 (ronda adversarial): el código de este endpoint **no tiene ninguna forma de construir una URL con `/environments/`** — solo sabe llamar a `.../{tipo}/{cx_id}` (borrador). No es que la API lo impida por su naturaleza (sin verificar); es que el endpoint no aprendió a escribir esa URL, así que no puede alcanzar producción aunque se le pida | Permite iterar rápido sin pasar por el pipeline completo | ✅ |
+| ~~**S20**~~ | ~~El servidor puede **desplegar un resource concreto** bajo demanda leyendo su `cx_id`, vía `POST /deploy-resource`…~~ | **Retirada (2026-08-08), por decisión de Jero tras usarla.** Daba más problemas que soluciones: escribía en CX saltándose el diff y, si el `cx_id` no estaba en el agente, lo creaba y después pisaba el id del archivo con el que CX acababa de asignar — un id mal copiado no daba error, dejaba un resource de más. Usarla con seguridad exigía selector de agente propio, prohibirle crear y confirmación en dos tiempos: tres parches para una pantalla que se usa poco. El camino que la sustituye ya existía: aplicar el cambio en CX a mano y recorrer el pipeline. **El Paso 3 pasa a ser el único que escribe resources en CX** | ❌ |
 | ~~S21~~ | ~~Templates YAML en `/templates` dentro de la imagen Docker~~ | **Sustituida (2026-08-05)** — sin plantillas estáticas guardadas. Para un recurso nuevo, se pide la información necesaria y se construye el YAML directamente (el LLM ya conoce la forma de cada tipo). Para un proyecto nuevo con repo vacío, Jero copia un YAML real de otro repo a mano. Evita el coste de "cambiar un template exige reconstruir la imagen" (§12) — no hay nada que reconstruir porque no hay plantilla guardada. Cierra también la duda de S21 vs `CLAUDE.md §6`: sin la capacidad de "desplegar sin intervención manual" en la definición, no hay conflicto que resolver | ❌ |
-| **S22** | **Wizard de onboarding** en la pestaña Proyectos: ID de agente + URL de repo → el servidor crea la estructura, muestra el comando IAM, registra en Firestore y hace el `pull` inicial | Reduce el onboarding a dos datos y un comando manual | ✅ |
-| **S23** | `cx-deploy.yaml` lo **crea el servidor** en el paso 3 del wizard | Marcador que identifica el repo como proyecto CX. Jero no lo toca | ✅ |
+| **S22** | **Vincular proyecto y repositorio**: proyecto GCP + URL de repo → el servidor comprueba que llega al repositorio, registra el vínculo y devuelve el comando IAM. **Sin agente, sin detección de región y sin pull inicial** (revisada 2026-08-08 con S24). El repositorio es del proyecto: los agentes se dan de alta uno a uno desde el Paso 1, con su botón, la primera vez que se eligen. Traer lo que ya existe en CX es el Paso 2 del pipeline normal — tener dos caminos para lo mismo era el problema. El permiso IAM es de proyecto, así que se concede una vez aquí y cubre a todos sus agentes, también los futuros | Reduce el onboarding de proyecto a dos datos y un comando manual | ✅ |
+| ~~**S23**~~ | ~~`cx-deploy.yaml` lo **crea el servidor** en el paso 3 del wizard~~ | **Retirada (2026-08-08).** Se escribía y **no lo leía nadie**: verificado sobre el código, ningún camino lo abre. Encima el Paso 1 lo contaba como un YAML más del repositorio, ensuciando sus cifras. Con esto, **vincular no escribe nada dentro del repositorio**: lo lee para comprobar que llega, y apunta la correspondencia donde se consulta. Si algún día hace falta declarar algo por repositorio, el archivo se crea entonces, junto con quien lo lea | ❌ |
 
 ---
 
@@ -429,9 +453,11 @@ recorre todos los flows, todos los playbooks y todos los tools referenciados
 para lo que cambió y la existente para lo que no (Regla 16 exige la cadena
 completa).
 
-**El servidor escribe en el repo de forma sistemática.** `agent.yaml`, el
-`cx_id` de cada resource nuevo, los artefactos del `pull`, la estructura del
-wizard y el `cx-deploy.yaml`. El flujo unidireccional de §2 queda anulado, y
+**El servidor escribe en el repo de forma sistemática.** El `cx_id` de cada
+resource nuevo, los archivos del `pull` (Paso 2) y la rama de trabajo de cada
+agente al darlo de alta. Ya no escribe `cx-deploy.yaml` (S23 retirada) ni
+ninguna estructura al vincular: **vincular un proyecto no escribe nada dentro
+del repositorio**. El flujo unidireccional de §2 queda anulado igualmente, y
 con S18 un deploy deja de ser de solo lectura hacia GitHub. El aviso de
 hacer `git pull` es parte del funcionamiento normal, no una excepción.
 
@@ -482,8 +508,7 @@ acompañarlo siempre de `project` + `agent_id`.
 ## 13. Dudas abiertas
 
 Quedaba una, cerrada el 2026-08-05. Las otras tres se resolvieron el mismo día
-(ver S20 en §10, S21 sustituida en §11) tras validar el mecanismo contra CX
-real con Petal.
+(S21 sustituida en §11) tras validar el mecanismo contra CX real con Petal.
 
 1. ~~S21 y CLAUDE.md §6~~ — **cerrada.** Al sustituir S21 (sin plantillas
    estáticas, sin capacidad de "desplegar sin intervención manual"), el
@@ -498,10 +523,10 @@ real con Petal.
    `cx_id` (ver §12). Verificado trayendo 18 resources reales de Petal que
    solo existían en CX.
 
-3. ~~¿S20 se acota a draft?~~ — **cerrada** (ver S20, §10). Con el modelo de
-   5 pasos, solo el Paso 5 (Publicar) toca producción — S20 usa el mismo
-   mecanismo que el Paso 3, así que cae en el borrador por construcción, sin
-   necesitar una regla aparte.
+3. ~~¿S20 se acota a draft?~~ — **sin objeto desde el 2026-08-08**: S20 se
+   retiró. La garantía que preocupaba sigue en pie y ahora es más simple de
+   sostener: **el Paso 3 es el único que escribe resources en CX**, y solo el
+   Paso 5 toca producción. No hay ninguna otra vía que pudiera acotarse mal.
 
 4. ~~Alcance de S17~~ — **cerrada (2026-08-05).** "Resources" en todas
    partes: texto de cara al usuario, identificadores en el código y campos
@@ -578,6 +603,34 @@ pueden estar en regiones distintas — la API declara 17.
 la principal. Con una rama compartida, publicar un agente arrastraría a la
 principal todo lo que sus hermanos tuvieran sin publicar. Se comparte el
 repositorio y su rama principal, no el trabajo en curso de cada uno.
+
+### De dónde sale esa rama: el alta del agente
+
+La rama de trabajo no está en CX y nadie puede deducirla, así que hay que
+crearla. Lo hace **un botón del Paso 1**, no el propio inventario, la primera
+vez que se elige cada agente: enseña el nombre que propone —`agente/<slug>`— y
+hasta pulsarlo no existe nada.
+
+**Por qué un botón y no automático:** crear una rama es escribir en el
+repositorio, y el desplegable del Paso 1 lista *todos* los agentes del proyecto
+en todas las regiones, incluidos los que nadie piensa gestionar. Con alta
+automática, pinchar la fila de al lado dejaría una rama permanente que ve todo
+el equipo. La spec 1.2 dice que el agente se elige en el Paso 1 «porque es la
+única pantalla que no escribe nada: equivocarse aquí no cuesta» — esa frase es
+el motivo de que la elección esté ahí, y con el botón sigue siendo literal: el
+Paso 1 no escribe; escribe el botón.
+
+Dos guardarraíles, los dos antes de salir a la red: la rama de trabajo **no
+puede ser la principal** (si lo fuera, el Paso 2 escribiría en la rama que se
+publica y el Paso 5 fusionaría una rama consigo misma, un no-op permanente), y
+**dos agentes no pueden compartir rama** (dos con el mismo `displayName`
+proponen el mismo nombre, y crear una rama es idempotente: se la repartirían en
+silencio).
+
+**La región ya no se detecta barriendo.** Viene con el listado de agentes
+—listarlos obliga a recorrer las regiones de todos modos— y al dar de alta se
+comprueba con una sola petición. El barrido de las 17 regiones queda solo como
+respaldo, si esa comprobación falla.
 
 ### La clave de emparejamiento pasa a ser `agente` + `tipo` + `cx_id`
 
