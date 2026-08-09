@@ -318,7 +318,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="grupo-desc" style="margin-top:8px;color:var(--gate)">Para que cuenten en alg&uacute;n agente, escribe <code>agente</code> en su cabecera.</div>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">48 resources en total &middot; le&iacute;dos de <code>staging</code> &middot; commit <code>98fcbdd</code> &middot; <span style="color:var(--gate)">2 sin agente asignado</span></div>
+        <div id="aviso-sin-entorno" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
+          <strong style="color:var(--gate)">&#9888; Este agente no tiene entorno de producci&oacute;n.</strong><br>
+          <span style="color:var(--text-2)">El Paso 5 publica apuntando el entorno <code>production</code> a las versiones nuevas; sin &eacute;l no hay d&oacute;nde publicar. Cr&eacute;alo en la consola de Dialogflow CX &mdash; el panel despliega, no crea infraestructura.</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:20px">48 resources en total &middot; le&iacute;dos de <code>staging</code> &middot; commit <code>98fcbdd</code> &middot; <span style="color:var(--gate)">2 sin agente asignado</span><span id="resumen-sin-entorno" style="display:none;color:var(--gate)"> &middot; sin entorno de producci&oacute;n</span></div>
         <div class="action-bar re-ejecuta">
           <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
         </div>
@@ -660,7 +664,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- TOOL: Vincular proyecto y repositorio (S22/S24) — una vez por proyecto -->
     <div class="step-view" id="view-tool-onboarding">
-      <div class="phase-eyebrow">Tool &middot; fuera del pipeline<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
+      <div class="phase-eyebrow">Tool &middot; fuera del pipeline<span class="escribe-badge read">solo lectura</span></div>
       <div class="phase-title">Vincular proyecto y repositorio</div>
       <div class="phase-sub">
         Solo hace falta una vez por proyecto. El repositorio lo creas t&uacute;; aqu&iacute; se le dice al sistema cu&aacute;l es. Los agentes de ese proyecto se dan de alta despu&eacute;s, uno a uno, desde el Paso 1.
@@ -792,6 +796,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <p>Un destino fijado (proyecto, agente, repositorio, rama), que ya no se toca y reaparece en la barra superior y en los pasos 3, 4 y 5.</p>
           <p>Un reparto en tres grupos: «solo en CX» pasa al Paso 2, «solo en el repositorio» se convierte en creación en el Paso 3, y los emparejados que difieren se convierten en modificación en el Paso 3.</p>
           <p>Y la referencia exacta —rama y commit— de lo leído. Nada llega al Paso 2 hasta pulsar Continuar.</p>
+          <p>Y una advertencia si al agente le falta el entorno de producción: se detecta aquí, que es donde todavía no cuesta nada, en vez de en el Paso 5, que es donde impide publicar después de haber escrito ya en el agente.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">1.4 — Qué escribe y dónde</div>
@@ -840,7 +845,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="mecanica-header" style="font-size:12px;font-weight:700;color:var(--text);margin:4px 0 8px">T.1 — Vincular proyecto y repositorio (S22/S24)</div>
         <div class="spec-block">
           <div class="spec-block-label">T.1.1 — Qué hace</div>
-          <p>Formulario de una sola pantalla: proyecto GCP y URL del repositorio. Al pulsar <strong>Vincular</strong>, el servidor comprueba que llega al repositorio (leyendo su rama principal antes de escribir nada) y registra el vínculo en su propio almacén.</p>
+          <p>Formulario de una sola pantalla: proyecto GCP y URL del repositorio. Al pulsar <strong>Vincular</strong>, el servidor comprueba que llega al repositorio y registra el vínculo. No escribe nada dentro del repositorio.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">T.1.2 — Por qué existe</div>
@@ -848,11 +853,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="spec-block">
           <div class="spec-block-label">T.1.3 — Qué produce</div>
-          <p>El vínculo proyecto→repositorio en el registro del servidor, y el comando <code>gcloud</code> que hay que ejecutar una vez, a mano, para conceder IAM.</p>
+          <p>El vínculo proyecto→repositorio y el comando <code>gcloud</code> que hay que ejecutar una vez, a mano.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">T.1.4 — Qué escribe y dónde</div>
-          <p>Nada en el repositorio — vincular no escribe ningún archivo, solo lee la rama principal para confirmar acceso. Lo único que se escribe es el vínculo en el registro del proyecto. <strong>Nunca concede IAM por su cuenta</strong> (S6b). El permiso IAM es de proyecto, no de agente: se concede una vez aquí y cubre a todos los agentes que vivan dentro, también a los que se creen después.</p>
+          <p>Solo en el registro del proyecto. En el repositorio no escribe nada: leerlo, para comprobar que llega, es todo lo que hace con él. <strong>Nunca concede IAM por su cuenta</strong> (S6b). El permiso IAM es de proyecto, no de agente: se concede una vez aquí y cubre a todos los agentes que vivan dentro, también a los que se creen después.</p>
         </div>
         <div class="spec-block">
           <div class="spec-block-label">T.1.5 — Región detectada automáticamente</div>
@@ -884,7 +889,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           10. La tarjeta «sin agente asignado» aparece igual sin importar qué agente esté elegido — el sistema no sabe de quién es el archivo, así que avisa siempre, no solo cuando coincide con el agente activo.<br>
           11. Un archivo nunca está en dos tarjetas a la vez: emparejado, solo en CX, solo en el repositorio y sin agente asignado son categorías excluyentes.<br>
           12. Un agente sin rama de trabajo no bloquea el paso en silencio: se dice que le falta, se enseña el nombre que se le propone antes de crearlo, y hasta pulsar el botón no existe ninguna rama nueva. Cambiar de agente sin pulsarlo no deja nada.<br>
-          13. Los dos avisos de la caja del destino no se confunden: al proyecto le falta el repositorio (remite a la herramienta) o al agente le falta la rama (se resuelve aquí).</p>
+          13. Los dos avisos de la caja del destino no se confunden: al proyecto le falta el repositorio (remite a la herramienta) o al agente le falta la rama (se resuelve aquí).<br>
+          14. Si al agente le falta el entorno de producción, el Paso 1 lo dice y deja seguir: los cuatro primeros pasos no lo necesitan, solo publicar. Y lo dice en el mismo sitio donde se elige el agente, no cinco pasos después.</p>
         </div>
       </div>
       </div>
@@ -1217,6 +1223,14 @@ const REGION_POR_AGENTE = {
   'petal-voz': 'europe-west1',
 };
 
+// Campo real que devuelve el Paso 1 (tiene_entorno_produccion). Se detecta
+// aquí, donde todavía no cuesta nada, en vez de en el Paso 5, que es donde
+// impide publicar después de haber escrito ya en el agente.
+const TIENE_ENTORNO_PRODUCCION_POR_AGENTE = {
+  'petal-1.0': true,
+  'petal-voz': false,
+};
+
 // Cada agente tiene su propia dirección en la consola de CX. La genérica solo
 // se usa mientras no hay ninguno elegido.
 const URL_CONSOLA_CX = 'https://dialogflow.cloud.google.com/cx/projects/floristeria-petal-digital/locations/europe-west1/agents';
@@ -1327,6 +1341,10 @@ function startInventory() {
     if(i >= INV_LINES.length) {
       setTimeout(() => {
         document.getElementById('inv-done').style.display = 'block';
+        const agent = document.getElementById('agent-select').value;
+        const faltaEntorno = TIENE_ENTORNO_PRODUCCION_POR_AGENTE[agent] === false;
+        document.getElementById('aviso-sin-entorno').style.display = faltaEntorno ? 'block' : 'none';
+        document.getElementById('resumen-sin-entorno').style.display = faltaEntorno ? 'inline' : 'none';
         setRunning(false);
       }, 300);
       return;
@@ -1913,8 +1931,8 @@ function cerrarTool() {
 }
 
 const TOOL_ONBOARDING_LOG_LINES = [
-  { text: '✓ acceso al repositorio confirmado', cls: 'ok' },
-  { text: '✓ repositorio registrado', cls: 'ok' },
+  { text: '✓ acceso al repositorio', cls: 'ok' },
+  { text: '✓ repositorio del proyecto registrado', cls: 'ok' },
 ];
 
 function copiarComandoIam(btn) {
