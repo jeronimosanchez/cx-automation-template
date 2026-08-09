@@ -55,7 +55,7 @@ Esto cubre el código. La infraestructura en la nube (agente CX, ramas, document
 
 **Fase 6 — `act/validate_server_cloudrun.py`:** smoke test del servidor, contra el agente desechable que tú creaste. Las 13 reglas están en el playbook.
 
-**Sobre el `GITHUB_APP_ID`:** [Jero lo rellena aquí antes de lanzar la tarea, o dice dónde encontrarlo]
+**`GITHUB_APP_ID`: `4474347`** (App `act-cloudrun-deploy`, documentado en `docs/cloudrun_diseno_servidor.md` §14).
 
 ---
 
