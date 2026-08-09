@@ -2,7 +2,7 @@
 
 **Para quién es este documento:** una sesión nueva de Opus, sin memoria de las sesiones anteriores, que va a ejecutar la construcción real del pipeline de deploy en Cloud Run. No has visto nada de lo que llevó a este punto — este documento te da el contexto mínimo necesario para empezar bien, sin adivinar nada.
 
-**Estado:** listo para ejecutar. La metodología está terminada y revisada a fondo (ver §5). No existe todavía ninguna línea de código del pipeline Cloud Run — solo el plan de cómo construirlo.
+**Estado (actualizado 2026-08-10):** las Fases 1 a 4 ya están construidas y probadas contra un agente CX real y desechable — `act/act_cx_resources_deploy_cloudrun.py` (el pipeline de 5 pasos + 4 capacidades sueltas) y `act/validate_pipeline_cloudrun.py` (la suite de niveles 0 a 4). No arrancas de cero: antes de nada, lee el código real de esos dos archivos, no asumas que no existe. Queda por construir desde la **Fase 5** en adelante — el servidor (`server_cloudrun.py`), su validación, el panel conectado de verdad, y la validación de extremo a extremo. La metodología sigue terminada y revisada a fondo (ver §5).
 
 ---
 
