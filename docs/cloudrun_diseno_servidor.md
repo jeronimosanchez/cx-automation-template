@@ -2,7 +2,7 @@
 
 **Qué es:** el diseño del servicio que sustituye a `act/server.py` y pasa el pipeline ACT de correr en el Mac de Jero a correr en Cloud Run, con soporte multi-repo y multi-agente.
 
-**Estado:** §3 y §4 están al día con el pipeline de **cinco pasos**. Las decisiones de §2, §10 y §11 se tomaron cuando eran ocho y hay que leerlas con esa reserva. Sigue abierto lo de §8: el diseño no cubre el modelo de confianza entre panel y servidor.
+**Estado:** §3 y §4 están al día con el pipeline de **cinco pasos**. Las decisiones de §2, §10 y §11 se tomaron cuando eran ocho y hay que leerlas con esa reserva. Los 14 hallazgos y decisiones de §8 ya están todos resueltos.
 
 **Fecha:** 2026-08-03 · **Rama:** `build/intento-2`
 
@@ -137,7 +137,7 @@ contra los cinco actuales.
 | **1 · Inventario** | Averiguar qué repositorio corresponde al agente elegido, leer el agente entero, leer el repositorio entero y emparejar cada resource con su archivo | Nada |
 | **2 · Traer al repositorio** | Escribir en el repositorio los resources que solo están en el agente | Archivos y un commit en la rama de trabajo |
 | **3 · Aplicar en CX** | Crear, modificar y eliminar en el **borrador** del agente lo que se haya marcado | El borrador del agente |
-| **4 · Validar tests** | **Nada.** El panel no lanza las pruebas ni conoce su resultado: solo registra lo que declara quien lo usa | Nada |
+| **4 · Validar tests** | **Nada.** El panel no lanza las pruebas ni conoce su resultado: solo registra lo que declara quien lo usa | Un registro en Firestore (lo declarado y la huella del borrador) — nada en CX ni en GitHub, pero es lo que hace posible el candado del Paso 5 |
 | **5 · Publicar** | Fusionar la rama de trabajo en la principal, crear la versión y apuntar producción a ella | La rama principal del repositorio y el entorno de producción |
 
 Además, tres cosas que no pertenecen a ningún paso:
@@ -315,7 +315,7 @@ pendientes · **Resuelto** = cerrado, listo para redactar.
 | **H4** | El Paso 5 puede pasar de 60 minutos | ✅ | Versionar solo lo que el diff tocó — **construido y probado (2026-08-09)**: `_padres_versionables` traduce cada pendiente a su contenedor y `_crear_versiones` solo versiona esos, no el agente entero |
 | **X1** | `x-goog-user-project` exige `serviceusage.services.use` | ✅ | S10 + S6b — permiso manual, el panel muestra el comando |
 
-**13 resueltos · 1 pendiente de matizar (H4).**
+**14 resueltos.**
 
 **Cuando los 14 estén resueltos, se lanza una segunda ronda de adversariales** antes de redactar la Fase 5.
 
@@ -353,7 +353,7 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S16** | La pestaña Proyectos guía el discovery de un tipo nuevo: endpoint, campos, comportamiento POST/PATCH. Una vez por tipo | Flexibilidad y cobertura para cualquier proyecto futuro | ✅ |
 | **H4** | El Paso 5 versiona **solo los recursos que el diff tocó** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ✅ construido y probado (2026-08-09) |
 
-### 10.1 Los cuatro puntos abiertos
+### 10.1 Los tres puntos abiertos
 
 **H4 — construido y probado (2026-08-09).** Ya no aplica a `create_versions_for_snapshot` (`:978`), que era del pipeline local de 8 pasos y recorría todos los flows, playbooks y tools referenciados sin distinguir qué tocó el diff. El pipeline de Cloud Run (`act_cx_resources_deploy_cloudrun.py`) nace directamente con el patrón correcto: `_padres_versionables` traduce cada pendiente a su contenedor, y `_crear_versiones` solo versiona esos — nunca el agente entero. El entorno fija versión nueva para lo que cambió y la existente para lo que no (`_combinar_versiones`, cumple la Regla 16), y el rollback sigue funcionando porque `previous_versions` registra lo que estaba fijado antes de publicar.
 
