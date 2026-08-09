@@ -312,7 +312,7 @@ pendientes · **Resuelto** = cerrado, listo para redactar.
 | **H1** | Dos repos pueden reclamar el mismo agente | ✅ | S4 — mapeo agente→repo en Firestore |
 | **H2** | El `pull` no sabe dónde escribir un recurso nuevo | ✅ | S7 + S14 — carpeta = tipo (fija), nombre desde `displayName` |
 | **H3** | Perder `previous_versions` impide el rollback | ✅ | S8 |
-| **H4** | El Paso 5 puede pasar de 60 minutos | ⏸ | Versionar solo lo que el diff tocó — **hoy versiona todo, hay que construirlo** |
+| **H4** | El Paso 5 puede pasar de 60 minutos | ✅ | Versionar solo lo que el diff tocó — **construido y probado (2026-08-09)**: `_padres_versionables` traduce cada pendiente a su contenedor y `_crear_versiones` solo versiona esos, no el agente entero |
 | **X1** | `x-goog-user-project` exige `serviceusage.services.use` | ✅ | S10 + S6b — permiso manual, el panel muestra el comando |
 
 **13 resueltos · 1 pendiente de matizar (H4).**
@@ -351,11 +351,11 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S15** | **13 tipos built-in** (verificado 2026-08-06 contra el discovery document real de la API — eran 12 conocidos + Transition Route Groups, que cuelga de Flow igual que Pages y es un recurso de definición real, no algo exótico). ~~Los tipos adicionales de verdad exóticos se declaran en `cx-deploy.yaml` con su endpoint~~ — **el dónde queda abierto desde el 2026-08-08**: `cx-deploy.yaml` se retiró (S23) porque nadie lo leía, así que esta parte de S15 se quedó sin sitio. La decisión de fondo —que un tipo nuevo no obligue a reescribir el sistema— sigue en pie; **falta decidir dónde se declara**. No se resuelve aquí a propósito: recrear el archivo solo para esto sería reabrir el motivo por el que se retiró. Cuando haga falta un tipo exótico de verdad, se decide entonces, con el caso concreto delante y con quien lo vaya a leer | CX tiene más tipos que los 13 actuales — voz, NLU, telefonía. El sistema debe cubrirlos sin reescribirse | ✅ |
 | **S15b** | Cada tipo nuevo exige **medir si acepta `updateMask` o requiere Full Update** — y esto también aplica **por región**, no solo por tipo (añadido 2026-08-06, ligado a S4): el bug de `CLAUDE.md §3.8` está documentado específicamente para `europe-west1`, nunca verificado en otras regiones. Un proyecto nuevo en otra región no puede asumir el mismo comportamiento — hay que remedirlo la primera vez, no copiar el resultado de Petal | CLAUDE.md §3.8: varía por recurso y solo se sabe midiendo contra la API real | ✅ |
 | **S16** | La pestaña Proyectos guía el discovery de un tipo nuevo: endpoint, campos, comportamiento POST/PATCH. Una vez por tipo | Flexibilidad y cobertura para cualquier proyecto futuro | ✅ |
-| **H4** | El Paso 5 versiona **solo los recursos que el diff tocó** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ✅ **hay que construirlo** |
+| **H4** | El Paso 5 versiona **solo los recursos que el diff tocó** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ✅ construido y probado (2026-08-09) |
 
 ### 10.1 Los cuatro puntos abiertos
 
-**H4 — hay que construirlo, hoy no es así.** Verificado: `create_versions_for_snapshot` (`:978`) recorre **todos** los flows, **todos** los playbooks y **todos** los tools referenciados, no los que tocó el diff. Beneficio extra no previsto: hoy cada deploy quema un hueco de versión en los 10 playbooks contra un límite de 20. Al construirlo, el entorno debe fijar **versión nueva para lo que cambió y la existente para lo que no** (Regla 16 exige la cadena completa) — el snapshot deja de ser una foto atómica, pero el rollback sigue funcionando porque `previous_versions` registra lo que estaba fijado.
+**H4 — construido y probado (2026-08-09).** Ya no aplica a `create_versions_for_snapshot` (`:978`), que era del pipeline local de 8 pasos y recorría todos los flows, playbooks y tools referenciados sin distinguir qué tocó el diff. El pipeline de Cloud Run (`act_cx_resources_deploy_cloudrun.py`) nace directamente con el patrón correcto: `_padres_versionables` traduce cada pendiente a su contenedor, y `_crear_versiones` solo versiona esos — nunca el agente entero. El entorno fija versión nueva para lo que cambió y la existente para lo que no (`_combinar_versiones`, cumple la Regla 16), y el rollback sigue funcionando porque `previous_versions` registra lo que estaba fijado antes de publicar.
 
 **S1b — el supuesto no se sostiene.** "No puede haber cambios en CX entre el Paso 3 y el Paso 4" falla por dos vías: editar el agente directamente en la consola de CX (el caso normal, es por lo que existe la comprobación de deriva) y el tiempo, porque el flujo declarado de Jero es quedarse en el Paso 4 acumulando cambios en draft. Consecuencia acotada —sin DELETE automático, lo peor es un POST o PATCH no revisado— pero rompe el gate por el otro lado. Comparar cuesta casi nada: el servidor ya tiene las dos listas.
 
@@ -386,22 +386,20 @@ Acordadas el 2026-08-04, después de §10. **Sustituyen a S7 y S14.**
 No son decisiones pendientes: son consecuencias de lo acordado que hay que
 tener delante al construir.
 
-**Fallo parcial: Paso 3 lo hereda bien, Paso 5 necesita el mismo patrón
-que le falta** (hallazgo de la ronda adversarial, corregido 2026-08-06,
-verificado contra el código real). El Paso 3 hereda tal cual
-`step_4_deploy` (`act_cx_resources_deploy.py:1268-1290`): cada operación
-queda con su resultado (`OK`/`ERROR`/`NO_INTENTADO`), se para en el
-primer fallo, y hay un modo para reintentar solo lo pendiente
-(`only_pending`) sin repetir lo que ya salió bien. **El Paso 5, en la
-parte de crear versiones, no puede heredar el código actual tal cual** —
-`create_versions_for_snapshot` (`:978`) es un bucle simple que crea
-versiones una a una y, si falla a mitad, lanza el error y para: las
-versiones ya creadas antes se quedan huérfanas, sin registrar ni limpiar.
-El servidor nuevo debe aplicar en esa parte **el mismo patrón que ya
-funciona en el Paso 3** — registrar cada versión creada con su resultado,
-parar en el primer fallo, dejar claro qué se creó. El resto del Paso 5
+**El Paso 5 ya nace con el patrón correcto — construido y probado
+(2026-08-09), no heredado del pipeline local.** El hallazgo original (ronda
+adversarial, 2026-08-06) señalaba que `create_versions_for_snapshot`
+(`act_cx_resources_deploy.py:978`, pipeline local de 8 pasos) era un bucle
+simple sin registro de resultado por operación, a diferencia de `step_4_deploy`
+(`:1268-1290`), que sí lleva cada operación con su resultado
+(`OK`/`ERROR`/`NO_INTENTADO`), para en el primer fallo, y permite reintentar
+solo lo pendiente (`only_pending`). El pipeline de Cloud Run no heredó el
+código viejo: `_crear_versiones` en `act_cx_resources_deploy_cloudrun.py`
+aplica ese mismo patrón desde el principio — registra cada versión creada,
+para en el primer fallo, y `_versiones_reutilizables` reutiliza lo que un
+intento anterior dejó creado sin fijar, sin repetirlo. El resto del Paso 5
 (fusionar antes de apuntar producción, parar sin tocar nada si el merge
-falla) sí se hereda bien de `step_8_approve_production` (`:1414`).
+falla) también está construido y probado.
 
 **Todos los endpoints comparten el mismo sobre de respuesta — no hace
 falta un schema distinto por cada uno** (hallazgo de la ronda adversarial,

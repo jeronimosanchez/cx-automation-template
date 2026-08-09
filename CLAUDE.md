@@ -58,7 +58,7 @@ Cuando se modifica un área, hay otras que deben actualizarse en el mismo cambio
 | `definitions/` | los 12 `push_*.py` · `deploy.yml` |
 | `act/` | `act/tests/` · `deploy.yml` · `qa.yml` · README |
 | `act/tests/` | `qa.yml` · README |
-| `.github/workflows/` | `docs/setup-cicd.md` · comandos de monitoreo |
+| `.github/workflows/` | comandos de monitoreo |
 | `qap/` | `qa.yml` · README |
 | `qap/test_qa_playbooks.py` | `qa.yml` · Default Environment de CX · GitHub Pages (`docs/setup-qa.md`) |
 | `docs/` | README · `deploy.yml` · `docs/setup-qa.md` (Sprint 6) |
@@ -87,12 +87,10 @@ python act/deploy.py --dry-run  # previsualizar sin ejecutar
 python act/push_playbooks.py --all --dry-run
 python act/push_playbooks.py --all
 
-# Listar versiones de un flow — salen en el inventario del Paso 1, junto con
-# los otros 11 tipos de recurso, en docs/data/act_cx_draft_resources_inventory_<project>_<agent>.json
-python act/act_cx_resources_deploy.py --project <project> --agent <agent> --step 1
-
-# Crear una versión nueva (snapshot) — Paso 5 del pipeline
-python act/act_cx_resources_deploy.py --project <project> --agent <agent> --step 5 --snapshot-name <nombre>
+# Paso 1 (inventario) y Paso 5 (publicar) del pipeline nuevo — sin comando de
+# terminal todavía: act_cx_resources_deploy_cloudrun.py es una librería sin
+# CLI. Se invoca desde el servidor (aún sin construir) o desde la suite de
+# pruebas (act/validate_pipeline_cloudrun.py)
 
 # Validar credenciales y conectividad con la API
 python act/validate_api.py
@@ -106,7 +104,7 @@ python act/validate_api.py
 
 Reglas operativas sobre cómo cualquier cambio llega a producción.
 
-1. **El único camino a producción es el pipeline de deploy local** (`act_cx_resources_deploy.py` vía `server.py` + panel HTML), operado por Jero desde su propio Mac. Ningún despliegue válido ocurre fuera de este flujo — no hay ejecución remota vía GitHub Actions.
+1. **El único camino a producción es el pipeline vía servidor en Cloud Run** (`act/act_cx_resources_deploy_cloudrun.py` + panel HTML), operado por Jero desde el panel. Ningún despliegue válido ocurre fuera de este flujo — no hay ejecución remota vía GitHub Actions. **El servidor todavía no existe** — hasta que se construya, no hay camino real a producción.
 2. **Pueden existir varias skills de Claude Code que disparen distintos rangos de pasos del mismo pipeline** (por ejemplo, solo 1-3 para inspeccionar sin escribir, o 4-8 para desplegar) — todas son la misma vía, no alternativas distintas. Ninguna skill puede saltarse ni auto-aprobar un gate humano del pipeline (Pasos 4 a 8) — cada gate exige una confirmación explícita de Jero, sea por clic en el panel o por respuesta en el chat.
 3. **`--dry-run` se usa solo para previsualizar cambios antes de ejecutar el pipeline real**, nunca despliega nada real.
 4. **El pipeline nunca escribe en CX sin pasar por sus propios gates humanos** (Confirmar deploy, Crear snapshot, Validar tests, Gate QA, Aprobar producción — Pasos 4 a 8). La aprobación a producción siempre requiere una decisión explícita de Jero desde el panel, nunca automática.

@@ -74,7 +74,6 @@ Pensado para varios agentes CX. Cambias `definitions/agent.yaml`, no tocas codig
 ├── reports/                        # outputs HTML + TXT (gitignored, generados en CI o local)
 ├── docs/                           # documentacion ampliada
 │   ├── qa_system.md                #   runner + suite 54 TCs + analizador (qa-tc-analyzer)
-│   ├── setup-cicd.md               #   guia paso a paso Fase B Sprint 4 (WIF + Variables)
 │   └── setup-qa.md                 #   guia paso a paso Fase B Sprint 6 (GitHub Pages + email)
 ├── requirements.txt
 └── .gitignore
@@ -376,8 +375,6 @@ Sprint 4 introduce dos workflows GitHub Actions con autenticacion via **Workload
 
 Los workflows referencian dos GitHub Variables (NO secrets): `GCP_WIF_PROVIDER` y `GCP_SERVICE_ACCOUNT`. Hasta que esten configuradas, los workflows fallan limpio en `google-github-actions/auth@v2` — no tocan Petal.
 
-**Fase B humana (configuracion GCP IAM + GitHub Variables)**: ver guia paso a paso en [`docs/setup-cicd.md`](docs/setup-cicd.md). Tiempo estimado 30-45 min.
-
 ---
 
 ## Roadmap
@@ -385,7 +382,7 @@ Los workflows referencian dos GitHub Variables (NO secrets): `GCP_WIF_PROVIDER` 
 - **Sprint 1** ✅ — Estructura base, `push_examples` agnostico, Promptfoo skeleton, `validate_api` re-ubicado.
 - **Sprint 2** ✅ — `diff.py` puro + tests, idempotencia en `push_examples`, modulos nuevos `push_playbooks` / `push_tools` / `push_agent_config`, suite pytest sin red.
 - **Sprint 3** ✅ — Cobertura NLU clasico Flow-based: `push_flows`, `push_pages`, `push_intents`, `push_entity_types`, `push_webhooks`, `push_generators`. Validacion completa diferida a un proyecto Flow-based real (Petal es Playbook-only).
-- **Sprint 4** ✅ — CI/CD GitHub Actions con WIF, modulos `push_environments` y `push_versions` (immutable), workflows `deploy.yml` + `qa.yml`, guia humana `docs/setup-cicd.md`.
+- **Sprint 4** ✅ — CI/CD GitHub Actions con WIF, modulos `push_environments` y `push_versions` (immutable), workflows `deploy.yml` + `qa.yml`.
 - **Sprint 5** ✅ — Migracion real de Petal: 11 pull scripts + refactor `push_examples`, los 12 recursos exportados (round-trip-clean validado contra CX).
 - **Sprint 6** ✅ — Integración del runner QA real (`test_qa_playbooks.py`) en el pipeline ACT + publicación de reportes en GitHub Pages. Promptfoo skeleton archivado en `qap/_archive/`. TCs extraídos a `tc_1_1.yaml` (54 TCs, fuente de verdad independiente del runner). Environment `petal-1.1` como target por defecto.
 

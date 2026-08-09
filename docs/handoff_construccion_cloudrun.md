@@ -16,6 +16,8 @@ Lee **`CLAUDE.md`** completo antes de tocar nada — tiene las decisiones técni
 
 Existe un pipeline de deploy que corre **en local**, en el Mac de Jero: `act/act_cx_resources_deploy.py` + `act/server.py` + un panel HTML, con 8 pasos. **Ese pipeline sigue siendo el único camino real a producción — no lo toques, no lo importes, no lo modifiques.** Sigue siendo la referencia de patrones que ya funcionan (idempotencia, capas, polling de operaciones), pero el que vas a construir es una implementación nueva y separada, que no depende de él en tiempo de ejecución.
 
+> **Nota (2026-08-10):** este pipeline local de 8 pasos ya se retiró — la construcción que este documento encargó lo completó y lo sustituyó. Ver `CLAUDE.md` §6 para el camino real a producción hoy.
+
 Vas a construir un **segundo pipeline**, agnóstico de proyecto y agente, pensado para correr como servicio en **Cloud Run**: lee un repositorio de GitHub, lo compara con un agente real de Dialogflow CX, y aplica solo lo que cambió — en **5 pasos**, no 8: Inventario, Traer al repositorio, Aplicar en CX, Validar tests, Publicar en producción.
 
 ## 3. Dónde está el plan de construcción — tu fuente de verdad
