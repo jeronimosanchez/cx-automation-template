@@ -454,6 +454,29 @@ def nivel_0(runner):
                     "dirigirse a un host de fuera (C3)",
                  url_absoluta_rechazada)
 
+    def x_goog_user_project_esta_en_toda_cabecera():
+        """Que el cliente la mande siempre, verificado en el árbol.
+
+        No es una regla arbitraria del pipeline: medido contra la API real el
+        2026-08-09, sin esta cabecera Dialogflow responde 403 PERMISSION_DENIED
+        — "requires a quota project". El barrido de mutaciones la rompió y las
+        99 comprobaciones de entonces siguieron en verde: nadie la vigilaba.
+        Aquí se comprueba en el árbol, no repitiendo la llamada a la API en
+        cada corrida — la medición real ya está hecha y documentada arriba.
+        """
+        arbol = ast.parse((REPO_ROOT / "act/utils/cx_client_cloudrun.py")
+                          .read_text())
+        funcion = next(n for n in ast.walk(arbol)
+                       if isinstance(n, ast.FunctionDef) and n.name == "get_headers")
+        claves = {k.value for n in ast.walk(funcion) if isinstance(n, ast.Dict)
+                 for k in n.keys if isinstance(k, ast.Constant)}
+        return "x-goog-user-project" in claves, \
+            "get_headers ya no incluye x-goog-user-project"
+
+    runner.check(0, "La cabecera x-goog-user-project va en toda llamada — "
+                    "medido: sin ella la API responde 403 (falta quota project)",
+                 x_goog_user_project_esta_en_toda_cabecera)
+
     def ninguna_escritura_alcanza_entornos():
         return "environment" not in pipeline.TIPOS_DESPLEGABLES, (
             "TIPOS_DESPLEGABLES contiene environment"
@@ -554,6 +577,61 @@ def nivel_0(runner):
     runner.check(0, "Ninguna versión que publica el validador nace sin su "
                     "marca: si no, la limpieza no la reconoce y se queda",
                  toda_version_que_crea_el_validador_lleva_su_marca)
+
+    def las_versiones_se_leen_de_los_tres_contenedores():
+        """Los tres contenedores, cada uno con la clave que CX usa de verdad.
+
+        Verificado contra la API el 2026-08-09: `flow` responde con `versions`,
+        `playbook` con `playbookVersions` y `tool` con `toolVersions`. Pedir la
+        clave equivocada no da error — devuelve una lista vacía, y el pipeline
+        concluye que ese contenedor no tiene versiones.
+
+        Eso es lo que dejó 100 versiones invisibles en un playbook hasta que CX
+        se negó a crear la 101 y publicar dejó de funcionar.
+        """
+        spec = pipeline.RESOURCE_TYPES["version"]
+        esperado = {"flow": "versions", "playbook": "playbookVersions",
+                    "tool": "toolVersions"}
+        declarado = dict(spec.get("padres") or ())
+        if declarado != esperado:
+            return False, f"declara {declarado}, y CX usa {esperado}"
+        # Y que ningún contenedor se quede fuera de la tabla de tipos.
+        faltan = [c for c in esperado if c not in pipeline.RESOURCE_TYPES]
+        return not faltan, f"contenedores sin declarar: {faltan}"
+
+    runner.check(0, "Las versiones se leen de los tres contenedores, cada uno "
+                    "con la clave que CX usa de verdad",
+                 las_versiones_se_leen_de_los_tres_contenedores)
+
+    def dos_versiones_del_mismo_numero_no_se_pisan():
+        """CX numera dentro de cada contenedor: hay una v1 por contenedor.
+
+        Guardarlas por el número a secas hacía que la del playbook pisara a la
+        del flow en el inventario, en silencio. Se provoca el caso con dos
+        objetos falsos que comparten número y distinto padre.
+        """
+        uno = {"name": "projects/p/locations/r/agents/a/flows/F/versions/1"}
+        otro = {"name": "projects/p/locations/r/agents/a/playbooks/P/versions/1"}
+        claves = {pipeline._clave_de_version(uno), pipeline._clave_de_version(otro)}
+        return len(claves) == 2, f"las dos comparten clave: {claves}"
+
+    runner.check(0, "Dos versiones con el mismo número y distinto contenedor no "
+                    "se pisan en el inventario",
+                 dos_versiones_del_mismo_numero_no_se_pisan)
+
+    def los_tres_contenedores_tienen_limite_de_poda():
+        """Sin límite, el contenedor nunca se avisa de que se pasó — se queda mudo.
+
+        Añadir un contenedor nuevo a `RESOURCE_TYPES["version"]["padres"]` sin
+        añadirlo también a `LIMITE_VERSIONES` dejaría ese contenedor sin aviso,
+        en silencio: `_contenedores_sobre_limite` simplemente lo salta.
+        """
+        contenedores = {c for c, _ in pipeline.RESOURCE_TYPES["version"]["padres"]}
+        faltan = contenedores - set(pipeline.LIMITE_VERSIONES)
+        return not faltan, f"sin límite de poda: {faltan}"
+
+    runner.check(0, "Los tres contenedores tienen un límite de poda declarado",
+                 los_tres_contenedores_tienen_limite_de_poda)
 
     def el_panel_no_promete_escrituras_que_ya_no_ocurren():
         """Lo que el panel dice que pasa tiene que seguir pasando.
@@ -2088,6 +2166,7 @@ def nivel_3(runner, project, agent_id, run_id):
             return False, "el agente desechable no tiene entorno production"
         antes = [c["version"] for c in produccion[0].get("versionConfigs", [])]
 
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
         resultado = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_pub")
         if resultado["status"] != "ok":
             return False, f"{resultado['status']}: {resultado['log'][-1:]}"
@@ -2114,6 +2193,7 @@ def nivel_3(runner, project, agent_id, run_id):
         en todos los playbooks contra un límite de 20."""
         cliente = store.get_client()
         pendientes = store.list_pending_publication(cliente, project, agent_id)
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
         resultado = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_h4")
         if resultado["status"] != "ok":
             return False, resultado["status"]
@@ -2133,7 +2213,9 @@ def nivel_3(runner, project, agent_id, run_id):
     def publicar_dos_veces_es_no_op():
         """Un reintento accidental del Paso 5 sobre un commit ya publicado no
         debe fusionar dos veces ni crear una versión duplicada."""
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
         primera = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_dos_a")
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
         segunda = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_dos_b")
         if primera["status"] != "ok" or segunda["status"] != "ok":
             return False, f"{primera['status']} / {segunda['status']}"
@@ -2156,6 +2238,104 @@ def nivel_3(runner, project, agent_id, run_id):
     runner.check(3, "Publicar registra a qué versiones apuntaba producción antes "
                     "— es lo único que hace posible el rollback",
                  el_rollback_queda_registrado)
+
+    def publicar_repetido_avisa_del_exceso_y_no_borra_nada():
+        """Provoca el caso real: el contenedor supera su límite al publicar.
+
+        El límite real de flow (20) es demasiado alto para forzarlo en una
+        prueba — de ahí el límite bajado a 3 solo en memoria del proceso, sin
+        tocar el archivo. Se publican cuatro cambios reales seguidos, cada uno
+        con contenido distinto para que no sean no-ops.
+
+        Publicar **ya no borra nada por su cuenta** (pedido explícito de Jero,
+        2026-08-10): el contenedor se queda con las 4 versiones vivas, por
+        encima de su límite de 3, y `step_5_publish` se limita a avisarlo en
+        `data["poda_pendiente"]` — sin tocar CX. Borrar de verdad sigue siendo
+        una acción aparte: se confirma aquí mismo llamando después a
+        `manage_versions(action="delete", ...)` con las candidatas que el
+        propio aviso señaló, y comprobando que la que producción sirve ahora
+        **nunca** está entre ellas.
+        """
+        limite_original = dict(pipeline.LIMITE_VERSIONES)
+        pipeline.LIMITE_VERSIONES["flow"] = 3
+        try:
+            ultimo_resultado = None
+            for i in range(4):
+                contexto = pipeline.Contexto(project, agent_id)
+                inventario, _, _ = pipeline.inventariar_cx(contexto)
+                flow = next(iter(inventario["flow"].values()))
+                cuerpo = {k: v for k, v in flow.items()
+                         if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
+                cuerpo["description"] = f"{PREFIJO}_{run_id}_poda_{i}"
+                cx.api_patch(project, contexto.region, flow["name"], cuerpo)
+                store.record_resource_write(
+                    contexto.store, project, agent_id, "flow",
+                    flow["name"].rsplit("/", 1)[-1], "prueba.yaml",
+                    display_name=flow.get("displayName"), operacion="PATCH",
+                    padre=None, pendiente_publicar=True)
+                pipeline.step_4_validate_tests(project, agent_id, "superados")
+                r = pipeline.step_5_publish(project, agent_id,
+                                           f"{PREFIJO}_{run_id}_poda_{i}")
+                if r["status"] != "ok":
+                    return False, f"publicación {i} falló: {r['data']}"
+                ultimo_resultado = r
+
+            contexto = pipeline.Contexto(project, agent_id)
+            inventario, _, _ = pipeline.inventariar_cx(contexto)
+            flow = next(iter(inventario["flow"].values()))
+            vivas_antes = cx.list_all_pages(project, contexto.region,
+                                            f"{flow['name']}/versions", "versions")
+            en_uso = {cf["version"]
+                     for e in inventario["environment"].values()
+                     for cf in e.get("versionConfigs", [])}
+            servida = next(iter(en_uso), None)
+
+            problemas = []
+            if len(vivas_antes) < 4:
+                problemas.append(
+                    f"solo quedan {len(vivas_antes)} versiones — algo se borró "
+                    f"solo, y no debía")
+
+            poda_pendiente = (ultimo_resultado or {}).get("data", {}).get(
+                "poda_pendiente") or []
+            del_flow = next(
+                (c for c in poda_pendiente if c["nombre_padre"] == flow["name"]),
+                None)
+            if not del_flow:
+                problemas.append(
+                    "step_5_publish no avisó del exceso de versiones del flow "
+                    "en poda_pendiente")
+            elif servida and servida in del_flow["candidatas"]:
+                problemas.append(
+                    "el aviso propone borrar la versión que producción sirve")
+
+            if problemas:
+                return False, " · ".join(problemas)
+
+            # Confirmar el borrado de verdad, a mano — el camino que existe
+            # para esto desde antes de esta noche, sin cambios.
+            borrado = pipeline.manage_versions(
+                project, agent_id, "delete",
+                version_names=del_flow["candidatas"])["data"]
+            vivas_despues = cx.list_all_pages(
+                project, contexto.region, f"{flow['name']}/versions", "versions")
+            problemas = []
+            if len(vivas_despues) > 3:
+                problemas.append(
+                    f"quedan {len(vivas_despues)} versiones tras confirmar el "
+                    f"borrado, el límite era 3")
+            if servida and servida not in {v["name"] for v in vivas_despues}:
+                problemas.append("la versión en uso se borró al confirmar")
+            return not problemas, " · ".join(problemas) or (
+                f"{len(borrado['borradas'])} borradas a mano tras el aviso")
+        finally:
+            pipeline.LIMITE_VERSIONES.clear()
+            pipeline.LIMITE_VERSIONES.update(limite_original)
+
+    runner.check(3, "Publicar repetido avisa del exceso de versiones del flow "
+                    "sin borrar nada — y confirmarlo a mano sí borra, sin tocar "
+                    "nunca la que producción sirve",
+                 publicar_repetido_avisa_del_exceso_y_no_borra_nada)
 
     runner.skip(3, "Repetir los checks de Full Update en una región distinta de "
                    "europe-west1",
@@ -2695,6 +2875,7 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
         pipeline._apuntar_entorno = lambda *_a, **_k: (_ for _ in ()).throw(
             pipeline.PipelineError("corte inyectado antes de apuntar el entorno")
         )
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
         try:
             pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_corte")
             interrumpido = False
@@ -2714,6 +2895,7 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                            "así que nada puede reutilizarla después")
         huerfanas = set(en_vuelo["version_names"])
 
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
         reintento = pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_reintento")
         if reintento["status"] != "ok":
             return False, f"el reintento falló: {reintento['status']}"
@@ -2766,6 +2948,7 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
         original = pipeline._apuntar_entorno
         pipeline._apuntar_entorno = lambda *_a, **_k: (_ for _ in ()).throw(
             pipeline.PipelineError("corte inyectado"))
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
         try:
             pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_antes")
         except pipeline.PipelineError:
@@ -2784,6 +2967,7 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
             pipeline._cx_id_de(flows[0]), "sintetico/b.yaml",
             display_name=flows[0].get("displayName"), operacion="PATCH")
 
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
         resultado = pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_despues")
         if resultado["status"] != "ok":
             return False, f"el reintento falló: {resultado['status']}"
@@ -2816,6 +3000,11 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
     def el_gate_del_paso_4_aborta_si_el_borrador_se_movio():
         """La huella se toma al declarar los tests y se compara al publicar.
 
+        La huella ya no llega como parámetro de quien llama — se lee de la
+        última declaración del Paso 4 en Firestore. Para provocar el desajuste
+        hay que declarar los tests y luego mover el borrador de verdad, igual
+        que haría alguien editando en la consola entre el Paso 4 y el Paso 5.
+
         Aborta, no avisa: publicar subiría a usuarios reales algo que nadie
         validó. Y aborta antes del merge, así que no deja nada a medias.
         """
@@ -2835,10 +3024,27 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                 "principal": contexto.gh.branch_head(contexto.rama_principal),
             }
 
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
+
+        # Mueve el borrador de verdad después de declarar los tests: la huella
+        # que quedó guardada en el Paso 4 deja de corresponder a lo que hay
+        # ahora en CX. Mismo patrón que usa la prueba de poda de versiones más
+        # arriba para provocar un cambio real y no un no-op.
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["flow"])
+        flow = next(iter(inventario["flow"].values()))
+        cuerpo = {k: v for k, v in flow.items()
+                 if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
+        cuerpo["description"] = f"{PREFIJO}_{run_id}_huella_vieja"
+        cx.api_patch(project, contexto.region, flow["name"], cuerpo)
+        store.record_resource_write(
+            contexto.store, project, agent_id, "flow",
+            flow["name"].rsplit("/", 1)[-1], "prueba.yaml",
+            display_name=flow.get("displayName"), operacion="PATCH",
+            padre=None, pendiente_publicar=True)
+
         antes = foto()
         resultado = pipeline.step_5_publish(
             project, agent_id, f"{PREFIJO}_{run_id}_huella_vieja",
-            huella_al_validar="huella_que_no_corresponde",
         )
         despues = foto()
 

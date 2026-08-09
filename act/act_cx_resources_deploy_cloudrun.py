@@ -98,7 +98,17 @@ RESOURCE_TYPES = {
                      "carpeta": "definitions/config"},
     "environment": {"api": "environments", "key": "environments",
                     "carpeta": "definitions/environments"},
-    "version": {"api": "versions", "key": "versions", "padre": "flow",
+    # Las versiones cuelgan de los tres contenedores, y **cada uno devuelve la
+    # suya con una clave distinta** — verificado contra la API el 2026-08-09.
+    # Declararlas solo bajo `flow` con la clave `versions` hacía que las de
+    # playbook y tool fueran invisibles: el listado pedía `versions`, recibía
+    # una lista vacía, y el pipeline concluía que no existían. Se acumulaban
+    # una por publicación hasta el límite de CX (100 en un playbook), y ahí
+    # publicar dejaba de funcionar con un error que no mencionaba versiones.
+    "version": {"api": "versions",
+                "padres": (("flow", "versions"),
+                           ("playbook", "playbookVersions"),
+                           ("tool", "toolVersions")),
                 "carpeta": "definitions/versions"},
 }
 
@@ -175,6 +185,16 @@ def _slug(valor):
     ascii_only = normalizado.encode("ascii", "ignore").decode("ascii")
     limpio = re.sub(r"[^A-Za-z0-9]+", "_", ascii_only).strip("_").lower()
     return limpio or "sin_nombre"
+
+
+def _clave_de_version(item):
+    """Identifica una versión sin confundirla con la de otro contenedor.
+
+    `flows/A/versions/1` y `playbooks/B/versions/1` son dos versiones distintas
+    con el mismo número. La clave es `<contenedor>/<número>`.
+    """
+    partes = (item.get("name") or "").split("/")
+    return f"{partes[-3]}/{partes[-1]}" if len(partes) >= 3 else _cx_id_de(item)
 
 
 def _cx_id_de(item):
@@ -392,6 +412,16 @@ def _listar_tipo(contexto, tipo, padres):
             )
         return [respuesta.json()]
 
+    if spec.get("padres"):
+        items = []
+        for tipo_padre, clave in spec["padres"]:
+            for padre in padres.get(tipo_padre, []):
+                items.extend(cx.list_all_pages(
+                    contexto.project, contexto.region,
+                    f"{padre['name']}/{spec['api']}", clave,
+                ))
+        return items
+
     if spec.get("padre"):
         items = []
         for padre in padres.get(spec["padre"], []):
@@ -437,7 +467,16 @@ def inventariar_cx(contexto, on_log=None, log=None, tipos=None):
     for tipo in orden:
         items = _listar_tipo(contexto, tipo, padres)
         padres[tipo] = items
-        inventario[tipo] = {_cx_id_de(item): item for item in items}
+        # Las versiones se numeran **dentro de cada contenedor**: el flow tiene
+        # su v1 y el playbook la suya. Guardarlas por el número a secas hacía
+        # que una pisara a la otra en silencio — hoy el flow iba por la 152 y el
+        # playbook por la 109, así que el solape era cuestión de tiempo. Su
+        # clave lleva el contenedor delante. No afecta al emparejamiento con el
+        # repositorio: las versiones no entran en el reparto.
+        inventario[tipo] = {
+            (_clave_de_version(item) if tipo == "version" else _cx_id_de(item)): item
+            for item in items
+        }
         if items:
             desglose.append(f"{tipo} ({len(items)})")
 
@@ -1330,7 +1369,7 @@ def _huella_borrador(inventario):
 
 # ── 5 · Publicar en producción ───────────────────────────────────────────────
 
-def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
+def step_5_publish(project, agent_id, version_label,
                    client=None, gh=None, on_log=None):
     """Fusiona, crea la versión y apunta producción a ella, en ese orden.
 
@@ -1354,14 +1393,44 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
     with store.agent_lock(contexto.store, project, agent_id, "publicar en producción"):
         inventario, _, _ = inventariar_cx(contexto, on_log, log)
 
-        # El gate del Paso 4 queda atado al borrador exacto que se aprobó. Si
-        # el borrador se movió entre declarar los tests y publicar, publicar
-        # subiría a usuarios reales algo que nadie validó — así que se aborta
-        # antes de tocar nada, no se avisa y se sigue.
+        # El gate del Paso 4 queda atado al borrador exacto que se aprobó, y
+        # atado también a que ese Paso 4 haya declarado "superados" — no basta
+        # con que exista una huella, porque quien llama podría haber declarado
+        # "fallidos" y aun así traer esa misma huella hasta aquí. Se lee de
+        # Firestore, no de un parámetro que confía en quien invoca la función:
+        # así nadie puede saltarse el candado con solo omitir un argumento.
         #
         # Salir por aquí no deja nada a medias: es lo primero que se comprueba,
         # antes del merge y antes de crear ninguna versión.
-        if huella_al_validar and _huella_borrador(inventario) != huella_al_validar:
+        huella_ahora = _huella_borrador(inventario)
+        ultimo_paso_4 = next(
+            (r for r in store.list_runs(contexto.store, project, agent_id)
+             if r["paso"] == 4),
+            None,
+        )
+        if ultimo_paso_4 is None:
+            _emit(log, on_log,
+                  "⚠ No se ha declarado ningún resultado de tests para este "
+                  "agente. No se publica: vuelve al Paso 4 y declara el "
+                  "resultado antes de publicar.")
+            return step_result("aborted", log, {
+                "fusionado": False, "publicado": False,
+                "motivo": "no se ha declarado ningún resultado de tests para este agente",
+                "huella_ahora": huella_ahora,
+            })
+        declarado = (ultimo_paso_4.get("data") or {}).get("declarado")
+        if declarado != "superados":
+            _emit(log, on_log,
+                  f"⚠ Los últimos tests declarados fueron {declarado!r}. No se "
+                  "publica: vuelve al Paso 4, valida el borrador actual y "
+                  "declara 'superados' antes de publicar.")
+            return step_result("aborted", log, {
+                "fusionado": False, "publicado": False,
+                "motivo": f"los últimos tests declarados fueron {declarado!r}",
+                "huella_ahora": huella_ahora,
+            })
+        huella_al_validar = (ultimo_paso_4.get("data") or {}).get("huella")
+        if huella_ahora != huella_al_validar:
             _emit(log, on_log,
                   "⚠ El borrador ha cambiado desde que se declararon los tests. "
                   "No se publica: lo que subiría no es lo que se probó. Vuelve "
@@ -1370,7 +1439,7 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
                 "fusionado": False, "publicado": False,
                 "motivo": "el borrador se movió después de declarar los tests",
                 "huella_al_validar": huella_al_validar,
-                "huella_ahora": _huella_borrador(inventario),
+                "huella_ahora": huella_ahora,
             })
 
         _emit(log, on_log,
@@ -1445,13 +1514,115 @@ def step_5_publish(project, agent_id, version_label, huella_al_validar=None,
         store.mark_published(contexto.store, project, agent_id, pendientes)
         store.clear_inflight_versions(contexto.store, project, agent_id)
 
+        # Publicar nunca borra nada por su cuenta — pedido explícito de Jero
+        # (2026-08-10): esta función antes podaba versiones automáticamente
+        # al superar el límite, y eso no es lo que se pidió. Ahora solo avisa
+        # de qué contenedores se pasaron de su límite y qué versiones se
+        # borrarían; borrar de verdad exige una llamada aparte y explícita a
+        # `manage_versions(action="delete", version_names=[...])`, que ya
+        # releía "en uso" fresco dentro de su propio candado antes de este
+        # cambio (fix de esta misma noche) — sigue siendo el único camino de
+        # borrado, y sigue exigiendo nombrar cada versión, nunca "todas".
+        tocados = list(_padres_versionables(inventario, pendientes))
+        poda_pendiente = _contenedores_sobre_limite(contexto, tocados)
+        if poda_pendiente:
+            total = sum(len(c["candidatas"]) for c in poda_pendiente)
+            _emit(log, on_log,
+                  f"⚠ {total} versión(es) en {len(poda_pendiente)} "
+                  f"contenedor(es) superan su límite — no se han borrado. "
+                  f"Revísalo en «administrar versiones» y bórralas a mano "
+                  f"cuando quieras.")
+
     resultado = step_result("ok", log, {
         "fusionado": True, "publicado": True, "version": version_label,
         "versiones_creadas": versiones, "versiones_anteriores": anteriores,
         "repo": contexto.repo, "rama_principal": contexto.rama_principal,
+        "poda_pendiente": poda_pendiente,
     })
     store.record_run(contexto.store, project, agent_id, 5, "ok", log,
                      {"version": version_label})
+    return resultado
+
+
+# Límites reales de versiones vivas por contenedor, para la poda automática.
+# flow y playbook: documentados por Google (docs.cloud.google.com/dialogflow/
+# quotas, 2026-07-29) y el de playbook además confirmado contra CX real —
+# reventó exactamente en 100 con FAILED_PRECONDITION. tool no está
+# documentado: se midió hasta 77 sin rechazo (el intento se cortó por cuota de
+# peticiones por minuto, no por el límite de versiones) y se decidió podar a
+# 50 con margen de sobra sobre lo medido, en vez de seguir midiendo más caro.
+LIMITE_VERSIONES = {"flow": 20, "playbook": 100, "tool": 50}
+
+# A partir de qué fracción del límite se avisa en el listado, antes de que la
+# poda automática del Paso 5 llegue a actuar. 80% deja margen real de reacción
+# — para un flow (límite 20) avisa a partir de 16, no a partir de 19 — sin
+# ensuciar el listado con contenedores que todavía están lejos de un problema.
+UMBRAL_AVISO_LIMITE_VERSIONES = 0.8
+
+
+def _versiones_en_uso(contexto):
+    """Versiones que algún entorno sirve ahora mismo, releído fresco de CX.
+
+    **Nunca de una foto guardada antes.** Se descubrió con una prueba real:
+    calcular esto una vez al principio de `step_5_publish` y reutilizarlo más
+    tarde para decidir qué podar deja una foto desactualizada si el mismo
+    contenedor se republica varias veces seguidas en la misma corrida — y
+    **borró una versión que producción tenía fijada de verdad**. Quien llama
+    a esto tiene que hacerlo justo antes de decidir qué borrar, no antes: es
+    la única forma de que "en uso" signifique lo que CX dice ahora, no lo que
+    decía al principio de la función que llama.
+    """
+    entornos = cx.list_all_pages(
+        contexto.project, contexto.region, f"{contexto.parent}/environments",
+        "environments",
+    )
+    return {cf["version"] for entorno in entornos
+            for cf in entorno.get("versionConfigs", [])}
+
+
+def _contenedores_sobre_limite(contexto, tocados):
+    """Contenedores tocados en esta publicación que superan su límite de
+    versiones — dice cuáles se borrarían y cuáles, pero nunca borra nada.
+
+    **No borra — solo informa.** Hasta el 2026-08-10 esta función sí borraba
+    automáticamente al publicar; se retiró por pedido explícito de Jero:
+    ningún borrado ocurre nunca sin una acción aparte y consciente suya.
+    Borrar de verdad sigue siendo `manage_versions(action="delete", ...)`,
+    con `en_uso` releído fresco dentro de su propio candado, exigiendo
+    nombrar cada versión — nunca "todas las que sobren".
+
+    `en_uso` se relee aquí mismo mediante `_versiones_en_uso` para que la
+    lista de candidatas sea correcta en el momento de mostrarla — aunque,
+    al no borrar, ya no hay ninguna ventana de carrera que proteger.
+    """
+    en_uso = _versiones_en_uso(contexto)
+    claves = dict(RESOURCE_TYPES["version"].get("padres") or ())
+    resultado = []
+
+    for nombre_padre, tipo in tocados:
+        limite = LIMITE_VERSIONES.get(tipo)
+        clave = claves.get(tipo)
+        if not limite or not clave:
+            continue
+        vivas = cx.list_all_pages(
+            contexto.project, contexto.region, f"{nombre_padre}/versions", clave
+        )
+        exceso = len(vivas) - limite
+        if exceso <= 0:
+            continue
+        # Más antigua primero. El número de versión no sirve de desempate por
+        # sí solo — CX no lo reutiliza tras un borrado, pero createTime es el
+        # orden real y es lo único que compara contenedores nunca comparables
+        # entre sí (dos v1 de contenedores distintos no son "iguales de viejas").
+        candidatas = sorted(
+            (v for v in vivas if v["name"] not in en_uso),
+            key=lambda v: v.get("createTime") or "",
+        )[:exceso]
+        resultado.append({
+            "nombre_padre": nombre_padre, "tipo": tipo,
+            "vivas": len(vivas), "limite": limite,
+            "candidatas": [v["name"] for v in candidatas],
+        })
     return resultado
 
 
@@ -1919,6 +2090,36 @@ def _repo_desde_url(repo_url):
 
 # ── 8 · Versiones existentes ─────────────────────────────────────────────────
 
+def _contenedores_de_versiones(inventario):
+    """Agrupa las versiones ya existentes por su contenedor padre y tipo.
+
+    El `name` de una versión trae el padre incrustado en la ruta: todo lo
+    que precede a `/versions/<id>` es el nombre completo del flow, playbook
+    o tool que la contiene — el mismo recorte que ya usan
+    `_combinar_versiones` y `_versiones_reutilizables`. Para saber de qué
+    *tipo* es ese padre no hace falta una tabla nueva: el segmento justo
+    antes de su propio id (`/flows/`, `/playbooks/`, `/tools/`) es el mismo
+    `RESOURCE_TYPES[tipo]["api"]` que ya construye esas rutas en el resto
+    del archivo, así que traducirlo con esa misma fuente evita que se
+    desincronice de cómo CX nombra las cosas.
+
+    Devuelve {(nombre_padre, tipo): vivas}.
+    """
+    tipos_con_version = dict(RESOURCE_TYPES["version"].get("padres") or ()).keys()
+    segmento_a_tipo = {f"/{RESOURCE_TYPES[t]['api']}/": t for t in tipos_con_version}
+
+    conteo = {}
+    for item in inventario.get("version", {}).values():
+        nombre_padre = (item.get("name") or "").rsplit("/versions/", 1)[0]
+        tipo = next((t for segmento, t in segmento_a_tipo.items()
+                    if segmento in nombre_padre), None)
+        if not tipo:
+            continue
+        clave = (nombre_padre, tipo)
+        conteo[clave] = conteo.get(clave, 0) + 1
+    return conteo
+
+
 def manage_versions(project, agent_id, action="list", version_names=None,
                     client=None, gh=None, on_log=None):
     """Lista las versiones que guarda el agente, o borra las que se marquen.
@@ -1930,12 +2131,11 @@ def manage_versions(project, agent_id, action="list", version_names=None,
     contexto = Contexto(project, agent_id, client=client, gh=gh)
     inventario, _, _ = inventariar_cx(contexto, on_log, log)
 
-    en_uso = set()
-    for entorno in inventario.get("environment", {}).values():
-        for config in entorno.get("versionConfigs", []):
-            en_uso.add(config["version"])
-
     if action == "list":
+        # Foto de lo que ya se acaba de leer — vale para mostrar en el panel,
+        # no decide ningún borrado, así que no hace falta releerla fresca.
+        en_uso = {cf["version"] for entorno in inventario.get("environment", {}).values()
+                  for cf in entorno.get("versionConfigs", [])}
         versiones = [
             {
                 "name": item["name"],
@@ -1947,9 +2147,30 @@ def manage_versions(project, agent_id, action="list", version_names=None,
             }
             for item in inventario.get("version", {}).values()
         ]
+
+        # Aviso proactivo: cuántas versiones vivas tiene cada contenedor frente
+        # a su límite, para que el panel pueda mostrar algo tipo "18/20". Es
+        # de solo lectura, igual que `_contenedores_sobre_limite` — nada en
+        # este archivo borra versiones salvo que se le nombren explícitamente
+        # vía `action="delete"`, nunca de forma automática.
+        contenedores_cerca_del_limite = [
+            {"nombre_padre": nombre_padre, "tipo": tipo, "vivas": vivas,
+             "limite": LIMITE_VERSIONES[tipo]}
+            for (nombre_padre, tipo), vivas in _contenedores_de_versiones(inventario).items()
+            if tipo in LIMITE_VERSIONES
+            and vivas >= LIMITE_VERSIONES[tipo] * UMBRAL_AVISO_LIMITE_VERSIONES
+        ]
+
         _emit(log, on_log,
               f"✓ {len(versiones)} versiones · {len(en_uso)} en uso")
-        return step_result("ok", log, {"versiones": versiones})
+        if contenedores_cerca_del_limite:
+            _emit(log, on_log,
+                  f"⚠ {len(contenedores_cerca_del_limite)} contenedores cerca "
+                  f"de su límite de versiones")
+        return step_result("ok", log, {
+            "versiones": versiones,
+            "contenedores_cerca_del_limite": contenedores_cerca_del_limite,
+        })
 
     if action != "delete":
         raise ValueError(
@@ -1958,6 +2179,10 @@ def manage_versions(project, agent_id, action="list", version_names=None,
 
     borradas, protegidas = [], []
     with store.agent_lock(contexto.store, project, agent_id, "borrar versiones"):
+        # Releída aquí dentro, no la de arriba: esa es de antes del candado,
+        # y un publish concurrente puede haber puesto en uso justo la versión
+        # que se está a punto de borrar. Mismo motivo que _versiones_en_uso.
+        en_uso = _versiones_en_uso(contexto)
         for nombre in version_names or ():
             # La ruta llega del cliente, así que se comprueba contra el destino
             # elegido antes de tocarla. Sin esto, una petición con la ruta de
