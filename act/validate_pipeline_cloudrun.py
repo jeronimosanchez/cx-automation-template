@@ -40,6 +40,7 @@ import ast
 import inspect
 import re
 import sys
+import time
 import uuid
 from pathlib import Path
 
@@ -1954,6 +1955,84 @@ def nivel_3(runner, project, agent_id, run_id):
         finally:
             cx.api_delete(project, contexto.region, nombre)
 
+    def publicar_protege_lo_que_dice_proteger():
+        """Un cambio aplicado al borrador NO puede llegar a los usuarios.
+
+        Es la garantía central del sistema —para eso existe el Paso 5— y hasta
+        el 2026-08-09 no la comprobaba nadie: el pipeline declaraba que solo
+        `agent_config` y `generator` se ven al instante, y del resto lo daba por
+        supuesto.
+
+        Se mide preguntándole al agente por su entorno de producción y por su
+        borrador, con una frase que no empareja en ninguno de los dos. Después
+        se añade esa frase a un intent del borrador: el borrador tiene que
+        empezar a emparejarla —si no, el cambio no surtió efecto y la prueba no
+        observa nada— y producción tiene que seguir sin verla.
+
+        El control no es decorativo: el primer intento usó una frase que el
+        agente ya emparejaba con todo, así que el «después» no observaba ningún
+        cambio y el resultado parecía concluyente sin serlo.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        entornos = list(inventario.get("environment", {}).values())
+        intents = list(inventario.get("intent", {}).values())
+        if not entornos or not intents:
+            return True, "(el agente no tiene entorno o no tiene intents)"
+        entorno = entornos[0]
+
+        def empareja(base, texto):
+            respuesta = cx.api_post(
+                project, contexto.region,
+                f"{base}/sessions/{uuid.uuid4().hex[:12]}:detectIntent",
+                {"queryInput": {"text": {"text": texto}, "languageCode": "es"}},
+            )
+            if respuesta.status_code != 200:
+                return None
+            resultado = respuesta.json().get("queryResult", {})
+            return (resultado.get("intent") or {}).get("displayName")
+
+        # Una frase que no empareje **hoy**, ni en producción ni en el borrador.
+        frase = next(
+            (f for f in (f"xkcd qwerty zzz {run_id}", "qqq zzz xyzzy", "bcdfg hjklm")
+             if not empareja(entorno["name"], f) and not empareja(contexto.parent, f)),
+            None,
+        )
+        if frase is None:
+            return True, ("(este agente empareja cualquier frase: sin una que no "
+                          "empareje, el cambio no se puede observar)")
+
+        intent = intents[0]
+        original = {k: v for k, v in intent.items()
+                    if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
+        cuerpo = dict(original)
+        cuerpo["trainingPhrases"] = list(cuerpo.get("trainingPhrases", [])) + [
+            {"parts": [{"text": frase}], "repeatCount": 1}]
+        if cx.api_patch(project, contexto.region, intent["name"],
+                        cuerpo).status_code not in (200, 201):
+            return False, "no se pudo cambiar el intent del borrador"
+
+        try:
+            # El entrenamiento del borrador tarda: se espera a que reaccione,
+            # que es el control. Sin él, un "producción no lo ve" no dice nada.
+            for _ in range(6):
+                time.sleep(10)
+                if empareja(contexto.parent, frase):
+                    break
+            else:
+                return True, ("(el borrador no reaccionó al cambio en 60s: sin "
+                              "control no se puede concluir nada)")
+            en_produccion = empareja(entorno["name"], frase)
+            return en_produccion is None, (
+                f"el cambio llegó a producción sin publicar — empareja con "
+                f"«{en_produccion}»")
+        finally:
+            cx.api_patch(project, contexto.region, intent["name"], original)
+
+    runner.check(3, "Publicar protege lo que dice proteger: un cambio aplicado "
+                    "al borrador no lo ven los usuarios hasta el Paso 5",
+                 publicar_protege_lo_que_dice_proteger)
+
     runner.check(3, "La huella del borrador cambia cuando el borrador cambia — "
                     "sin eso, el aviso de 'draft movido' no avisa de nada",
                  declarar_tests_da_una_huella_que_cambia)
@@ -2162,7 +2241,16 @@ def nivel_3(runner, project, agent_id, run_id):
             )
             if respuesta.status_code != 200:
                 fallos.append(f"{rama}: {respuesta.status_code}")
-            elif contexto.gh.branch_head(rama) != destino:
+                continue
+            # GitHub no devuelve el nuevo valor de la referencia al instante
+            # tras forzarla: leerlo de inmediato daba el valor anterior y el
+            # check declaraba un residuo que no existía. Se le da margen, pero
+            # acotado — si tras varios intentos sigue sin volver, es real.
+            for intento in range(5):
+                if contexto.gh.branch_head(rama) == destino:
+                    break
+                time.sleep(1 + intento)
+            else:
                 fallos.append(f"{rama}: no volvió a {destino[:7]}")
         return not fallos, " · ".join(fallos)
 
@@ -2876,7 +2964,16 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
             )
             if respuesta.status_code != 200:
                 fallos.append(f"{rama}: {respuesta.status_code}")
-            elif contexto.gh.branch_head(rama) != destino:
+                continue
+            # GitHub no devuelve el nuevo valor de la referencia al instante
+            # tras forzarla: leerlo de inmediato daba el valor anterior y el
+            # check declaraba un residuo que no existía. Se le da margen, pero
+            # acotado — si tras varios intentos sigue sin volver, es real.
+            for intento in range(5):
+                if contexto.gh.branch_head(rama) == destino:
+                    break
+                time.sleep(1 + intento)
+            else:
                 fallos.append(f"{rama}: no volvió a {destino[:7]}")
         return not fallos, " · ".join(fallos)
 
