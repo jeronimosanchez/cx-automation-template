@@ -519,6 +519,41 @@ def nivel_0(runner):
 
     # ── El alta de agente es una escritura, y por eso es un botón ────────────
 
+    def toda_version_que_crea_el_validador_lleva_su_marca():
+        """Lo que esta suite crea en CX tiene que poder reconocerlo después.
+
+        La limpieza borra por la marca del prefijo. Una versión publicada con
+        una etiqueta sin marca —`corte_inyectado`— no la reconoce nadie y se
+        queda en el agente **para siempre**: una por corrida, acumulándose
+        contra el límite de versiones que CX impone por flow. Llegaron a 12 en
+        dos días, y los tres checks de publicar empezaron a fallar por eso, sin
+        que el motivo tuviera nada que ver con publicar.
+
+        Se comprueba en el árbol, sobre las llamadas reales: cada etiqueta que
+        se pasa a `step_5_publish` tiene que interpolar el prefijo o la
+        etiqueta de la corrida, nunca ser un texto suelto.
+        """
+        arbol = ast.parse((REPO_ROOT / "act/validate_pipeline_cloudrun.py")
+                          .read_text())
+        sueltas = []
+        for nodo in ast.walk(arbol):
+            if not (isinstance(nodo, ast.Call)
+                    and isinstance(nodo.func, ast.Attribute)
+                    and nodo.func.attr == "step_5_publish"):
+                continue
+            if len(nodo.args) < 3:
+                continue
+            etiqueta = nodo.args[2]
+            # Una constante de texto no puede llevar la marca: se conoce al
+            # escribir el archivo, no en la corrida.
+            if isinstance(etiqueta, ast.Constant):
+                sueltas.append(f"línea {etiqueta.lineno}: {etiqueta.value!r}")
+        return not sueltas, " · ".join(sueltas)
+
+    runner.check(0, "Ninguna versión que publica el validador nace sin su "
+                    "marca: si no, la limpieza no la reconoce y se queda",
+                 toda_version_que_crea_el_validador_lleva_su_marca)
+
     def el_panel_no_promete_escrituras_que_ya_no_ocurren():
         """Lo que el panel dice que pasa tiene que seguir pasando.
 
@@ -2573,7 +2608,7 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
             pipeline.PipelineError("corte inyectado antes de apuntar el entorno")
         )
         try:
-            pipeline.step_5_publish(project, agent_id, "corte_inyectado")
+            pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_corte")
             interrumpido = False
         except pipeline.PipelineError:
             interrumpido = True
@@ -2591,7 +2626,7 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                            "así que nada puede reutilizarla después")
         huerfanas = set(en_vuelo["version_names"])
 
-        reintento = pipeline.step_5_publish(project, agent_id, "reintento_tras_corte")
+        reintento = pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_reintento")
         if reintento["status"] != "ok":
             return False, f"el reintento falló: {reintento['status']}"
         usadas = set(reintento["data"]["versiones_creadas"])
@@ -2714,7 +2749,7 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
 
         antes = foto()
         resultado = pipeline.step_5_publish(
-            project, agent_id, "huella_vieja",
+            project, agent_id, f"{PREFIJO}_{run_id}_huella_vieja",
             huella_al_validar="huella_que_no_corresponde",
         )
         despues = foto()
@@ -2747,27 +2782,50 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
         repositorio, _ = pipeline.cargar_repositorio(contexto)
 
         # Un resource emparejado y ya escrito por el pipeline alguna vez.
+        #
+        # Y que además **admita de verdad** el campo con el que se le va a
+        # tocar: no todos los tipos tienen `description`. En un entity_type, CX
+        # responde 200 y descarta el campo en silencio, así que el toque «por
+        # fuera» no cambia nada y no hay conflicto que detectar — el check
+        # fallaba sin decir por qué, y solo cuando le tocaba ese tipo de entre
+        # los cientos de fichas. Se comprueba leyendo el efecto, no el código
+        # de respuesta.
         auditados = store.list_resource_records(cliente, project, agent_id)
-        candidato = next(
-            ((t, c) for (t, c), reg in auditados.items()
-             if reg.get("huella_cx") and c in inventario.get(t, {})
-             and c in repositorio["por_tipo"].get(t, {})),
-            None,
-        )
-        if candidato is None:
+        elegibles = [
+            (t, c) for (t, c), reg in auditados.items()
+            if reg.get("huella_cx") and c in inventario.get(t, {})
+            and c in repositorio["por_tipo"].get(t, {})
+        ]
+        if not elegibles:
             return False, ("ningún resource tiene huella guardada de la última "
                            "escritura: sin ese tercer punto el conflicto no se "
                            "puede detectar para ninguno")
-        tipo, cx_id = candidato
-        remoto = inventario[tipo][cx_id]
 
-        # Se toca CX por fuera del pipeline, como en la consola.
-        cuerpo = {k: v for k, v in remoto.items()
-                  if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
-        cuerpo["description"] = f"tocado por fuera {run_id}"
-        externo = cx.api_patch(project, contexto.region, remoto["name"], cuerpo)
-        if externo.status_code not in (200, 201):
-            return False, f"no se pudo tocar CX por fuera: {externo.status_code}"
+        tipo = cx_id = remoto = None
+        descartados = []
+        for candidato_tipo, candidato_id in elegibles:
+            item = inventario[candidato_tipo][candidato_id]
+            antes = pipeline.huella_resource(item)
+            cuerpo = {k: v for k, v in item.items()
+                      if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
+            cuerpo["description"] = f"tocado por fuera {run_id}"
+            externo = cx.api_patch(project, contexto.region, item["name"], cuerpo)
+            if externo.status_code not in (200, 201):
+                descartados.append(f"{candidato_tipo}: {externo.status_code}")
+                continue
+            # El efecto, no la respuesta: si la huella no cambió, CX ignoró el
+            # campo y este resource no sirve para provocar el caso.
+            releido = cx.api_get(project, contexto.region, item["name"])
+            if releido.status_code != 200 or \
+                    pipeline.huella_resource(releido.json()) == antes:
+                descartados.append(f"{candidato_tipo}: no admite `description`")
+                continue
+            tipo, cx_id, remoto = candidato_tipo, candidato_id, item
+            break
+
+        if remoto is None:
+            return False, ("ningún resource admitió el toque externo: " +
+                           " · ".join(descartados[:4]))
 
         # Y se cambia también el repositorio, para que el diff proponga algo.
         entrada = repositorio["por_tipo"][tipo][cx_id]
