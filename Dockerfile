@@ -28,6 +28,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY act/ ./act/
 
+# El panel, dentro de la imagen y servido por el propio servidor (S25). Se copia
+# a `panel/` en vez de arrastrar `docs/` entero: lo que se despliega es un
+# archivo, no la documentación del repositorio. El original se queda donde vive
+# —`docs/panels/`— y esta línea es lo único que sabe de él.
+#
+# Sin esto, `GET /panel` contesta 404 en el contenedor aunque funcione en el Mac,
+# porque en local encuentra el del repositorio y aquí no hay repositorio.
+COPY docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html ./panel/
+
 # El caché de bytecode que venga del Mac no sirve aquí y solo puede confundir:
 # se compila de nuevo dentro, desde las fuentes que acaban de copiarse.
 RUN find /app -name __pycache__ -type d -prune -exec rm -rf {} +

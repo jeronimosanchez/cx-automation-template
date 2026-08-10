@@ -1,0 +1,2424 @@
+<meta charset="utf-8">
+<title>act_cx_resources_deploy_cloudrun.py — Panel de producción</title>
+<style>
+:root {
+  --bg:#0d1117;--bg-2:#1a2030;--bg-3:#252d3a;--border:#3d4755;
+  --text:#f0f6fc;--text-2:#b0bac6;--text-3:#8b95a1;
+  --accent:#3b82f6;--accent-light:#60a5fa;--success:#22c55e;--gate:#f59e0b;--error:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:14px}
+
+/* TOP BAR */
+.topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.dir-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:22px}
+.dir-card.hacia-cx{border-color:rgba(59,130,246,.4)}
+.dir-card.hacia-repo{border-color:rgba(245,158,11,.4)}
+.dir-head{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:12px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase}
+.hacia-cx .dir-head{background:rgba(59,130,246,.12);color:#93c5fd;border-bottom:1px solid rgba(59,130,246,.25)}
+.hacia-repo .dir-head{background:rgba(245,158,11,.12);color:var(--gate);border-bottom:1px solid rgba(245,158,11,.25)}
+.dir-flecha{font-family:'SF Mono',Menlo,monospace;font-size:12px;opacity:.8;letter-spacing:0;text-transform:none;margin-left:auto;white-space:nowrap}
+.dir-body{padding:14px 16px}
+.dir-pie{padding:10px 16px;font-size:12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.hacia-cx .dir-pie{background:rgba(59,130,246,.05)}
+.hacia-repo .dir-pie{background:rgba(245,158,11,.05)}
+.bloque-titulo{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
+.sel-todos{font-size:12px;color:var(--text-2);margin-bottom:8px}
+.sel-todos label{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.escribe-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  border-radius:4px;padding:1px 7px;margin-left:12px;white-space:nowrap}
+.escribe-badge.read{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+.escribe-badge.write-cx{background:rgba(245,158,11,.12);color:var(--gate);border:1px solid rgba(245,158,11,.35)}
+.escribe-badge.write-gh{background:rgba(59,130,246,.12);color:var(--accent-light);border:1px solid rgba(59,130,246,.35)}
+.repo-resuelto{display:flex;align-items:center;gap:8px;background:var(--bg-2);border:1px solid var(--border);
+  border-radius:6px;padding:8px 12px;font-size:12px;min-height:34px}
+.grupo-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;flex:1;min-width:200px}
+.grupo-card .grupo-num{font-size:26px;font-weight:700;line-height:1.1}
+.grupo-card .grupo-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.grupo-card{cursor:pointer;transition:border-color .15s}
+.grupo-card:hover{border-color:var(--accent)}
+.grupo-card .grupo-toggle{font-size:11px;color:var(--accent-light);margin-top:10px;display:inline-block}
+.grupo-card .grupo-desc{font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.5}
+.grupo-card.emp{border-left:3px solid var(--success)}
+.grupo-card.cx{border-left:3px solid var(--border)}
+.grupo-card.repo{border-left:3px solid var(--accent)}
+.grupo-card.huerfano{border-left:3px solid var(--gate);background:rgba(245,158,11,.06)}
+.grupo-lista{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-2);margin-top:10px;line-height:1.7}
+.topbar-tool{font-family:monospace;font-size:12px;color:var(--text-3);letter-spacing:.02em}
+.topbar-agent{font-weight:700;font-size:15px}
+.topbar-sep{color:var(--border);font-size:18px}
+.topbar-env{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;transition:background .3s,color .3s,border-color .3s}
+.topbar-commit{font-size:12px;color:var(--text-3);font-family:monospace}
+.topbar-meta{color:var(--text-3);font-size:12px;margin-left:auto;display:flex;align-items:center;gap:12px}
+.btn{padding:6px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-gate{background:var(--gate);color:#000}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.btn-ghost{background:var(--bg-3);color:var(--text-2);border:1px solid var(--border)}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:256px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 0 0}
+.sidebar-steps{flex:1;overflow-y:auto;min-height:0}
+.sidebar-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:0 16px 12px}
+
+/* SIDEBAR — TOOLS (acciones sueltas, fuera de los 5 pasos numerados) */
+.sidebar-tools{flex:0 0 25%;min-height:120px;overflow-y:auto;border-top:1px solid var(--border);padding:14px 0;background:var(--bg)}
+.tool-card{display:flex;align-items:flex-start;gap:10px;margin:0 12px 8px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;transition:border-color .15s,background .15s}
+.tool-card:hover{border-color:var(--accent);background:var(--bg-3)}
+.tool-card-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.tool-card-body{flex:1;min-width:0}
+.tool-card-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+.tool-card-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4}
+.tool-card-empty{margin:0 16px;font-size:11px;color:var(--text-3);font-style:italic;line-height:1.5}
+.step-item{display:flex;align-items:flex-start;gap:12px;padding:9px 16px;cursor:pointer;border-left:2px solid transparent;transition:background .1s;position:relative}
+.step-item:hover{background:var(--bg-3)}
+.step-item.active{background:rgba(59,130,246,.08);border-left-color:var(--accent)}
+.step-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;transition:background .2s}
+.s-done .step-badge{background:var(--success);color:#000}
+.s-active .step-badge{background:var(--accent);color:#fff}
+.s-gate .step-badge{background:var(--gate);color:#000}
+.s-error .step-badge{background:var(--error);color:#fff}
+.s-pending .step-badge{background:var(--bg-3);color:var(--text-3);border:1px solid var(--border)}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:13px;font-weight:500;line-height:1.3}
+.s-pending .step-name{color:var(--text-3)}
+.s-active .step-name,.s-gate .step-name{color:var(--text)}
+.step-status-text{font-size:11px;margin-top:2px}
+.s-done .step-status-text{color:#4ade80}
+.s-active .step-status-text{color:#93c5fd}
+.s-gate .step-status-text{color:#fbbf24}
+.s-error .step-status-text{color:#f87171}
+.s-pending .step-status-text{color:var(--text-3)}
+.step-connector{width:1px;height:6px;background:var(--border);margin-left:27px}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:28px 32px}
+.step-view{display:none;max-width:720px}
+.step-view.visible{display:block}
+.phase-eyebrow{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.phase-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.phase-sub{font-size:14px;color:var(--text-2);margin-bottom:24px;line-height:1.5}
+
+/* GATE BLOCK */
+.gate-block{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:20px 24px;margin-bottom:20px}
+.gate-title{font-size:12px;font-weight:700;color:var(--gate);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.gate-block p{color:var(--text-2);font-size:13px;line-height:1.6;margin-bottom:16px}
+.action-bar{display:flex;gap:10px;margin-top:4px}
+
+/* DIFF */
+.diff-wrap{overflow-x:auto;margin-bottom:20px}
+.diff-table{width:100%;border-collapse:collapse;font-size:13px}
+.diff-table th{text-align:left;padding:6px 12px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.diff-table td{padding:8px 12px;border-bottom:1px solid var(--bg-3);font-variant-numeric:tabular-nums}
+.diff-table tr:last-child td{border-bottom:none}
+.diff-table code{font-size:12px;color:var(--text-2);font-family:monospace}
+.pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.pill-mod{background:rgba(59,130,246,.15);color:#60a5fa}
+.pill-new{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-del{background:rgba(239,68,68,.15);color:#f87171}
+.pill-ok{background:rgba(34,197,94,.15);color:#4ade80}
+.pill-err{background:rgba(239,68,68,.15);color:#f87171}
+.pill-dim{background:var(--bg-3);color:var(--text-3)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bg-3)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)}
+
+/* OUTPUT */
+.output-block{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.8;overflow-x:auto;white-space:pre}
+.output-block .ok{color:#4ade80}
+.output-block .info{color:#60a5fa}
+.output-block .warn{color:#fbbf24}
+.output-block .dim{color:var(--text-3)}
+.output-block .del{color:#f87171}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.stat-label{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+/* PROGRESS */
+.progress-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bg-3)}
+.progress-item:last-child{border-bottom:none}
+.progress-icon{width:18px;text-align:center;font-size:13px;flex-shrink:0}
+.progress-name{flex:1;font-size:13px;color:var(--text)}
+
+/* DONE BANNER */
+.done-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:20px}
+.done-banner p{font-size:13px;color:#4ade80;font-weight:500}
+
+/* SECTION LABEL */
+.slabel{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+
+/* SNAPSHOT GATE (Paso 3) */
+.snapshot-input{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'SF Mono',Menlo,monospace;width:100%;outline:none;transition:border-color .15s}
+.snapshot-input:focus{border-color:var(--gate)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* PASO YA EJECUTADO — se puede volver a mirarlo, no a repetirlo */
+.step-view.paso-cerrado .re-ejecuta{display:none !important}
+
+/* ERROR BLOCK */
+.error-block{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:20px 24px}
+
+/* ACTION RESULT ROWS */
+.action-result{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg-3)}
+.action-result:last-child{border-bottom:none}
+.action-result-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;margin-top:1px}
+.action-result-body{flex:1}
+.action-result-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.action-result-desc{font-size:12px;color:var(--text-2);line-height:1.55}
+
+</style>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="topbar-tool">act_cx_resources_deploy_cloudrun.py</span>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-agent" id="topbar-agent">&mdash;</span>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-env" id="topbar-env">DRAFT</span>
+  <span class="topbar-commit" id="topbar-commit">&mdash;</span>
+  <div class="topbar-meta">
+    <span id="estado-servidor" title="Estado del servidor">&#9679; comprobando servidor&hellip;</span>
+    <button id="btn-reset" class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-steps" id="sidebar-steps"></div>
+    <div class="sidebar-tools" id="sidebar-tools">
+      <div class="sidebar-label" style="padding-top:0">Tools</div>
+      <div class="tool-card" onclick="viewTool('onboarding')">
+        <div class="tool-card-icon">&#128279;</div>
+        <div class="tool-card-body">
+          <div class="tool-card-name">Vincular proyecto y repositorio</div>
+          <div class="tool-card-desc">Una vez por proyecto &middot; S22/S24</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- STEP 1: Inventario CX -->
+    <div class="step-view" id="view-1">
+      <div class="phase-eyebrow">Paso 1 de 5<span class="escribe-badge read">solo lectura</span></div>
+      <div class="phase-title">Inventario CX</div>
+      <div class="phase-sub">
+        Lee el estado actual del draft del agente desde la API de Dialogflow CX.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El borrador es el estado editable del agente: es contra &eacute;l contra lo que se prueba, y ning&uacute;n usuario lo ve. Lo que ven los usuarios no cambia hasta el Paso 5.</p>
+      </div>
+
+      <!-- Estado inicial: los dos selectores se rellenan con /discover. La región
+           no se pide: la resuelve el servidor en cuanto conoce el agente. -->
+      <div id="inv-start">
+        <div id="aviso-interrumpido" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6"></div>
+        <div id="aviso-sin-repos" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
+          <strong style="color:var(--gate)">&#9888; Este proyecto no tiene repositorio vinculado.</strong><br>
+          <span style="color:var(--text-2)">El repositorio es del proyecto, no de cada agente: sin vincular uno, ninguno de sus agentes tiene con qu&eacute; comparar.</span>
+          <button class="btn btn-gate" style="margin-top:10px;font-size:12px;padding:5px 12px" onclick="viewTool('onboarding')">Vincular un repositorio &rarr;</button>
+        </div>
+        <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+          <div>
+            <label for="project-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Proyecto</label>
+            <select id="project-select" class="snapshot-input" style="max-width:240px" onchange="onProjectSelected()" disabled>
+              <option value="" selected disabled>cargando proyectos&hellip;</option>
+            </select>
+            <div id="project-manual" style="display:none;margin-top:8px;max-width:340px">
+              <div id="project-manual-nota" style="font-size:11px;color:var(--gate);line-height:1.5;margin-bottom:6px"></div>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="project-manual-input" class="snapshot-input" placeholder="id del proyecto" style="max-width:200px">
+                <button class="btn btn-ghost" onclick="usarProyectoManual()">Usar</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label for="agent-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Agente</label>
+            <select id="agent-select" class="snapshot-input" style="max-width:240px" onchange="onAgentSelected()" disabled>
+              <option value="" selected disabled>&mdash;</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;max-width:520px">
+          <label style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Repositorio</label>
+          <div class="repo-resuelto" id="repo-resuelto">
+            <span style="color:var(--text-3)">&mdash;</span>
+          </div>
+          <div id="alta-agente-log" style="display:none;margin-top:10px">
+            <div class="output-block" id="alta-agente-log-block" style="height:70px;overflow-y:auto"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
+        <div id="error-1" style="display:none;margin-top:16px"></div>
+      </div>
+
+      <!-- Log animado (oculto hasta pulsar) -->
+      <div id="inv-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="inv-log-block" style="height:210px;overflow-y:auto"></div>
+      </div>
+
+      <!-- Estado completado con inventario (oculto hasta finalizar) -->
+      <div id="inv-done" style="display:none">
+        <div class="done-banner"><p>Inventario completado &#10003;</p></div>
+
+        <div id="grupos-inventario" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px"></div>
+        <div id="aviso-sin-entorno" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
+          <strong style="color:var(--gate)">&#9888; Este agente no tiene entorno de producci&oacute;n.</strong><br>
+          <span style="color:var(--text-2)">El Paso 5 publica apuntando el entorno <code>production</code> a las versiones nuevas; sin &eacute;l no hay d&oacute;nde publicar. Cr&eacute;alo en la consola de Dialogflow CX &mdash; el panel despliega, no crea infraestructura.</span>
+        </div>
+        <div id="inv-resumen" style="font-size:12px;color:var(--text-3);margin-bottom:20px"></div>
+        <div class="action-bar re-ejecuta">
+          <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Qué cambia -->
+    <div class="step-view" id="view-2">
+      <div class="phase-eyebrow">Paso 2 de 5<span class="escribe-badge write-gh">escribe en el repositorio</span></div>
+      <div class="phase-title">Traer al repositorio</div>
+      <div class="phase-sub">Trae al repositorio lo que solo existe en CX, antes de desplegar.</div>
+
+      <!-- Con cambios -->
+      <div id="diff-has-changes" style="display:none">
+
+        <!-- Dirección 2: de CX hacia el repositorio -->
+        <div class="dir-card hacia-repo">
+          <div class="dir-head">
+            Se va a traer al repositorio <span class="dir-flecha">CX &rarr; repositorio</span>
+          </div>
+          <div class="dir-body">
+            <div id="aviso-deriva" style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:8px">
+              &#9888; <span id="num-deriva">0</span> resources en CX sin respaldo en el repositorio
+            </div>
+            <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Alguien los cre&oacute; directamente en la consola de CX. Lo que no marques se queda como est&aacute;.</p>
+            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-repo" onchange="marcarTodos('tabla-repo', this.checked)"> Seleccionar todos</label></div>
+            <div class="diff-wrap" style="margin-bottom:14px">
+              <table class="diff-table" id="tabla-repo">
+                <tbody></tbody>
+              </table>
+            </div>
+
+            <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
+              <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Apuntar para borrar en el Paso 3</div>
+              <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
+                Los resources de abajo <strong>se borrar&aacute;n al aplicar, en el Paso 3</strong>. Hasta entonces no se toca el agente: aqu&iacute; solo queda decidido su destino, y all&iacute; aparecer&aacute;n sin marcar como todo lo dem&aacute;s.<br>
+                Cuando se apliquen, el borrado <strong>no se puede deshacer desde el panel</strong> &mdash; solo recuperando una versi&oacute;n anterior.</p>
+              <div id="lista-borrado" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-danger" onclick="confirmarEliminarDeCx()">S&iacute;, apuntar para borrar</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('confirmar-borrado').style.display='none'">Cancelar</button>
+              </div>
+            </div>
+          </div>
+          <div class="dir-pie"><span id="pie-repo">&mdash;</span></div>
+        </div>
+
+      <div class="gate-block re-ejecuta" id="traer-gate">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Repositorio: <strong style="color:var(--text)" id="traer-repo">&mdash;</strong> &middot; Rama: <strong style="color:var(--text)" id="traer-rama">&mdash;</strong></p>
+        <p>Se van a traer <strong style="color:var(--text)"><span id="traer-count">0</span> resources</strong> de los marcados arriba. Lo que no marques se queda solo en CX, y el repositorio dejar&aacute; de retratar el agente entero.</p>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-traer" onclick="traerAlRepo()" disabled>Traer al repositorio &rarr;</button>
+          <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
+        </div>
+      </div>
+
+      <div id="traer-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="traer-log-block" style="height:150px;overflow-y:auto"></div>
+      </div>
+
+      <div id="traer-done" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>Repositorio actualizado &#10003;</p></div>
+        <p id="traer-commit" style="font-size:12px;color:var(--text-2);margin:10px 0 4px"></p>
+        <p style="font-size:12px;color:var(--text-3);margin:0 0 14px">Haz <code>git pull</code> en local antes de seguir trabajando &mdash; tu copia est&aacute; un commit por detr&aacute;s.</p>
+        <div class="action-bar re-ejecuta">
+          <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
+        </div>
+      </div>
+
+      <div class="action-bar re-ejecuta" id="sin-modificar-2" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="advance(2)">Continuar sin modificar &rarr;</button>
+      </div>
+      <div id="error-2" style="display:none;margin-top:16px"></div>
+      </div>
+
+      <!-- Sin cambios -->
+      <div id="diff-no-changes" style="display:none">
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:18px 20px;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">No queda nada suelto en CX</div>
+          <p style="font-size:13px;color:var(--text-2);margin:0">Todo lo que existe en el agente tiene archivo en el repositorio. No hay nada que traer.</p>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="advance(2)">Continuar &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Confirmar deploy -->
+    <div class="step-view" id="view-3">
+      <div class="phase-eyebrow">Paso 3 de 5<span class="escribe-badge write-cx">escribe en CX</span></div>
+      <div class="phase-title">Aplicar en CX</div>
+      <div class="phase-sub">Al confirmar, el sistema har&aacute; push de los recursos modificados a la API de Dialogflow CX recurso a recurso. El draft del agente en CX quedar&aacute; actualizado con los cambios.</div>
+
+      <!-- Comprobación CX → repo: qué hay en CX que el repo no refleja -->
+      <!-- Lo que se va a escribir en el draft -->
+        <div class="dir-card hacia-cx">
+          <div class="dir-head">
+            Se va a aplicar en CX <span class="dir-flecha">repositorio &rarr; CX</span>
+          </div>
+          <div class="dir-body">
+            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)"> Seleccionar todos</label></div>
+            <div class="diff-wrap">
+              <table class="diff-table" id="tabla-cx">
+                <thead><tr><th style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="legend" style="margin-bottom:0">
+              <span class="legend-item"><span class="pill pill-new">Crear</span> A&uacute;n no existe en CX</span>
+              <span class="legend-item"><span class="pill pill-mod">Modificar</span> Existe y el archivo dice otra cosa</span>
+              <span class="legend-item"><span class="pill pill-del">Eliminar</span> Se ha decidido borrarlo</span>
+            </div>
+          </div>
+          <div class="dir-pie"><span id="pie-cx">&mdash;</span></div>
+        </div>
+
+      <div id="plan-log" style="display:none;margin-bottom:16px">
+        <div class="output-block" id="plan-log-block" style="height:80px;overflow-y:auto"></div>
+      </div>
+      <div id="error-3" style="display:none;margin-bottom:16px"></div>
+      <div class="action-bar re-ejecuta" style="margin-bottom:16px">
+        <button class="btn btn-ghost" id="btn-recalcular-plan" style="display:none" onclick="cargarPlan()">Volver a calcular el plan</button>
+      </div>
+
+      <div class="gate-block re-ejecuta" id="deploy-gate">
+        <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
+        <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate3-project">&mdash;</strong> &middot; Agente: <strong style="color:var(--text)" id="gate3-agent">&mdash;</strong></p>
+        <p>Se van a aplicar <strong style="color:var(--text)"><span id="deploy-count">0</span> resources</strong> de los marcados arriba. Los recursos sin cambios no se tocan.</p>
+        <div id="agent-config-warning" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+          <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; Este deploy incluye cambios que no admiten versi&oacute;n</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.5">Estos tipos no se pueden congelar en una versi&oacute;n, as&iacute; que el cambio lo ver&aacute;n los usuarios en el mismo instante en que lo apliques &mdash; sin pasar por los tests del paso siguiente.</p>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-confirm-deploy" onclick="confirmDeploy()">Aplicar en CX &rarr;</button>
+          <button class="btn btn-ghost" onclick="cancelDeploy()">Cancelar</button>
+          </div>
+      </div>
+
+      <div class="action-bar re-ejecuta" id="sin-modificar-3" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="advance(3)">Continuar sin modificar &rarr;</button>
+      </div>
+
+      <div id="deploy-log" style="display:none;margin-top:4px">
+        <div class="output-block" id="deploy-log-block" style="height:150px;overflow-y:auto"></div>
+        <div class="legend">
+          <span class="legend-item"><span class="pill pill-ok">OK</span> Aplicado</span>
+          <span class="legend-item"><span class="pill pill-err">ERROR</span> Fallo en API</span>
+          <span class="legend-item"><span class="pill pill-dim">—</span> No intentado</span>
+        </div>
+      </div>
+
+      <!-- Deploy OK -->
+      <div id="deploy-done" style="display:none">
+        <div class="done-banner"><p>Deploy completado &#10003;</p></div>
+        <div class="action-bar re-ejecuta">
+          <button class="btn btn-primary" onclick="advance(3)">Continuar &rarr;</button>
+          <button class="btn btn-ghost" onclick="pedirTerminar()">Terminar</button>
+        </div>
+        <div id="confirmar-terminar" class="re-ejecuta" style="display:none;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:6px">&#9995; Terminar aqu&iacute; &mdash; el deploy se queda en el borrador</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">Los resources aplicados est&aacute;n en el borrador del agente. Ning&uacute;n usuario los ve: producci&oacute;n sigue sirviendo la versi&oacute;n anterior.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">No se deshace nada &mdash; lo aplicado se queda en el borrador tal cual, y no se crea ninguna versi&oacute;n.</p>
+          <p id="confirmar-terminar-repo" style="display:none;font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">Los archivos tra&iacute;dos al repositorio se quedan en <code id="terminar-rama">&mdash;</code>, sin fusionar en <code id="terminar-rama-principal">&mdash;</code>.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 14px;line-height:1.6">Cuando arranques un deploy nuevo, el pipeline vuelve a leer el estado real: lo que dejaste en el borrador aparecer&aacute; ya como igual en los dos sitios.</p>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-gate" onclick="confirmarTerminar()">S&iacute;, terminar</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('confirmar-terminar').style.display='none'">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deploy PARCIAL (fallo) -->
+      <div id="deploy-fail" style="display:none">
+        <div class="error-block" style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px" id="deploy-fail-title">Deploy parcial</div>
+          <div id="deploy-fail-summary" style="font-size:13px;color:var(--text-2);line-height:1.8;margin-bottom:14px"></div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">El draft del agente en CX tiene cambios aplicados a medias. Elige c&oacute;mo continuar:</div>
+          <div class="action-bar re-ejecuta">
+            <button class="btn btn-gate" id="btn-retry-failed" onclick="retryFailed()">Reintentar fallidos &rarr;</button>
+            <button class="btn btn-ghost" onclick="resetDeploy()">Terminar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Validar tests contra el draft -->
+    <div class="step-view" id="view-4">
+      <div class="phase-eyebrow">Paso 4 de 5</div>
+      <div class="phase-title">Validar tests</div>
+      <div class="phase-sub">El paso siguiente sube a producci&oacute;n. Antes hay que comprobar que el draft se comporta como debe.</div>
+
+      <div id="tests-gate">
+        <div class="gate-block">
+          <div class="gate-title">&#9995; Validaci&oacute;n manual requerida</div>
+          <p style="margin-bottom:10px">Lanza t&uacute; la suite de QA contra el <strong>draft</strong> del agente y comprueba el resultado. Cuando lo tengas, dilo aqu&iacute;.</p>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:14px">El panel no lanza los tests ni conoce su resultado: lo que marques aqu&iacute; es una declaraci&oacute;n tuya.</p>
+          <div class="action-bar re-ejecuta">
+            <button class="btn btn-gate" id="btn-tests-ok" onclick="validarTests()">Tests superados &mdash; continuar &rarr;</button>
+            <button class="btn btn-danger" id="btn-tests-ko" onclick="marcarTestsFallidos()">Tests fallidos</button>
+          </div>
+        </div>
+        <div class="action-bar" style="margin-top:16px">
+          <a class="btn btn-ghost" id="enlace-agente-cx" href="https://dialogflow.cloud.google.com/cx/projects" target="_blank" rel="noopener">Abrir el agente en CX &#8599;</a>
+        </div>
+        <div id="tests-log" style="display:none;margin-top:16px">
+          <div class="output-block" id="tests-log-block" style="height:70px;overflow-y:auto"></div>
+        </div>
+        <div id="error-4" style="display:none;margin-top:16px"></div>
+      </div>
+
+      <div id="tests-fail" style="display:none;margin-top:16px">
+        <div style="border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px">
+          <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Tests fallidos &mdash; no se publica nada</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0;line-height:1.6">
+            Los cambios se quedan en el draft, que no ve ning&uacute;n usuario, y producci&oacute;n sigue sirviendo lo de antes. No hay nada que revertir.<br><br>
+            Corrige los archivos en tu repositorio, vuelve a subirlos y arranca el pipeline otra vez desde el principio.</p>
+        </div>
+        <div class="action-bar re-ejecuta" style="margin-top:16px">
+          <button class="btn btn-gate" onclick="resetDeploy()">Terminar</button>
+          <button class="btn btn-ghost" onclick="volverAValidacion()">Volver al cuadro de validaci&oacute;n</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Publicar en producción -->
+    <div class="step-view" id="view-5">
+      <div class="phase-eyebrow">Paso 5 de 5<span class="escribe-badge write-cx">escribe en producci&oacute;n</span></div>
+      <div class="phase-title">Publicar en producci&oacute;n</div>
+      <div class="phase-sub">Crea una versi&oacute;n con el draft ya probado y apunta <strong>producci&oacute;n</strong> a ella.</div>
+
+      <div id="prod-gate">
+        <div id="aviso-draft-movido" style="display:none;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.08);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--gate);margin-bottom:6px">&#9888; El draft ha cambiado &mdash; no se puede publicar</div>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6">El servidor no ha publicado, y este es el motivo que da: <strong style="color:var(--text)" id="aviso-draft-movido-motivo">&mdash;</strong>.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;line-height:1.6"><strong style="color:var(--text)">Los cambios se quedan en el draft</strong>, que no ve ning&uacute;n usuario, y producci&oacute;n sigue sirviendo lo de antes. No se ha fusionado nada ni se ha creado ninguna versi&oacute;n: <strong style="color:var(--text)">no hay nada que revertir</strong>.</p>
+          <p style="font-size:12px;color:var(--text-2);margin:0 0 14px;line-height:1.6">Para publicar, arranca el pipeline otra vez desde el principio y vuelve a validar.</p>
+          <button class="btn btn-gate" onclick="resetDeploy()">Empezar de nuevo</button>
+        </div>
+
+        <div style="margin-bottom:18px">
+          <div class="slabel" style="margin-bottom:8px">Nombre de la versi&oacute;n</div>
+          <input type="text" id="version-batch-label" class="snapshot-input" value="" oninput="validarVersionLabel()">
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Letras, d&iacute;gitos, guiones y guiones bajos.</div>
+          <div id="version-label-error" style="display:none;font-size:11px;color:#f87171;margin-top:6px"></div>
+        </div>
+
+        <div class="gate-block re-ejecuta">
+          <div class="gate-title">&#9995; Confirmar subida a producci&oacute;n</div>
+          <p style="margin-bottom:10px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate5-project">&mdash;</strong> &middot; Agente: <strong style="color:var(--text)" id="gate5-agent">&mdash;</strong> &mdash; esta acci&oacute;n <strong style="color:var(--gate)">afecta a usuarios reales</strong>.</p>
+          <p style="margin-bottom:6px">Al confirmar ocurren tres cosas, en este orden:</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px">
+            <strong style="color:var(--text)">1.</strong> <code id="gate5-rama">&mdash;</code> se fusiona en <code id="gate5-rama-principal">&mdash;</code>, que pasa a retratar lo que hay en producci&oacute;n.<br>
+            <strong style="color:var(--text)">2.</strong> Se crea una versi&oacute;n con el estado actual del draft.<br>
+            <strong style="color:var(--text)">3.</strong> Producci&oacute;n pasa a apuntar a esa versi&oacute;n.</p>
+          <div class="action-bar">
+            <button class="btn btn-gate" id="btn-confirm-prod" onclick="confirmProduction()">Publicar en producci&oacute;n &rarr;</button>
+            <button class="btn btn-ghost" onclick="resetDeploy()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <button class="btn btn-ghost" id="btn-ver-versiones" onclick="toggleVersiones()">Ver versiones existentes &#9662;</button>
+        <div id="panel-versiones" style="display:none;margin-top:12px;border:1px solid var(--border);border-radius:8px;padding:14px 16px">
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Las versiones que ya existen en el agente. M&aacute;rcalas para eliminarlas y no acumular.</p>
+          <div id="version-limites" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:10px 12px;margin-bottom:10px">
+            <div style="font-size:12px;font-weight:600;color:var(--gate);margin-bottom:6px">&#9888; Contenedores cerca de su l&iacute;mite de versiones</div>
+            <div id="version-limites-lista" style="font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-2);line-height:1.8"></div>
+          </div>
+          <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
+          <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
+          <div class="action-bar" style="margin-top:12px">
+            <button class="btn btn-danger" id="btn-borrar-versiones" onclick="borrarVersiones()" disabled>Eliminar versiones marcadas</button>
+          </div>
+          <div id="error-versiones" style="display:none;margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div id="prod-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="prod-log-block" style="height:170px;overflow-y:auto"></div>
+      </div>
+      <div id="error-5" style="display:none;margin-top:16px"></div>
+    </div>
+
+    <div class="step-view" id="view-done">
+      <div class="phase-eyebrow">Deploy completado</div>
+      <div class="phase-title">&#10003; <span id="done-agente">&mdash;</span> en producci&oacute;n</div>
+      <div class="phase-sub">Desplegado en producci&oacute;n &middot; validado contra el draft.</div>
+      <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; <span id="done-timestamp">2026-07-28 &middot; 09:45 UTC</span> &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
+      <div style="margin:12px 0 20px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+        <p style="font-size:12px;color:var(--text-2);line-height:1.5">&#9888; El cambio se ha aplicado, pero puede tardar unos minutos en propagarse a todos los usuarios. Si pruebas producci&oacute;n ahora mismo y ves comportamiento antiguo, espera y reintenta antes de asumir que el deploy fall&oacute;.</p>
+      </div>
+
+      <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
+      <div style="margin-bottom:20px">
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Fusi&oacute;n de la rama de trabajo en la principal</div>
+            <div class="action-result-desc" id="done-merge-desc">&mdash;</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Versiones creadas</div>
+            <div class="action-result-desc" id="done-version-desc">&mdash;</div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
+            <div class="action-result-desc" id="done-prod-desc">&mdash;</div>
+          </div>
+        </div>
+        <div class="action-result" id="fila-poda-pendiente" style="display:none">
+          <div class="action-result-icon" style="color:var(--gate)">&#9888;</div>
+          <div class="action-result-body">
+            <div class="action-result-title" style="color:var(--gate)">Hay versiones por encima del l&iacute;mite</div>
+            <div class="action-result-desc"><span id="poda-total">0</span> versi&oacute;n(es) en <span id="poda-contenedores">0</span> contenedor(es) superan su l&iacute;mite. <strong>No se han borrado</strong> &mdash; publicar nunca borra por su cuenta. Rev&iacute;salas en &laquo;Ver versiones existentes&raquo; y b&oacute;rralas cuando quieras.<div id="poda-detalle" style="font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-2);line-height:1.8;margin-top:8px"></div></div>
+          </div>
+        </div>
+        <div class="action-result" id="done-sync-row">
+          <div class="action-result-icon">
+            <input type="checkbox" id="check-sync-local" onchange="toggleSyncCheck()" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">
+          </div>
+          <div class="action-result-body">
+            <div class="action-result-title" id="done-sync-title" style="color:var(--text-2)">Actualizar tu copia local de <code id="done-rama-principal">&mdash;</code> <span style="font-size:11px;font-weight:400;color:var(--text-3)">(recomendado)</span></div>
+            <div class="action-result-desc">
+              La fusi&oacute;n la ha hecho el servidor, as&iacute; que tu copia local a&uacute;n no la tiene.
+              <div style="margin-top:10px;margin-bottom:8px">
+                <label style="display:block;font-size:11px;color:var(--text-3);margin-bottom:4px">Ruta de tu copia local de <strong style="color:var(--text-2)" id="done-repo">&mdash;</strong></label>
+                <input type="text" id="ruta-local" class="snapshot-input" placeholder="~/ruta/de/tu/copia" oninput="actualizarComandoSync()" style="max-width:100%">
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
+                <code id="comando-sync" style="flex:1;font-size:12px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;word-break:break-all">&mdash;</code>
+                <button onclick="copiarComandoSync(this)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:8px;line-height:1.6">
+                Lleva la ruta dentro para que no dependa de d&oacute;nde tengas abierto el terminal. No cambia de rama ni toca tu trabajo: solo adelanta la rama principal del proyecto, y si no pudiera hacerlo limpiamente aborta sin tocar nada.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slabel">Estado final de entornos</div>
+      <div class="output-block" id="estado-final-entornos">&mdash;</div>
+
+      <div style="margin-top:4px"><button class="btn btn-ghost" onclick="resetDeploy()">&#8635; Nuevo deploy</button></div>
+    </div>
+
+    <!-- TOOL: Vincular proyecto y repositorio (S22/S24) — una vez por proyecto -->
+    <div class="step-view" id="view-tool-onboarding">
+      <div class="phase-eyebrow">Tool &middot; fuera del pipeline<span class="escribe-badge read">solo lectura</span></div>
+      <div class="phase-title">Vincular proyecto y repositorio</div>
+      <div class="phase-sub">
+        Solo hace falta una vez por proyecto. El repositorio lo creas t&uacute;; aqu&iacute; se le dice al sistema cu&aacute;l es. Los agentes de ese proyecto se dan de alta despu&eacute;s, uno a uno, desde el Paso 1.
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);line-height:1.6">&#9888; El servidor no concede permisos IAM por su cuenta (S6b) &mdash; al terminar, te mostrar&aacute; un comando <code>gcloud</code> para ejecutar t&uacute; una vez, fuera del panel.</p>
+      </div>
+
+      <div id="tool-onboarding-start">
+        <div style="margin-bottom:16px;max-width:420px">
+          <label for="tool-project-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Proyecto GCP</label>
+          <input type="text" id="tool-project-input" class="snapshot-input" placeholder="ej. mi-proyecto-gcp">
+        </div>
+        <div style="margin-bottom:20px;max-width:420px">
+          <label for="tool-repo-url-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">URL del repositorio</label>
+          <input type="text" id="tool-repo-url-input" class="snapshot-input" placeholder="https://github.com/usuario/repo">
+        </div>
+        <div style="margin-bottom:20px;max-width:420px">
+          <label for="tool-rama-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Rama principal <span style="text-transform:none;font-weight:400">(opcional &mdash; <code>main</code> si se deja vac&iacute;a)</span></label>
+          <input type="text" id="tool-rama-input" class="snapshot-input" placeholder="main">
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.5">Es la rama en la que publicar fusiona el trabajo de cada agente. Se pide porque no todos los repositorios la llaman <code>main</code>, y apuntar a una que no existe hace fallar el Paso 5 despu&eacute;s de haber escrito ya en el agente.</div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-gate" id="btn-tool-onboarding" onclick="ejecutarToolOnboarding()">Vincular &rarr;</button>
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cancelar</button>
+        </div>
+        <div id="error-tool" style="display:none;margin-top:16px"></div>
+      </div>
+
+      <div id="tool-onboarding-log" style="display:none;margin-top:16px">
+        <div class="output-block" id="tool-onboarding-log-block" style="height:150px;overflow-y:auto"></div>
+      </div>
+
+      <div id="tool-onboarding-done" style="display:none;margin-top:16px">
+        <div class="done-banner"><p>Proyecto vinculado &#10003; &mdash; queda esto:</p></div>
+        <div class="action-result">
+          <div class="action-result-icon" style="color:var(--gate);font-weight:700">1</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Pega este comando en tu terminal</div>
+            <div class="action-result-desc">Una vez por proyecto; cubre todos sus agentes, tambi&eacute;n los que crees despu&eacute;s. <span style="color:var(--text-3)">(terminal)</span>
+              <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-top:8px">
+                <code id="tool-comando-iam" style="flex:1;font-size:11px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;word-break:break-all">&mdash;</code>
+                <button onclick="copiarComandoIam(this)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="font-weight:700">2</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Crea el agente en Dialogflow CX</div>
+            <div class="action-result-desc">El panel despliega, no crea infraestructura. <span style="color:var(--text-3)">(consola de CX)</span></div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="font-weight:700">3</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Crea su entorno de producci&oacute;n en Dialogflow CX</div>
+            <div class="action-result-desc">Sin &eacute;l, el Paso 5 no tiene d&oacute;nde publicar. <span style="color:var(--text-3)">(consola de CX)</span></div>
+          </div>
+        </div>
+        <div class="action-result">
+          <div class="action-result-icon" style="font-weight:700">4</div>
+          <div class="action-result-body">
+            <div class="action-result-title">Vuelve al Paso 1, elige el agente y pulsa &laquo;Dar de alta&raquo;</div>
+            <div class="action-result-desc">Le crea su rama. <span style="color:var(--text-3)">(panel &middot; Paso 1)</span></div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text-3);margin:10px 0 16px;line-height:1.6">Los pasos 2, 3 y 4 se repiten por cada agente nuevo. El 1 no: es del proyecto.</p>
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="cerrarTool()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   Panel de producción — conectado a act/server_cloudrun.py
+
+   Todo lo que se ve en pantalla sale de una respuesta del servidor. No queda
+   ninguna simulación: ni datos escritos a mano, ni `setTimeout` que finja
+   trabajo, ni un paso que avance solo. Si el servidor no contesta, se dice.
+
+   **Rutas relativas, nunca una URL absoluta** (S25, §16 del diseño). El panel
+   lo sirve el propio servidor desde su mismo origen, así que `/step/1` apunta
+   siempre a quien lo entregó: no hay URL que configurar y no hay CORS. Lo
+   único que se calcula en absoluto es la dirección que se enseña en un
+   mensaje de error — con el destino a un clic de distancia, «no conecta» y
+   «apunta al sitio equivocado» tienen que poder distinguirse.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const STEPS = [
+  {id:1, name:'Inventario CX',           sub:'',  gate:false},
+  {id:2, name:'Traer al repositorio',    sub:'',  gate:true},
+  {id:3, name:'Aplicar en CX',           sub:'',  gate:true},
+  {id:4, name:'Validar tests',           sub:'',  gate:true},
+  {id:5, name:'Publicar en producción',  sub:'',  gate:true},
+];
+
+// Tipos de resource que CX no versiona: lo que se les aplique lo ven los
+// usuarios en el acto, sin pasar por los tests del Paso 4. La lista real la
+// decide el servidor y viaja en cada operación (`sin_version`); esta constante
+// solo traduce el nombre técnico a lo que se lee en la tabla.
+const NOMBRE_DE_TIPO = {
+  agent_config:'Agent Config', playbook:'Playbook', example:'Example',
+  tool:'Tool', flow:'Flow', page:'Page', intent:'Intent',
+  entity_type:'Entity Type', webhook:'Webhook', generator:'Generator',
+  environment:'Environment', version:'Version',
+  transition_route_group:'Transition Route Group',
+};
+
+const NOMBRE_DE_OPERACION = {POST:'Crear', PATCH:'Modificar', DELETE:'Eliminar'};
+const PILL_DE_OPERACION   = {POST:'pill-new', PATCH:'pill-mod', DELETE:'pill-del'};
+
+/* ── Estado ────────────────────────────────────────────────────────────────
+   Vive en localStorage con clave propia de este panel. Sin esto, recargar la
+   página —por costumbre, o porque una llamada real tarda más que cualquier
+   animación y la pantalla parece congelada— perdía el progreso entero y, peor,
+   el destino: las llamadas siguientes se habrían quedado sin saber sobre qué
+   agente actuaban.                                                          */
+
+const CLAVE_ESTADO = 'act_panel_cloudrun_v1';
+
+function estadoNuevo() {
+  return {
+    project:'', agentId:'', agentName:'', region:'', repo:'', rama:'',
+    ramaPrincipal:'',
+    stepStates:['active','pending','pending','pending','pending'],
+    current:1, viewingStep:1,
+    inventario:null,      // data del Paso 1
+    traido:null,          // data del Paso 2
+    eliminar:[],          // {tipo, cx_id, resource} apuntados en el Paso 2
+    plan:null,            // operaciones del Paso 3 en dry-run
+    aplicadas:null,       // operaciones del Paso 3 ya ejecutadas
+    paso3Cerrado:false,
+    paso4:null,           // {declarado}
+    versionLabel:'',
+    publicacion:null,     // data del Paso 5
+    enCurso:null,         // {paso, ruta, desde} — una llamada que no llegó a contestar
+    rutaLocal:'',
+  };
+}
+
+let estado = estadoNuevo();
+
+function cargarEstado() {
+  try {
+    const crudo = localStorage.getItem(CLAVE_ESTADO);
+    if (!crudo) return false;
+    const guardado = JSON.parse(crudo);
+    if (!guardado || typeof guardado !== 'object') return false;
+    // Mezclado sobre el estado nuevo, no sustituido: un panel actualizado que
+    // lea el estado de una versión anterior se queda sin los campos nuevos, y
+    // el fallo aparece más tarde y en otro sitio.
+    estado = Object.assign(estadoNuevo(), guardado);
+    return true;
+  } catch (e) { return false; }
+}
+
+function guardarEstado() {
+  try { localStorage.setItem(CLAVE_ESTADO, JSON.stringify(estado)); }
+  catch (e) { /* sin almacenamiento se sigue trabajando, solo no se recuerda */ }
+}
+
+/* ── Utilidades de pantalla ─────────────────────────────────────────────── */
+
+function esc(valor) {
+  return String(valor === undefined || valor === null ? '' : valor)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Un dato que falta se enseña como «—» y no como texto vacío: un hueco no se
+// distingue de un valor legítimo, y así un campo que el servidor dejó de
+// mandar se vería igual que uno que vino bien.
+function oNada(valor) {
+  return (valor === undefined || valor === null || valor === '') ? '—' : valor;
+}
+
+function $(id) { return document.getElementById(id); }
+
+function mostrar(id, visible, display) {
+  const e = $(id);
+  if (e) e.style.display = visible ? (display || 'block') : 'none';
+}
+
+/* ── Red ───────────────────────────────────────────────────────────────────
+   Un solo camino para hablar con el servidor. Todo el manejo de errores vive
+   aquí para que ninguna llamada pueda tragarse un fallo por su cuenta: lo que
+   no sale bien sale por una excepción con su mensaje ya escrito.            */
+
+function urlAbsoluta(ruta) {
+  try { return new URL(ruta, location.href).href; } catch (e) { return ruta; }
+}
+
+class FalloDelPanel extends Error {
+  constructor(mensaje, {url, http, reason, cuerpo} = {}) {
+    super(mensaje);
+    this.url = url; this.http = http; this.reason = reason; this.cuerpo = cuerpo;
+  }
+}
+
+const MENSAJES_POR_MOTIVO = {
+  destino_protegido:
+    'Destino bloqueado a propósito. Este servidor lleva una lista de destinos ' +
+    'protegidos mientras se construye y valida el pipeline, y el agente de ' +
+    'Petal está dentro. No es una avería del panel ni un fallo de permisos: ' +
+    'no se ha emitido ninguna llamada. Elige otro destino.',
+  missing_permission:
+    'Falta un permiso para listar los proyectos. Se puede seguir escribiendo ' +
+    'el identificador del proyecto a mano.',
+  sin_registrar:
+    'El proyecto o el agente no están dados de alta todavía. Vincula el ' +
+    'proyecto desde la Tool del lateral, y da de alta el agente desde el Paso 1.',
+  ocupado:
+    'Otra operación tiene cogido el candado de este proyecto. No es un error: ' +
+    'espera a que termine y vuelve a intentarlo.',
+  sin_credenciales:
+    'El servidor no tiene credenciales para hablar con Google. Es una ' +
+    'configuración del propio servicio, no de esta petición.',
+  operacion_sin_terminar:
+    'La operación sigue corriendo del lado de Google y el servidor dejó de ' +
+    'esperarla. Puede haberse completado igualmente: comprueba el estado real ' +
+    'antes de repetirla.',
+  panel_no_encontrado:
+    'El servidor está en pie pero no encuentra el archivo del panel.',
+};
+
+function mensajeHttp(http, texto, datos) {
+  const reason = (datos || {}).reason;
+  const porMotivo = MENSAJES_POR_MOTIVO[reason];
+  // El servidor manda cuándo caduca el candado. Sin enseñarlo, «espera a que
+  // termine» no dice cuánto, y lo que se hace entonces es recargar y volver a
+  // pulsar — que es justo lo que el candado está impidiendo.
+  const caduca = (datos || {}).expires_at;
+  const cabecera = {
+    400: 'La petición no es válida (400).',
+    403: 'Acceso denegado (403).',
+    404: 'No encontrado (404).',
+    409: 'Ocupado (409).',
+    500: 'Fallo del servidor (500).',
+    502: 'El servidor no pudo hablar con Dialogflow CX o con GitHub (502).',
+    504: 'La operación no terminó a tiempo (504).',
+  }[http] || `El servidor respondió HTTP ${http}.`;
+  return [cabecera, porMotivo,
+          caduca ? `El candado caduca el ${caduca}.` : null,
+          texto].filter(Boolean).join(' ');
+}
+
+/**
+ * Llama al servidor y devuelve el sobre `{status, log, data}`.
+ *
+ * Lanza si la petición no llegó, si lo que vuelve no es el sobre esperado o si
+ * el código HTTP no es 2xx. **No lanza cuando el HTTP es 200 y el `status` del
+ * sobre no es `ok`**: el Paso 3 devuelve `error` con HTTP 200 cuando el deploy
+ * queda a medias, y el Paso 5 devuelve `aborted` o `conflict` — son estados que
+ * cada paso pinta a su manera, no fallos de transporte. Mirar solo el código
+ * HTTP pintaría un deploy parcial como un éxito.
+ */
+async function llamar(ruta, opciones) {
+  const conf = opciones || {};
+  const url = urlAbsoluta(ruta);
+  let respuesta;
+  try {
+    respuesta = await fetch(ruta, {
+      method: conf.metodo || 'GET',
+      headers: conf.cuerpo ? {'Content-Type': 'application/json'} : undefined,
+      body: conf.cuerpo ? JSON.stringify(conf.cuerpo) : undefined,
+      cache: 'no-store',
+    });
+  } catch (fallo) {
+    throw new FalloDelPanel(
+      `No se pudo conectar con el servidor en ${url} — ${fallo && fallo.message ?
+        fallo.message : 'la petición no llegó a salir'}. Comprueba que el ` +
+      `servicio está en marcha y que esta página se abrió desde él.`,
+      {url});
+  }
+
+  const texto = await respuesta.text();
+  let sobre = null;
+  if (texto) {
+    try { sobre = JSON.parse(texto); } catch (e) { sobre = null; }
+  }
+  if (sobre === null || typeof sobre !== 'object' || Array.isArray(sobre)) {
+    throw new FalloDelPanel(
+      `El servidor contestó en ${url} con HTTP ${respuesta.status} y algo que ` +
+      `no es JSON: «${(texto || '(respuesta vacía)').slice(0, 200)}». ` +
+      `Normalmente significa que quien contestó no es este servidor.`,
+      {url, http: respuesta.status});
+  }
+  // El sobre es el contrato: sin `status`, `log` y `data` el panel no puede
+  // saber si algo salió bien. Un sobre incompleto se dice, no se rellena con
+  // valores por defecto que lo harían pasar por bueno.
+  const faltan = ['status','log','data'].filter(c => !(c in sobre));
+  if (faltan.length || !Array.isArray(sobre.log) ||
+      typeof sobre.data !== 'object' || sobre.data === null) {
+    throw new FalloDelPanel(
+      `La respuesta de ${url} no tiene la forma esperada ` +
+      `({status, log, data})${faltan.length ? ': faltan ' + faltan.join(', ') : ''}. ` +
+      `No se puede saber si la operación se completó.`,
+      {url, http: respuesta.status, cuerpo: sobre});
+  }
+
+  if (!respuesta.ok) {
+    throw new FalloDelPanel(
+      mensajeHttp(respuesta.status, (sobre.log || []).join(' '), sobre.data),
+      {url, http: respuesta.status, reason: (sobre.data || {}).reason,
+       cuerpo: sobre});
+  }
+  sobre.url = url;
+  return sobre;
+}
+
+/* ── El log de cada paso ────────────────────────────────────────────────────
+   Lo que se pinta es el campo `log` que devuelve el servidor, línea a línea.
+   Ninguna la escribe el panel.                                              */
+
+function claseDeLinea(linea) {
+  const t = String(linea);
+  if (t.startsWith('✓') || t.startsWith('OK')) return 'ok';
+  if (t.startsWith('⚠')) return 'warn';
+  if (t.startsWith('✗') || t.startsWith('ERROR')) return 'del';
+  return 'dim';
+}
+
+function pintarLog(bloqueId, lineas, limpiar) {
+  const bloque = $(bloqueId);
+  if (!bloque) return;
+  if (limpiar) bloque.innerHTML = '';
+  (lineas || []).forEach(linea => {
+    const span = document.createElement('span');
+    span.className = claseDeLinea(linea);
+    span.textContent = String(linea);
+    bloque.appendChild(span);
+    bloque.appendChild(document.createTextNode('\n'));
+  });
+  bloque.scrollTop = bloque.scrollHeight;
+}
+
+/**
+ * Reloj de espera mientras el servidor trabaja.
+ *
+ * No simula nada —no inventa líneas de progreso ni adelanta el resultado—:
+ * cuenta segundos reales. Existe porque una llamada al pipeline puede tardar
+ * minutos y una pantalla quieta se lee como colgada, que es lo que lleva a
+ * recargar a mitad de una escritura.
+ */
+function relojDeEspera(bloqueId, etiqueta) {
+  const bloque = $(bloqueId);
+  if (!bloque) return () => {};
+  const linea = document.createElement('span');
+  linea.className = 'dim';
+  bloque.appendChild(linea);
+  bloque.appendChild(document.createTextNode('\n'));
+  const desde = Date.now();
+  const pintar = () => {
+    const s = Math.round((Date.now() - desde) / 1000);
+    linea.textContent = `· ${etiqueta} · ${s}s`;
+    bloque.scrollTop = bloque.scrollHeight;
+  };
+  pintar();
+  const id = setInterval(pintar, 1000);
+  return () => { clearInterval(id); linea.remove(); };
+}
+
+/* ── Errores en pantalla ───────────────────────────────────────────────────
+   Un fallo nunca se queda solo en la consola del navegador: se pinta donde el
+   usuario está mirando, con la dirección a la que se llamó y —cuando lo hay—
+   el aviso de qué pudo quedar a medias.                                     */
+
+function pintarError(contenedorId, error, aviso) {
+  const caja = $(contenedorId);
+  if (!caja) return;
+  const detalle = [
+    error && error.http ? `HTTP ${error.http}` : null,
+    error && error.url ? `en <code>${esc(error.url)}</code>` : null,
+  ].filter(Boolean).join(' · ');
+  caja.innerHTML = `
+    <div class="error-block" style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+        ${error && error.reason === 'destino_protegido' ? 'Destino bloqueado' : 'No se pudo completar'}
+      </div>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:${aviso ? '12px' : '0'}">
+        ${esc(error && error.message ? error.message : String(error))}</p>
+      ${aviso ? `<p style="font-size:12px;color:var(--gate);line-height:1.7;margin-bottom:10px">⚠ ${esc(aviso)}</p>` : ''}
+      ${detalle ? `<div style="font-size:11px;color:var(--text-3);word-break:break-all">${detalle}</div>` : ''}
+    </div>`;
+  caja.style.display = 'block';
+  console.error('[panel]', error);
+}
+
+function limpiarError(contenedorId) {
+  const caja = $(contenedorId);
+  if (caja) { caja.innerHTML = ''; caja.style.display = 'none'; }
+}
+
+/* ── Un botón, una petición ────────────────────────────────────────────────
+   El botón se apaga en el mismo gesto de pulsarlo y no vuelve hasta que hay
+   respuesta; además una bandera global impide que dos acciones distintas se
+   solapen. Sin las dos cosas, un doble clic dispara dos escrituras: la segunda
+   choca con el candado, o peor, aplica dos veces.                           */
+
+let peticionEnCurso = false;
+
+async function conBoton(botonId, tarea) {
+  if (peticionEnCurso) return;
+  const boton = $(botonId);
+  if (boton && boton.disabled) return;
+  peticionEnCurso = true;
+  if (boton) boton.disabled = true;
+  setRunning(true);
+  try {
+    await tarea();
+  } finally {
+    peticionEnCurso = false;
+    setRunning(false);
+    // El botón se rehabilita solo si el paso no ha avanzado: si salió bien, la
+    // pantalla ya cambió y volver a habilitarlo invitaría a repetir la escritura.
+    if (boton && boton.isConnected && boton.dataset.rehabilitar !== 'no') {
+      boton.disabled = false;
+    }
+  }
+}
+
+function noRehabilitar(botonId) {
+  const boton = $(botonId);
+  if (boton) boton.dataset.rehabilitar = 'no';
+}
+
+function setRunning(val) {
+  $('sidebar').style.opacity = val ? '0.4' : '1';
+  $('sidebar').style.pointerEvents = val ? 'none' : '';
+  const btn = $('btn-reset');
+  if (btn) { btn.disabled = val; btn.style.opacity = val ? '0.4' : '1'; btn.style.pointerEvents = val ? 'none' : ''; }
+}
+
+/* ── Marca de operación en vuelo ───────────────────────────────────────────
+   Se apunta antes de salir y se borra al volver. Si la pestaña se cierra o se
+   recarga en medio, al abrir de nuevo el panel lo dice: la operación pudo
+   haberse completado en el servidor, y darla por no ocurrida es lo que lleva a
+   repetir una escritura que ya está hecha.                                  */
+
+function marcarEnCurso(paso, ruta) {
+  estado.enCurso = {paso, ruta, desde: new Date().toISOString()};
+  guardarEstado();
+}
+
+function limpiarEnCurso() {
+  estado.enCurso = null;
+  guardarEstado();
+}
+
+function avisarSiQuedoAlgoEnVuelo() {
+  const caja = $('aviso-interrumpido');
+  if (!caja) return;
+  if (!estado.enCurso) { caja.style.display = 'none'; return; }
+  const {paso, ruta, desde} = estado.enCurso;
+  caja.innerHTML = `
+    <strong style="color:var(--gate)">⚠ Una operación se quedó sin respuesta.</strong><br>
+    <span style="color:var(--text-2)">La página se recargó o se cerró mientras corría el
+    <strong>Paso ${esc(paso)}</strong> (<code>${esc(ruta)}</code>, iniciado ${esc(desde)}).
+    El servidor pudo terminarla igualmente — <strong>comprueba el estado real antes de
+    repetirla</strong>: volver a lanzarla a ciegas puede escribir dos veces.</span>
+    <button class="btn btn-ghost" style="margin-top:10px;font-size:12px;padding:5px 12px"
+            onclick="descartarAvisoInterrumpido()">Entendido</button>`;
+  caja.style.display = 'block';
+}
+
+function descartarAvisoInterrumpido() {
+  limpiarEnCurso();
+  const caja = $('aviso-interrumpido');
+  if (caja) caja.style.display = 'none';
+}
+
+/* ── Salud del servidor ──────────────────────────────────────────────────── */
+
+async function comprobarServidor() {
+  const indicador = $('estado-servidor');
+  try {
+    const sobre = await llamar('/health');
+    const n = (sobre.data.endpoints || []).length;
+    if (indicador) {
+      indicador.innerHTML = `<span style="color:#4ade80">●</span> servidor en marcha · ${n} rutas`;
+      indicador.title = (sobre.data.endpoints || []).join(' · ');
+    }
+    return true;
+  } catch (error) {
+    if (indicador) {
+      indicador.innerHTML = `<span style="color:#f87171">●</span> sin servidor`;
+      indicador.title = error.message;
+    }
+    pintarError('error-1', error);
+    return false;
+  }
+}
+
+/* ── Descubrimiento · los dos selectores ─────────────────────────────────── */
+
+let AGENTES = [];        // lo último que devolvió /discover para el proyecto
+let REPO_DEL_PROYECTO = null;
+let RAMA_PRINCIPAL_DEL_PROYECTO = null;
+
+async function cargarProyectos() {
+  const select = $('project-select');
+  select.disabled = true;
+  try {
+    const sobre = await llamar('/discover');
+    const proyectos = sobre.data.proyectos || [];
+    select.innerHTML = '<option value="" selected disabled>Selecciona un proyecto…</option>' +
+      proyectos.map(p => {
+        const id = typeof p === 'string' ? p : (p.projectId || p.project_id || '');
+        const nombre = typeof p === 'string' ? p : (p.name || id);
+        return `<option value="${esc(id)}">${esc(nombre === id ? id : nombre + ' · ' + id)}</option>`;
+      }).join('');
+    select.disabled = false;
+    if (estado.project) {
+      select.value = estado.project;
+      if (select.value !== estado.project) anadirOpcionManual(select, estado.project);
+      await cargarAgentes(estado.project);
+    }
+  } catch (error) {
+    select.disabled = false;
+    if (error.reason === 'missing_permission') {
+      habilitarEntradaManualDeProyecto(error.message);
+    } else {
+      pintarError('error-1', error);
+    }
+  }
+}
+
+function anadirOpcionManual(select, valor) {
+  const opcion = document.createElement('option');
+  opcion.value = valor; opcion.textContent = valor;
+  select.appendChild(opcion);
+  select.value = valor;
+}
+
+/**
+ * El servidor distingue «no tengo permiso para listar proyectos» de un fallo
+ * cualquiera (403 con `manual_entry`) justamente porque con ese permiso
+ * ausente se puede seguir trabajando escribiendo el identificador a mano. Sin
+ * esta rama, ese caso dejaba un desplegable vacío sin explicación.
+ */
+function habilitarEntradaManualDeProyecto(motivo) {
+  const caja = $('project-manual');
+  if (!caja) return;
+  caja.style.display = 'block';
+  const nota = $('project-manual-nota');
+  if (nota) nota.textContent = motivo || '';
+}
+
+function usarProyectoManual() {
+  const valor = ($('project-manual-input').value || '').trim();
+  if (!valor) return;
+  const select = $('project-select');
+  anadirOpcionManual(select, valor);
+  onProjectSelected();
+}
+
+async function cargarAgentes(project) {
+  const agentSel = $('agent-select');
+  agentSel.disabled = true;
+  agentSel.innerHTML = '<option value="" selected disabled>cargando…</option>';
+  try {
+    const sobre = await llamar(`/discover?project=${encodeURIComponent(project)}`);
+    AGENTES = sobre.data.agentes || [];
+    REPO_DEL_PROYECTO = sobre.data.repo || null;
+    RAMA_PRINCIPAL_DEL_PROYECTO = sobre.data.rama_principal || null;
+    agentSel.innerHTML = '<option value="" selected disabled>—</option>' +
+      AGENTES.map(a => `<option value="${esc(a.agentId)}">${esc(a.displayName || a.agentId)}` +
+        `${a.registrado ? '' : ' (sin dar de alta)'}</option>`).join('');
+    agentSel.disabled = false;
+    mostrar('aviso-sin-repos', !!sobre.data.ninguno_vinculado);
+    if (estado.agentId && AGENTES.some(a => a.agentId === estado.agentId)) {
+      agentSel.value = estado.agentId;
+    }
+    actualizarCajaRepo();
+  } catch (error) {
+    agentSel.innerHTML = '<option value="" selected disabled>—</option>';
+    agentSel.disabled = true;
+    actualizarCajaRepo();
+    pintarError('error-1', error);
+  }
+}
+
+function agenteElegido() {
+  const id = $('agent-select').value;
+  return AGENTES.find(a => a.agentId === id) || null;
+}
+
+function onProjectSelected() {
+  limpiarError('error-1');
+  const proj = $('project-select').value;
+  estado.project = proj;
+  estado.agentId = ''; estado.agentName = ''; estado.region = '';
+  estado.repo = ''; estado.rama = ''; estado.ramaPrincipal = '';
+  guardarEstado();
+  const agentSel = $('agent-select');
+  agentSel.value = '';
+  actualizarCajaRepo();
+  if (proj) cargarAgentes(proj);
+}
+
+function onAgentSelected() {
+  limpiarError('error-1');
+  actualizarCajaRepo();
+}
+
+// El repositorio depende solo del proyecto; la rama depende solo del agente.
+// Se recalculan juntos para que la caja y el botón de iniciar reflejen siempre
+// los dos a la vez, se acabe de tocar el selector que se toque.
+function actualizarCajaRepo() {
+  const agente = agenteElegido();
+  const caja = $('repo-resuelto');
+  const repo = REPO_DEL_PROYECTO;
+  const rama = agente ? agente.rama : null;
+
+  if (!repo) {
+    caja.innerHTML = '<span style="color:var(--text-3)">&mdash;</span>';
+  } else if (!agente) {
+    caja.innerHTML = `<span style="color:var(--success)">&#10003;</span>
+      <code style="color:var(--text-2)">${esc(repo)}</code>
+      <span style="color:var(--text-3);margin-left:auto">elige un agente para ver su rama</span>`;
+  } else if (rama) {
+    caja.innerHTML = `<span style="color:var(--success)">&#10003;</span>
+      <code style="color:var(--text-2)">${esc(repo)}</code>
+      <span style="color:var(--text-3);margin-left:auto">rama ${esc(rama)}</span>`;
+  } else {
+    // Repositorio del proyecto resuelto, pero este agente no tiene rama propia
+    // todavía: el botón da de alta aquí mismo, y hasta pulsarlo no existe nada.
+    const propuesta = agente.rama_propuesta || `agente/${agente.agentId}`;
+    caja.innerHTML = `<span style="color:var(--gate)">&#9888;</span>
+      <code style="color:var(--text-2)">${esc(repo)}</code>
+      <span style="color:var(--text-2)">&middot; este agente todav&iacute;a no tiene rama de trabajo &middot; se crear&iacute;a <code>${esc(propuesta)}</code></span>
+      <button class="btn btn-gate" id="btn-alta-agente" style="margin-left:auto;font-size:11px;padding:3px 10px"
+              onclick="darDeAltaAgente()">Dar de alta este agente &rarr;</button>`;
+  }
+
+  $('btn-start-inventory').disabled = !repo || !agente || !rama;
+
+  if (agente) {
+    estado.project = $('project-select').value;
+    estado.agentId = agente.agentId;
+    estado.agentName = agente.displayName || agente.agentId;
+    estado.region = agente.region || '';
+    estado.repo = repo || '';
+    estado.rama = rama || '';
+    estado.ramaPrincipal = RAMA_PRINCIPAL_DEL_PROYECTO || '';
+    guardarEstado();
+  }
+  refrescarDestinoEnPantalla();
+}
+
+// El destino aparece en cuatro sitios y los cuatro tienen que decir lo mismo:
+// la barra superior, el gate del Paso 3, el gate del Paso 5 y el enlace a la
+// consola. Un gate que muestre un ejemplo fijo es una confirmación sobre un
+// destino que no es el que se va a tocar.
+function refrescarDestinoEnPantalla() {
+  $('topbar-agent').textContent = oNada(estado.agentName);
+  const commit = estado.inventario ? estado.inventario.commit : null;
+  $('topbar-commit').innerHTML = estado.repo
+    ? `GitHub: <code>${esc(estado.repo)}</code> &middot; ${esc(oNada(estado.rama))}` +
+      (commit ? ` &middot; ${esc(String(commit).slice(0,7))}` : '')
+    : '&mdash;';
+
+  [['gate3-project', estado.project], ['gate3-agent', estado.agentName],
+   ['gate5-project', estado.project], ['gate5-agent', estado.agentName],
+   ['gate5-rama', estado.rama], ['gate5-rama-principal', estado.ramaPrincipal],
+   ['traer-repo', estado.repo], ['traer-rama', estado.rama],
+   ['done-repo', estado.repo], ['done-agente', estado.agentName],
+   ['done-rama-principal', estado.ramaPrincipal],
+   ['terminar-rama', estado.rama], ['terminar-rama-principal', estado.ramaPrincipal],
+  ].forEach(([id, valor]) => { const e = $(id); if (e) e.textContent = oNada(valor); });
+
+  const enlace = $('enlace-agente-cx');
+  if (enlace) {
+    enlace.href = (estado.project && estado.region && estado.agentId)
+      ? `https://dialogflow.cloud.google.com/cx/projects/${encodeURIComponent(estado.project)}` +
+        `/locations/${encodeURIComponent(estado.region)}/agents/${encodeURIComponent(estado.agentId)}`
+      : 'https://dialogflow.cloud.google.com/cx/projects';
+  }
+  actualizarComandoSync();
+}
+
+/* ── Alta de un agente (Paso 1) · POST /register-agent ─────────────────────
+   Crea la rama de trabajo del agente. Es una escritura, y por eso es un botón
+   y no un efecto de elegir en el desplegable: el desplegable lista todos los
+   agentes del proyecto, incluidos los que nadie piensa gestionar.           */
+
+function darDeAltaAgente() {
+  const agente = agenteElegido();
+  if (!agente) return;
+  conBoton('btn-alta-agente', async () => {
+    limpiarError('error-1');
+    mostrar('alta-agente-log', true);
+    pintarLog('alta-agente-log-block', [], true);
+    const parar = relojDeEspera('alta-agente-log-block', 'dando de alta el agente');
+    marcarEnCurso(1, 'POST /register-agent');
+    try {
+      const sobre = await llamar('/register-agent', {metodo:'POST', cuerpo:{
+        project: estado.project, agent: agente.agentId,
+        region: agente.region || undefined,
+        rama: agente.rama_propuesta || undefined,
+      }});
+      parar();
+      pintarLog('alta-agente-log-block', sobre.log);
+      if (sobre.status !== 'ok') {
+        pintarError('error-1', new FalloDelPanel(
+          `El alta no se completó (${sobre.status}): ${(sobre.log||[]).join(' ')}`,
+          {url: sobre.url}));
+        return;
+      }
+      await cargarAgentes(estado.project);
+      $('agent-select').value = agente.agentId;
+      actualizarCajaRepo();
+    } catch (error) {
+      parar();
+      pintarError('error-1', error);
+    } finally {
+      limpiarEnCurso();
+    }
+  });
+}
+
+/* ── Tool · vincular proyecto y repositorio · POST /link-project-repo ────── */
+
+function ejecutarToolOnboarding() {
+  const project = ($('tool-project-input').value || '').trim();
+  const repoUrl = ($('tool-repo-url-input').value || '').trim();
+  const ramaPrincipal = ($('tool-rama-input').value || '').trim() || 'main';
+  if (!project || !repoUrl) {
+    (project ? $('tool-repo-url-input') : $('tool-project-input')).focus();
+    return;
+  }
+  conBoton('btn-tool-onboarding', async () => {
+    limpiarError('error-tool');
+    mostrar('tool-onboarding-start', false);
+    mostrar('tool-onboarding-log', true);
+    pintarLog('tool-onboarding-log-block', [], true);
+    const parar = relojDeEspera('tool-onboarding-log-block', 'vinculando');
+    marcarEnCurso('Tool', 'POST /link-project-repo');
+    try {
+      const sobre = await llamar('/link-project-repo', {metodo:'POST', cuerpo:{
+        project, repo_url: repoUrl, rama_principal: ramaPrincipal,
+      }});
+      parar();
+      pintarLog('tool-onboarding-log-block', sobre.log);
+      if (sobre.status !== 'ok') throw new FalloDelPanel(
+        `Vincular no se completó (${sobre.status}): ${(sobre.log||[]).join(' ')}`,
+        {url: sobre.url});
+      $('tool-comando-iam').textContent = oNada(sobre.data.comando_iam);
+      mostrar('tool-onboarding-done', true);
+      noRehabilitar('btn-tool-onboarding');
+      // Si el proyecto vinculado es el que está elegido en el Paso 1, su caja
+      // acaba de quedar desactualizada.
+      if (project === estado.project) await cargarAgentes(project);
+    } catch (error) {
+      parar();
+      mostrar('tool-onboarding-start', true);
+      pintarError('error-tool', error);
+    } finally {
+      limpiarEnCurso();
+    }
+  });
+}
+
+/* ── Paso 1 · Inventario · POST /step/1 ──────────────────────────────────── */
+
+function startInventory() {
+  conBoton('btn-start-inventory', async () => {
+    limpiarError('error-1');
+    mostrar('inv-start', false);
+    mostrar('inv-log', true);
+    pintarLog('inv-log-block', [], true);
+    const parar = relojDeEspera('inv-log-block', 'leyendo el agente y el repositorio');
+    marcarEnCurso(1, 'POST /step/1');
+    try {
+      const sobre = await llamar('/step/1', {metodo:'POST', cuerpo:{
+        project: estado.project, agent: estado.agentId,
+      }});
+      parar();
+      pintarLog('inv-log-block', sobre.log);
+      if (sobre.status !== 'ok') throw new FalloDelPanel(
+        `El inventario terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+        {url: sobre.url});
+      estado.inventario = sobre.data;
+      estado.rama = sobre.data.rama || estado.rama;
+      estado.region = sobre.data.region || estado.region;
+      estado.repo = sobre.data.repo || estado.repo;
+      guardarEstado();
+      renderInventario();
+      refrescarDestinoEnPantalla();
+      mostrar('inv-done', true);
+      noRehabilitar('btn-start-inventory');
+    } catch (error) {
+      parar();
+      mostrar('inv-start', true);
+      pintarError('error-1', error);
+    } finally {
+      limpiarEnCurso();
+    }
+  });
+}
+
+function tarjetaGrupo(clase, etiqueta, filas, descripcion, color, pie) {
+  const visibles = filas.slice(0, 3);
+  const resto = filas.slice(3);
+  const id = 'grupo-' + clase;
+  return `
+    <div class="grupo-card ${clase}" onclick="toggleGrupo(this)">
+      <div class="grupo-label">${etiqueta}</div>
+      <div class="grupo-num" style="color:${color}">${filas.length}</div>
+      <div class="grupo-desc">${descripcion}</div>
+      <div class="grupo-lista" id="${id}">${visibles.join('<br>') || '<span style="color:var(--text-3)">nada</span>'}
+        ${resto.length ? `<span class="grupo-extra" style="display:none"><br>${resto.slice(0,20).join('<br>')}` +
+          (resto.length > 20 ? `<br><span style="color:var(--text-3)">… y ${resto.length - 20} más</span>` : '') +
+          '</span>' : ''}
+      </div>
+      ${resto.length ? `<div class="grupo-toggle">Ver los ${filas.length} &#9662;</div>` : ''}
+      ${pie || ''}
+    </div>`;
+}
+
+function renderInventario() {
+  const d = estado.inventario;
+  if (!d) return;
+  const nombre = f => esc(f.display_name || f.ruta || f.cx_id || '');
+  const tipo = f => esc(NOMBRE_DE_TIPO[f.tipo] || f.tipo);
+
+  $('grupos-inventario').innerHTML = [
+    tarjetaGrupo('emp', 'Emparejados',
+      (d.emparejados||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}`),
+      'Est&aacute;n en CX y tienen archivo en el repositorio.', 'var(--success)'),
+    tarjetaGrupo('cx', 'Solo en CX',
+      (d.solo_cx||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}` +
+        (f.nativo ? ' <span style="color:var(--text-3)">(nativo de CX)</span>' : '')),
+      'Existen en el agente y ning&uacute;n archivo los reclama.', 'var(--text)'),
+    tarjetaGrupo('repo', 'Solo en el repositorio',
+      (d.solo_repo||[]).map(f => `${nombre(f)} <span style="color:var(--text-3)">&middot; ${esc(f.motivo||'')}</span>`),
+      'Tienen archivo pero a&uacute;n no existen en CX, o su <code>cx_id</code> ya no est&aacute;.',
+      'var(--accent-light)'),
+    tarjetaGrupo('huerfano', 'Sin agente asignado',
+      (d.sin_agente||[]).map(f => `${esc(f.ruta)} <span style="color:var(--text-3)">&middot; ${esc(f.motivo||'')}</span>`),
+      'Tienen cabecera pero no dicen a qu&eacute; agente pertenecen.', 'var(--gate)',
+      '<div class="grupo-desc" style="margin-top:8px;color:var(--gate)">Para que cuenten en alg&uacute;n agente, escribe <code>agente</code> en su cabecera.</div>'),
+  ].join('');
+
+  const faltaEntorno = d.tiene_entorno_produccion === false;
+  mostrar('aviso-sin-entorno', faltaEntorno);
+  mostrar('resumen-sin-entorno', faltaEntorno, 'inline');
+
+  $('inv-resumen').innerHTML =
+    `${d.total_cx} resources del agente en CX &middot; ${d.total_borrador} en el borrador ` +
+    `&middot; ${d.versiones} versiones &middot; le&iacute;dos de <code>${esc(oNada(d.rama))}</code> ` +
+    `&middot; commit <code>${esc(String(d.commit||'—').slice(0,7))}</code> ` +
+    `&middot; ${d.total_archivos} archivos en el repositorio` +
+    (d.otros_agentes ? ` &middot; ${d.otros_agentes} de otros agentes` : '') +
+    ((d.sin_agente||[]).length ? ` &middot; <span style="color:var(--gate)">${d.sin_agente.length} sin agente asignado</span>` : '') +
+    (faltaEntorno ? ' &middot; <span id="resumen-sin-entorno" style="color:var(--gate)">sin entorno de producci&oacute;n</span>' : '');
+}
+
+function toggleGrupo(card) {
+  const extra  = card.querySelector('.grupo-extra');
+  const toggle = card.querySelector('.grupo-toggle');
+  if (!extra || !toggle) return;
+  const abierto = extra.style.display !== 'none';
+  extra.style.display = abierto ? 'none' : 'inline';
+  toggle.innerHTML = toggle.innerHTML.replace(abierto ? '▴' : '▾', abierto ? '▾' : '▴');
+}
+
+/* ── Paso 2 · Traer al repositorio · POST /step/2 ─────────────────────────── */
+
+function renderTablaRepo() {
+  const cuerpo = document.querySelector('#tabla-repo tbody');
+  if (!cuerpo) return;
+  const traidos = new Set((estado.traido && estado.traido.traidos || [])
+    .map(t => `${t.tipo}/${t.cx_id}`));
+  const apuntados = new Set(estado.eliminar.map(e => `${e.tipo}/${e.cx_id}`));
+  const filas = ((estado.inventario && estado.inventario.solo_cx) || [])
+    .filter(f => !traidos.has(`${f.tipo}/${f.cx_id}`) && !apuntados.has(`${f.tipo}/${f.cx_id}`));
+
+  cuerpo.innerHTML = filas.map(f => `
+    <tr data-tipo="${esc(f.tipo)}" data-cx-id="${esc(f.cx_id)}" data-nombre="${esc(f.display_name||f.cx_id)}">
+      <td style="width:34px"><input type="checkbox" ${f.traible ? '' : 'disabled'}
+          onchange="actualizarPies();refrescarDeriva()"></td>
+      <td>${esc(NOMBRE_DE_TIPO[f.tipo]||f.tipo)}</td>
+      <td><code>${esc(f.display_name || f.cx_id)}</code>${f.traible ? '' :
+        ' <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span>'}</td>
+    </tr>`).join('');
+
+  const hayAlgo = filas.length > 0 || traidos.size > 0 || apuntados.size > 0;
+  mostrar('diff-has-changes', hayAlgo);
+  mostrar('diff-no-changes', !hayAlgo);
+  refrescarDeriva();
+  actualizarPies();
+}
+
+function filasMarcadas(tablaId) {
+  return [...document.querySelectorAll('#' + tablaId + ' tbody tr')]
+    .filter(f => { const c = f.querySelector('input[type=checkbox]'); return c && c.checked && !c.disabled; });
+}
+
+function marcarTodos(tablaId, marcado) {
+  document.querySelectorAll('#' + tablaId + ' tbody input[type=checkbox]:not(:disabled)')
+    .forEach(c => c.checked = marcado);
+  actualizarPies();
+  refrescarDeriva();
+}
+
+function refrescarDeriva() {
+  const filas = document.querySelectorAll('#tabla-repo tbody tr');
+  const traibles = document.querySelectorAll('#tabla-repo tbody input:not(:disabled)');
+  const aviso = $('aviso-deriva');
+  if (aviso) {
+    if (!filas.length) {
+      aviso.innerHTML = '<span style="color:var(--success)">&#10003; Ya no queda nada en CX sin respaldo en el repositorio</span>';
+    } else if (!traibles.length) {
+      aviso.innerHTML = '<span style="color:var(--text-3)">Solo queda lo que no se puede traer al repositorio</span>';
+    } else {
+      aviso.innerHTML = '&#9888; <span id="num-deriva">' + traibles.length + '</span> resource' +
+        (traibles.length === 1 ? '' : 's') + ' en CX sin respaldo en el repositorio';
+    }
+  }
+  const todos = $('sel-todos-repo');
+  if (todos) {
+    todos.disabled = !traibles.length;
+    todos.checked = traibles.length > 0 && [...traibles].every(c => c.checked);
+  }
+  const todosCx = $('sel-todos-cx');
+  if (todosCx) {
+    const cx = [...document.querySelectorAll('#tabla-cx tbody input:not(:disabled)')];
+    todosCx.checked = cx.length > 0 && cx.every(c => c.checked);
+  }
+}
+
+function actualizarPies() {
+  const cuenta = id => ({
+    marcadas: document.querySelectorAll('#' + id + ' tbody input[type=checkbox]:checked:not(:disabled)').length,
+    total:    document.querySelectorAll('#' + id + ' tbody input[type=checkbox]:not(:disabled)').length,
+  });
+  const cx = cuenta('tabla-cx'), repo = cuenta('tabla-repo');
+  const pieCx = $('pie-cx'), pieRepo = $('pie-repo');
+  const contadorGate = $('deploy-count');
+  if (contadorGate) contadorGate.textContent = cx.marcadas;
+  const contadorTraer = $('traer-count');
+  if (contadorTraer) contadorTraer.textContent = repo.marcadas;
+  const botonAplicar = $('btn-confirm-deploy');
+  if (botonAplicar && !estado.paso3Cerrado) botonAplicar.disabled = cx.marcadas === 0;
+  actualizarAvisoSinVersion();
+  ['btn-traer', 'btn-eliminar'].forEach(id => {
+    const b = $(id);
+    if (b) b.disabled = repo.marcadas === 0;
+  });
+  if (pieCx && !estado.paso3Cerrado) pieCx.innerHTML = cx.marcadas
+    ? `<strong style="color:#93c5fd">${cx.marcadas} de ${cx.total}</strong> se aplicar&aacute;n en CX al continuar`
+    : '<span style="color:var(--text-3)">Nada marcado &mdash; no se tocar&aacute; CX</span>';
+  const filasRepo = document.querySelectorAll('#tabla-repo tbody tr').length;
+  if (pieRepo) pieRepo.innerHTML = repo.total === 0
+    ? (filasRepo === 0
+        ? '<span style="color:var(--success)">&#10003; No queda nada suelto en CX</span>'
+        : '<span style="color:var(--text-3)">Nada que traer &mdash; lo que queda no se puede llevar al repositorio</span>')
+    : (repo.marcadas
+      ? `<strong style="color:var(--gate)">${repo.marcadas} de ${repo.total}</strong> se traer&aacute;n al repositorio al pulsar el bot&oacute;n`
+      : '<span style="color:var(--text-3)">Nada marcado &mdash; todos se quedan solo en CX</span>');
+}
+
+function actualizarAvisoSinVersion() {
+  const aviso = $('agent-config-warning');
+  if (!aviso) return;
+  const marcadas = filasMarcadas('tabla-cx').map(f => f.dataset.sinVersion === 'si');
+  aviso.style.display = marcadas.some(Boolean) ? 'block' : 'none';
+}
+
+function traerAlRepo() {
+  const filas = filasMarcadas('tabla-repo');
+  if (!filas.length) return;
+  const traer = filas.map(f => ({tipo: f.dataset.tipo, cx_id: f.dataset.cxId}));
+  conBoton('btn-traer', async () => {
+    limpiarError('error-2');
+    $('btn-eliminar').disabled = true;
+    mostrar('traer-log', true);
+    pintarLog('traer-log-block', [], true);
+    const parar = relojDeEspera('traer-log-block', 'escribiendo en el repositorio');
+    marcarEnCurso(2, 'POST /step/2');
+    try {
+      const sobre = await llamar('/step/2', {metodo:'POST', cuerpo:{
+        project: estado.project, agent: estado.agentId, traer,
+      }});
+      parar();
+      pintarLog('traer-log-block', sobre.log);
+      if (sobre.status !== 'ok') throw new FalloDelPanel(
+        `Traer al repositorio terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+        {url: sobre.url});
+      // Se acumula: dos traídas seguidas no pueden perder la primera.
+      const previos = (estado.traido && estado.traido.traidos) || [];
+      estado.traido = Object.assign({}, sobre.data,
+        {traidos: previos.concat(sobre.data.traidos || [])});
+      // El plan del Paso 3 se calculó contra un repositorio que ya no es este.
+      estado.plan = null;
+      guardarEstado();
+      renderTablaRepo();
+      $('traer-commit').innerHTML = sobre.data.commit
+        ? `commit <code>${esc(String(sobre.data.commit).slice(0,7))}</code> en <code>${esc(oNada(sobre.data.rama))}</code>`
+        : 'sin cambios reales — no se cre&oacute; ning&uacute;n commit';
+      mostrar('traer-done', true);
+      mostrar('sin-modificar-2', false);
+      noRehabilitar('btn-traer');
+    } catch (error) {
+      parar();
+      pintarError('error-2', error);
+      $('btn-eliminar').disabled = false;
+    } finally {
+      limpiarEnCurso();
+    }
+  });
+}
+
+// Borrar es la única acción destructiva del paso: se enseña qué se borra antes
+// de pedir la confirmación, no después.
+function pedirEliminarDeCx() {
+  const filas = filasMarcadas('tabla-repo');
+  if (!filas.length) return;
+  $('lista-borrado').innerHTML =
+    filas.map(f => `· ${esc(NOMBRE_DE_TIPO[f.dataset.tipo]||f.dataset.tipo)} · ${esc(f.dataset.nombre)}`).join('<br>');
+  mostrar('confirmar-borrado', true);
+}
+
+function confirmarEliminarDeCx() {
+  filasMarcadas('tabla-repo').forEach(f => {
+    estado.eliminar.push({tipo: f.dataset.tipo, cx_id: f.dataset.cxId,
+                          resource: f.dataset.nombre});
+  });
+  // Lo apuntado cambia lo que el Paso 3 va a hacer: el plan anterior ya no vale.
+  estado.plan = null;
+  guardarEstado();
+  mostrar('confirmar-borrado', false);
+  renderTablaRepo();
+}
+
+/* ── Paso 3 · Aplicar en CX · POST /step/3 ────────────────────────────────── */
+
+/**
+ * El plan del Paso 3 lo calcula el servidor, en fresco, con `dry_run`. El panel
+ * no propone operaciones: manda qué resources se marcaron y el servidor
+ * recalcula el diff contra el estado real de CX y del repositorio (S1).
+ */
+async function cargarPlan() {
+  limpiarError('error-3');
+  const cuerpoTabla = document.querySelector('#tabla-cx tbody');
+  if (cuerpoTabla) cuerpoTabla.innerHTML =
+    '<tr><td colspan="5" style="color:var(--text-3)">Calculando el plan contra CX y el repositorio…</td></tr>';
+  try {
+    const sobre = await llamar('/step/3', {metodo:'POST', cuerpo:{
+      project: estado.project, agent: estado.agentId, dry_run: true,
+      eliminar: estado.eliminar.map(e => ({tipo:e.tipo, cx_id:e.cx_id})),
+    }});
+    if (sobre.status !== 'ok') throw new FalloDelPanel(
+      `El plan terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+      {url: sobre.url});
+    estado.plan = sobre.data;
+    guardarEstado();
+    renderTablaCx();
+    pintarLog('plan-log-block', sobre.log, true);
+    mostrar('plan-log', (sobre.log||[]).some(l => String(l).startsWith('⚠')));
+  } catch (error) {
+    if (cuerpoTabla) cuerpoTabla.innerHTML = '';
+    pintarError('error-3', error);
+    const reintento = $('btn-recalcular-plan');
+    if (reintento) reintento.style.display = 'inline-block';
+  }
+}
+
+function renderTablaCx() {
+  const cuerpo = document.querySelector('#tabla-cx tbody');
+  if (!cuerpo) return;
+  const operaciones = (estado.aplicadas && estado.aplicadas.operaciones)
+    || (estado.plan && estado.plan.operaciones) || [];
+  const cerrado = estado.paso3Cerrado;
+
+  cuerpo.innerHTML = operaciones.map(op => {
+    const marca = {OK:'<span class="pill pill-ok">Aplicado</span>',
+                   ERROR:'<span class="pill pill-err">Error</span>',
+                   NO_INTENTADO:'<span class="pill pill-dim">No intentado</span>'}[op.result]
+      || (cerrado ? '<span class="pill pill-dim">Qued&oacute; fuera</span>' : '');
+    return `
+    <tr data-tipo="${esc(op.tipo)}" data-cx-id="${esc(op.cx_id||'')}" data-ruta="${esc(op.ruta||'')}"
+        data-sin-version="${op.sin_version ? 'si' : 'no'}"
+        style="${cerrado && !op.result ? 'opacity:.55' : ''}">
+      <td style="width:34px"><input type="checkbox" ${cerrado ? 'disabled' : ''}
+          onchange="actualizarPies();refrescarDeriva()"></td>
+      <td>${esc(NOMBRE_DE_TIPO[op.tipo]||op.tipo)}</td>
+      <td><code>${esc(op.resource)}</code>${op.conflicto ?
+        ' <span style="color:var(--gate);font-size:11px">&middot; conflicto: cambi&oacute; tambi&eacute;n en CX</span>' : ''}</td>
+      <td><code style="color:var(--text-3)">${esc(op.ruta || '—')}</code></td>
+      <td><span class="pill ${PILL_DE_OPERACION[op.operacion]||'pill-dim'}">${esc(NOMBRE_DE_OPERACION[op.operacion]||op.operacion)}</span> ${marca}
+        ${op.error ? `<div style="color:#f87171;font-size:11px;margin-top:4px">${esc(op.error)}</div>` : ''}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="color:var(--text-3)">Nada que aplicar: el repositorio y el agente dicen lo mismo.</td></tr>';
+
+  const selTodos = $('sel-todos-cx');
+  if (selTodos) { selTodos.disabled = cerrado || !operaciones.length; if (cerrado) selTodos.checked = false; }
+  actualizarPies();
+}
+
+function confirmDeploy() {
+  const filas = filasMarcadas('tabla-cx');
+  if (!filas.length) return;
+  const aplicar = filas.map(f => ({
+    tipo: f.dataset.tipo,
+    cx_id: f.dataset.cxId || undefined,
+    ruta: f.dataset.ruta || undefined,
+  }));
+  ejecutarPaso3({aplicar});
+}
+
+/**
+ * Reintento tras un deploy parcial. Manda `only_pending` con lo que falló y lo
+ * que no se llegó a intentar — nunca lo que ya salió bien: repetirlo lo
+ * escribiría dos veces.
+ */
+function retryFailed() {
+  const previas = (estado.aplicadas && estado.aplicadas.operaciones) || [];
+  const pendientes = previas.filter(op => op.result !== 'OK')
+    .map(op => ({tipo: op.tipo, cx_id: op.cx_id}));
+  if (!pendientes.length) return;
+  ejecutarPaso3({only_pending: pendientes, boton: 'btn-retry-failed'});
+}
+
+function ejecutarPaso3(opciones) {
+  const boton = opciones.boton || 'btn-confirm-deploy';
+  conBoton(boton, async () => {
+    limpiarError('error-3');
+    mostrar('sin-modificar-3', false);
+    mostrar('deploy-gate', false);
+    mostrar('deploy-fail', false);
+    mostrar('deploy-log', true);
+    pintarLog('deploy-log-block', [], true);
+    const parar = relojDeEspera('deploy-log-block', 'escribiendo en el borrador del agente');
+    marcarEnCurso(3, 'POST /step/3');
+    try {
+      const sobre = await llamar('/step/3', {metodo:'POST', cuerpo: Object.assign({
+        project: estado.project, agent: estado.agentId,
+        eliminar: estado.eliminar.map(e => ({tipo:e.tipo, cx_id:e.cx_id})),
+      }, opciones.aplicar ? {aplicar: opciones.aplicar} : {},
+         opciones.only_pending ? {only_pending: opciones.only_pending} : {})});
+      parar();
+      pintarLog('deploy-log-block', sobre.log);
+      estado.aplicadas = sobre.data;
+      estado.paso3Cerrado = true;
+      guardarEstado();
+      renderTablaCx();
+      cerrarPieCx();
+      // HTTP 200 con `status: "error"`: el deploy quedó a medias. Mirar solo el
+      // código HTTP lo habría pintado como un éxito.
+      if (sobre.status !== 'ok' || sobre.data.fallo) {
+        pintarFalloParcial(sobre.data);
+        noRehabilitar(boton);
+        return;
+      }
+      mostrar('deploy-done', true);
+      noRehabilitar(boton);
+    } catch (error) {
+      parar();
+      mostrar('deploy-gate', true);
+      pintarError('error-3', error);
+    } finally {
+      limpiarEnCurso();
+    }
+  });
+}
+
+function pintarFalloParcial(data) {
+  const ops = data.operaciones || [];
+  const fallida = ops.find(op => op.result === 'ERROR');
+  const ok = ops.filter(op => op.result === 'OK').length;
+  const noIntentadas = ops.filter(op => op.result === 'NO_INTENTADO').length;
+  $('deploy-fail-title').textContent = fallida
+    ? 'Deploy parcial — fallo en ' + (fallida.resource || fallida.tipo)
+    : 'Deploy parcial';
+  $('deploy-fail-summary').innerHTML =
+    `<span style="color:#4ade80">✓ ${ok} aplicado${ok !== 1 ? 's' : ''}</span> &nbsp;·&nbsp; ` +
+    `<span style="color:#f87171">✗ ${fallida ? 1 : 0} fallido</span> &nbsp;·&nbsp; ` +
+    `<span style="color:var(--text-3)">${noIntentadas} no intentado${noIntentadas !== 1 ? 's' : ''}</span>` +
+    (fallida && fallida.error ? `<div style="margin-top:8px;color:#f87171;font-size:12px">${esc(fallida.error)}</div>` : '');
+  mostrar('deploy-fail', true);
+  const reintento = $('btn-retry-failed');
+  if (reintento) reintento.disabled = false;
+}
+
+function cerrarPieCx() {
+  const ops = (estado.aplicadas && estado.aplicadas.operaciones) || [];
+  const aplicadas = ops.filter(op => op.result === 'OK').length;
+  const fuera = ops.length - aplicadas;
+  const pieCx = $('pie-cx');
+  if (pieCx) pieCx.innerHTML = aplicadas
+    ? `<strong style="color:#93c5fd">${aplicadas} de ${ops.length}</strong> se aplicaron en CX` +
+      (fuera ? ` &middot; <span style="color:var(--text-3)">los otros ${fuera} siguen siendo una diferencia entre el repositorio y el agente</span>` : '')
+    : '<span style="color:var(--text-3)">No se aplic&oacute; nada &mdash; CX no se ha tocado</span>';
+}
+
+function pedirTerminar() {
+  const traerDone = $('traer-done');
+  mostrar('confirmar-terminar-repo', !!(traerDone && traerDone.style.display !== 'none'));
+  mostrar('confirmar-terminar', true);
+}
+
+function confirmarTerminar() { resetDeploy(); }
+
+function cancelDeploy() {
+  if (confirm('¿Cancelar el deploy?\n\nNo se ha escrito nada en el agente.')) resetDeploy();
+}
+
+/* ── Paso 4 · Validar tests · POST /step/4 ────────────────────────────────── */
+
+function declararTests(resultado, botonId) {
+  conBoton(botonId, async () => {
+    limpiarError('error-4');
+    mostrar('tests-log', true);
+    pintarLog('tests-log-block', [], true);
+    const parar = relojDeEspera('tests-log-block', 'registrando la declaración');
+    marcarEnCurso(4, 'POST /step/4');
+    try {
+      const sobre = await llamar('/step/4', {metodo:'POST', cuerpo:{
+        project: estado.project, agent: estado.agentId, resultado,
+      }});
+      parar();
+      pintarLog('tests-log-block', sobre.log);
+      if (sobre.status !== 'ok') throw new FalloDelPanel(
+        `La declaración terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+        {url: sobre.url});
+      estado.paso4 = sobre.data;
+      guardarEstado();
+      if (sobre.data.avanza) {
+        advance(4);
+      } else {
+        mostrar('tests-gate', false);
+        mostrar('tests-fail', true);
+      }
+    } catch (error) {
+      parar();
+      pintarError('error-4', error);
+    } finally {
+      limpiarEnCurso();
+    }
+  });
+}
+
+function validarTests()        { declararTests('superados', 'btn-tests-ok'); }
+function marcarTestsFallidos() { declararTests('fallidos',  'btn-tests-ko'); }
+
+function volverAValidacion() {
+  mostrar('tests-fail', false);
+  mostrar('tests-gate', true);
+}
+
+/* ── Paso 5 · Publicar · POST /step/5 ─────────────────────────────────────── */
+
+const VERSION_LABEL_OK = /^[A-Za-z0-9_-]+$/;
+
+function generateVersionLabel() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
+}
+
+function validarVersionLabel() {
+  const campo = $('version-batch-label'), aviso = $('version-label-error'), boton = $('btn-confirm-prod');
+  if (!campo || !aviso || !boton) return false;
+  const valor = campo.value.trim();
+  let motivo = '';
+  if (!valor) motivo = 'Hace falta un nombre para la versión.';
+  else if (!VERSION_LABEL_OK.test(valor))
+    motivo = 'Solo letras, dígitos, guiones y guiones bajos — quita el resto.';
+  aviso.textContent = motivo;
+  aviso.style.display = motivo ? 'block' : 'none';
+  campo.style.borderColor = motivo ? 'var(--error)' : '';
+  boton.disabled = !!motivo;
+  return !motivo;
+}
+
+function setVersionLabel(name) {
+  estado.versionLabel = name;
+  guardarEstado();
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = name);
+}
+
+// Publicar hace tres cosas seguidas y no todas se pueden repetir a ciegas: si
+// la respuesta no llega, no se sabe cuál de las tres se completó.
+const AVISO_PUBLICAR_INCIERTO =
+  'Publicar hace tres cosas seguidas —fusionar, crear la versión y apuntar ' +
+  'producción— y la respuesta no ha llegado: no se sabe cuántas se ' +
+  'completaron. Comprueba el estado real en GitHub y en Dialogflow CX antes ' +
+  'de volver a pulsar: reintentar a ciegas puede fusionar dos veces o crear ' +
+  'una versión duplicada.';
+
+function confirmProduction() {
+  if (!validarVersionLabel()) return;
+  setVersionLabel($('version-batch-label').value.trim());
+  conBoton('btn-confirm-prod', async () => {
+    limpiarError('error-5');
+    mostrar('aviso-draft-movido', false);
+    mostrar('prod-gate', false);
+    mostrar('prod-log', true);
+    pintarLog('prod-log-block', [], true);
+    const parar = relojDeEspera('prod-log-block', 'fusionando, versionando y apuntando producción');
+    marcarEnCurso(5, 'POST /step/5');
+    try {
+      const sobre = await llamar('/step/5', {metodo:'POST', cuerpo:{
+        project: estado.project, agent: estado.agentId,
+        version_label: estado.versionLabel,
+      }});
+      parar();
+      pintarLog('prod-log-block', sobre.log);
+      estado.publicacion = sobre.data;
+      guardarEstado();
+
+      if (sobre.status === 'ok' && sobre.data.publicado) {
+        advanceToDone();
+        return;
+      }
+      // Ni éxito ni excepción: el servidor se paró a propósito y lo dice.
+      mostrar('prod-gate', true);
+      if (sobre.status === 'aborted') {
+        $('aviso-draft-movido-motivo').textContent =
+          sobre.data.motivo || 'el borrador no coincide con lo que se validó';
+        mostrar('aviso-draft-movido', true);
+        const b = $('btn-confirm-prod');
+        if (b) { b.disabled = true; b.style.opacity = '0.4'; }
+        noRehabilitar('btn-confirm-prod');
+      } else if (sobre.status === 'conflict') {
+        pintarError('error-5', new FalloDelPanel(
+          'El merge falló, así que no se ha tocado producción: no se ha creado ' +
+          'ninguna versión y el entorno sigue sirviendo lo de antes. Resuelve el ' +
+          'conflicto en GitHub y vuelve a publicar.', {url: sobre.url}));
+      } else {
+        pintarError('error-5', new FalloDelPanel(
+          `Publicar terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+          {url: sobre.url}),
+          sobre.data.fusionado && !sobre.data.publicado
+            ? 'La rama ya se fusionó y puede haber versiones creadas sin que ' +
+              'producción las sirva. Comprueba el estado real antes de repetir.'
+            : null);
+      }
+    } catch (error) {
+      parar();
+      mostrar('prod-gate', true);
+      pintarError('error-5', error, AVISO_PUBLICAR_INCIERTO);
+    } finally {
+      limpiarEnCurso();
+    }
+  });
+}
+
+function advanceToDone() {
+  setRunning(false);
+  estado.stepStates[4] = 'done';
+  estado.viewingStep = 'done';
+  guardarEstado();
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  $('view-done').classList.add('visible');
+  const badge = $('topbar-env');
+  badge.textContent = 'PRODUCCIÓN';
+  badge.style.background = 'rgba(34,197,94,.15)';
+  badge.style.color = '#4ade80';
+  badge.style.borderColor = 'rgba(34,197,94,.3)';
+  renderResumenFinal();
+  renderSidebar();
+}
+
+function renderResumenFinal() {
+  const d = estado.publicacion || {};
+  setVersionLabel(estado.versionLabel || '—');
+  const _d = new Date(), _p = n => String(n).padStart(2,'0');
+  $('done-timestamp').textContent = _d.getUTCFullYear() + '-' + _p(_d.getUTCMonth()+1) + '-' +
+    _p(_d.getUTCDate()) + ' · ' + _p(_d.getUTCHours()) + ':' + _p(_d.getUTCMinutes()) + ' UTC';
+  $('done-merge-desc').innerHTML =
+    `<code>${esc(oNada(estado.rama))}</code> fusionada en <code>${esc(oNada(d.rama_principal || estado.ramaPrincipal))}</code> de <code>${esc(oNada(d.repo || estado.repo))}</code>.`;
+  const creadas = d.versiones_creadas || [];
+  $('done-version-desc').innerHTML = creadas.length
+    ? `Se crearon ${creadas.length} versi&oacute;n(es) con la etiqueta <span class="snapshot-name-ref">${esc(estado.versionLabel)}</span>:<br>` +
+      creadas.map(v => `<code style="font-size:11px">${esc(v)}</code>`).join('<br>')
+    : 'No se cre&oacute; ninguna versi&oacute;n: lo aplicado es de tipos que CX no versiona, as&iacute; que producci&oacute;n sirve lo mismo que antes.';
+  const anteriores = d.versiones_anteriores || [];
+  $('done-prod-desc').innerHTML =
+    `Producci&oacute;n apunta ya a la publicaci&oacute;n nueva. ` +
+    (anteriores.length
+      ? `Antes serv&iacute;a ${anteriores.length} versi&oacute;n(es) — guardadas para poder volver.`
+      : 'No hab&iacute;a versiones fijadas antes.');
+  $('estado-final-entornos').innerHTML = (d.versiones_creadas || []).length
+    ? (d.versiones_creadas || []).map(v => `<span class="ok">&#10003;</span> producci&oacute;n &rarr; ${esc(v)}  <span class="info">&#8592; nuevo</span>`).join('\n')
+    : `<span class="ok">&#10003;</span> producci&oacute;n sin versiones nuevas`;
+  renderPodaPendiente();
+}
+
+// El exceso de versiones se pinta junto a las tres cosas que publicar sí hizo,
+// no como una alerta aparte: es una consecuencia de esta publicación. Publicar
+// nunca borra por su cuenta — solo avisa.
+function renderPodaPendiente() {
+  const fila = $('fila-poda-pendiente');
+  if (!fila) return;
+  const poda = (estado.publicacion && estado.publicacion.poda_pendiente) || [];
+  if (!poda.length) { fila.style.display = 'none'; return; }
+  const total = poda.reduce((n, c) => n + ((c.candidatas || []).length), 0);
+  $('poda-total').textContent = total;
+  $('poda-contenedores').textContent = poda.length;
+  $('poda-detalle').innerHTML = poda.map(c =>
+    `${esc(c.tipo)} &middot; <code>${esc(String(c.nombre_padre||'').split('/').pop())}</code> ` +
+    `<span style="color:var(--gate)">${c.vivas}/${c.limite}</span>`).join('<br>');
+  fila.style.display = 'flex';
+}
+
+/* ── Versiones existentes · POST /manage-versions ─────────────────────────── */
+
+let VERSIONES = [];
+
+function toggleVersiones() {
+  const panel = $('panel-versiones'), boton = $('btn-ver-versiones');
+  const abierto = panel.style.display !== 'none';
+  panel.style.display = abierto ? 'none' : 'block';
+  boton.innerHTML = abierto ? 'Ver versiones existentes &#9662;' : 'Ocultar versiones existentes &#9652;';
+  if (!abierto) cargarVersiones();
+}
+
+function cargarVersiones() {
+  conBoton('btn-ver-versiones', async () => {
+    limpiarError('error-versiones');
+    $('version-pool-list').innerHTML =
+      '<div style="padding:10px 12px;color:var(--text-3);font-size:12px">Leyendo las versiones del agente…</div>';
+    try {
+      const sobre = await llamar('/manage-versions', {metodo:'POST', cuerpo:{
+        project: estado.project, agent: estado.agentId, action: 'list',
+      }});
+      if (sobre.status !== 'ok') throw new FalloDelPanel(
+        `Listar versiones terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+        {url: sobre.url});
+      VERSIONES = sobre.data.versiones || [];
+      renderVersionPool(sobre.data.contenedores_cerca_del_limite || []);
+    } catch (error) {
+      $('version-pool-list').innerHTML = '';
+      pintarError('error-versiones', error);
+    }
+  });
+}
+
+// Marcar aquí sirve para una sola cosa: eliminar. Las que un entorno está
+// sirviendo llegan marcadas `en_uso` y no se dejan marcar — el servidor las
+// rechazaría igual, pero dejar marcarlas haría creer que se borraron.
+function renderVersionPool(contenedores) {
+  const lista = $('version-pool-list');
+  if (!lista) return;
+  lista.innerHTML = VERSIONES.map((v, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+      <input type="checkbox" class="chk-version" data-nombre="${esc(v.name)}" ${v.en_uso ? 'disabled' : ''}
+             onchange="actualizarBorrarVersiones()"
+             style="width:15px;height:15px;accent-color:var(--error);cursor:${v.en_uso ? 'not-allowed' : 'pointer'}">
+      <code style="flex:1;font-size:12px;color:var(--text-2)">${esc(v.display_name || String(v.name).split('/').pop())}</code>
+      <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${esc(String(v.creada||'').slice(0,10))}</span>
+      <span style="font-size:11px;color:${v.en_uso ? 'var(--gate)' : 'var(--text-3)'};white-space:nowrap;min-width:120px;text-align:right">${v.en_uso ? 'en uso por un entorno' : esc(v.estado||'')}</span>
+    </div>`).join('') ||
+    '<div style="padding:10px 12px;color:var(--text-3);font-size:12px">Este agente no guarda ninguna versión.</div>';
+  $('version-pool-summary').innerHTML =
+    `${VERSIONES.length} versiones guardadas. Las que un entorno est&aacute; usando no se pueden eliminar.`;
+  renderLimitesVersiones(contenedores);
+  actualizarBorrarVersiones();
+}
+
+// El aviso llega antes de que el límite se alcance, no después: publicar ya no
+// poda por su cuenta, así que sin esto el tope se cruzaría en silencio y la API
+// rechazaría la siguiente versión sin que nadie hubiera visto venir nada.
+function renderLimitesVersiones(contenedores) {
+  const caja = $('version-limites'), lista = $('version-limites-lista');
+  if (!caja || !lista) return;
+  const cerca = contenedores || [];
+  if (!cerca.length) { caja.style.display = 'none'; lista.innerHTML = ''; return; }
+  caja.style.display = 'block';
+  lista.innerHTML = cerca.map(c =>
+    `${esc(c.tipo)} &middot; <code>${esc(String(c.nombre_padre||'').split('/').pop())}</code> ` +
+    `<span style="color:var(--gate)">${c.vivas}/${c.limite}</span>`).join('<br>');
+}
+
+function actualizarBorrarVersiones() {
+  const n = document.querySelectorAll('.chk-version:checked').length;
+  const b = $('btn-borrar-versiones');
+  if (!b) return;
+  b.disabled = n === 0;
+  b.textContent = n ? `Eliminar ${n} ${n === 1 ? 'versión' : 'versiones'}` : 'Eliminar versiones marcadas';
+}
+
+function borrarVersiones() {
+  const marcadas = [...document.querySelectorAll('.chk-version:checked')];
+  if (!marcadas.length) return;
+  if (!confirm(`Se van a eliminar ${marcadas.length} versiones del agente. No se puede deshacer.`)) return;
+  const nombres = marcadas.map(c => c.dataset.nombre);
+  conBoton('btn-borrar-versiones', async () => {
+    limpiarError('error-versiones');
+    marcarEnCurso(5, 'POST /manage-versions (delete)');
+    try {
+      const sobre = await llamar('/manage-versions', {metodo:'POST', cuerpo:{
+        project: estado.project, agent: estado.agentId,
+        action: 'delete', version_names: nombres,
+      }});
+      if (sobre.status !== 'ok') throw new FalloDelPanel(
+        `El borrado terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+        {url: sobre.url});
+      const protegidas = sobre.data.protegidas || [];
+      // Se relee del servidor, no se quitan las filas de la pantalla: lo que se
+      // pinta después del borrado tiene que ser lo que hay, no lo que se pidió.
+      await cargarVersionesSilenciosa();
+      $('version-pool-summary').innerHTML =
+        `${VERSIONES.length} versiones guardadas &middot; ` +
+        `${(sobre.data.borradas||[]).length} borradas` +
+        (protegidas.length ? ` &middot; <span style="color:var(--gate)">${protegidas.length} no se borraron porque las sirve un entorno</span>` : '');
+    } catch (error) {
+      pintarError('error-versiones', error);
+    } finally {
+      limpiarEnCurso();
+    }
+  });
+}
+
+async function cargarVersionesSilenciosa() {
+  const sobre = await llamar('/manage-versions', {metodo:'POST', cuerpo:{
+    project: estado.project, agent: estado.agentId, action: 'list',
+  }});
+  VERSIONES = sobre.data.versiones || [];
+  renderVersionPool(sobre.data.contenedores_cerca_del_limite || []);
+}
+
+/* ── El comando para poner al día la copia local ──────────────────────────── */
+
+function comandoSync() {
+  const campo = $('ruta-local');
+  const ruta = (campo && campo.value.trim()) || '<ruta de tu copia local>';
+  const rama = estado.ramaPrincipal || 'main';
+  return `git -C ${ruta} fetch origin ${rama}:${rama}`;
+}
+
+function actualizarComandoSync() {
+  const salida = $('comando-sync');
+  if (salida) salida.textContent = comandoSync();
+  const campo = $('ruta-local');
+  if (campo) { estado.rutaLocal = campo.value; guardarEstado(); }
+}
+
+function copiarComandoSync(boton) {
+  navigator.clipboard.writeText(comandoSync()).then(() => {
+    boton.textContent = '✓';
+    setTimeout(() => boton.textContent = 'Copiar', 1500);
+  });
+}
+
+function copiarComandoIam(btn) {
+  const code = $('tool-comando-iam').textContent;
+  if (navigator.clipboard) navigator.clipboard.writeText(code);
+  const original = btn.textContent;
+  btn.textContent = 'Copiado';
+  setTimeout(() => { btn.textContent = original; }, 1500);
+}
+
+function toggleSyncCheck() {
+  const checked = $('check-sync-local').checked;
+  $('done-sync-title').style.color = checked ? 'var(--success)' : 'var(--text-2)';
+}
+
+/* ── Navegación y estados ─────────────────────────────────────────────────── */
+
+function stateClass(state) {
+  return {done:'s-done',gate:'s-gate',active:'s-active',pending:'s-pending',error:'s-error'}[state] || 's-pending';
+}
+function stateText(state) {
+  return {done:'Completado', gate:'Esperando confirmación', active:'En progreso...',
+          pending:'Pendiente', error:'Fallido'}[state] || '';
+}
+function badgeContent(state, n) {
+  return {done:'✓', gate:'!', active:'●'}[state] || n;
+}
+
+function renderSidebar() {
+  const sb = $('sidebar-steps');
+  let html = '<div class="sidebar-label">Pipeline de deploy</div>';
+  STEPS.forEach((s,i) => {
+    const state = estado.stepStates[i];
+    const active = estado.viewingStep === s.id ? ' active' : '';
+    html += `<div class="step-item ${stateClass(state)}${active}" onclick="viewStep(${s.id})">
+      <div class="step-badge">${badgeContent(state, s.id)}</div>
+      <div class="step-info">
+        <div class="step-name">${s.name}</div>
+        <div class="step-status-text">${stateText(state)}</div>
+      </div>
+    </div>`;
+    html += '<div class="step-connector"></div>';
+  });
+  if (estado.stepStates[4] === 'done') {
+    const active = estado.viewingStep === 'done' ? ' active' : '';
+    html += `<div class="step-item s-done${active}" onclick="viewDone()">
+      <div class="step-badge">★</div>
+      <div class="step-info">
+        <div class="step-name">Resumen</div>
+        <div class="step-status-text">Deploy completado</div>
+      </div>
+    </div>`;
+  }
+  sb.innerHTML = html;
+}
+
+function viewDone() {
+  estado.viewingStep = 'done';
+  guardarEstado();
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  $('view-done').classList.add('visible');
+  renderSidebar();
+}
+
+let viewingStepBeforeTool = 1;
+
+function viewTool(name) {
+  viewingStepBeforeTool = estado.viewingStep;
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  $('view-tool-' + name).classList.add('visible');
+  mostrar('tool-onboarding-start', true);
+  mostrar('tool-onboarding-log', false);
+  mostrar('tool-onboarding-done', false);
+  limpiarError('error-tool');
+  const boton = $('btn-tool-onboarding');
+  if (boton) { boton.disabled = false; delete boton.dataset.rehabilitar; }
+  pintarLog('tool-onboarding-log-block', [], true);
+  if (!$('tool-project-input').value && estado.project) $('tool-project-input').value = estado.project;
+}
+
+function cerrarTool() {
+  if (viewingStepBeforeTool === 'done') { viewDone(); return; }
+  viewStep(typeof viewingStepBeforeTool === 'number' ? viewingStepBeforeTool : 1);
+}
+
+function viewStep(id) {
+  const idx = id - 1;
+  if (idx >= 0 && estado.stepStates[idx] === 'pending') return;
+  estado.viewingStep = id;
+  guardarEstado();
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  const v = $('view-'+id);
+  if (v) {
+    v.classList.add('visible');
+    // Un paso ya ejecutado se puede volver a mirar, no a repetir: se ve tal y
+    // como quedó, sin los botones que lo volverían a ejecutar.
+    v.classList.toggle('paso-cerrado', idx >= 0 && estado.stepStates[idx] === 'done');
+  }
+  if (id === 2) renderTablaRepo();
+  if (id === 3) {
+    renderTablaCx();
+    if (!estado.plan && !estado.paso3Cerrado) cargarPlan();
+  }
+  if (id === 5) {
+    const campo = $('version-batch-label');
+    campo.value = campo.value || estado.versionLabel || generateVersionLabel();
+    validarVersionLabel();
+  }
+  refrescarDestinoEnPantalla();
+  renderSidebar();
+}
+
+function advance(fromStep) {
+  const idx = fromStep - 1;
+  estado.stepStates[idx] = 'done';
+  const nextIdx = idx + 1;
+  if (nextIdx < STEPS.length) {
+    if (estado.stepStates[nextIdx] === 'pending') {
+      estado.stepStates[nextIdx] = STEPS[nextIdx].gate ? 'gate' : 'active';
+    }
+    estado.current = STEPS[nextIdx].id;
+    guardarEstado();
+    viewStep(estado.current);
+  } else {
+    guardarEstado();
+    renderSidebar();
+  }
+}
+
+/* ── Reinicio ─────────────────────────────────────────────────────────────── */
+
+function resetDeploy() {
+  const destino = {
+    project: estado.project, agentId: estado.agentId, agentName: estado.agentName,
+    region: estado.region, repo: estado.repo, rama: estado.rama,
+    ramaPrincipal: estado.ramaPrincipal, rutaLocal: estado.rutaLocal,
+  };
+  estado = Object.assign(estadoNuevo(), destino);
+  guardarEstado();
+  setRunning(false);
+
+  ['inv-log','inv-done','traer-log','traer-done','confirmar-borrado','deploy-log',
+   'deploy-done','deploy-fail','confirmar-terminar','tests-fail','tests-log',
+   'prod-log','aviso-draft-movido','plan-log','panel-versiones','aviso-interrumpido',
+  ].forEach(id => mostrar(id, false));
+  ['inv-start','tests-gate','prod-gate','deploy-gate'].forEach(id => mostrar(id, true));
+  ['sin-modificar-2','sin-modificar-3'].forEach(id => mostrar(id, true, 'flex'));
+  ['inv-log-block','traer-log-block','deploy-log-block','prod-log-block',
+   'tests-log-block','plan-log-block','alta-agente-log-block',
+  ].forEach(id => { const e = $(id); if (e) e.innerHTML = ''; });
+  ['error-1','error-2','error-3','error-4','error-5','error-tool','error-versiones']
+    .forEach(limpiarError);
+  ['btn-start-inventory','btn-traer','btn-eliminar','btn-confirm-deploy',
+   'btn-confirm-prod','btn-tests-ok','btn-tests-ko','btn-retry-failed',
+   'btn-ver-versiones','btn-borrar-versiones',
+  ].forEach(id => { const b = $(id); if (b) { delete b.dataset.rehabilitar; b.disabled = false; b.style.opacity = ''; } });
+
+  const cuerpoCx = document.querySelector('#tabla-cx tbody');
+  if (cuerpoCx) cuerpoCx.innerHTML = '';
+  const cuerpoRepo = document.querySelector('#tabla-repo tbody');
+  if (cuerpoRepo) cuerpoRepo.innerHTML = '';
+  ['sel-todos-cx','sel-todos-repo'].forEach(id => {
+    const c = $(id); if (c) { c.checked = false; c.disabled = false; }
+  });
+  $('version-batch-label').value = generateVersionLabel();
+  document.querySelectorAll('.snapshot-name-ref').forEach(el => el.textContent = '—');
+  const badge = $('topbar-env');
+  badge.textContent = 'DRAFT';
+  badge.style.background = 'rgba(59,130,246,.15)';
+  badge.style.color = '#60a5fa';
+  badge.style.borderColor = 'rgba(59,130,246,.3)';
+  $('btn-ver-versiones').innerHTML = 'Ver versiones existentes &#9662;';
+
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('visible'));
+  viewStep(1);
+  actualizarPies();
+}
+
+/* ── Arranque ─────────────────────────────────────────────────────────────── */
+
+/**
+ * Repone la pantalla con lo que había en `localStorage`. Es lo que hace que
+ * recargar a mitad de un pipeline —o cerrar la pestaña y volver— no pierda ni
+ * el progreso ni, sobre todo, el destino: sin él, las llamadas siguientes se
+ * quedarían sin saber sobre qué agente actúan.
+ */
+function reponerPantalla() {
+  if (estado.inventario) {
+    mostrar('inv-start', false);
+    mostrar('inv-done', true);
+    renderInventario();
+    noRehabilitar('btn-start-inventory');
+  }
+  if (estado.traido) {
+    mostrar('traer-done', true);
+    mostrar('sin-modificar-2', false);
+    const c = estado.traido.commit;
+    $('traer-commit').innerHTML = c
+      ? `commit <code>${esc(String(c).slice(0,7))}</code> en <code>${esc(oNada(estado.traido.rama))}</code>`
+      : 'sin cambios reales — no se cre&oacute; ning&uacute;n commit';
+    noRehabilitar('btn-traer');
+  }
+  if (estado.paso3Cerrado) {
+    mostrar('deploy-gate', false);
+    mostrar('sin-modificar-3', false);
+    renderTablaCx();
+    cerrarPieCx();
+    if (estado.aplicadas && estado.aplicadas.fallo) pintarFalloParcial(estado.aplicadas);
+    else mostrar('deploy-done', true);
+  }
+  if (estado.paso4 && estado.paso4.avanza === false) {
+    mostrar('tests-gate', false);
+    mostrar('tests-fail', true);
+  }
+  if (estado.publicacion && estado.publicacion.publicado) {
+    renderResumenFinal();
+    const badge = $('topbar-env');
+    badge.textContent = 'PRODUCCIÓN';
+    badge.style.background = 'rgba(34,197,94,.15)';
+    badge.style.color = '#4ade80';
+    badge.style.borderColor = 'rgba(34,197,94,.3)';
+  }
+  if (estado.rutaLocal) $('ruta-local').value = estado.rutaLocal;
+  refrescarDestinoEnPantalla();
+}
+
+cargarEstado();
+avisarSiQuedoAlgoEnVuelo();
+$('version-batch-label').value = estado.versionLabel || generateVersionLabel();
+validarVersionLabel();
+reponerPantalla();
+actualizarPies();
+const pasoInicial = estado.viewingStep === 'done' ? 'done' : (estado.viewingStep || 1);
+if (pasoInicial === 'done') viewDone(); else viewStep(pasoInicial);
+renderSidebar();
+comprobarServidor().then(vivo => { if (vivo) cargarProyectos(); });
+</script>
+</body></html>

@@ -20,6 +20,12 @@ Nueve puntos de entrada, y solo esos:
     POST /link-project-repo Vincular proyecto y repositorio (la Tool, S22)
     POST /manage-versions   Listar y borrar versiones
 
+Más dos rutas que no son del pipeline y no reciben destino: `GET /` y
+`GET /panel`, que sirven el propio panel desde este mismo origen (S25,
+`docs/cloudrun_diseno_servidor.md §16`). No es una pieza nueva: es lo que hace
+que el panel llame a `/step/1` sin URL que configurar y que CORS deje de
+existir en vez de gestionarse.
+
 El playbook los cuenta como «ocho» porque la segunda ronda de decisiones (S24,
 2026-08-08) partió el onboarding en dos —vincular el proyecto una vez, y dar de
 alta cada agente— después de escribirse esa cifra. El pipeline ya nació partido:
@@ -64,7 +70,7 @@ if str(REPO_ROOT) not in sys.path:
 
 import google.api_core.exceptions
 import google.auth.exceptions
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, redirect, request, send_file
 from flask_cors import CORS
 
 from act import act_cx_resources_deploy_cloudrun as pipeline
@@ -90,6 +96,36 @@ PUERTO_POR_DEFECTO = 8080
 # `--no-allow-unauthenticated`, que rechazan la petición antes de que el
 # navegador llegue a mirar ninguna cabecera.
 ORIGEN_PERMITIDO = os.environ.get("ALLOWED_ORIGIN", "*")
+
+# ── El panel, servido desde este mismo origen (S25) ──────────────────────────
+#
+# El panel no es un archivo suelto en otro sitio: sale de este servicio, por la
+# misma URL que los endpoints. Con eso desaparecen dos problemas en vez de
+# gestionarse — el panel llama a rutas relativas (`/step/1`, sin URL que
+# configurar) y no hay petición entre orígenes que autorizar.
+#
+# Dos sitios posibles, en este orden, porque son dos vidas distintas del mismo
+# archivo: dentro de la imagen lo copia el `Dockerfile` a `/app/panel/`, y en el
+# Mac se sirve directamente el del repositorio para poder iterar sin reconstruir
+# la imagen en cada cambio. `PANEL_PATH` gana a los dos, para el caso de servir
+# una copia concreta sin moverla de sitio.
+PANEL_ARCHIVO = "act_cx_resources_deploy_v2_output_cloudrun.html"
+PANEL_EN_LA_IMAGEN = REPO_ROOT / "panel" / PANEL_ARCHIVO
+PANEL_EN_EL_REPOSITORIO = REPO_ROOT / "docs" / "panels" / PANEL_ARCHIVO
+
+
+def ruta_del_panel():
+    """El archivo del panel que toca servir, o `None` si no hay ninguno.
+
+    Devolver `None` en vez de reventar es lo que permite que la falta del panel
+    se conteste con un 404 explicado: una imagen construida sin él sigue
+    sirviendo la API, y el error dice exactamente qué falta y dónde se buscó.
+    """
+    explicita = os.environ.get("PANEL_PATH")
+    candidatas = ([Path(explicita)] if explicita else []) + [
+        PANEL_EN_LA_IMAGEN, PANEL_EN_EL_REPOSITORIO,
+    ]
+    return next((c for c in candidatas if c.is_file()), None)
 
 
 # ── Destinos que este servidor no acepta ─────────────────────────────────────
@@ -480,6 +516,40 @@ def versiones_existentes():
         version_names=_lista(cuerpo, "version_names"),
         on_log=_registrar,
     )
+
+
+# ── El panel ─────────────────────────────────────────────────────────────────
+#
+# No son endpoints del pipeline: no reciben destino, no delegan en ninguna
+# función y no tocan CX, Firestore ni GitHub. Sirven un archivo.
+
+@app.get("/")
+def raiz():
+    """Quien abra la URL a secas quiere el panel, no una página en blanco."""
+    return redirect("/panel", code=302)
+
+
+@app.get("/panel")
+def panel():
+    """El panel de producción, servido desde el mismo origen que la API.
+
+    `no-store` y no una caché larga: el panel cambia con cada despliegue, y un
+    panel viejo cacheado contra un servidor nuevo produce fallos que nadie
+    relaciona con la caché — se ven como funciones que dejaron de existir.
+    """
+    ruta = ruta_del_panel()
+    if ruta is None:
+        buscado = " · ".join(str(c) for c in
+                             (PANEL_EN_LA_IMAGEN, PANEL_EN_EL_REPOSITORIO))
+        mensaje = (f"No se encontró el archivo del panel ({PANEL_ARCHIVO}). "
+                   f"Se buscó en: {buscado}. La API sigue funcionando; lo que "
+                   f"falta es el archivo dentro de la imagen.")
+        _registrar(f"✗ GET /panel → 404: {mensaje}")
+        return jsonify(pipeline.step_result(
+            "error", [mensaje], {"reason": "panel_no_encontrado"})), 404
+    respuesta = send_file(ruta, mimetype="text/html")
+    respuesta.headers["Cache-Control"] = "no-store"
+    return respuesta
 
 
 # ── Salud ────────────────────────────────────────────────────────────────────

@@ -222,7 +222,14 @@ reports/
 validation_report_*.txt
 
 # Generados en runtime por el pipeline ACT — nunca se committean
-docs/data/
+# Se excluye el CONTENIDO, no la carpeta (`docs/data/*` y no `docs/data/`):
+# git no entra en un directorio excluido, así que con la forma anterior la
+# excepción de la línea siguiente no se llegaba a mirar nunca.
+docs/data/*
+# …salvo el catálogo de TCs del panel conectado, que es un entregable de la
+# Fase 8 y no un artefacto de ejecución: vive aquí porque es la ruta que
+# fija el playbook, no porque lo genere nadie al desplegar.
+!docs/data/tc_deploy_pipeline_cloudrun.yaml
 logs/
 audit_examples_*.txt
 

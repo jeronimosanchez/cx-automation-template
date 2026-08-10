@@ -1,0 +1,312 @@
+# Catálogo de TCs del panel de producción conectado
+#
+# Recorren de principio a fin cada función del panel
+# `docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html` contra el
+# servidor `act/server_cloudrun.py`: los 5 pasos numerados y las 3 acciones
+# sueltas (vincular proyecto y repositorio, dar de alta un agente, y el
+# desplegable de versiones del Paso 5).
+#
+# **Son una propuesta, no se ejecutan solos.** Quedan escritos para que Jero
+# decida cuándo correrlos. Lo que sí corre hoy sin intervención es
+# `act/validate_html_cloudrun.py` (4 niveles), que cubre la parte automatizable
+# de estos mismos recorridos; la columna `automatizado_por` dice cuál de ellos
+# cubre ya cada TC y qué queda por hacer a mano.
+#
+# **Destino, en todos y sin excepción:** un proyecto GCP de pruebas, un agente
+# CX cuyo `displayName` contenga la palabra `desechable`, y un repositorio
+# desechable cuya rama principal NO sea `main`, `master` ni `production`.
+# Ninguno apunta a `floristeria-petal-digital` ni a ningún agente de Petal: el
+# servidor los rechaza con 403 por su lista de destinos protegidos, y el TC-09
+# existe precisamente para comprobar que ese rechazo se ve bien.
+#
+# Cada TC se limpia solo. No hay ninguno que dependa de que otro barra lo suyo.
+
+version: 1
+fecha: 2026-08-10
+fase: 8
+panel: docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html
+servidor: act/server_cloudrun.py
+
+destino:
+  descripcion: >-
+    Provisionado una vez, fuera de los TCs. Mezclar la creación de la
+    infraestructura con lo que se prueba deja un TC que falla por el motivo
+    equivocado el día que la provisión cambia.
+  proyecto: "<proyecto GCP de pruebas>"
+  agente: "<id del agente CX, displayName con 'desechable'>"
+  repositorio: "<owner/repo desechable>"
+  rama_principal: "<rama que NO sea main/master/production>"
+  entorno_produccion: "production, creado a mano en la consola de CX"
+  prohibido:
+    - floristeria-petal-digital
+    - 745375ba-ac7e-4eb8-b8a0-d742891f2aa4
+    - cea66b60-192d-4b5a-af10-28f8661032e0
+
+tcs:
+
+  # ── Acciones sueltas ──────────────────────────────────────────────────────
+
+  - id: TC-01
+    nombre: Vincular un proyecto con su repositorio desde la Tool
+    funcion: "Tool · POST /link-project-repo"
+    proposito: >-
+      Es el único sitio donde el servidor acepta un repositorio de quien llama.
+      Sin él, ningún agente del proyecto tiene con qué compararse.
+    pasos:
+      - Abrir la Tool «Vincular proyecto y repositorio» desde el lateral.
+      - Escribir el proyecto de pruebas, la URL del repositorio desechable y su
+        rama principal desechable.
+      - Pulsar «Vincular».
+    esperado:
+      - El registro muestra las líneas reales del servidor, empezando por el
+        acceso al repositorio.
+      - El bloque de copiar muestra el comando `gcloud` que devuelve el servidor,
+        con el proyecto real dentro — nunca un `<proyecto>` de ejemplo.
+      - Al volver al Paso 1, el aviso «este proyecto no tiene repositorio
+        vinculado» ha desaparecido.
+    verificar_en: Firestore, colección `proyectos`, documento del proyecto
+    limpieza: Borrar el documento `proyectos/<proyecto>` en Firestore.
+    automatizado_por: "validate_html_cloudrun.py N3 (con servidor de mentira)"
+    manual_pendiente: "la escritura real en Firestore"
+
+  - id: TC-02
+    nombre: Dar de alta un agente desde el Paso 1
+    funcion: "Paso 1 · POST /register-agent"
+    proposito: >-
+      Es el único camino para que un agente nuevo entre en el sistema, y el más
+      fácil de olvidar: vive dentro del Paso 1 y no parece una acción suelta.
+    pasos:
+      - Elegir el proyecto y, en el segundo desplegable, el agente desechable
+        recién creado (aparece marcado «sin dar de alta»).
+      - Comprobar que la caja del repositorio enseña el nombre de rama que se
+        crearía, y que «Iniciar inventario» sigue apagado.
+      - Pulsar «Dar de alta este agente».
+    esperado:
+      - El registro dice la región detectada y la rama creada, con su commit.
+      - La caja pasa a mostrar el repositorio y la rama, y «Iniciar inventario»
+        se enciende.
+    verificar_en: GitHub (la rama existe) y Firestore (`agentes/<proyecto>__<agente>`)
+    limpieza: Borrar la rama del repositorio y el documento del agente en Firestore.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "la creación real de la rama"
+
+  - id: TC-03
+    nombre: Listar las versiones del agente y respetar las que sirve un entorno
+    funcion: "Paso 5 · POST /manage-versions (action=list)"
+    proposito: >-
+      Endpoint sin consumidor en ninguna otra fase: si quedara simulado, nadie
+      lo notaría hasta necesitarlo.
+    pasos:
+      - Llegar al Paso 5 y abrir «Ver versiones existentes».
+    esperado:
+      - La lista sale del servidor, con la fecha y el estado de cada versión.
+      - La versión que el entorno de producción está sirviendo aparece marcada
+        «en uso por un entorno» y su casilla no se deja marcar.
+      - «Eliminar versiones marcadas» arranca apagado.
+    verificar_en: La API de CX, listando las versiones del agente
+    limpieza: Ninguna — es una lectura.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "—"
+
+  - id: TC-04
+    nombre: Borrar una versión marcada, y solo esa
+    funcion: "Paso 5 · POST /manage-versions (action=delete)"
+    proposito: >-
+      El borrado es la única operación destructiva del panel fuera del pipeline
+      y exige nombrar cada versión, nunca «todas las que sobren».
+    pasos:
+      - Crear dos versiones desechables del flow de arranque (fuera del panel).
+      - Abrir el desplegable, marcar una sola y pulsar «Eliminar versiones marcadas».
+      - Confirmar el diálogo.
+    esperado:
+      - Se pide confirmación **antes** de borrar, diciendo cuántas.
+      - El resumen dice cuántas se borraron y cuántas no se pudieron borrar por
+        estar en uso.
+      - >-
+        La lista se relee del servidor, así que lo que se ve después es lo que
+        hay — no lo que se pidió.
+    verificar_en: La API de CX — la otra versión sigue existiendo
+    limpieza: Borrar la versión desechable que quede.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "el borrado real en CX"
+
+  # ── Los cinco pasos ───────────────────────────────────────────────────────
+
+  - id: TC-05
+    nombre: Inventario completo del agente desechable
+    funcion: "Paso 1 · POST /step/1"
+    proposito: >-
+      Es la comprobación de extremo a extremo de que la selección de proyecto y
+      agente llega hasta la llamada real a CX.
+    pasos:
+      - Con el destino ya dado de alta, pulsar «Iniciar inventario».
+    esperado:
+      - Las cuatro tarjetas muestran los números reales del agente, no los del
+        ejemplo de la maqueta (42/4/2/2).
+      - >-
+        La línea de resumen cuadra — emparejados más solo en CX suman el total
+        del agente.
+      - Si al agente le falta el entorno `production`, se avisa aquí y se deja
+        seguir.
+    verificar_en: La API de CX y el árbol del repositorio en la rama de trabajo
+    limpieza: Ninguna — el Paso 1 no escribe nada.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "la lectura real de CX y GitHub"
+
+  - id: TC-06
+    nombre: Traer al repositorio lo que solo existe en CX
+    funcion: "Paso 2 · POST /step/2"
+    proposito: >-
+      Primera escritura del pipeline, y la única que va hacia GitHub sin tocar
+      el agente.
+    pasos:
+      - En el Paso 2, marcar «seleccionar todos».
+      - Comprobar que lo nativo de la plataforma queda sin marcar y deshabilitado.
+      - Pulsar «Traer al repositorio».
+    esperado:
+      - Un solo commit con todos los archivos traídos.
+      - Las filas traídas desaparecen y el contador de deriva baja en la misma
+        cantidad.
+      - Aparece el recordatorio de hacer `git pull` en local.
+    verificar_en: GitHub — el commit existe y contiene exactamente esos archivos
+    limpieza: >-
+      Borrar los archivos traídos con un commit de vuelta, o borrar la rama de
+      trabajo entera si el TC la creó.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "el commit real"
+
+  - id: TC-07
+    nombre: Aplicar en CX un cambio hecho en el repositorio
+    funcion: "Paso 3 · POST /step/3 (dry-run y real)"
+    proposito: >-
+      El único paso que escribe resources en el borrador del agente.
+    pasos:
+      - Editar en el repositorio un YAML ya emparejado (por ejemplo, su
+        `description`) y subir el cambio a la rama de trabajo.
+      - Entrar en el Paso 3 y comprobar que la tabla la calcula el servidor.
+      - Marcar la fila y pulsar «Aplicar en CX».
+    esperado:
+      - La tabla enseña una sola operación, «Modificar», con el archivo del que
+        sale.
+      - Al aplicar, la fila queda marcada «Aplicado» y las casillas dejan de
+        poder tocarse.
+      - El registro es el que devuelve el servidor, no uno escrito de antemano.
+    verificar_en: La API de CX — el resource tiene el contenido nuevo
+    limpieza: >-
+      Devolver el YAML a su contenido anterior y volver a aplicar, o borrar el
+      agente desechable entero al terminar la tanda.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "la escritura real en el borrador"
+
+  - id: TC-08
+    nombre: Declarar el resultado de los tests y publicar en producción
+    funcion: "Paso 4 · POST /step/4 · Paso 5 · POST /step/5"
+    proposito: >-
+      Publicar hace tres cosas seguidas —fusionar, versionar y apuntar
+      producción— y es la única escritura que afecta a usuarios.
+    pasos:
+      - En el Paso 4, declarar «Tests superados».
+      - En el Paso 5, poner un nombre de versión válido y publicar.
+    esperado:
+      - El gate nombra el proyecto, el agente, la rama de trabajo y la principal
+        reales antes de confirmar.
+      - El registro enseña las tres acciones en el orden anunciado.
+      - El resumen final enumera las mismas tres, con los nombres de las
+        versiones creadas.
+    verificar_en: >-
+      GitHub (la rama principal avanzó con el commit de merge) y la API de CX
+      (la versión existe con esa etiqueta y el entorno `production` apunta a ella)
+    limpieza: >-
+      Borrar el agente desechable y las ramas del repositorio. La versión
+      publicada desaparece con el agente.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "el merge y la publicación reales"
+
+  # ── Casos que el camino feliz no provoca ──────────────────────────────────
+
+  - id: TC-09
+    nombre: Elegir un destino protegido devuelve 403 y el panel lo explica
+    funcion: "Paso 1 · GET /discover con un proyecto de la lista negra"
+    proposito: >-
+      La lista de destinos protegidos es una protección funcionando. Verla como
+      un error genérico la convierte en lo que parece una avería del panel.
+    pasos:
+      - En el desplegable de proyectos, elegir `floristeria-petal-digital`.
+    esperado:
+      - Aparece un bloque titulado «Destino bloqueado», no «Error».
+      - El texto dice que está bloqueado a propósito y que **no se ha emitido
+        ninguna llamada**.
+      - El desplegable de agentes y «Iniciar inventario» siguen apagados.
+    verificar_en: El panel — y el log del servidor, donde no hay ninguna llamada a CX
+    limpieza: Ninguna — no se escribe nada.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "—"
+
+  - id: TC-10
+    nombre: Publicar interrumpido a mitad — el fallo que no se puede repetir a ciegas
+    funcion: "Paso 5 · POST /step/5 sin respuesta"
+    proposito: >-
+      Es el único paso cuyo reintento a ciegas puede fusionar dos veces o crear
+      una versión duplicada. El resto son idempotentes por diseño.
+    pasos:
+      - Llegar al Paso 5 con todo listo.
+      - Dejar el servicio sin responder (parar el contenedor, o retirar el
+        acceso al servicio de Cloud Run).
+      - Pulsar «Publicar en producción».
+    esperado:
+      - El mensaje de error dice a qué dirección se llamó.
+      - Añade la advertencia explícita de que no se sabe cuántas de las tres
+        acciones se completaron, y que hay que comprobar el estado real antes de
+        volver a pulsar.
+      - El panel no queda colgado ni da la publicación por hecha.
+    verificar_en: GitHub y la API de CX — para saber qué llegó a ocurrir de verdad
+    limpieza: >-
+      Según lo que muestre esa comprobación. Si la rama se fusionó, deshacerlo
+      en el repositorio desechable; si se creó una versión, borrarla.
+    automatizado_por: "validate_html_cloudrun.py N3 (el mensaje y la advertencia)"
+    manual_pendiente: "provocar la caída con el servicio real"
+
+  - id: TC-11
+    nombre: El borrador se mueve entre validar y publicar
+    funcion: "Paso 5 · POST /step/5 con respuesta `aborted`"
+    proposito: >-
+      El gate que impide publicar algo distinto de lo que se probó. Llega con
+      **HTTP 200**: un panel que mirara solo el código diría «publicado».
+    pasos:
+      - Declarar los tests superados en el Paso 4.
+      - Modificar el borrador del agente por fuera (consola de CX o API).
+      - Pulsar «Publicar en producción».
+    esperado:
+      - El paso se detiene y muestra el motivo exacto que da el servidor.
+      - El botón de publicar queda bloqueado y la salida ofrecida es empezar de
+        nuevo.
+      - No se fusiona nada ni se crea ninguna versión.
+    verificar_en: >-
+      GitHub (la rama principal no se movió) y la API de CX (no hay versión nueva)
+    limpieza: Deshacer la modificación externa del borrador.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "mover el borrador de verdad"
+
+  - id: TC-12
+    nombre: Recargar la página a mitad del pipeline
+    funcion: "Panel · localStorage"
+    proposito: >-
+      Una llamada real tarda más que cualquier animación: recargar por costumbre
+      no puede perder el progreso ni, sobre todo, el destino.
+    pasos:
+      - Completar el Paso 1 y recargar la página (F5).
+      - Cerrar la pestaña y volver a abrirla.
+    esperado:
+      - Vuelve el mismo paso activo, el mismo destino y el mismo resultado.
+      - Si la recarga ocurrió con una petición en vuelo, aparece un aviso de que
+        esa operación pudo completarse en el servidor.
+    verificar_en: El panel
+    limpieza: Ninguna.
+    automatizado_por: "validate_html_cloudrun.py N3"
+    manual_pendiente: "—"
+
+cobertura:
+  pasos_numerados: [TC-05, TC-06, TC-07, TC-08]
+  acciones_sueltas: [TC-01, TC-02, TC-03, TC-04]
+  fallo_a_mitad_de_camino: [TC-10, TC-11]
+  otros_casos_limite: [TC-09, TC-12]

@@ -123,6 +123,15 @@ SERVIDOR = "act/server_cloudrun.py"
 DOCKERFILE = "Dockerfile"
 CLIENTE_GITHUB = "act/utils/github_app_client_cloudrun.py"
 
+# Rutas del servidor que no pertenecen al pipeline: no reciben destino, no
+# delegan en ninguna de sus funciones y no tocan CX, Firestore ni GitHub.
+# `/health` dice si el proceso está en pie; `/` y `/panel` sirven el archivo del
+# panel desde este mismo origen (S25). Se enumeran una a una a propósito: la
+# alternativa —saltarse la comprobación para cualquier ruta que no delegue— la
+# haría pasar también para un endpoint del pipeline que dejara de delegar, que
+# es justo lo que la comprobación existe para cazar.
+RUTAS_QUE_NO_SON_DEL_PIPELINE = frozenset({"/health", "/", "/panel"})
+
 # Prefijo de todo lo que crea una corrida. Distinto del de la Fase 4 (`actval`)
 # a propósito: cada suite barre lo suyo, y con el mismo prefijo una corrida
 # podría borrar lo que la otra está usando en ese momento.
@@ -388,7 +397,7 @@ def nivel_0(runner):
         problemas = []
         for nombre, (ruta, nodo) in _vistas_del_servidor().items():
             delegadas = set(_llamadas_a_modulo(nodo, "pipeline"))
-            if ruta == "/health":
+            if ruta in RUTAS_QUE_NO_SON_DEL_PIPELINE:
                 continue
             if not delegadas & FUNCIONES_DEL_PIPELINE:
                 problemas.append(f"{ruta} no delega en ninguna función del pipeline")
