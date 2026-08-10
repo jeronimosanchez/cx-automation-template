@@ -697,3 +697,56 @@ merge añade— pero fue una escritura en `main` no autorizada.
 De ahí salen dos cosas de este documento: la rama por agente, y que el smoke
 test se niegue a arrancar su nivel de escritura si la rama principal del
 proyecto es `main`, `master` o `production`.
+
+---
+
+## 16. Quién puede llamar al servidor (S25 · 2026-08-10)
+
+Decisión pendiente desde el principio y nunca escrita: **ninguna fase del plan
+decía quién puede invocar el servidor.** Un servicio de Cloud Run es alcanzable
+desde internet salvo que se despliegue cerrado, y este escribe en Dialogflow y
+en GitHub. El panel lo llama desde un navegador, sin credenciales — así que
+dejarlo abierto significa que cualquiera con la URL puede desplegar.
+
+### La decisión
+
+**El acceso lo controla Google (IAP), no código propio. Y el servidor sirve
+también el panel, desde su mismo origen.**
+
+- **IAP** pone una pantalla de login de Google delante del servicio. Solo pasan
+  las cuentas autorizadas explícitamente. No hay usuarios ni contraseñas que
+  guardar, ni sesiones que gestionar, ni código de autenticación que escribir
+  ni mantener — que es donde se cometen los errores graves.
+- **El panel se sirve desde el propio servidor**, en vez de ser un archivo
+  suelto en otro sitio.
+
+### Por qué las dos cosas juntas
+
+Separadas resuelven una cosa; juntas resuelven tres, y las otras dos
+desaparecen en vez de gestionarse:
+
+| Problema | Cómo queda |
+|---|---|
+| Quién puede llamar al servidor | Un solo login cubre el panel y la API |
+| CORS (`ALLOWED_ORIGIN`) | Deja de existir: mismo origen, no hay nada que permitir |
+| La URL del servidor en el panel | Deja de existir: el panel llama a rutas relativas (`/step/1`) |
+
+Un panel servido desde otro origen contra un servicio con IAP es el peor de
+los mundos: la cookie de sesión de IAP es del dominio del servicio, así que las
+llamadas desde el navegador no la llevarían y habría que montar un intercambio
+de tokens a mano — justo el código de autenticación que esta decisión evita.
+
+### Qué cambia en el plan
+
+- **Fase 5**: el servidor sirve además el panel como archivo estático. Es una
+  ruta más, no una pieza nueva.
+- **Fase 7**: el panel deja de necesitar URL configurable y deja de necesitar
+  CORS. Sigue haciendo falta que el mensaje de error diga a qué ruta llamó.
+- **Despliegue**: activar IAP y autorizar las cuentas es un paso manual de
+  infraestructura, del mismo tipo que el comando IAM de S6b/S11 — el servidor
+  no se concede accesos a sí mismo.
+
+**Pendiente de verificar al construirlo:** que IAP y Cloud Run se combinan como
+aquí se asume. Es la combinación estándar y está documentada, pero este
+proyecto no da por buena ninguna asunción de infraestructura sin medirla —
+igual que se midió ADC dentro del contenedor antes de darlo por cerrado.

@@ -139,6 +139,11 @@ TIPOS_SIN_VERSION = ("agent_config", "generator")
 
 ENTORNO_PRODUCCION = "production"
 
+# Marcas de que una rama principal es provisional. No es una lista de nombres
+# prohibidos: es una señal para que publicar no diga "✓" en silencio cuando el
+# código va a parar a una rama de pruebas en vez de a la real del repositorio.
+MARCAS_RAMA_NO_DEFINITIVA = ("prueba", "desechable", "sandbox", "temporal")
+
 ETIQUETA_VERSION_VALIDA = re.compile(r"^[A-Za-z0-9_-]+$")
 
 CAMPOS_LEIDOS_NO_ENVIADOS = ("name", "createTime", "updateTime", "tokenCount",
@@ -1441,6 +1446,21 @@ def step_5_publish(project, agent_id, version_label,
                 "huella_al_validar": huella_al_validar,
                 "huella_ahora": huella_ahora,
             })
+
+        # La rama principal de un proyecto puede quedarse apuntando a una de
+        # pruebas mientras se construye —es deliberado, para no ensuciar la
+        # real—, pero entonces publicar deja el código donde nadie lo mira, y
+        # el paso dice "✓ fusionado" igual. Se avisa en CADA publicación, no
+        # una vez: el día que esto importe, quien publique no se va a acordar
+        # de una nota escrita meses antes.
+        if any(m in contexto.rama_principal.lower()
+               for m in MARCAS_RAMA_NO_DEFINITIVA):
+            _emit(log, on_log,
+                  f"⚠ La rama principal de este proyecto es "
+                  f"«{contexto.rama_principal}», que no parece la definitiva. "
+                  f"El código se fusiona ahí, no en la rama real del "
+                  f"repositorio — cámbialo en el registro del proyecto cuando "
+                  f"este destino pase a ser de verdad.")
 
         _emit(log, on_log,
               f"· 1/3 Fusionando {contexto.rama} en {contexto.rama_principal}")

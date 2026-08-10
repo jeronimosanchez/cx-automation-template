@@ -587,6 +587,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="btn btn-ghost" id="btn-ver-versiones" onclick="toggleVersiones()">Ver versiones existentes &#9662;</button>
         <div id="panel-versiones" style="display:none;margin-top:12px;border:1px solid var(--border);border-radius:8px;padding:14px 16px">
           <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">Las versiones que ya existen en el agente. M&aacute;rcalas para eliminarlas y no acumular.</p>
+          <div id="version-limites" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:10px 12px;margin-bottom:10px">
+            <div style="font-size:12px;font-weight:600;color:var(--gate);margin-bottom:6px">&#9888; Contenedores cerca de su l&iacute;mite de versiones</div>
+            <div id="version-limites-lista" style="font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-2);line-height:1.8"></div>
+          </div>
           <div id="version-pool-list" style="border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
           <div id="version-pool-summary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
           <div class="action-bar" style="margin-top:12px">
@@ -630,6 +634,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="action-result-body">
             <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
             <div class="action-result-desc">Producci&oacute;n sirve la versi&oacute;n <span class="snapshot-name-ref">—</span>. Los usuarios ya la ven.</div>
+          </div>
+        </div>
+        <div class="action-result" id="fila-poda-pendiente" style="display:none">
+          <div class="action-result-icon" style="color:var(--gate)">&#9888;</div>
+          <div class="action-result-body">
+            <div class="action-result-title" style="color:var(--gate)">Hay versiones por encima del l&iacute;mite</div>
+            <div class="action-result-desc"><span id="poda-total">0</span> versi&oacute;n(es) en <span id="poda-contenedores">0</span> contenedor(es) superan su l&iacute;mite. <strong>No se han borrado</strong> &mdash; publicar nunca borra por su cuenta. Rev&iacute;salas en &laquo;Ver versiones existentes&raquo; y b&oacute;rralas cuando quieras.</div>
           </div>
         </div>
         <div class="action-result" id="done-sync-row">
@@ -1558,7 +1569,22 @@ function renderVersionPool() {
     </div>`).join('');
   document.getElementById('version-pool-summary').innerHTML =
     `${VERSIONES.length} versiones guardadas. Las que un entorno est&aacute; usando no se pueden eliminar.`;
+  renderLimitesVersiones();
   actualizarBorrarVersiones();
+}
+
+// El aviso llega antes de que el límite se alcance, no después: publicar ya no
+// poda por su cuenta, así que sin esto el tope se cruzaría en silencio y la API
+// rechazaría la siguiente versión sin que nadie hubiera visto venir nada.
+function renderLimitesVersiones() {
+  const caja = document.getElementById('version-limites');
+  const lista = document.getElementById('version-limites-lista');
+  if (!caja || !lista) return;
+  if (!CONTENEDORES_CERCA_DEL_LIMITE.length) { caja.style.display = 'none'; return; }
+  caja.style.display = 'block';
+  lista.innerHTML = CONTENEDORES_CERCA_DEL_LIMITE.map(c =>
+    `${c.tipo} &middot; ${c.nombre} <span style="color:var(--gate)">${c.vivas}/${c.limite}</span>`
+  ).join('<br>');
 }
 
 function actualizarBorrarVersiones() {
@@ -1819,6 +1845,22 @@ let VERSIONES = [
   {nombre: 'fix-orquestador-routing', creada: '2026-07-24', fijadaPor: null},
   {nombre: 'deploy_2026-07-28_0945', creada: '2026-07-28', fijadaPor: null},
   {nombre: 'deploy_2026-07-30_1712', creada: '2026-07-30', fijadaPor: null},
+];
+
+// Cuántas versiones vivas tiene cada contenedor frente a su límite. Solo llegan
+// aquí los que ya van justos (el servidor filtra por un umbral), así que la
+// lista vacía significa "ninguno cerca", no "no se ha mirado".
+// Lo devuelve el endpoint de listar versiones en `contenedores_cerca_del_limite`.
+let CONTENEDORES_CERCA_DEL_LIMITE = [
+  {tipo: 'flow',     nombre: 'Default Start Flow', vivas: 18, limite: 20},
+  {tipo: 'playbook', nombre: 'Compra',             vivas: 84, limite: 100},
+];
+
+// Lo que devuelve publicar en `poda_pendiente`: contenedores que se pasaron del
+// límite. Publicar NO borra por su cuenta — solo lo señala, y borrar exige
+// marcarlas a mano en «Ver versiones existentes».
+let PODA_PENDIENTE = [
+  {tipo: 'flow', nombre: 'Default Start Flow', vivas: 21, limite: 20, candidatas: 1},
 ];
 
 
@@ -2136,7 +2178,21 @@ function advanceToDone() {
   document.getElementById('last-deploy-time').textContent = 'ahora mismo';
   const _d = new Date(), _p = n => String(n).padStart(2,'0');
   document.getElementById('done-timestamp').textContent = _d.getUTCFullYear() + '-' + _p(_d.getUTCMonth()+1) + '-' + _p(_d.getUTCDate()) + ' · ' + _p(_d.getUTCHours()) + ':' + _p(_d.getUTCMinutes()) + ' UTC';
+  renderPodaPendiente();
   renderSidebar();
+}
+
+// Se pinta aquí, entre las tres cosas que publicar sí hizo, y no como una
+// alerta aparte: el exceso de versiones es una consecuencia de esta
+// publicación, y verlo junto al resto es lo que lo ata a lo que acaba de pasar.
+function renderPodaPendiente() {
+  const fila = document.getElementById('fila-poda-pendiente');
+  if (!fila) return;
+  if (!PODA_PENDIENTE.length) { fila.style.display = 'none'; return; }
+  const total = PODA_PENDIENTE.reduce((n, c) => n + c.candidatas, 0);
+  document.getElementById('poda-total').textContent = total;
+  document.getElementById('poda-contenedores').textContent = PODA_PENDIENTE.length;
+  fila.style.display = 'flex';
 }
 
 function completeAuto(idx) {
