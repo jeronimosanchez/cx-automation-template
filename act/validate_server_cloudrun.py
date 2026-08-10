@@ -1765,14 +1765,26 @@ def _docker(*args, **kwargs):
 def nivel_5(runner, project, agent_id):
     print("\nNIVEL 5 — El contenedor · docker build y el servidor dentro")
 
+    # Tener el binario no basta: en un Mac el demonio vive dentro de una
+    # máquina virtual que puede estar parada, y entonces `docker build` no
+    # falla por el Dockerfile sino por no encontrar con quién hablar. Se
+    # distinguen porque la salida es distinta — uno se instala, el otro se
+    # arranca— y porque un FAIL por el demonio parado se lee como un defecto
+    # del contenedor que no existe.
+    motivo = None
     if shutil.which("docker") is None:
+        motivo = "no hay `docker` en el PATH de esta máquina"
+    elif _docker("info", "--format", "{{.ServerVersion}}").returncode != 0:
+        motivo = ("el demonio de Docker no responde: arráncalo (en un Mac con "
+                  "colima, `colima start`) y repite este nivel")
+    if motivo:
         for nombre in ("docker build completa sin errores",
                        "El contenedor arranca y responde en el 8080 con datos "
                        "reales",
                        "Dentro del contenedor, sin project o agent responde 400",
                        "Dentro del contenedor, sin credenciales ADC responde con "
                        "un error claro"):
-            runner.skip(5, nombre, "no hay `docker` en el PATH de esta máquina")
+            runner.skip(5, nombre, motivo)
         return
 
     construida = {}
