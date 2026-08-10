@@ -86,7 +86,6 @@ Uso:
 
 import argparse
 import ast
-import json
 import os
 import shutil
 import signal
@@ -685,17 +684,37 @@ def nivel_1(runner, servidor, project, agent_id):
     print("\nNIVEL 1 — Contrato HTTP · lecturas contra el destino desechable")
 
     destino = {"project": project, "agent": agent_id}
+    mapeo = store.get_agent_mapping(store.get_client(), project, agent_id)
 
-    lecturas = [
-        ("POST", "/step/1", destino),
-        ("GET", f"/discover?project={project}", None),
-        ("POST", "/manage-versions", {**destino, "action": "list"}),
-        ("POST", "/step/3", {**destino, "dry_run": True}),
-    ]
+    def los_nueve_endpoints_devuelven_200_y_el_sobre():
+        """Los cinco numerados y los cuatro que no lo son, uno por uno.
 
-    def todos_contestan_con_el_sobre():
+        Cada uno se llama con la petición que no cambia nada: `traer` vacío no
+        trae, el Paso 3 en dry-run no escribe, y vincular y dar de alta se
+        piden con exactamente lo que el destino ya tiene, así que son no-ops.
+        El Paso 5 se para en su propio candado y contesta `aborted`, que es una
+        respuesta correcta con el mismo sobre — por eso el estado esperado se
+        declara por endpoint en vez de exigir «ok» a todos.
+        """
+        llamadas = [
+            ("POST", "/step/1", destino, "ok"),
+            ("POST", "/step/2", {**destino, "traer": []}, "ok"),
+            ("POST", "/step/3", {**destino, "dry_run": True}, "ok"),
+            ("POST", "/step/4", {**destino, "resultado": "fallidos"}, "ok"),
+            ("POST", "/step/5", {**destino,
+                                 "version_label": f"{PREFIJO}_forma"}, "aborted"),
+            ("GET", f"/discover?project={project}", None, "ok"),
+            ("POST", "/register-agent",
+             {**destino, "region": mapeo["region"], "rama": mapeo["rama"],
+              "carpeta_raiz": mapeo.get("carpeta_raiz", "definitions")}, "ok"),
+            ("POST", "/link-project-repo",
+             {"project": project,
+              "repo_url": f"https://github.com/{mapeo['repo']}",
+              "rama_principal": mapeo["rama_principal"]}, "ok"),
+            ("POST", "/manage-versions", {**destino, "action": "list"}, "ok"),
+        ]
         problemas = []
-        for metodo, ruta, cuerpo in lecturas:
+        for metodo, ruta, cuerpo, esperado in llamadas:
             respuesta = pedir(servidor, metodo, ruta, cuerpo)
             if respuesta.status_code != 200:
                 problemas.append(f"{ruta}: HTTP {respuesta.status_code}")
@@ -705,30 +724,13 @@ def nivel_1(runner, servidor, project, agent_id):
             except Exception as error:
                 problemas.append(f"{ruta}: {error}")
                 continue
-            if datos["status"] != "ok":
-                problemas.append(f"{ruta}: status={datos['status']}")
+            if datos["status"] != esperado:
+                problemas.append(f"{ruta}: status={datos['status']} "
+                                 f"(se esperaba {esperado})")
         return not problemas, " · ".join(problemas)
 
-    runner.check(1, "Los endpoints de lectura devuelven 200 y JSON válido con "
-                    "status, log y data", todos_contestan_con_el_sobre)
-
-    def los_que_escriben_tambien_traen_el_sobre():
-        """Se golpean sin llegar a escribir: `traer` vacío no trae nada, y el
-        Paso 5 se para en su propio candado. Lo que se comprueba aquí es la
-        forma de la respuesta, no el efecto."""
-        problemas = []
-        for ruta, cuerpo in (("/step/2", {**destino, "traer": []}),
-                             ("/step/5", {**destino,
-                                          "version_label": f"{PREFIJO}_forma"})):
-            respuesta = pedir(servidor, "POST", ruta, cuerpo)
-            if respuesta.status_code != 200:
-                problemas.append(f"{ruta}: HTTP {respuesta.status_code}")
-                continue
-            sobre(respuesta)
-        return not problemas, " · ".join(problemas)
-
-    runner.check(1, "Los endpoints que escriben devuelven el mismo sobre",
-                 los_que_escriben_tambien_traen_el_sobre)
+    runner.check(1, "Los nueve endpoints devuelven 200 y JSON válido con "
+                    "status, log y data", los_nueve_endpoints_devuelven_200_y_el_sobre)
 
     def sin_destino_400_nunca_200():
         casos = [
@@ -756,16 +758,31 @@ def nivel_1(runner, servidor, project, agent_id):
                     "400 diciendo qué falta, nunca 200", sin_destino_400_nunca_200)
 
     def json_mal_formado_400_y_no_500():
+        """El 400 no basta: el mensaje tiene que señalar al cuerpo.
+
+        Un servidor que se tragara el JSON roto y lo tratara como cuerpo vacío
+        acabaría contestando 400 igualmente —por el destino que falta— y este
+        check pasaría sin haber probado nada. Lo que distingue un caso del otro
+        es lo que dice el mensaje, así que es lo que se mira. El body se manda
+        con destino completo a propósito: si se parseara, la petición sería
+        válida y contestaría 200.
+        """
+        rotos = ('{"project": "' + project + '", "agent": ',
+                 "no soy json", "[1,2,3]", '"hola"')
         problemas = []
-        for cuerpo in ('{"project": ', "no soy json", "[1,2,3]", '"hola"'):
+        for cuerpo in rotos:
             respuesta = requests.post(
                 servidor.url("/step/1"), data=cuerpo.encode(),
                 headers={"Content-Type": "application/json"}, timeout=30)
             datos = sobre(respuesta)
+            texto = " ".join(datos["log"])
             if respuesta.status_code != 400:
-                problemas.append(f"{cuerpo[:14]!r} → {respuesta.status_code}")
-            if "Traceback" in " ".join(datos["log"]):
-                problemas.append(f"{cuerpo[:14]!r} devolvió una traza")
+                problemas.append(f"{cuerpo[:16]!r} → {respuesta.status_code}")
+            elif not ("JSON" in texto or "objeto" in texto):
+                problemas.append(f"{cuerpo[:16]!r}: el mensaje no menciona el "
+                                 f"cuerpo: {texto[:60]!r}")
+            if "Traceback" in texto:
+                problemas.append(f"{cuerpo[:16]!r} devolvió una traza")
         return not problemas, " · ".join(problemas)
 
     runner.check(1, "Un body con JSON mal formado responde 400 con mensaje "
@@ -1082,246 +1099,252 @@ def nivel_3(runner, servidor, project, agent_id, run_id):
     principal_al_empezar = contexto.gh.branch_head(contexto.rama_principal)
     creado = {}
 
-    runner.check(3, "Barrido de restos de corridas anteriores antes de crear nada",
-                 lambda: (lambda r: (not r[2], f"{r[0]} desancladas · "
-                                               f"{len(r[1])} borradas · "
-                                               f"resisten {r[2]}"))(_barrer(contexto)))
+    # El bloque que escribe, dentro de un try/finally: si algo revienta
+    # fuera de un check —y `CheckRunner` solo atrapa lo que pasa dentro de
+    # uno— la limpieza tiene que correr igual. Un nivel que se cae a mitad
+    # sin limpiar deja el agente y la rama como los dejó el último check.
+    try:
+        runner.check(3, "Barrido de restos de corridas anteriores antes de crear nada",
+                     lambda: (lambda r: (not r[2], f"{r[0]} desancladas · "
+                                                   f"{len(r[1])} borradas · "
+                                                   f"resisten {r[2]}"))(_barrer(contexto)))
 
-    def el_paso_5_se_niega_sin_un_paso_4_superado():
-        """El candado del Paso 5, por HTTP. Es el mismo que la Fase 4 probó
-        llamando a la función: lo que se comprueba aquí es que sigue puesto
-        después de pasar por la capa HTTP, que es donde se pierde sin que nadie
-        lo note."""
-        respuesta = pedir(servidor, "POST", "/step/5",
-                          {**destino, "version_label": etiqueta})
-        datos = sobre(respuesta)
-        directo = pipeline.step_5_publish(project, agent_id, etiqueta)
-        return (datos["status"] == "aborted"
-                and datos["data"]["publicado"] is False
-                and directo["status"] == "aborted"), (
-            f"HTTP status={datos['status']} publicado="
-            f"{datos['data'].get('publicado')} · función={directo['status']}")
+        def el_paso_5_se_niega_sin_un_paso_4_superado():
+            """El candado del Paso 5, por HTTP. Es el mismo que la Fase 4 probó
+            llamando a la función: lo que se comprueba aquí es que sigue puesto
+            después de pasar por la capa HTTP, que es donde se pierde sin que nadie
+            lo note."""
+            respuesta = pedir(servidor, "POST", "/step/5",
+                              {**destino, "version_label": etiqueta})
+            datos = sobre(respuesta)
+            directo = pipeline.step_5_publish(project, agent_id, etiqueta)
+            return (datos["status"] == "aborted"
+                    and datos["data"]["publicado"] is False
+                    and directo["status"] == "aborted"), (
+                f"HTTP status={datos['status']} publicado="
+                f"{datos['data'].get('publicado')} · función={directo['status']}")
 
-    runner.check(3, "Publicar sin un Paso 4 declarado 'superados' se aborta "
-                    "igual por HTTP que llamando a la función",
-                 el_paso_5_se_niega_sin_un_paso_4_superado)
+        runner.check(3, "Publicar sin un Paso 4 declarado 'superados' se aborta "
+                        "igual por HTTP que llamando a la función",
+                     el_paso_5_se_niega_sin_un_paso_4_superado)
 
-    def crear_un_playbook_de_prueba():
-        """Un playbook y no un intent: es de los tres tipos que CX versiona, y
-        sin eso el Paso 5 no llegaría a crear ninguna versión — justo la parte
-        que hay que ver funcionar."""
-        respuesta = cx.api_post(
-            project, contexto.region, f"{contexto.parent}/playbooks",
-            {"displayName": f"{etiqueta}_playbook", "goal": "objetivo de prueba",
-             "playbookType": "ROUTINE",
-             "instruction": {"steps": [{"text": "haz algo"}]}})
-        if respuesta.status_code not in (200, 201):
-            return False, f"{respuesta.status_code} {respuesta.text[:150]}"
-        creado["playbook"] = respuesta.json()["name"]
-        creado["cx_id"] = creado["playbook"].rsplit("/", 1)[-1]
-        return True, creado["cx_id"]
+        def crear_un_playbook_de_prueba():
+            """Un playbook y no un intent: es de los tres tipos que CX versiona, y
+            sin eso el Paso 5 no llegaría a crear ninguna versión — justo la parte
+            que hay que ver funcionar."""
+            respuesta = cx.api_post(
+                project, contexto.region, f"{contexto.parent}/playbooks",
+                {"displayName": f"{etiqueta}_playbook", "goal": "objetivo de prueba",
+                 "playbookType": "ROUTINE",
+                 "instruction": {"steps": [{"text": "haz algo"}]}})
+            if respuesta.status_code not in (200, 201):
+                return False, f"{respuesta.status_code} {respuesta.text[:150]}"
+            creado["playbook"] = respuesta.json()["name"]
+            creado["cx_id"] = creado["playbook"].rsplit("/", 1)[-1]
+            return True, creado["cx_id"]
 
-    runner.check(3, "Crear un resource real en el agente desechable",
-                 crear_un_playbook_de_prueba)
+        runner.check(3, "Crear un resource real en el agente desechable",
+                     crear_un_playbook_de_prueba)
 
-    def el_paso_2_lo_trae_al_repositorio_en_un_commit():
-        cuerpo = {**destino, "traer": [{"tipo": "playbook",
-                                        "cx_id": creado["cx_id"]}]}
-        primera = sobre(pedir(servidor, "POST", "/step/2", cuerpo))
-        segunda = sobre(pedir(servidor, "POST", "/step/2", cuerpo))
-        creado["ruta"] = (primera["data"]["traidos"] or [{}])[0].get("ruta")
-        return (bool(primera["data"]["commit"])
-                and segunda["data"]["commit"] is None), (
-            f"primera={primera['data']['commit']} "
-            f"segunda={segunda['data']['commit']}")
+        def el_paso_2_lo_trae_al_repositorio_en_un_commit():
+            cuerpo = {**destino, "traer": [{"tipo": "playbook",
+                                            "cx_id": creado["cx_id"]}]}
+            primera = sobre(pedir(servidor, "POST", "/step/2", cuerpo))
+            segunda = sobre(pedir(servidor, "POST", "/step/2", cuerpo))
+            creado["ruta"] = (primera["data"]["traidos"] or [{}])[0].get("ruta")
+            return (bool(primera["data"]["commit"])
+                    and segunda["data"]["commit"] is None), (
+                f"primera={primera['data']['commit']} "
+                f"segunda={segunda['data']['commit']}")
 
-    runner.check(3, "El Paso 2 escribe el resource en el repositorio con un "
-                    "commit, y repetirlo no crea un segundo",
-                 el_paso_2_lo_trae_al_repositorio_en_un_commit)
+        runner.check(3, "El Paso 2 escribe el resource en el repositorio con un "
+                        "commit, y repetirlo no crea un segundo",
+                     el_paso_2_lo_trae_al_repositorio_en_un_commit)
 
-    def el_paso_3_aplica_en_cx_lo_que_cambio_en_el_repositorio():
-        """Se cambia el YAML en el repositorio y se comprueba en CX que el
-        cambio llegó — no que el servidor diga que llegó."""
-        contenido = contexto.gh.read_repo_files(contexto.rama)[creado["ruta"]]
-        import yaml as _yaml
-        documento = _yaml.safe_load(contenido)
-        documento["goal"] = f"objetivo cambiado por {etiqueta}"
-        contexto.gh.commit_files(
-            contexto.rama, {creado["ruta"]: _yaml.safe_dump(
-                documento, allow_unicode=True, sort_keys=False)},
-            f"test({PREFIJO}): cambiar el objetivo del playbook de prueba")
+        def el_paso_3_aplica_en_cx_lo_que_cambio_en_el_repositorio():
+            """Se cambia el YAML en el repositorio y se comprueba en CX que el
+            cambio llegó — no que el servidor diga que llegó."""
+            contenido = contexto.gh.read_repo_files(contexto.rama)[creado["ruta"]]
+            import yaml as _yaml
+            documento = _yaml.safe_load(contenido)
+            documento["goal"] = f"objetivo cambiado por {etiqueta}"
+            contexto.gh.commit_files(
+                contexto.rama, {creado["ruta"]: _yaml.safe_dump(
+                    documento, allow_unicode=True, sort_keys=False)},
+                f"test({PREFIJO}): cambiar el objetivo del playbook de prueba")
 
-        datos = sobre(pedir(servidor, "POST", "/step/3", destino))["data"]
-        en_cx = cx.api_get(project, contexto.region, creado["playbook"]).json()
-        return (datos["aplicadas"] >= 1
-                and en_cx.get("goal") == f"objetivo cambiado por {etiqueta}"), (
-            f"aplicadas={datos.get('aplicadas')} · goal en CX="
-            f"{en_cx.get('goal')!r}")
+            datos = sobre(pedir(servidor, "POST", "/step/3", destino))["data"]
+            en_cx = cx.api_get(project, contexto.region, creado["playbook"]).json()
+            return (datos["aplicadas"] >= 1
+                    and en_cx.get("goal") == f"objetivo cambiado por {etiqueta}"), (
+                f"aplicadas={datos.get('aplicadas')} · goal en CX="
+                f"{en_cx.get('goal')!r}")
 
-    runner.check(3, "El Paso 3 aplica en CX el cambio hecho en el repositorio, "
-                    "verificado leyendo el agente",
-                 el_paso_3_aplica_en_cx_lo_que_cambio_en_el_repositorio)
+        runner.check(3, "El Paso 3 aplica en CX el cambio hecho en el repositorio, "
+                        "verificado leyendo el agente",
+                     el_paso_3_aplica_en_cx_lo_que_cambio_en_el_repositorio)
 
-    def el_paso_4_registra_y_abre_el_candado():
-        datos = sobre(pedir(servidor, "POST", "/step/4",
-                            {**destino, "resultado": "superados"}))["data"]
-        creado["huella"] = datos.get("huella_borrador")
-        return datos.get("avanza") is True and bool(creado["huella"]), str(datos)
+        def el_paso_4_registra_y_abre_el_candado():
+            datos = sobre(pedir(servidor, "POST", "/step/4",
+                                {**destino, "resultado": "superados"}))["data"]
+            creado["huella"] = datos.get("huella_borrador")
+            return datos.get("avanza") is True and bool(creado["huella"]), str(datos)
 
-    runner.check(3, "El Paso 4 registra 'superados' y devuelve la huella del "
-                    "borrador", el_paso_4_registra_y_abre_el_candado)
+        runner.check(3, "El Paso 4 registra 'superados' y devuelve la huella del "
+                        "borrador", el_paso_4_registra_y_abre_el_candado)
 
-    def el_paso_4_no_admite_cualquier_cosa():
-        respuesta = pedir(servidor, "POST", "/step/4",
-                          {**destino, "resultado": "mas o menos"})
-        return respuesta.status_code == 400, f"HTTP {respuesta.status_code}"
+        def el_paso_4_no_admite_cualquier_cosa():
+            respuesta = pedir(servidor, "POST", "/step/4",
+                              {**destino, "resultado": "mas o menos"})
+            return respuesta.status_code == 400, f"HTTP {respuesta.status_code}"
 
-    runner.check(3, "Un resultado de tests que no es 'superados' ni 'fallidos' "
-                    "se rechaza con 400", el_paso_4_no_admite_cualquier_cosa)
+        runner.check(3, "Un resultado de tests que no es 'superados' ni 'fallidos' "
+                        "se rechaza con 400", el_paso_4_no_admite_cualquier_cosa)
 
-    def publicar_fusiona_versiona_y_apunta_produccion():
-        antes = len(sobre(pedir(servidor, "POST", "/manage-versions",
-                                {**destino, "action": "list"}))["data"]["versiones"])
-        datos = sobre(pedir(servidor, "POST", "/step/5",
-                            {**destino, "version_label": etiqueta}))
-        creado["publicacion"] = datos
-        if datos["status"] != "ok":
-            return False, f"status={datos['status']} · {' '.join(datos['log'])[:180]}"
-        d = datos["data"]
-        # Se comprueba contra CX y contra GitHub, no contra lo que dice el paso.
-        principal = contexto.gh.branch_head(contexto.rama_principal)
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        entorno = pipeline._buscar_entorno(contexto, inventario, "production")
-        fijadas = {c["version"] for c in entorno.get("versionConfigs", [])}
-        despues = len(inventario.get("version", {}))
-        creado["versiones"] = d.get("versiones_creadas") or []
-        return (d["fusionado"] and d["publicado"]
-                and principal != principal_al_empezar
-                and creado["versiones"]
-                and set(creado["versiones"]) <= fijadas
-                and despues > antes), (
-            f"fusionado={d['fusionado']} publicado={d['publicado']} "
-            f"principal movida={principal != principal_al_empezar} "
-            f"versiones={creado['versiones']} fijadas={len(fijadas)} "
-            f"{antes}→{despues}")
+        def publicar_fusiona_versiona_y_apunta_produccion():
+            antes = len(sobre(pedir(servidor, "POST", "/manage-versions",
+                                    {**destino, "action": "list"}))["data"]["versiones"])
+            datos = sobre(pedir(servidor, "POST", "/step/5",
+                                {**destino, "version_label": etiqueta}))
+            creado["publicacion"] = datos
+            if datos["status"] != "ok":
+                return False, f"status={datos['status']} · {' '.join(datos['log'])[:180]}"
+            d = datos["data"]
+            # Se comprueba contra CX y contra GitHub, no contra lo que dice el paso.
+            principal = contexto.gh.branch_head(contexto.rama_principal)
+            inventario, _, _ = pipeline.inventariar_cx(contexto)
+            entorno = pipeline._buscar_entorno(contexto, inventario, "production")
+            fijadas = {c["version"] for c in entorno.get("versionConfigs", [])}
+            despues = len(inventario.get("version", {}))
+            creado["versiones"] = d.get("versiones_creadas") or []
+            return (d["fusionado"] and d["publicado"]
+                    and principal != principal_al_empezar
+                    and creado["versiones"]
+                    and set(creado["versiones"]) <= fijadas
+                    and despues > antes), (
+                f"fusionado={d['fusionado']} publicado={d['publicado']} "
+                f"principal movida={principal != principal_al_empezar} "
+                f"versiones={creado['versiones']} fijadas={len(fijadas)} "
+                f"{antes}→{despues}")
 
-    runner.check(3, "Publicar fusiona la rama, crea la versión y deja producción "
-                    "apuntando a ella — verificado en GitHub y en CX",
-                 publicar_fusiona_versiona_y_apunta_produccion)
+        runner.check(3, "Publicar fusiona la rama, crea la versión y deja producción "
+                        "apuntando a ella — verificado en GitHub y en CX",
+                     publicar_fusiona_versiona_y_apunta_produccion)
 
-    def publicar_no_borra_ninguna_version_por_su_cuenta():
-        """Publicar dejó de podar el 2026-08-10. Se comprueba por HTTP, no solo
-        en la función: es el tipo de cambio que se pierde al portarlo."""
-        antes = {v["name"] for v in sobre(pedir(
-            servidor, "POST", "/manage-versions",
-            {**destino, "action": "list"}))["data"]["versiones"]}
-        sobre(pedir(servidor, "POST", "/step/4",
-                    {**destino, "resultado": "superados"}))
-        segunda = sobre(pedir(servidor, "POST", "/step/5",
-                              {**destino, "version_label": f"{etiqueta}_bis"}))
-        despues = {v["name"] for v in sobre(pedir(
-            servidor, "POST", "/manage-versions",
-            {**destino, "action": "list"}))["data"]["versiones"]}
-        creado["versiones"] = list(
-            set(creado.get("versiones") or [])
-            | set(segunda["data"].get("versiones_creadas") or []))
-        perdidas = antes - despues
-        return not perdidas, f"publicar borró {sorted(perdidas)}"
+        def publicar_no_borra_ninguna_version_por_su_cuenta():
+            """Publicar dejó de podar el 2026-08-10. Se comprueba por HTTP, no solo
+            en la función: es el tipo de cambio que se pierde al portarlo."""
+            antes = {v["name"] for v in sobre(pedir(
+                servidor, "POST", "/manage-versions",
+                {**destino, "action": "list"}))["data"]["versiones"]}
+            sobre(pedir(servidor, "POST", "/step/4",
+                        {**destino, "resultado": "superados"}))
+            segunda = sobre(pedir(servidor, "POST", "/step/5",
+                                  {**destino, "version_label": f"{etiqueta}_bis"}))
+            despues = {v["name"] for v in sobre(pedir(
+                servidor, "POST", "/manage-versions",
+                {**destino, "action": "list"}))["data"]["versiones"]}
+            creado["versiones"] = list(
+                set(creado.get("versiones") or [])
+                | set(segunda["data"].get("versiones_creadas") or []))
+            perdidas = antes - despues
+            return not perdidas, f"publicar borró {sorted(perdidas)}"
 
-    runner.check(3, "Publicar no borra ninguna versión por su cuenta — solo "
-                    "avisa de las que sobran",
-                 publicar_no_borra_ninguna_version_por_su_cuenta)
+        runner.check(3, "Publicar no borra ninguna versión por su cuenta — solo "
+                        "avisa de las que sobran",
+                     publicar_no_borra_ninguna_version_por_su_cuenta)
 
-    def borrar_una_version_en_uso_se_rechaza():
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        entorno = pipeline._buscar_entorno(contexto, inventario, "production")
-        en_uso = [c["version"] for c in entorno.get("versionConfigs", [])]
-        if not en_uso:
-            return False, "producción no está sirviendo ninguna versión"
-        datos = sobre(pedir(servidor, "POST", "/manage-versions",
-                            {**destino, "action": "delete",
-                             "version_names": [en_uso[0]]}))["data"]
-        sigue = cx.api_get(project, contexto.region, en_uso[0]).status_code == 200
-        return (datos["protegidas"] == [en_uso[0]] and not datos["borradas"]
-                and sigue), str(datos)
+        def borrar_una_version_en_uso_se_rechaza():
+            inventario, _, _ = pipeline.inventariar_cx(contexto)
+            entorno = pipeline._buscar_entorno(contexto, inventario, "production")
+            en_uso = [c["version"] for c in entorno.get("versionConfigs", [])]
+            if not en_uso:
+                return False, "producción no está sirviendo ninguna versión"
+            datos = sobre(pedir(servidor, "POST", "/manage-versions",
+                                {**destino, "action": "delete",
+                                 "version_names": [en_uso[0]]}))["data"]
+            sigue = cx.api_get(project, contexto.region, en_uso[0]).status_code == 200
+            return (datos["protegidas"] == [en_uso[0]] and not datos["borradas"]
+                    and sigue), str(datos)
 
-    runner.check(3, "Borrar una versión que sirve un entorno se rechaza, y la "
-                    "versión sigue ahí", borrar_una_version_en_uso_se_rechaza)
+        runner.check(3, "Borrar una versión que sirve un entorno se rechaza, y la "
+                        "versión sigue ahí", borrar_una_version_en_uso_se_rechaza)
 
-    def borrar_una_version_de_otro_agente_se_rechaza():
-        """La ruta llega del cliente: el servidor la comprueba contra el destino
-        elegido antes de tocarla (C3)."""
-        ajena = (f"projects/{project}/locations/{contexto.region}/agents/"
-                 f"{uuid.uuid4()}/flows/x/versions/1")
-        respuesta = pedir(servidor, "POST", "/manage-versions",
-                          {**destino, "action": "delete", "version_names": [ajena]})
-        return respuesta.status_code == 400, f"HTTP {respuesta.status_code}"
+        def borrar_una_version_de_otro_agente_se_rechaza():
+            """La ruta llega del cliente: el servidor la comprueba contra el destino
+            elegido antes de tocarla (C3)."""
+            ajena = (f"projects/{project}/locations/{contexto.region}/agents/"
+                     f"{uuid.uuid4()}/flows/x/versions/1")
+            respuesta = pedir(servidor, "POST", "/manage-versions",
+                              {**destino, "action": "delete", "version_names": [ajena]})
+            return respuesta.status_code == 400, f"HTTP {respuesta.status_code}"
 
-    runner.check(3, "Borrar una versión que no es del agente elegido se rechaza",
-                 borrar_una_version_de_otro_agente_se_rechaza)
+        runner.check(3, "Borrar una versión que no es del agente elegido se rechaza",
+                     borrar_una_version_de_otro_agente_se_rechaza)
 
-    def borrar_una_version_libre_funciona_y_se_confirma_leyendo():
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        en_uso = {c["version"]
-                  for e in inventario.get("environment", {}).values()
-                  for c in e.get("versionConfigs", [])}
-        libres = [v["name"] for v in inventario.get("version", {}).values()
-                  if _lleva_la_marca("version", v) and v["name"] not in en_uso]
-        if not libres:
-            return True, "(no quedó ninguna versión de prueba libre que borrar)"
-        datos = sobre(pedir(servidor, "POST", "/manage-versions",
-                            {**destino, "action": "delete",
-                             "version_names": [libres[0]]}))["data"]
-        ido = cx.api_get(project, contexto.region, libres[0]).status_code == 404
-        return datos["borradas"] == [libres[0]] and ido, (
-            f"{datos} · ¿desapareció de CX?={ido}")
+        def borrar_una_version_libre_funciona_y_se_confirma_leyendo():
+            inventario, _, _ = pipeline.inventariar_cx(contexto)
+            en_uso = {c["version"]
+                      for e in inventario.get("environment", {}).values()
+                      for c in e.get("versionConfigs", [])}
+            libres = [v["name"] for v in inventario.get("version", {}).values()
+                      if _lleva_la_marca("version", v) and v["name"] not in en_uso]
+            if not libres:
+                return True, "(no quedó ninguna versión de prueba libre que borrar)"
+            datos = sobre(pedir(servidor, "POST", "/manage-versions",
+                                {**destino, "action": "delete",
+                                 "version_names": [libres[0]]}))["data"]
+            ido = cx.api_get(project, contexto.region, libres[0]).status_code == 404
+            return datos["borradas"] == [libres[0]] and ido, (
+                f"{datos} · ¿desapareció de CX?={ido}")
 
-    runner.check(3, "Borrar una versión libre la borra de verdad, confirmado "
-                    "leyendo el resultado",
-                 borrar_una_version_libre_funciona_y_se_confirma_leyendo)
+        runner.check(3, "Borrar una versión libre la borra de verdad, confirmado "
+                        "leyendo el resultado",
+                     borrar_una_version_libre_funciona_y_se_confirma_leyendo)
 
-    # ── Limpieza ────────────────────────────────────────────────────────────
+    finally:
+        # ── Limpieza ────────────────────────────────────────────────────────────
 
-    def cero_residuo_en_cx():
-        desancladas, borrados, resisten = _barrer(contexto)
-        return not resisten, (f"{desancladas} desancladas · {len(borrados)} "
-                              f"borrados · resisten {resisten}")
+        def cero_residuo_en_cx():
+            desancladas, borrados, resisten = _barrer(contexto)
+            return not resisten, (f"{desancladas} desancladas · {len(borrados)} "
+                                  f"borrados · resisten {resisten}")
 
-    runner.check(3, "Cero residuo en CX: lo creado se borra y el borrado se "
-                    "confirma leyendo", cero_residuo_en_cx)
+        runner.check(3, "Cero residuo en CX: lo creado se borra y el borrado se "
+                        "confirma leyendo", cero_residuo_en_cx)
 
-    def cero_residuo_en_el_repositorio():
-        fallos = []
-        for rama, sha in ((contexto.rama, rama_al_empezar),
-                          (contexto.rama_principal, principal_al_empezar)):
-            if contexto.gh.branch_head(rama) == sha:
-                continue
-            ok, detalle = _forzar_rama(contexto, rama, sha)
-            if not ok:
-                fallos.append(detalle)
-        return not fallos, " · ".join(fallos)
+        def cero_residuo_en_el_repositorio():
+            fallos = []
+            for rama, sha in ((contexto.rama, rama_al_empezar),
+                              (contexto.rama_principal, principal_al_empezar)):
+                if contexto.gh.branch_head(rama) == sha:
+                    continue
+                ok, detalle = _forzar_rama(contexto, rama, sha)
+                if not ok:
+                    fallos.append(detalle)
+            return not fallos, " · ".join(fallos)
 
-    runner.check(3, "Cero residuo en el repositorio: las dos ramas vuelven al "
-                    "commit en el que estaban", cero_residuo_en_el_repositorio)
+        runner.check(3, "Cero residuo en el repositorio: las dos ramas vuelven al "
+                        "commit en el que estaban", cero_residuo_en_el_repositorio)
 
-    def el_candado_queda_libre_y_firestore_sin_registros_de_prueba():
-        cliente = store.get_client()
-        borrados = _limpiar_registros_de_prueba(cliente, project, agent_id)
-        cliente.collection(store.COL_VERSIONES_EN_VUELO).document(
-            f"{project}__{agent_id}").delete()
-        candado = cliente.collection(store.COL_CANDADOS).document(project).get()
-        if not candado.exists:
-            return True, f"{len(borrados)} registros de prueba retirados"
-        cliente.collection(store.COL_CANDADOS).document(project).delete()
-        return False, ("el nivel dejó el candado tomado; se ha liberado "
-                       "explícitamente, sin esperar al TTL")
+        def el_candado_queda_libre_y_firestore_sin_registros_de_prueba():
+            cliente = store.get_client()
+            borrados = _limpiar_registros_de_prueba(cliente, project, agent_id)
+            cliente.collection(store.COL_VERSIONES_EN_VUELO).document(
+                f"{project}__{agent_id}").delete()
+            candado = cliente.collection(store.COL_CANDADOS).document(project).get()
+            if not candado.exists:
+                return True, f"{len(borrados)} registros de prueba retirados"
+            cliente.collection(store.COL_CANDADOS).document(project).delete()
+            return False, ("el nivel dejó el candado tomado; se ha liberado "
+                           "explícitamente, sin esperar al TTL")
 
-    runner.check(3, "El candado de Firestore queda libre y no quedan registros "
-                    "de prueba en Firestore",
-                 el_candado_queda_libre_y_firestore_sin_registros_de_prueba)
+        runner.check(3, "El candado de Firestore queda libre y no quedan registros "
+                        "de prueba en Firestore",
+                     el_candado_queda_libre_y_firestore_sin_registros_de_prueba)
 
 
-# ── Nivel 4 · Caos ───────────────────────────────────────────────────────────
+    # ── Nivel 4 · Caos ───────────────────────────────────────────────────────────
 
 def nivel_4(runner, servidor, project, agent_id, run_id):
     print("\nNIVEL 4 — Caos · fallo inyectado, timeout y concurrencia")
@@ -1437,145 +1460,150 @@ def nivel_4(runner, servidor, project, agent_id, run_id):
 
     estado_del_sigkill = {}
 
-    def preparar_una_publicacion_de_verdad():
-        """Deja el destino con un cambio pendiente y el Paso 4 superado.
+    # Igual que el Nivel 3: lo que escribe va dentro de un try/finally,
+    # porque este nivel mata el servidor a propósito y es donde más fácil
+    # es que algo salga por un camino que ningún check envuelve.
+    try:
+        def preparar_una_publicacion_de_verdad():
+            """Deja el destino con un cambio pendiente y el Paso 4 superado.
 
-        Sin esto, matar el servidor durante el Paso 5 lo mataría mientras lee:
-        no habría ninguna escritura a medias que observar, y el check pasaría
-        sin haber probado lo que dice probar.
-        """
-        respuesta = cx.api_post(
-            project, contexto.region, f"{contexto.parent}/playbooks",
-            {"displayName": f"{etiqueta}_playbook", "goal": "objetivo de caos",
-             "playbookType": "ROUTINE",
-             "instruction": {"steps": [{"text": "haz algo"}]}})
-        if respuesta.status_code not in (200, 201):
-            return False, f"{respuesta.status_code} {respuesta.text[:150]}"
-        cx_id = respuesta.json()["name"].rsplit("/", 1)[-1]
-        pull = pedir(servidor, "POST", "/step/2",
-                     {**destino, "traer": [{"tipo": "playbook", "cx_id": cx_id}]})
-        traido = sobre(pull)
-        if traido["status"] != "ok":
-            return False, (f"el Paso 2 falló con HTTP {pull.status_code}: "
-                           f"{' '.join(traido['log'])[:220]}")
-        ruta = (traido["data"]["traidos"] or [{}])[0].get("ruta")
-        if not ruta:
-            return False, f"el Paso 2 no trajo el playbook: {traido['data']}"
-        import yaml as _yaml
-        documento = _yaml.safe_load(contexto.gh.read_repo_files(contexto.rama)[ruta])
-        documento["goal"] = f"objetivo cambiado por {etiqueta}"
-        contexto.gh.commit_files(
-            contexto.rama, {ruta: _yaml.safe_dump(documento, allow_unicode=True,
-                                                  sort_keys=False)},
-            f"test({PREFIJO}): preparar el caso de caos")
-        aplicadas = sobre(pedir(servidor, "POST", "/step/3", destino))["data"]
-        sobre(pedir(servidor, "POST", "/step/4",
-                    {**destino, "resultado": "superados"}))
-        return aplicadas["aplicadas"] >= 1, f"aplicadas={aplicadas['aplicadas']}"
+            Sin esto, matar el servidor durante el Paso 5 lo mataría mientras lee:
+            no habría ninguna escritura a medias que observar, y el check pasaría
+            sin haber probado lo que dice probar.
+            """
+            respuesta = cx.api_post(
+                project, contexto.region, f"{contexto.parent}/playbooks",
+                {"displayName": f"{etiqueta}_playbook", "goal": "objetivo de caos",
+                 "playbookType": "ROUTINE",
+                 "instruction": {"steps": [{"text": "haz algo"}]}})
+            if respuesta.status_code not in (200, 201):
+                return False, f"{respuesta.status_code} {respuesta.text[:150]}"
+            cx_id = respuesta.json()["name"].rsplit("/", 1)[-1]
+            pull = pedir(servidor, "POST", "/step/2",
+                         {**destino, "traer": [{"tipo": "playbook", "cx_id": cx_id}]})
+            traido = sobre(pull)
+            if traido["status"] != "ok":
+                return False, (f"el Paso 2 falló con HTTP {pull.status_code}: "
+                               f"{' '.join(traido['log'])[:220]}")
+            ruta = (traido["data"]["traidos"] or [{}])[0].get("ruta")
+            if not ruta:
+                return False, f"el Paso 2 no trajo el playbook: {traido['data']}"
+            import yaml as _yaml
+            documento = _yaml.safe_load(contexto.gh.read_repo_files(contexto.rama)[ruta])
+            documento["goal"] = f"objetivo cambiado por {etiqueta}"
+            contexto.gh.commit_files(
+                contexto.rama, {ruta: _yaml.safe_dump(documento, allow_unicode=True,
+                                                      sort_keys=False)},
+                f"test({PREFIJO}): preparar el caso de caos")
+            aplicadas = sobre(pedir(servidor, "POST", "/step/3", destino))["data"]
+            sobre(pedir(servidor, "POST", "/step/4",
+                        {**destino, "resultado": "superados"}))
+            return aplicadas["aplicadas"] >= 1, f"aplicadas={aplicadas['aplicadas']}"
 
-    runner.check(4, "Preparar una publicación real que dejar a medias",
-                 preparar_una_publicacion_de_verdad)
+        runner.check(4, "Preparar una publicación real que dejar a medias",
+                     preparar_una_publicacion_de_verdad)
 
-    def matar_el_servidor_a_mitad_de_publicar():
-        """SIGKILL mientras publica: ni `finally`, ni cierre ordenado.
+        def matar_el_servidor_a_mitad_de_publicar():
+            """SIGKILL mientras publica: ni `finally`, ni cierre ordenado.
 
-        Publicar es la escritura larga y en varios tramos —fusionar, versionar,
-        apuntar producción—, así que es donde matar de golpe puede dejar algo a
-        medias de verdad. El momento no se elige por reloj sino leyendo el
-        registro del propio servidor: se espera a que anuncie el tramo que
-        versiona, y se le mata ahí. Con un `sleep` fijo la muerte caía a veces
-        mientras solo leía, y entonces el check pasaba sin haber probado nada.
+            Publicar es la escritura larga y en varios tramos —fusionar, versionar,
+            apuntar producción—, así que es donde matar de golpe puede dejar algo a
+            medias de verdad. El momento no se elige por reloj sino leyendo el
+            registro del propio servidor: se espera a que anuncie el tramo que
+            versiona, y se le mata ahí. Con un `sleep` fijo la muerte caía a veces
+            mientras solo leía, y entonces el check pasaba sin haber probado nada.
 
-        Lo que se comprueba después: que el candado se queda tomado y con
-        caducidad —la garantía es el TTL, no un `finally` que un proceso muerto
-        de golpe nunca ejecuta— y que lo que llegara a crearse es identificable
-        por su prefijo. Que la corrida siguiente arranque limpia lo comprueba el
-        check de después.
-        """
-        propio = Servidor()
-        tramo = ""
-        with propio:
-            fallo = {}
+            Lo que se comprueba después: que el candado se queda tomado y con
+            caducidad —la garantía es el TTL, no un `finally` que un proceso muerto
+            de golpe nunca ejecuta— y que lo que llegara a crearse es identificable
+            por su prefijo. Que la corrida siguiente arranque limpia lo comprueba el
+            check de después.
+            """
+            propio = Servidor()
+            tramo = ""
+            with propio:
+                fallo = {}
 
-            def publicar():
-                try:
-                    pedir(propio, "POST", "/step/5",
-                          {**destino, "version_label": etiqueta}, timeout=600)
-                except requests.RequestException as error:
-                    fallo["error"] = type(error).__name__
+                def publicar():
+                    try:
+                        pedir(propio, "POST", "/step/5",
+                              {**destino, "version_label": etiqueta}, timeout=600)
+                    except requests.RequestException as error:
+                        fallo["error"] = type(error).__name__
 
-            hilo = threading.Thread(target=publicar, daemon=True)
-            hilo.start()
-            limite = time.time() + 240
-            while time.time() < limite:
-                registro = propio.log()
-                if "2/3 Versionando" in registro:
-                    tramo = "versionando"
-                    break
-                if "1/3 Fusionando" in registro:
-                    tramo = "fusionando"
-                if not hilo.is_alive():
-                    break
-                time.sleep(0.25)
-            tomado = cliente.collection(
-                store.COL_CANDADOS).document(project).get().exists
-            propio.matar_de_golpe()
-            hilo.join(timeout=30)
-            estado_del_sigkill["registro"] = propio.log()[-600:]
+                hilo = threading.Thread(target=publicar, daemon=True)
+                hilo.start()
+                limite = time.time() + 240
+                while time.time() < limite:
+                    registro = propio.log()
+                    if "2/3 Versionando" in registro:
+                        tramo = "versionando"
+                        break
+                    if "1/3 Fusionando" in registro:
+                        tramo = "fusionando"
+                    if not hilo.is_alive():
+                        break
+                    time.sleep(0.25)
+                tomado = cliente.collection(
+                    store.COL_CANDADOS).document(project).get().exists
+                propio.matar_de_golpe()
+                hilo.join(timeout=30)
+                estado_del_sigkill["registro"] = propio.log()[-600:]
 
-        candado = cliente.collection(store.COL_CANDADOS).document(project).get()
-        estado_del_sigkill["tramo"] = tramo
-        if not tramo:
-            return False, "el Paso 5 no llegó a escribir: la prueba sería nula"
-        if not tomado:
-            return False, "el servidor no tenía el candado al matarlo"
-        if not candado.exists:
-            return False, ("el candado desapareció sin que nadie lo soltara: un "
-                           "proceso muerto de golpe no ejecuta ningún finally")
-        caduca = candado.to_dict().get("expires_at")
-        return bool(caduca), (
-            f"muerto en el tramo «{tramo}» · el candado quedó tomado y caduca "
-            f"el {caduca} · cliente: {fallo.get('error', 'sin error')}")
+            candado = cliente.collection(store.COL_CANDADOS).document(project).get()
+            estado_del_sigkill["tramo"] = tramo
+            if not tramo:
+                return False, "el Paso 5 no llegó a escribir: la prueba sería nula"
+            if not tomado:
+                return False, "el servidor no tenía el candado al matarlo"
+            if not candado.exists:
+                return False, ("el candado desapareció sin que nadie lo soltara: un "
+                               "proceso muerto de golpe no ejecuta ningún finally")
+            caduca = candado.to_dict().get("expires_at")
+            return bool(caduca), (
+                f"muerto en el tramo «{tramo}» · el candado quedó tomado y caduca "
+                f"el {caduca} · cliente: {fallo.get('error', 'sin error')}")
 
-    runner.check(4, "Matar el servidor con SIGKILL a mitad de publicar deja el "
-                    "candado tomado con caducidad — se libera por TTL, no por "
-                    "un finally que no llega a correr",
-                 matar_el_servidor_a_mitad_de_publicar)
+        runner.check(4, "Matar el servidor con SIGKILL a mitad de publicar deja el "
+                        "candado tomado con caducidad — se libera por TTL, no por "
+                        "un finally que no llega a correr",
+                     matar_el_servidor_a_mitad_de_publicar)
 
-    def la_corrida_siguiente_arranca_limpia():
-        """El candado se libera explícitamente, sin esperar al TTL, y se barre
-        lo que la muerte súbita dejara a medias. Luego se comprueba que un
-        servidor nuevo puede volver a escribir."""
-        _liberar_candado()
-        desancladas, borrados, resisten = _barrer(contexto)
-        fallos = []
-        for rama, sha in ((contexto.rama, rama_al_empezar),
-                          (contexto.rama_principal, principal_al_empezar)):
-            if contexto.gh.branch_head(rama) != sha:
-                ok, detalle = _forzar_rama(contexto, rama, sha)
-                if not ok:
-                    fallos.append(detalle)
-        cliente.collection(store.COL_VERSIONES_EN_VUELO).document(
-            f"{project}__{agent_id}").delete()
-        registros = _limpiar_registros_de_prueba(cliente, project, agent_id)
-        with Servidor() as nuevo:
-            respuesta = pedir(nuevo, "POST", "/step/2", {**destino, "traer": []})
-            if respuesta.status_code != 200:
-                fallos.append(f"un servidor nuevo no puede escribir: "
-                              f"HTTP {respuesta.status_code}")
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        restos = [i["name"] for t, items in inventario.items()
-                  for i in items.values() if _lleva_la_marca(t, i)]
-        if restos:
-            fallos.append(f"quedan resources con el prefijo: {restos}")
-        return not fallos, (" · ".join(fallos) or
-                            f"muerto en «{estado_del_sigkill.get('tramo')}» · "
-                            f"{desancladas} desancladas · {len(borrados)} "
-                            f"borradas · {len(registros)} registros retirados")
+    finally:
+        def la_corrida_siguiente_arranca_limpia():
+            """El candado se libera explícitamente, sin esperar al TTL, y se barre
+            lo que la muerte súbita dejara a medias. Luego se comprueba que un
+            servidor nuevo puede volver a escribir."""
+            _liberar_candado()
+            desancladas, borrados, resisten = _barrer(contexto)
+            fallos = []
+            for rama, sha in ((contexto.rama, rama_al_empezar),
+                              (contexto.rama_principal, principal_al_empezar)):
+                if contexto.gh.branch_head(rama) != sha:
+                    ok, detalle = _forzar_rama(contexto, rama, sha)
+                    if not ok:
+                        fallos.append(detalle)
+            cliente.collection(store.COL_VERSIONES_EN_VUELO).document(
+                f"{project}__{agent_id}").delete()
+            registros = _limpiar_registros_de_prueba(cliente, project, agent_id)
+            with Servidor() as nuevo:
+                respuesta = pedir(nuevo, "POST", "/step/2", {**destino, "traer": []})
+                if respuesta.status_code != 200:
+                    fallos.append(f"un servidor nuevo no puede escribir: "
+                                  f"HTTP {respuesta.status_code}")
+            inventario, _, _ = pipeline.inventariar_cx(contexto)
+            restos = [i["name"] for t, items in inventario.items()
+                      for i in items.values() if _lleva_la_marca(t, i)]
+            if restos:
+                fallos.append(f"quedan resources con el prefijo: {restos}")
+            return not fallos, (" · ".join(fallos) or
+                                f"muerto en «{estado_del_sigkill.get('tramo')}» · "
+                                f"{desancladas} desancladas · {len(borrados)} "
+                                f"borradas · {len(registros)} registros retirados")
 
-    runner.check(4, "Tras el SIGKILL, se libera el candado explícitamente, no "
-                    "queda ninguna versión a medio crear y la corrida siguiente "
-                    "arranca limpia", la_corrida_siguiente_arranca_limpia)
+        runner.check(4, "Tras el SIGKILL, se libera el candado explícitamente, no "
+                        "queda ninguna versión a medio crear y la corrida siguiente "
+                        "arranca limpia", la_corrida_siguiente_arranca_limpia)
 
     def sin_fugas_entre_agentes_en_el_mismo_proceso():
         """Cloud Run reutiliza el contenedor entre peticiones de agentes
