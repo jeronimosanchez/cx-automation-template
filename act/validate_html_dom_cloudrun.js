@@ -343,6 +343,76 @@ const escenarios = [
 },
 
 {
+  nombre: 'El Paso 1 avisa, con una fila por contenedor, de lo que publicar retiraría de producción',
+  porQue: 'Producción puede estar sirviendo algo que el borrador ya no tiene — ' +
+          'porque se borró en la consola de CX, donde el pipeline no interviene. ' +
+          'El Paso 5 lo retira, y esa es la única pantalla donde eso se puede ' +
+          'saber antes de que pase. Un número suelto obligaría a adivinar cuál: ' +
+          'la decisión es de cada contenedor, así que va una fila por cada uno.',
+  async ejecutar() {
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/1': {sobre: sobre('ok', ['✓ leído'], {
+        project: PROYECTO, agent_id: AGENTE, region: 'europe-west1', repo: REPO,
+        rama: 'rama-de-prueba', commit: 'fedcba9876', total_cx: 2,
+        total_borrador: 2, versiones: 3, total_archivos: 2,
+        tiene_entorno_produccion: true, otros_agentes: 0,
+        emparejados: [], solo_cx: [], solo_repo: [], sin_agente: [],
+        comparacion_produccion: {
+          cambiados: [{tipo:'flow', cx_id:'f1', display_name:'Default Start Flow',
+                       motivo:'el borrador difiere de lo que producción sirve'}],
+          borrados: [
+            {tipo:'playbook', cx_id:'p9', display_name:'Compra'},
+            {tipo:'tool', cx_id:'t9', display_name:'Inventario'},
+          ],
+          iguales: [],
+        },
+      })},
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null}));
+    pulsar(dom, 'btn-start-inventory');
+    await reposar(dom, 6);
+    const visibleAntes = visible(dom, 'aviso-borrados-produccion');
+    const filas = dom.window.document
+      .querySelectorAll('#lista-borrados-produccion > div').length;
+    const contenido = (texto(dom, 'lista-borrados-produccion') || '');
+    // Informa, no bloquea: se puede cerrar y seguir. Publicar retira eso de
+    // producción, y a veces es exactamente lo que se quiere.
+    dom.window.cerrarAvisoBorrados();
+    const visibleDespues = visible(dom, 'aviso-borrados-produccion');
+    return {
+      ok: visibleAntes === true && filas === 2 && visibleDespues === false
+          && contenido.includes('Compra') && contenido.includes('Inventario')
+          && contenido.includes('Playbook') && contenido.includes('Tool'),
+      detalle: `visible=${visibleAntes} filas=${filas} cerrable=${!visibleDespues} ` +
+               `texto=${contenido.replace(/\s+/g, ' ').slice(0, 120)}`,
+    };
+  },
+},
+
+{
+  nombre: 'Sin nada borrado, el aviso de retirada no aparece',
+  porQue: 'Pasa poco. Un popup que sale siempre se cierra sin leerlo, y el día ' +
+          'que dice algo tampoco se lee.',
+  async ejecutar() {
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/1': {sobre: sobre('ok', ['✓ leído'], {
+        project: PROYECTO, agent_id: AGENTE, region: 'europe-west1', repo: REPO,
+        rama: 'rama-de-prueba', commit: 'fedcba9876', total_cx: 2,
+        total_borrador: 2, versiones: 3, total_archivos: 2,
+        tiene_entorno_produccion: true, otros_agentes: 0,
+        emparejados: [], solo_cx: [], solo_repo: [], sin_agente: [],
+        comparacion_produccion: {cambiados: [], borrados: [], iguales: []},
+      })},
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null}));
+    pulsar(dom, 'btn-start-inventory');
+    await reposar(dom, 6);
+    const visibleAviso = visible(dom, 'aviso-borrados-produccion');
+    return {ok: visibleAviso === false, detalle: `visible=${visibleAviso}`};
+  },
+},
+
+{
   nombre: 'Un doble clic en un botón que escribe dispara una sola petición',
   porQue: 'El Paso 2 escribe en el repositorio y el 3 en el agente. Dos peticiones ' +
           'en paralelo chocan con el candado o, peor, aplican dos veces.',

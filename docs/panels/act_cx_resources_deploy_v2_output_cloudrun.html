@@ -274,6 +274,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <strong style="color:var(--gate)">&#9888; Este agente no tiene entorno de producci&oacute;n.</strong><br>
           <span style="color:var(--text-2)">El Paso 5 publica apuntando el entorno <code>production</code> a las versiones nuevas; sin &eacute;l no hay d&oacute;nde publicar. Cr&eacute;alo en la consola de Dialogflow CX &mdash; el panel despliega, no crea infraestructura.</span>
         </div>
+        <!--
+          Aviso de lo que producci&oacute;n sirve y el borrador ya no tiene. Sale del
+          campo `comparacion_produccion` del Paso 1, en su lista `borrados`.
+
+          Es un popup y no un hueco fijo de la pantalla porque pasa poco: un
+          espacio permanente vac&iacute;o el 99% de las veces se deja de mirar. Y
+          lleva una fila por contenedor porque puede haber varios y cada uno es
+          una decisi&oacute;n distinta.
+
+          Informa, no bloquea: si contin&uacute;as al Paso 5 eso desaparece de
+          producci&oacute;n, y puede ser exactamente lo que quieres.
+        -->
+        <div id="aviso-borrados-produccion" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:24px">
+          <div style="background:var(--bg-2);border:1px solid rgba(245,158,11,.35);border-left:3px solid var(--gate);border-radius:10px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;padding:20px 22px">
+            <div style="font-size:14px;font-weight:700;color:var(--gate);margin-bottom:6px">&#9888; Publicar retirar&aacute; esto de producci&oacute;n</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:14px">Producci&oacute;n lo sirve y el borrador ya no lo tiene. El Paso 5 quitar&aacute; su puntero del entorno <code>production</code>. Si es lo que quieres, contin&uacute;a.</div>
+            <div id="lista-borrados-produccion" style="font-size:12px;line-height:1.7"></div>
+            <div class="action-bar" style="margin-top:16px">
+              <button class="btn btn-primary" onclick="cerrarAvisoBorrados()">Entendido</button>
+            </div>
+          </div>
+        </div>
         <div id="inv-resumen" style="font-size:12px;color:var(--text-3);margin-bottom:20px"></div>
         <div class="action-bar re-ejecuta">
           <button class="btn btn-primary" id="btn-continue-inv" onclick="advance(1)">Continuar &rarr;</button>
@@ -1486,6 +1508,8 @@ function renderInventario() {
   mostrar('aviso-sin-entorno', faltaEntorno);
   mostrar('resumen-sin-entorno', faltaEntorno, 'inline');
 
+  pintarBorradosDeProduccion(d.comparacion_produccion);
+
   $('inv-resumen').innerHTML =
     `${d.total_cx} resources del agente en CX &middot; ${d.total_borrador} en el borrador ` +
     `&middot; ${d.versiones} versiones &middot; le&iacute;dos de <code>${esc(oNada(d.rama))}</code> ` +
@@ -1494,6 +1518,34 @@ function renderInventario() {
     (d.otros_agentes ? ` &middot; ${d.otros_agentes} de otros agentes` : '') +
     ((d.sin_agente||[]).length ? ` &middot; <span style="color:var(--gate)">${d.sin_agente.length} sin agente asignado</span>` : '') +
     (faltaEntorno ? ' &middot; <span id="resumen-sin-entorno" style="color:var(--gate)">sin entorno de producci&oacute;n</span>' : '');
+}
+
+/* Lo que producción sirve y el borrador ya no tiene.
+
+   Sale del campo `comparacion_produccion` del Paso 1. Una fila por contenedor,
+   porque puede haber varios y cada uno es una decisión distinta: enseñar solo
+   un número obligaría a adivinar cuál.
+
+   Informa, no bloquea. Si continúas al Paso 5, eso sale de producción — y a
+   veces es exactamente lo que quieres. Lo que no puede pasar es que salga sin
+   que nadie lo haya visto.                                                   */
+
+function pintarBorradosDeProduccion(comparacion) {
+  const borrados = (comparacion || {}).borrados || [];
+  const lista = $('lista-borrados-produccion');
+  if (lista) {
+    lista.innerHTML = borrados.map(f => `
+      <div style="border-top:1px solid var(--border);padding:8px 0">
+        <span style="color:var(--text-3)">${esc(NOMBRE_DE_TIPO[f.tipo] || f.tipo || '—')}</span>
+        &middot; <strong>${esc(f.display_name || f.cx_id || '—')}</strong><br>
+        <span style="color:var(--text-3)">producci&oacute;n lo sirve &middot; el borrador ya no lo tiene</span>
+      </div>`).join('');
+  }
+  mostrar('aviso-borrados-produccion', borrados.length > 0, 'flex');
+}
+
+function cerrarAvisoBorrados() {
+  mostrar('aviso-borrados-produccion', false);
 }
 
 function toggleGrupo(card) {
