@@ -3709,6 +3709,44 @@ def nivel_3(runner, project, agent_id, run_id):
                     "sus punteros resuelven a versiones que existen",
                  el_entorno_queda_legible_y_coherente)
 
+    def el_gate_del_paso_4_aborta_si_no_se_declaro_superados():
+        """3.36 — anti-regresión del gate que protege a los usuarios.
+
+        Cambiar de dónde sale la lista de lo que se versiona no puede aflojar
+        el gate: si los últimos tests declarados fueron `fallidos`, publicar
+        tiene que abortar **antes de fusionar** y sin tocar nada, por mucho que
+        haya contenedores que difieran de producción.
+
+        Se comprueba releyendo el entorno y las dos ramas, no el status: un
+        paso puede decir «aborted» después de haber escrito.
+        """
+        antes_entorno = versiones_fijadas_ahora(contexto)
+        antes_ramas = (contexto.gh.branch_head(contexto.rama),
+                       contexto.gh.branch_head(contexto.rama_principal))
+
+        pipeline.step_4_validate_tests(project, agent_id, "fallidos")
+        resultado = pipeline.step_5_publish(project, agent_id,
+                                            f"{etiqueta}_gate4")
+        despues_entorno = versiones_fijadas_ahora(contexto)
+        despues_ramas = (contexto.gh.branch_head(contexto.rama),
+                         contexto.gh.branch_head(contexto.rama_principal))
+        # Se deja el gate como estaba para no romper los checks siguientes.
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
+
+        return (resultado["status"] == "aborted"
+                and not resultado["data"]["fusionado"]
+                and not resultado["data"]["publicado"]
+                and antes_entorno == despues_entorno
+                and antes_ramas == despues_ramas), (
+            f"status={resultado['status']} · fusionado="
+            f"{resultado['data'].get('fusionado')} · entorno intacto="
+            f"{antes_entorno == despues_entorno} · ramas intactas="
+            f"{antes_ramas == despues_ramas}")
+
+    runner.check(3, "El gate del Paso 4 sigue abortando si lo declarado no fue "
+                    "'superados', sin fusionar ni tocar producción",
+                 el_gate_del_paso_4_aborta_si_no_se_declaro_superados)
+
     def el_rollback_queda_registrado():
         cliente = store.get_client()
         previas = store.get_previous_versions(cliente, project, agent_id)
