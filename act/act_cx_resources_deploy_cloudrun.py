@@ -2146,29 +2146,45 @@ def _apuntar_entorno(contexto, entorno, version_names, borrados=()):
     cuerpo["versionConfigs"] = [{"version": nombre} for nombre in version_names]
     for campo in CAMPOS_LEIDOS_NO_ENVIADOS:
         cuerpo.pop(campo, None)
+    def _no_deja_quitar_ese_flow(detalle):
+        """Traduce el rechazo, si es que había un flow entre lo que se retira.
+
+        El rechazo llega por dos vías distintas y hay que cubrir las dos: un
+        estado HTTP de error, o —lo que ocurre de verdad, medido contra la
+        API— un `200` cuya operación falla después con `code:3` y el mensaje
+        *"Version must be provided for start resource …"*. Mirar solo el
+        estado inicial dejaba el error críptico saliendo por el otro lado, que
+        es el mismo patrón del bug de `displayName` en `POST /versions`.
+        """
+        flows_retirados = [b for b in borrados if b.get("tipo") == "flow"]
+        if not flows_retirados:
+            return None
+        nombres = ", ".join(
+            b.get("display_name") or b.get("cx_id") for b in flows_retirados
+        )
+        return PipelineError(
+            f"CX no deja retirar de producción el flow {nombres}: un entorno "
+            f"tiene que fijar una versión de todos los flows que se alcanzan "
+            f"desde el flow de inicio, y ese todavía se alcanza. Quita antes lo "
+            f"que lleva hasta él en el borrador, o déjalo publicado. Respuesta "
+            f"de CX: {detalle}"
+        )
+
     respuesta = cx.api_patch(
         contexto.project, contexto.region, entorno["name"], cuerpo,
         params={"updateMask": "versionConfigs"},
     )
     if respuesta.status_code not in (200, 201):
-        flows_retirados = [b for b in borrados if b.get("tipo") == "flow"]
-        if flows_retirados:
-            nombres = ", ".join(
-                b.get("display_name") or b.get("cx_id") for b in flows_retirados
-            )
-            raise PipelineError(
-                f"CX no deja retirar de producción el flow {nombres}: un "
-                f"entorno tiene que fijar una versión de todos los flows que se "
-                f"alcanzan desde el flow de inicio, y ese todavía se alcanza. "
-                f"Quita antes lo que lleva hasta él en el borrador, o déjalo "
-                f"publicado. Respuesta de CX: {respuesta.status_code} "
-                f"{respuesta.text[:200]}"
-            )
-        raise PipelineError(
-            f"PATCH del entorno falló: {respuesta.status_code} "
-            f"{respuesta.text[:200]}"
-        )
-    return cx.resolve_operation(contexto.project, contexto.region, respuesta)
+        detalle = f"{respuesta.status_code} {respuesta.text[:200]}"
+        raise (_no_deja_quitar_ese_flow(detalle)
+               or PipelineError(f"PATCH del entorno falló: {detalle}"))
+    try:
+        return cx.resolve_operation(contexto.project, contexto.region, respuesta)
+    except cx.ApiError as error:
+        traducido = _no_deja_quitar_ese_flow(str(error)[:300])
+        if traducido is None:
+            raise
+        raise traducido from error
 
 
 # ── 6 · Descubrimiento ───────────────────────────────────────────────────────

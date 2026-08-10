@@ -134,11 +134,11 @@ contra los cinco actuales.
 
 | Paso del panel | Qué le pide al servidor | Qué escribe |
 |---|---|---|
-| **1 · Inventario** | Averiguar qué repositorio corresponde al agente elegido, leer el agente entero, leer el repositorio entero y emparejar cada resource con su archivo | Nada |
+| **1 · Inventario** | Averiguar qué repositorio corresponde al agente elegido, leer el agente entero, leer el repositorio entero, emparejar cada resource con su archivo y **comparar el borrador con lo que producción sirve** | Nada |
 | **2 · Traer al repositorio** | Escribir en el repositorio los resources que solo están en el agente | Archivos y un commit en la rama de trabajo |
 | **3 · Aplicar en CX** | Crear, modificar y eliminar en el **borrador** del agente lo que se haya marcado | El borrador del agente |
 | **4 · Validar tests** | **Nada.** El panel no lanza las pruebas ni conoce su resultado: solo registra lo que declara quien lo usa | Un registro en Firestore (lo declarado y la huella del borrador) — nada en CX ni en GitHub, pero es lo que hace posible el candado del Paso 5 |
-| **5 · Publicar** | Fusionar la rama de trabajo en la principal, crear la versión y apuntar producción a ella | La rama principal del repositorio y el entorno de producción |
+| **5 · Publicar** | Fusionar la rama de trabajo en la principal, versionar los contenedores que difieren de lo que producción sirve, apuntar producción a esas versiones y **retirar del entorno lo que ya no está en el borrador** | La rama principal del repositorio y el entorno de producción |
 
 Además, tres cosas que no pertenecen a ningún paso:
 
@@ -351,11 +351,17 @@ matizan lo escrito en §2 donde entren en conflicto — **esta sección manda.**
 | **S15** | **13 tipos built-in** (verificado 2026-08-06 contra el discovery document real de la API — eran 12 conocidos + Transition Route Groups, que cuelga de Flow igual que Pages y es un recurso de definición real, no algo exótico). ~~Los tipos adicionales de verdad exóticos se declaran en `cx-deploy.yaml` con su endpoint~~ — **el dónde queda abierto desde el 2026-08-08**: `cx-deploy.yaml` se retiró (S23) porque nadie lo leía, así que esta parte de S15 se quedó sin sitio. La decisión de fondo —que un tipo nuevo no obligue a reescribir el sistema— sigue en pie; **falta decidir dónde se declara**. No se resuelve aquí a propósito: recrear el archivo solo para esto sería reabrir el motivo por el que se retiró. Cuando haga falta un tipo exótico de verdad, se decide entonces, con el caso concreto delante y con quien lo vaya a leer | CX tiene más tipos que los 13 actuales — voz, NLU, telefonía. El sistema debe cubrirlos sin reescribirse | ✅ |
 | **S15b** | Cada tipo nuevo exige **medir si acepta `updateMask` o requiere Full Update** — y esto también aplica **por región**, no solo por tipo (añadido 2026-08-06, ligado a S4): el bug de `CLAUDE.md §3.8` está documentado específicamente para `europe-west1`, nunca verificado en otras regiones. Un proyecto nuevo en otra región no puede asumir el mismo comportamiento — hay que remedirlo la primera vez, no copiar el resultado de Petal | CLAUDE.md §3.8: varía por recurso y solo se sabe midiendo contra la API real | ✅ |
 | **S16** | La pestaña Proyectos guía el discovery de un tipo nuevo: endpoint, campos, comportamiento POST/PATCH. Una vez por tipo | Flexibilidad y cobertura para cualquier proyecto futuro | ✅ |
-| **H4** | El Paso 5 versiona **solo los recursos que el diff tocó** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ✅ construido y probado (2026-08-09) |
+| **H4** | El Paso 5 versiona **solo los contenedores que difieren de lo que producción sirve** | El tiempo pasa a ser proporcional a los cambios, no al tamaño del agente | ✅ construido y probado (2026-08-09) · fuente de decisión corregida (2026-08-11) |
 
 ### 10.1 Los tres puntos abiertos
 
-**H4 — construido y probado (2026-08-09).** Ya no aplica a `create_versions_for_snapshot` (`:978`), que era del pipeline local de 8 pasos y recorría todos los flows, playbooks y tools referenciados sin distinguir qué tocó el diff. El pipeline de Cloud Run (`act_cx_resources_deploy_cloudrun.py`) nace directamente con el patrón correcto: `_padres_versionables` traduce cada pendiente a su contenedor, y `_crear_versiones` solo versiona esos — nunca el agente entero. El entorno fija versión nueva para lo que cambió y la existente para lo que no (`_combinar_versiones`, cumple la Regla 16), y el rollback sigue funcionando porque `previous_versions` registra lo que estaba fijado antes de publicar.
+**H4 — construido y probado (2026-08-09), con la fuente de decisión corregida el 2026-08-11.** Ya no aplica a `create_versions_for_snapshot` (`:978`), que era del pipeline local de 8 pasos y recorría todos los flows, playbooks y tools referenciados sin distinguir qué tocó el diff. El pipeline de Cloud Run (`act_cx_resources_deploy_cloudrun.py`) nace con el patrón correcto: `_crear_versiones` solo versiona los contenedores que hacen falta, nunca el agente entero. El entorno fija versión nueva para lo que cambió y la existente para lo que no (`_combinar_versiones`, cumple la Regla 16), y el rollback sigue funcionando porque `previous_versions` registra lo que estaba fijado antes de publicar.
+
+**Lo que cambió el 2026-08-11 es de dónde sale esa lista.** Hasta entonces el Paso 5 la leía de Firestore: el Paso 3 marcaba `pendiente_publicar` en cada resource que escribía, y el Paso 5 versionaba lo que saliera de esa consulta. Es decir, **el sistema decidía recordando lo que él mismo había hecho** — y por eso un cambio hecho directamente en la consola de Dialogflow CX no llegaba nunca a producción: entra en el mismo borrador, pero no deja ninguna anotación, así que la lista salía vacía, no se creaba ninguna versión y el paso reportaba éxito. Fallaba en silencio diciendo que fue bien. Editar en la consola no es un caso raro: es el flujo de trabajo real del dueño del sistema.
+
+Ahora **el Paso 5 decide mirando** (`_contenedores_cambiados`): compara el contenido de cada contenedor del borrador con el de la versión que el entorno de producción **fija** —nunca con la última versión creada, que puede ser una que se creó y no se llegó a publicar— y versiona solo lo que difiere. Da igual quién hizo el cambio, porque el borrador es el mismo para los dos. Los flows se comparan con `compareVersions` contra `versions/0`, que es como CX nombra el borrador; los playbooks y los tools con el contenido que el LIST de versiones ya devuelve en línea, así que no cuestan ninguna llamada extra. Un contenedor que el entorno fija y que ya no está en el borrador se detecta como **borrado** y sale del entorno: antes `_combinar_versiones` solo sabía añadir o mantener, y un puntero a algo borrado sobrevivía a cualquier número de publicaciones.
+
+Con esto desaparecen `list_pending_publication`, `mark_published`, el campo `pendiente_publicar` y `_padres_versionables`. **No hace falta migrar Firestore:** los documentos que todavía lleven la marca quedan inertes porque no los lee nadie. Lo que **sí se queda** es `huella_cx` en `record_resource_write`, que es otra cosa: el tercer punto de referencia que permite a `_marcar_conflicto` avisar de que un resource cambió en el repositorio y en CX a la vez. Esa protección importa más desde que publicar da por hecho que se edita en la consola a propósito.
 
 **S1b — el supuesto no se sostiene.** "No puede haber cambios en CX entre el Paso 3 y el Paso 4" falla por dos vías: editar el agente directamente en la consola de CX (el caso normal, es por lo que existe la comprobación de deriva) y el tiempo, porque el flujo declarado de Jero es quedarse en el Paso 4 acumulando cambios en draft. Consecuencia acotada —sin DELETE automático, lo peor es un POST o PATCH no revisado— pero rompe el gate por el otro lado. Comparar cuesta casi nada: el servidor ya tiene las dos listas.
 
@@ -400,6 +406,13 @@ para en el primer fallo, y `_versiones_reutilizables` reutiliza lo que un
 intento anterior dejó creado sin fijar, sin repetirlo. El resto del Paso 5
 (fusionar antes de apuntar producción, parar sin tocar nada si el merge
 falla) también está construido y probado.
+
+Desde el 2026-08-11, `_versiones_reutilizables` decide **por contenido**: una
+versión sobrante vale si lo que guarda coincide con el borrador de ahora. Antes
+lo deducía comparando marcas de tiempo —cuándo se escribió cada pendiente contra
+cuándo se creó la versión—, que era una forma indirecta de preguntar lo mismo y
+dependía de que Firestore tuviera esas marcas. Es la misma comparación que
+decide qué versionar, no una regla aparte: así las dos no pueden discrepar.
 
 **Todos los endpoints comparten el mismo sobre de respuesta — no hace
 falta un schema distinto por cada uno** (hallazgo de la ronda adversarial,

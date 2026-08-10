@@ -1830,14 +1830,179 @@ def nivel_1(runner, project, agent_id, region, run_id, hermano=None):
                  el_paso_1_dice_si_falta_el_entorno_de_produccion)
 
     def cero_escrituras():
+        """1.1 — el Paso 1 no muta nada, y lo único que llega con verbo de
+        escritura es `compareVersions`, que solo compara.
+
+        Se comprueban las dos cosas: que no hay mutaciones, y que la excepción
+        es exactamente la que se declaró. Sin lo segundo, la excepción sería
+        una puerta abierta a cualquier POST que alguien añadiera después.
+        """
         with ContadorHttp() as contador:
             pipeline.step_1_inventory(project, agent_id)
         escrituras = contador.escrituras()
-        return not escrituras, f"{len(escrituras)} escrituras: {escrituras[:3]}"
+        con_verbo = contador.escrituras_crudas()
+        coladas = [c for c in con_verbo if c not in escrituras
+                   and not c[1].endswith(":compareVersions")]
+        return not escrituras and not coladas, (
+            f"{len(escrituras)} escrituras: {escrituras[:3]} · "
+            f"{len(con_verbo)} con verbo de escritura, de las que "
+            f"{len(con_verbo) - len(escrituras)} son compareVersions"
+        )
 
     runner.check(1, "Cero llamadas de escritura, verificado instrumentando el "
-                    "cliente HTTP y no leyendo el código",
+                    "cliente HTTP y no leyendo el código — lo único con verbo "
+                    "de escritura es compareVersions",
                  cero_escrituras)
+
+    def el_coste_lo_marca_lo_publicado_no_el_tamano_del_agente():
+        """1.2 — el coste de comparar tiene que estar acotado por los
+        contenedores **publicados**, no por el tamaño del agente.
+
+        Playbooks y tools se comparan con el contenido que el LIST de versiones
+        ya trajo; solo los flows fijados cuestan una llamada cada uno. Si algún
+        día alguien pide cada versión con un GET aparte, esto lo caza.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        fijadas = pipeline._versiones_fijadas(inventario)
+        flows_fijados = sum(1 for c in fijadas if "/flows/" in c)
+        with ContadorHttp() as contador:
+            pipeline._contenedores_cambiados(contexto, inventario)
+        total = len(contador.llamadas)
+        comparaciones = [c for c in contador.llamadas
+                         if c[1].endswith(":compareVersions")]
+        contenedores = sum(len(inventario.get(t, {}))
+                           for t in pipeline.CONTENIDO_EN_LA_VERSION)
+        return (len(comparaciones) <= flows_fijados
+                and total == len(comparaciones)), (
+            f"{total} llamadas para comparar, {len(comparaciones)} de ellas "
+            f"compareVersions, con {flows_fijados} flows fijados y "
+            f"{contenedores} contenedores en el borrador"
+        )
+
+    runner.check(1, "El coste de comparar lo marcan los contenedores publicados, "
+                    "no el tamaño del agente",
+                 el_coste_lo_marca_lo_publicado_no_el_tamano_del_agente)
+
+    def compare_versions_contesta_lo_esperado():
+        """1.3 y 1.4 — el endpoint sobre el que descansa la comparación de
+        flows, contra el agente real y sin tocar nada.
+
+        `versions/0` es como CX nombra el borrador. Con el borrador sin mover
+        desde la versión, los dos JSON tienen que ser idénticos byte a byte: es
+        lo que permite comparar sin normalizar nada.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        flows = list(inventario.get("flow", {}).values())
+        if not flows:
+            return True, "(el agente no tiene flows)"
+        flow = flows[0]
+        versiones = [v for v in inventario.get("version", {}).values()
+                     if v.get("name", "").startswith(f"{flow['name']}/versions/")]
+        if not versiones:
+            # Comparar contra la propia foto del borrador: el endpoint tiene que
+            # aceptar `versions/0` en los dos lados y devolver dos JSON iguales.
+            base = f"{flow['name']}/versions/0"
+        else:
+            base = versiones[0]["name"]
+        respuesta = cx.api_request(
+            "POST", project, contexto.region, f"{base}:compareVersions",
+            body={"targetVersion": f"{flow['name']}/versions/0"},
+        )
+        if respuesta.status_code != 200:
+            return False, f"{respuesta.status_code} {respuesta.text[:150]}"
+        claves = set(respuesta.json())
+        esperadas = {"baseVersionContentJson", "targetVersionContentJson",
+                     "compareTime"}
+        if not esperadas <= claves:
+            return False, f"faltan claves: {sorted(esperadas - claves)}"
+        # Y contra sí mismo, que es la única comparación cuya respuesta se
+        # conoce de antemano pase lo que pase en el agente.
+        espejo = cx.api_request(
+            "POST", project, contexto.region,
+            f"{flow['name']}/versions/0:compareVersions",
+            body={"targetVersion": f"{flow['name']}/versions/0"},
+        )
+        cuerpo = espejo.json()
+        identicos = (cuerpo.get("baseVersionContentJson")
+                     == cuerpo.get("targetVersionContentJson"))
+        return identicos, (
+            "el borrador comparado consigo mismo no dio dos JSON idénticos: "
+            "la comparación de flows no se puede sostener sobre esto"
+        )
+
+    runner.check(1, "compareVersions contra versions/0 devuelve 200 y las tres "
+                    "claves, y sin cambios los dos JSON son idénticos",
+                 compare_versions_contesta_lo_esperado)
+
+    def el_paso_1_devuelve_el_resumen_de_produccion():
+        """1.5 — con las tres listas, y con la forma que el panel espera."""
+        datos = pipeline.step_1_inventory(project, agent_id)["data"]
+        comparacion = datos.get("comparacion_produccion")
+        if not isinstance(comparacion, dict):
+            return False, f"el Paso 1 no devuelve {CAMPO_COMPARACION}"
+        faltan = {"cambiados", "borrados", "iguales"} - set(comparacion)
+        if faltan:
+            return False, f"faltan claves: {sorted(faltan)}"
+        filas = [f for lista in comparacion.values() for f in lista]
+        sin_forma = [f for f in filas
+                     if not {"tipo", "cx_id", "name"} <= set(f)]
+        return not sin_forma, (
+            f"{len(sin_forma)} filas sin la forma esperada: {sin_forma[:1]}")
+
+    runner.check(1, "El Paso 1 devuelve el resumen de la comparación contra "
+                    "producción con las claves esperadas",
+                 el_paso_1_devuelve_el_resumen_de_produccion)
+
+    def el_paso_1_y_el_paso_5_usan_el_mismo_criterio():
+        """1.6 — un solo criterio, no dos que puedan discrepar.
+
+        Si el Paso 1 enseñara una cosa y el Paso 5 versionara otra, el panel
+        estaría informando de algo que no va a pasar — que es peor que no
+        informar de nada.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        del_paso_1 = pipeline.step_1_inventory(
+            project, agent_id)["data"]["comparacion_produccion"]
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        del_paso_5 = pipeline._contenedores_cambiados(contexto, inventario)
+        iguales = all(
+            _nombres(del_paso_1[clave]) == _nombres(del_paso_5[clave])
+            for clave in ("cambiados", "borrados", "iguales")
+        )
+        return iguales, (
+            f"paso 1: { {k: _nombres(v) for k, v in del_paso_1.items()} } · "
+            f"paso 5: { {k: _nombres(v) for k, v in del_paso_5.items()} }")
+
+    runner.check(1, "El resumen del Paso 1 y lo que el Paso 5 usaría coinciden: "
+                    "no hay dos criterios distintos",
+                 el_paso_1_y_el_paso_5_usan_el_mismo_criterio)
+
+    def el_servidor_no_se_come_el_campo_nuevo():
+        """1.7 — el campo viaja hasta la respuesta HTTP.
+
+        Se llama a la vista del servidor, no a la función del pipeline: entre
+        una y otra está el sobre, el `jsonify` y el traductor de errores, y
+        cualquiera de los tres podría filtrar campos. Comprobarlo leyendo el
+        código sería fiarse de que nadie añade un filtro después.
+        """
+        from act import server_cloudrun
+
+        with server_cloudrun.app.test_client() as cliente:
+            respuesta = cliente.post("/step/1",
+                                     json={"project": project, "agent": agent_id})
+        if respuesta.status_code != 200:
+            return False, f"HTTP {respuesta.status_code}: {respuesta.get_data(as_text=True)[:150]}"
+        datos = respuesta.get_json().get("data", {})
+        comparacion = datos.get(CAMPO_COMPARACION)
+        return isinstance(comparacion, dict) and "borrados" in comparacion, (
+            f"la respuesta HTTP no trae `{CAMPO_COMPARACION}`: "
+            f"claves={sorted(datos)[:12]}")
+
+    runner.check(1, "El servidor transporta el campo nuevo del Paso 1 hasta la "
+                    "respuesta HTTP",
+                 el_servidor_no_se_come_el_campo_nuevo)
 
     def sin_destino_error_claro():
         try:
@@ -2025,6 +2190,35 @@ def nivel_2(runner, project, agent_id):
 
     runner.check(2, "El dry-run no hace ninguna llamada de escritura",
                  dry_run_no_escribe)
+
+    def se_puede_saber_que_versionaria_sin_versionar_nada():
+        """2.2 — el equivalente de un dry-run para el Paso 5.
+
+        No hace falta un `dry_run` en `step_5_publish`: la comparación es una
+        función aparte y de solo lectura, así que preguntarle qué versionaría no
+        crea nada. Es lo mismo que el Paso 1 devuelve al panel y lo mismo que el
+        Paso 5 usará, así que un dry-run propio sería un tercer camino que
+        podría discrepar de los otros dos.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        antes = pipeline._versiones_fijadas(inventario)
+        with ContadorHttp() as contador:
+            comparacion = pipeline._contenedores_cambiados(contexto, inventario)
+        despues = versiones_fijadas_ahora(contexto)
+        versiones_antes = len(inventario.get("version", {}))
+        inv2, _, _ = pipeline.inventariar_cx(contexto, tipos=["flow", "playbook",
+                                                              "tool", "version"])
+        return (not contador.escrituras() and antes == despues
+                and len(inv2.get("version", {})) == versiones_antes), (
+            f"listó {len(comparacion['cambiados'])} contenedores a versionar · "
+            f"{len(contador.escrituras())} escrituras · entorno intacto="
+            f"{antes == despues} · versiones {versiones_antes} → "
+            f"{len(inv2.get('version', {}))}")
+
+    runner.check(2, "Se puede saber qué versionaría el Paso 5 sin crear ninguna "
+                    "versión ni mover el entorno",
+                 se_puede_saber_que_versionaria_sin_versionar_nada)
 
     def plan_estable():
         a = pipeline.step_3_apply_to_cx(project, agent_id, dry_run=True)["data"]
@@ -2908,22 +3102,612 @@ def nivel_3(runner, project, agent_id, run_id):
                  publicar_solo_versiona_lo_que_difiere)
 
     def publicar_dos_veces_es_no_op():
-        """Un reintento accidental del Paso 5 sobre un commit ya publicado no
-        debe fusionar dos veces ni crear una versión duplicada."""
+        """3.31 y 3.45 — publicar sin ningún cambio: cero versiones creadas y el
+        entorno **idéntico**, no solo parecido.
+
+        Cero no es una optimización: los límites de versiones vivas de CX son
+        reales y se agotan. Y el entorno tiene que quedar con la misma lista y
+        en el mismo orden, o dos publicaciones seguidas sin cambios estarían
+        reescribiendo producción para nada.
+        """
         pipeline.step_4_validate_tests(project, agent_id, "superados")
         primera = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_dos_a")
+        entorno_tras_la_primera = versiones_fijadas_ahora(contexto)
         pipeline.step_4_validate_tests(project, agent_id, "superados")
         segunda = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_dos_b")
+        entorno_tras_la_segunda = versiones_fijadas_ahora(contexto)
         if primera["status"] != "ok" or segunda["status"] != "ok":
             return False, f"{primera['status']} / {segunda['status']}"
-        return len(segunda["data"]["versiones_creadas"]) == 0, (
-            f"la segunda publicación creó {len(segunda['data']['versiones_creadas'])} "
-            f"versiones sin nada que publicar"
+        creadas = segunda["data"]["versiones_creadas"]
+        igual = entorno_tras_la_primera == entorno_tras_la_segunda
+        return not creadas and igual, (
+            f"la segunda publicación creó {len(creadas)} versiones sin nada que "
+            f"publicar · entorno idéntico={igual}"
         )
 
-    runner.check(3, "Publicar dos veces seguidas sin cambios no crea una segunda "
-                    "versión",
+    runner.check(3, "Publicar sin ningún cambio: cero versiones creadas y el "
+                    "entorno queda idéntico",
                  publicar_dos_veces_es_no_op)
+
+    # ── Los dos recorridos completos ─────────────────────────────────────────
+    #
+    # Son la razón de ser del cambio: un cambio subido desde el repositorio y un
+    # cambio hecho a mano en la consola de CX tienen que llegar **los dos** a
+    # producción. Ninguno se da por bueno leyendo el log del paso: siempre
+    # releyendo de CX qué versión fija el entorno y qué guarda esa versión.
+
+    def _publicar(sufijo):
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
+        return pipeline.step_5_publish(project, agent_id, f"{etiqueta}_{sufijo}")
+
+    def _lo_que_produccion_sirve(nombre_contenedor):
+        """La versión que el entorno fija para un contenedor y su contenido.
+
+        Releído de CX, nunca de la respuesta del paso: el log dice lo que el
+        paso creyó hacer, y lo que se quiere demostrar es lo que quedó.
+        """
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        fijada = pipeline._versiones_fijadas(inventario).get(nombre_contenedor)
+        if not fijada:
+            return None, None
+        version = inventario.get("version", {}).get(
+            pipeline._clave_de_version({"name": fijada}))
+        return fijada, version
+
+    def de_github_a_produccion():
+        """3.1 — commit en la rama → Paso 3 → borrador → Paso 5 → producción.
+
+        Se confirma en los dos saltos: que el playbook está en el borrador con
+        lo que se subió, y que la versión que el entorno fija guarda eso mismo.
+        """
+        nombre = f"{etiqueta}_gh"
+        objetivo = f"objetivo desde el repositorio {run_id}"
+        ruta = f"definitions/playbooks/{nombre}.yaml"
+        documento = {
+            "metadata": {"tipo": "playbook", "padre": None, "cx_id": None,
+                         "agente": agent_id},
+            "displayName": nombre, "goal": objetivo, "playbookType": "ROUTINE",
+            "instruction": {"steps": [{"text": "haz algo"}]},
+        }
+        contexto.gh.commit_files(
+            contexto.rama,
+            {ruta: yaml.safe_dump(documento, allow_unicode=True, sort_keys=False)},
+            f"test: playbook nuevo desde el repositorio ({etiqueta})")
+
+        if pipeline.step_3_apply_to_cx(project, agent_id)["status"] != "ok":
+            return False, "el Paso 3 falló"
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        creado = next((p for p in inventario["playbook"].values()
+                       if p.get("displayName") == nombre), None)
+        if creado is None:
+            return False, "el playbook no llegó al borrador de CX"
+        if creado.get("goal") != objetivo:
+            return False, f"el borrador dice goal={creado.get('goal')!r}"
+
+        resultado = _publicar("gh")
+        if resultado["status"] != "ok":
+            return False, f"el Paso 5 falló: {resultado['status']}"
+
+        fijada, version = _lo_que_produccion_sirve(creado["name"])
+        if not fijada:
+            return False, "producción no fija ninguna versión de ese playbook"
+        publicado = (version or {}).get("playbook", {}).get("goal")
+        return publicado == objetivo, (
+            f"producción fija {fijada.rsplit('/', 2)[-2:]} y esa versión guarda "
+            f"goal={publicado!r}, no {objetivo!r}")
+
+    runner.check(3, "Recorrido completo GitHub → borrador → producción: lo que "
+                    "se subió es lo que produce sirve, releído de CX",
+                 de_github_a_produccion)
+
+    def de_la_consola_de_cx_a_produccion():
+        """3.2 — **la prueba que justifica el encargo entero.**
+
+        Se edita un playbook directamente en CX, sin tocar el repositorio y sin
+        pasar por el Paso 3, y se publica. Con el mecanismo anterior esto no
+        creaba ninguna versión y el paso reportaba éxito igualmente: nadie
+        había anotado nada en Firestore, así que la lista salía vacía y el
+        cambio se quedaba en el borrador para siempre.
+        """
+        nombre = f"{etiqueta}_consola"
+        # Punto de partida: existe y está publicado tal cual.
+        contenedor_de_pruebas(contexto, "playbook", nombre, "estado inicial")
+        if _publicar("consola_base")["status"] != "ok":
+            return False, "no se pudo dejar el punto de partida publicado"
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        playbook = next(p for p in inventario["playbook"].values()
+                        if p.get("displayName") == nombre)
+        fijada_antes, _ = _lo_que_produccion_sirve(playbook["name"])
+        if not fijada_antes:
+            return False, "el punto de partida no quedó publicado"
+
+        # El cambio: solo en CX. Ni commit, ni Paso 2, ni Paso 3.
+        objetivo = f"editado a mano en la consola {run_id}"
+        editado = contenedor_de_pruebas(contexto, "playbook", nombre, objetivo)
+        esperado = editado.get("goal")
+
+        with ContadorHttp() as contador:
+            resultado = _publicar("consola")
+        if resultado["status"] != "ok":
+            return False, f"el Paso 5 falló: {resultado['status']}"
+        # Ni el Paso 2 ni el Paso 3 han corrido: no hay commit por medio.
+        if any(c[0] == "POST" and c[1].endswith("/playbooks")
+               for c in contador.escrituras()):
+            return False, "el Paso 5 creó un playbook, que no es lo suyo"
+
+        fijada_despues, version = _lo_que_produccion_sirve(playbook["name"])
+        publicado = (version or {}).get("playbook", {}).get("goal")
+        if fijada_despues == fijada_antes:
+            return False, ("producción sigue fijando la misma versión: el "
+                           "cambio hecho en la consola no llegó a publicarse")
+        return publicado == esperado, (
+            f"producción sirve goal={publicado!r} y en el borrador está "
+            f"{esperado!r}")
+
+    runner.check(3, "Recorrido completo consola de CX → producción: un cambio "
+                    "que el pipeline no hizo también se publica",
+                 de_la_consola_de_cx_a_produccion)
+
+    def los_dos_origenes_en_la_misma_publicacion():
+        """3.4 — uno cambiado desde el repositorio y otro desde la consola, en
+        un solo Paso 5. Los dos tienen que llegar."""
+        desde_cx = f"{etiqueta}_mix_cx"
+        desde_repo = f"{etiqueta}_mix_repo"
+        ruta = f"definitions/playbooks/{desde_repo}.yaml"
+
+        # Punto de partida publicado para los dos.
+        contenedor_de_pruebas(contexto, "playbook", desde_cx, "mix inicial")
+        documento = {
+            "metadata": {"tipo": "playbook", "padre": None, "cx_id": None,
+                         "agente": agent_id},
+            "displayName": desde_repo, "goal": "mix inicial",
+            "playbookType": "ROUTINE",
+            "instruction": {"steps": [{"text": "haz algo"}]},
+        }
+        contexto.gh.commit_files(
+            contexto.rama,
+            {ruta: yaml.safe_dump(documento, allow_unicode=True, sort_keys=False)},
+            f"test: base del mix ({etiqueta})")
+        pipeline.step_3_apply_to_cx(project, agent_id)
+        if _publicar("mix_base")["status"] != "ok":
+            return False, "no se pudo publicar el punto de partida"
+
+        # Un cambio por cada vía, sin publicar entre medias.
+        objetivo_cx = f"mix editado en la consola {run_id}"
+        contenedor_de_pruebas(contexto, "playbook", desde_cx, objetivo_cx)
+
+        archivos = contexto.gh.read_repo_files(
+            contexto.gh.branch_head(contexto.rama))
+        actualizado = yaml.safe_load(archivos[ruta])
+        actualizado["goal"] = f"mix editado en el repositorio {run_id}"
+        contexto.gh.commit_files(
+            contexto.rama,
+            {ruta: yaml.safe_dump(actualizado, allow_unicode=True, sort_keys=False)},
+            f"test: cambio del mix por repositorio ({etiqueta})")
+        pipeline.step_3_apply_to_cx(project, agent_id)
+
+        if _publicar("mix")["status"] != "ok":
+            return False, "el Paso 5 falló"
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        fijadas = pipeline._versiones_fijadas(inventario)
+        problemas = []
+        for nombre, esperado in ((desde_cx, f"objetivo {objetivo_cx}"),
+                                 (desde_repo, actualizado["goal"])):
+            playbook = next((p for p in inventario["playbook"].values()
+                             if p.get("displayName") == nombre), None)
+            if playbook is None:
+                problemas.append(f"{nombre} no está en el borrador")
+                continue
+            fijada = fijadas.get(playbook["name"])
+            version = inventario.get("version", {}).get(
+                pipeline._clave_de_version({"name": fijada or ""}))
+            publicado = (version or {}).get("playbook", {}).get("goal")
+            if publicado != esperado:
+                problemas.append(
+                    f"{nombre}: producción sirve {publicado!r} y no {esperado!r}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(3, "Los dos orígenes en la misma publicación: el cambio del "
+                    "repositorio y el de la consola llegan los dos",
+                 los_dos_origenes_en_la_misma_publicacion)
+
+    def uno_de_tres_versiona_uno():
+        """3.32 y 4.4 — con tres playbooks y uno modificado se crea versión de
+        ese y de ninguno más, y los otros dos punteros no se mueven.
+
+        Es la regla del mínimo consumo de versiones medida donde se rompería:
+        versionar los tres quemaría dos huecos para nada y publicaría trabajo
+        de contenedores que nadie quería publicar.
+        """
+        nombres = [f"{etiqueta}_tres_{i}" for i in range(3)]
+        for nombre in nombres:
+            contenedor_de_pruebas(contexto, "playbook", nombre, "base de los tres")
+        if _publicar("tres_base")["status"] != "ok":
+            return False, "no se pudo publicar el punto de partida"
+        antes = versiones_fijadas_ahora(contexto)
+
+        contenedor_de_pruebas(contexto, "playbook", nombres[1],
+                              f"solo este cambia {run_id}")
+        resultado = _publicar("tres")
+        if resultado["status"] != "ok":
+            return False, f"el Paso 5 falló: {resultado['status']}"
+        despues = versiones_fijadas_ahora(contexto)
+
+        creadas = resultado["data"]["versiones_creadas"]
+        movidos = [c for c in despues if antes.get(c) != despues.get(c)]
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        el_cambiado = next(p["name"] for p in inventario["playbook"].values()
+                           if p.get("displayName") == nombres[1])
+        return (len(creadas) == 1 and movidos == [el_cambiado]), (
+            f"{len(creadas)} versiones creadas y {len(movidos)} punteros "
+            f"movidos: {[m.rsplit('/', 1)[-1] for m in movidos]}")
+
+    runner.check(3, "Con tres playbooks y uno modificado se versiona ese y solo "
+                    "ese; los otros dos punteros no se mueven",
+                 uno_de_tres_versiona_uno)
+
+    def se_publica_contra_la_fijada_no_contra_la_ultima():
+        """3.41 — el caso 0.12 contra CX real.
+
+        Se crea una versión a mano y no se publica —lo que deja el Paso 5 si
+        muere entre crear y apuntar, o lo que hace alguien desde la consola—, y
+        después se cambia el borrador. Si la comparación cogiera «la última
+        versión creada», concluiría que no hay nada que hacer y el cambio no
+        llegaría nunca a producción.
+        """
+        nombre = f"{etiqueta}_fijada"
+        contenedor_de_pruebas(contexto, "playbook", nombre, "v3")
+        if _publicar("fijada_base")["status"] != "ok":
+            return False, "no se pudo publicar el punto de partida"
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        playbook = next(p for p in inventario["playbook"].values()
+                        if p.get("displayName") == nombre)
+        fijada_antes, _ = _lo_que_produccion_sirve(playbook["name"])
+
+        # Una versión más nueva que nadie publica. A partir de aquí, «la última
+        # creada» y «la que el entorno fija» dejan de ser la misma.
+        suelta = cx.api_post(project, contexto.region,
+                             f"{playbook['name']}/versions",
+                             {"description": f"{PREFIJO}_{run_id}_suelta"})
+        if suelta.status_code not in (200, 201):
+            return False, f"no se pudo crear la versión suelta: {suelta.status_code}"
+        creada = cx.resolve_operation(project, contexto.region, suelta)["name"]
+
+        objetivo = f"cambio posterior a la versión suelta {run_id}"
+        contenedor_de_pruebas(contexto, "playbook", nombre, objetivo)
+
+        resultado = _publicar("fijada")
+        if resultado["status"] != "ok":
+            return False, f"el Paso 5 falló: {resultado['status']}"
+        fijada_despues, version = _lo_que_produccion_sirve(playbook["name"])
+        publicado = (version or {}).get("playbook", {}).get("goal")
+        if fijada_despues == fijada_antes:
+            return False, ("producción sigue fijando la versión de antes: se "
+                           "comparó contra la última creada y el cambio se "
+                           "quedó en el borrador")
+        return publicado == f"objetivo {objetivo}", (
+            f"la versión suelta era {creada.rsplit('/', 1)[-1]} · producción "
+            f"fija ahora {fijada_despues.rsplit('/', 1)[-1]} con "
+            f"goal={publicado!r}")
+
+    runner.check(3, "Se publica comparando contra la versión que el entorno "
+                    "fija, no contra la última creada",
+                 se_publica_contra_la_fijada_no_contra_la_ultima)
+
+    def lo_borrado_sale_del_entorno():
+        """3.17 y 3.18 — un contenedor publicado que desaparece del borrador
+        sale de producción, y no estrena ninguna versión suya.
+
+        Hasta ahora el entorno solo sabía añadir o mantener: un puntero a algo
+        borrado sobrevivía a cualquier número de publicaciones y producción
+        seguía sirviendo una versión que todavía lo contenía, para siempre.
+        """
+        nombre = f"{etiqueta}_borrable"
+        creado = contenedor_de_pruebas(contexto, "playbook", nombre, "va a morir")
+        if _publicar("borrable_base")["status"] != "ok":
+            return False, "no se pudo publicar el punto de partida"
+        if creado["name"] not in versiones_fijadas_ahora(contexto):
+            return False, "el punto de partida no llegó a producción"
+
+        # Se borra en la consola de CX: ni Paso 2 ni Paso 3 intervienen.
+        respuesta = cx.api_delete(project, contexto.region, creado["name"])
+        if respuesta.status_code not in (200, 204):
+            return False, f"no se pudo borrar: {respuesta.status_code}"
+
+        # El Paso 1 lo cuenta antes de que pase.
+        avisados = pipeline.step_1_inventory(
+            project, agent_id)["data"]["comparacion_produccion"]["borrados"]
+        avisado = any(b["name"] == creado["name"] for b in avisados)
+
+        resultado = _publicar("borrable")
+        if resultado["status"] != "ok":
+            return False, f"el Paso 5 falló: {resultado['status']}"
+        fijadas = versiones_fijadas_ahora(contexto)
+        suyas = [v for v in resultado["data"]["versiones_creadas"]
+                 if v.startswith(f"{creado['name']}/")]
+        return (creado["name"] not in fijadas and not suyas and avisado), (
+            f"avisado en el Paso 1={avisado} · sigue fijado="
+            f"{creado['name'] in fijadas} · versiones nuevas suyas={len(suyas)}")
+
+    runner.check(3, "Lo borrado del borrador sale del entorno de producción, y "
+                    "no estrena ninguna versión suya",
+                 lo_borrado_sale_del_entorno)
+
+    def retirar_un_flow_alcanzable_se_explica():
+        """3.34 — CX exige que el entorno fije una versión de todos los flows
+        alcanzables desde el de inicio. Quitar uno que todavía se alcanza lo
+        rechaza, y el paso tiene que decirlo con palabras, no propagar el error
+        de la API.
+
+        Se provoca sin borrar nada: se le pide a `_apuntar_entorno` que quite el
+        puntero del flow de inicio declarándolo borrado. Borrar de verdad el
+        flow de inicio no es posible —CX no deja— así que este es el único
+        camino que llega al rechazo.
+        """
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        produccion = pipeline._buscar_entorno(contexto, inventario,
+                                              pipeline.ENTORNO_PRODUCCION)
+        fijadas = pipeline._versiones_fijadas(inventario)
+        de_flow = {c: v for c, v in fijadas.items() if "/flows/" in c}
+        if not de_flow:
+            return True, "(producción no fija ninguna versión de flow)"
+        contenedor = next(iter(de_flow))
+        sin_el_flow = [v for c, v in fijadas.items() if c != contenedor]
+        borrados = [{"tipo": "flow", "cx_id": contenedor.rsplit("/", 1)[-1],
+                     "name": contenedor, "display_name": "Default Start Flow"}]
+        try:
+            pipeline._apuntar_entorno(contexto, produccion, sin_el_flow,
+                                      borrados=borrados)
+        except pipeline.PipelineError as error:
+            mensaje = str(error)
+            claro = ("flow" in mensaje and "alcanz" in mensaje
+                     and "Default Start Flow" in mensaje)
+            return claro, f"el mensaje no se entiende: {mensaje[:200]}"
+        finally:
+            # Se deja como estaba pase lo que pase.
+            pipeline._apuntar_entorno(contexto, produccion,
+                                      sorted(fijadas.values()))
+        return True, ("CX aceptó quitar el flow del entorno: la regla de la "
+                      "cadena completa no se aplicó en este caso")
+
+    runner.check(3, "Retirar de producción un flow que todavía se alcanza se "
+                    "explica con palabras, no con el error de la API",
+                 retirar_un_flow_alcanzable_se_explica)
+
+    def un_example_versiona_su_playbook():
+        """3.19 y 3.20 — un example no tiene versión propia: la tiene su
+        playbook. Cambiarlo tiene que sacar el playbook como cambiado y crear
+        una versión **del playbook**, no del example."""
+        nombre = f"{etiqueta}_ex_pb"
+        playbook = contenedor_de_pruebas(contexto, "playbook", nombre, "con examples")
+        if _publicar("ex_base")["status"] != "ok":
+            return False, "no se pudo publicar el punto de partida"
+        fijada_antes, _ = _lo_que_produccion_sirve(playbook["name"])
+
+        respuesta = cx.api_post(
+            project, contexto.region, f"{playbook['name']}/examples",
+            {**CUERPO_MINIMO["example"], "displayName": f"{etiqueta}_ex"})
+        if respuesta.status_code not in (200, 201):
+            return False, f"no se pudo crear el example: {respuesta.status_code}"
+
+        resultado = _publicar("ex")
+        if resultado["status"] != "ok":
+            return False, f"el Paso 5 falló: {resultado['status']}"
+        creadas = resultado["data"]["versiones_creadas"]
+        del_playbook = [v for v in creadas if v.startswith(f"{playbook['name']}/")]
+        fijada_despues, version = _lo_que_produccion_sirve(playbook["name"])
+        ejemplos = len((version or {}).get("examples") or [])
+        return (len(del_playbook) == 1 and fijada_despues != fijada_antes
+                and ejemplos == 1), (
+            f"versiones del playbook={len(del_playbook)} · el entorno se movió="
+            f"{fijada_despues != fijada_antes} · examples dentro de la versión "
+            f"publicada={ejemplos}")
+
+    runner.check(3, "Añadir un example crea versión de su playbook —no del "
+                    "example— y producción la sirve con el example dentro",
+                 un_example_versiona_su_playbook)
+
+    def los_tipos_sin_version_no_generan_ninguna():
+        """3.28 y 3.29 — generator y agent_config no los versiona CX. Un cambio
+        en ellos no puede crear versión ninguna, y el Paso 3 ya avisa de que los
+        usuarios lo ven en cuanto se aplica."""
+        respuesta = cx.api_post(
+            project, contexto.region, f"{contexto.parent}/generators",
+            {**CUERPO_MINIMO["generator"], "displayName": f"{etiqueta}_gen"})
+        if respuesta.status_code not in (200, 201):
+            return False, f"no se pudo crear el generator: {respuesta.status_code}"
+        generador = respuesta.json()["name"]
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        comparacion = pipeline._contenedores_cambiados(contexto, inventario)
+        tipos = {f["tipo"] for lista in comparacion.values() for f in lista}
+        resultado = _publicar("sin_version")
+        if resultado["status"] != "ok":
+            return False, f"el Paso 5 falló: {resultado['status']}"
+        de_generadores = [v for v in resultado["data"]["versiones_creadas"]
+                          if "/generators/" in v]
+        cx.api_delete(project, contexto.region, generador)
+        return (not de_generadores
+                and not tipos & set(pipeline.TIPOS_SIN_VERSION)), (
+            f"versiones de generator creadas={len(de_generadores)} · tipos en "
+            f"la comparación={sorted(tipos)}")
+
+    runner.check(3, "Los tipos que CX no versiona no generan ninguna versión ni "
+                    "aparecen en la comparación",
+                 los_tipos_sin_version_no_generan_ninguna)
+
+    def el_viaje_de_ida_y_vuelta_no_cambia_nada():
+        """3.3 — CX → repositorio → CX.
+
+        Se crea un resource en la consola, el Paso 2 lo trae con su cabecera, y
+        el Paso 3 lo vuelve a aplicar. Si el viaje fuera fiel, el segundo tramo
+        no tiene nada que hacer: ni una operación. Cualquier campo que se
+        pierda o se invente por el camino sale aquí como un PATCH eterno.
+        """
+        nombre = f"{etiqueta}_vuelta"
+        respuesta = cx.api_post(
+            project, contexto.region, f"{contexto.parent}/intents",
+            {**CUERPO_MINIMO["intent"], "displayName": nombre})
+        if respuesta.status_code not in (200, 201):
+            return False, f"no se pudo crear en CX: {respuesta.status_code}"
+        cx_id = pipeline._cx_id_de(respuesta.json())
+
+        traido = pipeline.step_2_pull_to_repo(
+            project, agent_id, [{"tipo": "intent", "cx_id": cx_id}])["data"]
+        filas = [t for t in traido["traidos"] if t["cx_id"] == cx_id]
+        if not filas:
+            return False, "el Paso 2 no lo trajo al repositorio"
+
+        archivos = contexto.gh.read_repo_files(
+            contexto.gh.branch_head(contexto.rama))
+        documento = yaml.safe_load(archivos[filas[0]["ruta"]])
+        cabecera = documento.get("metadata", {})
+        problemas = []
+        if cabecera.get("tipo") != "intent":
+            problemas.append(f"tipo={cabecera.get('tipo')!r}")
+        if cabecera.get("cx_id") != cx_id:
+            problemas.append(f"cx_id={cabecera.get('cx_id')!r}")
+        if cabecera.get("agente") != agent_id:
+            problemas.append(f"agente={cabecera.get('agente')!r}")
+        if "padre" not in cabecera:
+            problemas.append("sin campo padre")
+        if problemas:
+            return False, "cabecera incompleta: " + " · ".join(problemas)
+
+        plan = pipeline.step_3_apply_to_cx(project, agent_id, dry_run=True)["data"]
+        sobre_el = [o for o in plan["operaciones"] if o["cx_id"] == cx_id]
+        return not sobre_el, (
+            f"el viaje de vuelta propone {[o['operacion'] for o in sobre_el]} "
+            f"sobre un resource que acaba de traerse tal cual")
+
+    runner.check(3, "El viaje CX → repositorio → CX no cambia nada: lo traído "
+                    "vuelve a aplicarse sin generar ninguna operación",
+                 el_viaje_de_ida_y_vuelta_no_cambia_nada)
+
+    def cada_cambio_se_versiona_donde_le_toca():
+        """Matriz por tipo: qué contenedor sale como cambiado según qué se toque.
+
+        Los hijos no tienen versión propia — la tiene su contenedor. Lo que se
+        comprueba aquí es el **destino** de cada cambio, que es donde se juega
+        el límite de cuota: versionar el contenedor equivocado publica una foto
+        que no incluye el cambio y quema un hueco para nada.
+
+        Se afirma sobre la comparación, que es lo que decide, y no publicando
+        cada caso: que la comparación se traduce en publicación ya lo prueban
+        los recorridos completos, y publicar catorce veces gastaría catorce
+        versiones para demostrar lo mismo.
+
+        **Hallazgo que corrige el encargo:** un webhook o un entity type que
+        ningún flow referencia **no entra en el contenido de ninguna versión**.
+        Verificado contra la API creándolos sueltos y viéndolos aparecer solo
+        después de referenciarlos desde el flow. Sueltos se comportan como los
+        tipos sin versión: los usuarios los ven al aplicarlos.
+        """
+        flow = contenedor_de_pruebas(contexto, "flow", f"{etiqueta}_matriz_flow",
+                                     "base de la matriz")
+        tool = contenedor_de_pruebas(contexto, "tool", f"{etiqueta}_matriz_tool",
+                                     "base de la matriz")
+        if _publicar("matriz_base")["status"] != "ok":
+            return False, "no se pudo publicar el punto de partida de la matriz"
+
+        def cambiados_ahora():
+            inventario, _, _ = pipeline.inventariar_cx(contexto)
+            return {c["name"] for c in
+                    pipeline._contenedores_cambiados(contexto, inventario)["cambiados"]}
+
+        if cambiados_ahora():
+            return False, "el punto de partida ya difiere: la matriz no mide nada"
+
+        casos, fallos = [], []
+
+        def probar(nombre, hacer, esperado, deshacer):
+            creado = hacer()
+            try:
+                salieron = cambiados_ahora()
+                casos.append(f"{nombre}→{len(salieron)}")
+                if salieron != esperado:
+                    fallos.append(
+                        f"{nombre}: salió {sorted(n.rsplit('/', 2)[-2] for n in salieron)} "
+                        f"y se esperaba {sorted(n.rsplit('/', 2)[-2] for n in esperado)}")
+            finally:
+                deshacer(creado)
+
+        def borrar(item):
+            if item is not None:
+                cx.api_delete(project, contexto.region, item["name"])
+
+        # page → versión de su flow
+        probar("page",
+               lambda: cx.api_post(project, contexto.region, f"{flow['name']}/pages",
+                                   {"displayName": f"{etiqueta}_m_page"}).json(),
+               {flow["name"]}, borrar)
+
+        # transition route group → versión de su flow
+        probar("transition_route_group",
+               lambda: cx.api_post(
+                   project, contexto.region,
+                   f"{flow['name']}/transitionRouteGroups",
+                   {"displayName": f"{etiqueta}_m_trg", "transitionRoutes": []}).json(),
+               {flow["name"]}, borrar)
+
+        # tool → versión suya
+        def tocar_tool():
+            return contenedor_de_pruebas(contexto, "tool",
+                                         f"{etiqueta}_matriz_tool",
+                                         f"tool cambiado {run_id}")
+        probar("tool", tocar_tool, {tool["name"]},
+               lambda _: contenedor_de_pruebas(contexto, "tool",
+                                               f"{etiqueta}_matriz_tool",
+                                               "base de la matriz"))
+
+        # flow → versión suya
+        def tocar_flow():
+            return contenedor_de_pruebas(contexto, "flow",
+                                         f"{etiqueta}_matriz_flow",
+                                         f"flow cambiado {run_id}")
+        probar("flow", tocar_flow, {flow["name"]},
+               lambda _: contenedor_de_pruebas(contexto, "flow",
+                                               f"{etiqueta}_matriz_flow",
+                                               "base de la matriz"))
+
+        # webhook y entity_type sueltos → ningún contenedor
+        probar("webhook_suelto",
+               lambda: cx.api_post(project, contexto.region,
+                                   f"{contexto.parent}/webhooks",
+                                   {**CUERPO_MINIMO["webhook"],
+                                    "displayName": f"{etiqueta}_m_wh"}).json(),
+               set(), borrar)
+        probar("entity_type_suelto",
+               lambda: cx.api_post(project, contexto.region,
+                                   f"{contexto.parent}/entityTypes",
+                                   {**CUERPO_MINIMO["entity_type"],
+                                    "displayName": f"{etiqueta}_m_et"}).json(),
+               set(), borrar)
+
+        return not fallos, f"{' · '.join(casos)} || " + " · ".join(fallos)
+
+    runner.check(3, "Cada cambio se versiona donde le toca: page y transition "
+                    "route group en su flow, tool y flow en sí mismos, y lo que "
+                    "ningún flow referencia en ninguno",
+                 cada_cambio_se_versiona_donde_le_toca)
+
+    def el_entorno_queda_legible_y_coherente():
+        """3.40 — todos los punteros del entorno resuelven a versiones que
+        existen. Un puntero roto no da error hasta que alguien lee producción,
+        y entonces ya no se sabe desde cuándo estaba mal."""
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        fijadas = pipeline._versiones_fijadas(inventario)
+        rotos = []
+        for contenedor, version in sorted(fijadas.items()):
+            if cx.api_get(project, contexto.region, version).status_code != 200:
+                rotos.append(version.rsplit("/agents/", 1)[-1])
+        return not rotos, f"{len(rotos)} punteros rotos: {rotos[:3]}"
+
+    runner.check(3, "El entorno de producción queda legible y coherente: todos "
+                    "sus punteros resuelven a versiones que existen",
+                 el_entorno_queda_legible_y_coherente)
 
     def el_rollback_queda_registrado():
         cliente = store.get_client()
@@ -2980,7 +3764,15 @@ def nivel_3(runner, project, agent_id, run_id):
             en_uso = {cf["version"]
                      for e in inventario["environment"].values()
                      for cf in e.get("versionConfigs", [])}
-            servida = next(iter(en_uso), None)
+            # La versión **de este flow** que algún entorno sirve, no una
+            # cualquiera del conjunto. Cogiendo un elemento suelto del set salía
+            # casi siempre la de un playbook, y compararla después contra la
+            # lista de versiones del flow daba «la versión en uso se borró» sin
+            # que se hubiera borrado nada: el fallo aparecía solo cuando el
+            # entorno fijaba varios contenedores, así que llevaba latente desde
+            # que se escribió.
+            servida = next((v for v in sorted(en_uso)
+                            if v.startswith(f"{flow['name']}/versions/")), None)
 
             problemas = []
             if len(vivas_antes) < 4:
@@ -3808,6 +4600,79 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                     "señala como conflicto, no se resuelve en silencio a favor "
                     "del repositorio",
                  se_detecta_el_conflicto_de_los_dos_lados)
+
+    def si_no_se_puede_comparar_un_flow_el_paso_para():
+        """4.1 — nunca publicar a ciegas.
+
+        Si `compareVersions` falla, no se sabe si el flow cambió. Tratarlo como
+        «sin cambios» sería exactamente el fallo que todo esto corrige, entrando
+        por la puerta de un error de red: el paso diría que fue bien y el cambio
+        se quedaría en el borrador.
+
+        Se inyecta el fallo solo en ese endpoint, para que el resto del paso
+        funcione igual que siempre y el corte no lo provoque otra cosa.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        fijadas = pipeline._versiones_fijadas(inventario)
+        if not any("/flows/" in c for c in fijadas):
+            return True, "(producción no fija ninguna versión de flow)"
+
+        original = cx.api_request
+
+        def rompe_solo_la_comparacion(method, proj, region, path, *args, **kwargs):
+            if path.endswith(":compareVersions"):
+                return _RespuestaFalsa(503, {"error": "servicio no disponible"})
+            return original(method, proj, region, path, *args, **kwargs)
+
+        cx.api_request = rompe_solo_la_comparacion
+        try:
+            pipeline._contenedores_cambiados(contexto, inventario)
+            return False, ("la comparación falló y se siguió adelante: el flow "
+                           "se habría dado por publicado sin serlo")
+        except pipeline.PipelineError as error:
+            mensaje = str(error)
+            return ("503" in mensaje and "no se publica" in mensaje.lower()), \
+                f"el mensaje no explica por qué se para: {mensaje[:180]}"
+        finally:
+            cx.api_request = original
+
+    runner.check(4, "Si no se puede comparar un flow, el paso para y lo dice — "
+                    "nunca publica asumiendo que no cambió",
+                 si_no_se_puede_comparar_un_flow_el_paso_para)
+
+    def ninguna_version_creada_sobra():
+        """4.4 — la cuota, contada.
+
+        Ninguna versión creada puede corresponder a un contenedor que no
+        difería de lo que producción sirve. Es la regla del mínimo consumo
+        medida sobre el resultado, no sobre la intención.
+        """
+        contexto = pipeline.Contexto(project, agent_id)
+        contenedor_de_pruebas(contexto, "playbook", f"{PREFIJO}_{run_id}_cuota",
+                              f"cuota {run_id}")
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        comparacion = pipeline._contenedores_cambiados(contexto, inventario)
+        difieren = {c["name"] for c in comparacion["cambiados"]}
+        al_dia = {c["name"] for c in comparacion["iguales"]}
+
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
+        resultado = pipeline.step_5_publish(project, agent_id,
+                                            f"{PREFIJO}_{run_id}_cuota")
+        if resultado["status"] != "ok":
+            return False, f"el Paso 5 falló: {resultado['status']}"
+        creadas = resultado["data"]["versiones_creadas"]
+        padres = {v.rsplit("/versions/", 1)[0] for v in creadas}
+        sobran = padres & al_dia
+        fuera = padres - difieren
+        return not sobran and not fuera, (
+            f"{len(creadas)} versiones creadas · {len(sobran)} de contenedores "
+            f"que no cambiaron · {len(fuera)} de contenedores que ni siquiera "
+            f"estaban en la lista")
+
+    runner.check(4, "Cuota: ninguna versión creada corresponde a un contenedor "
+                    "que no cambió",
+                 ninguna_version_creada_sobra)
 
     def limpiar_repositorio_del_nivel_4():
         """Devuelve las dos ramas al punto en que empezó el nivel.
