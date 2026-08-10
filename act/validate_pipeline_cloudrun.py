@@ -50,6 +50,15 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # El panel es la especificación: varios checks lo contrastan contra el código.
 PANEL = "docs/panels/act_cx_resources_deploy_v2.html"
+# Y el que sirve Cloud Run de verdad. Son dos archivos y los dos tienen que
+# enseñar lo mismo: un aviso que solo existe en la especificación no lo ve nadie.
+PANEL_CLOUDRUN = "docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html"
+
+# El campo con que el Paso 1 cuenta lo que la comparación contra producción
+# averiguó, y el `id` con que ese dato aparece en pantalla. Viven aquí porque
+# los usan varios checks y el panel: si cambian, cambian en un solo sitio.
+CAMPO_COMPARACION = "comparacion_produccion"
+ID_AVISO_BORRADOS = "aviso-borrados-produccion"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -200,7 +209,273 @@ class ContadorHttp:
         return False
 
     def escrituras(self):
-        return [c for c in self.llamadas if c[0] in ("POST", "PATCH", "DELETE", "PUT")]
+        """Las llamadas que mutan el agente.
+
+        `compareVersions` viaja como POST porque lleva cuerpo, pero no muta
+        nada: compara dos versiones y devuelve las dos fotos. Contarla como
+        escritura haría fallar todo lo que mide «esto no escribe» en cuanto la
+        comparación de producción entra en juego, y taparlo caso por caso
+        acabaría con cada check llevando su propia excepción. Se nombra aquí una
+        sola vez, y `escrituras_crudas` permite demostrar que es la única que
+        ocurre — que es lo que impide que esta puerta se ensanche sola.
+        """
+        return [c for c in self.escrituras_crudas()
+                if not any(c[1].endswith(sufijo)
+                           for sufijo in LECTURAS_CON_VERBO_DE_ESCRITURA)]
+
+    def escrituras_crudas(self):
+        """Todo verbo de escritura, sin excepciones ni criterio."""
+        return [c for c in self.llamadas
+                if c[0] in ("POST", "PATCH", "DELETE", "PUT")]
+
+
+# Lo único que puede llegar con verbo de escritura sin serlo. Verificado contra
+# la documentación y contra la API: `compareVersions` solo lee.
+LECTURAS_CON_VERBO_DE_ESCRITURA = (":compareVersions",)
+
+
+# ── Agente ficticio · para comparar sin red ──────────────────────────────────
+#
+# El grueso de la cobertura de la comparación borrador ↔ producción no toca la
+# red: se construye un inventario con la forma exacta que devuelve
+# `inventariar_cx` —{tipo: {cx_id: item}}— y se le pasa a la función. Así los
+# seis casos se prueban sin credenciales, sin agente y sin gastar una llamada.
+
+AGENTE_FICTICIO = "projects/proyecto-ficticio/locations/region-ficticia/agents/agente-ficticio"
+
+
+class ContextoFicticio:
+    """Lo mínimo que la comparación pide de un contexto: dónde llamar."""
+
+    def __init__(self, project="proyecto-ficticio", region="region-ficticia"):
+        self.project = project
+        self.region = region
+        self.parent = AGENTE_FICTICIO
+
+
+class CompareVersionsFalso:
+    """Doble del endpoint de comparación de flows, para el Nivel 0.
+
+    Sustituye `cx.api_request` igual que hace `ContadorHttp`, y contesta según
+    lo que se le diga por versión: iguales, distintos, o el estado HTTP que se
+    quiera simular. Cualquier llamada que no sea `compareVersions` revienta a
+    propósito — si el código toca la red por otro camino, el check tiene que
+    enterarse en vez de pasar por casualidad.
+    """
+
+    def __init__(self, iguales=True, status=200):
+        self.iguales = iguales
+        self.status = status
+        self.llamadas = []
+        self._original = None
+
+    def __enter__(self):
+        self._original = cx.api_request
+
+        def doble(method, project, region, path, body=None, **kwargs):
+            if not path.endswith(":compareVersions"):
+                raise AssertionError(
+                    f"El Nivel 0 no habla con la red: {method} {path}"
+                )
+            self.llamadas.append((method, path, (body or {}).get("targetVersion")))
+            iguales = (self.iguales(path) if callable(self.iguales)
+                       else self.iguales)
+            return _RespuestaFalsa(self.status, {
+                "baseVersionContentJson": '{"flow":"publicado"}',
+                "targetVersionContentJson": ('{"flow":"publicado"}' if iguales
+                                             else '{"flow":"borrador"}'),
+                "compareTime": "2026-08-11T00:00:00Z",
+            })
+
+        cx.api_request = doble
+        return self
+
+    def __exit__(self, *_):
+        cx.api_request = self._original
+        return False
+
+
+class _RespuestaFalsa:
+    def __init__(self, status_code, cuerpo):
+        self.status_code = status_code
+        self._cuerpo = cuerpo
+        self.text = str(cuerpo)
+
+    def json(self):
+        return self._cuerpo
+
+
+def _ficticio_playbook(cx_id, goal="objetivo", display=None):
+    """Un playbook del borrador, con los campos que la API devuelve de más."""
+    return {"name": f"{AGENTE_FICTICIO}/playbooks/{cx_id}",
+            "displayName": display or cx_id, "goal": goal,
+            "playbookType": "ROUTINE",
+            "instruction": {"steps": [{"text": "haz algo"}]},
+            # Campos que gestiona la API: no pueden contar como contenido.
+            "tokenCount": 120, "createTime": "2026-01-01T00:00:00Z"}
+
+
+def _ficticio_example(cx_id, playbook_id, texto="hola"):
+    return {"name": f"{AGENTE_FICTICIO}/playbooks/{playbook_id}/examples/{cx_id}",
+            "displayName": cx_id,
+            "actions": [{"userUtterance": {"text": texto}},
+                        {"agentUtterance": {"text": texto}}],
+            "conversationState": "OUTPUT_STATE_OK", "tokenCount": 9}
+
+
+def _ficticio_tool(cx_id, descripcion="herramienta"):
+    return {"name": f"{AGENTE_FICTICIO}/tools/{cx_id}", "displayName": cx_id,
+            "description": descripcion, "toolType": "CUSTOMIZED_TOOL",
+            "openApiSpec": {"textSchema": "openapi: 3.0.0"}}
+
+
+def _ficticio_flow(cx_id, display=None):
+    return {"name": f"{AGENTE_FICTICIO}/flows/{cx_id}",
+            "displayName": display or cx_id, "nluSettings": {}}
+
+
+def _ficticia_version(contenedor, numero, contenido=None, hijos=None,
+                      clave_contenido=None, clave_hijos=None):
+    """Una versión con la forma exacta que devuelve el LIST de CX.
+
+    Verificado el 2026-08-11: el LIST de un playbook devuelve `playbook` y
+    `examples` en línea, el de un tool devuelve `tool`, y el de un flow no
+    devuelve contenido ninguno.
+    """
+    version = {"name": f"{contenedor}/versions/{numero}",
+               "description": "etiqueta", "updateTime": "2026-08-01T00:00:00Z"}
+    if clave_contenido:
+        version[clave_contenido] = contenido
+    if hijos:
+        version[clave_hijos] = hijos
+    return version
+
+
+def _ficticio_inventario(playbooks=(), examples=(), tools=(), flows=(),
+                         versiones=(), fijadas=(), con_entorno=True):
+    """Monta el inventario con las mismas claves que usa `inventariar_cx`.
+
+    Las versiones se indexan por `_clave_de_version` y el resto por su cx_id,
+    exactamente como el inventario real: si esa regla cambiara, estos checks
+    dejarían de estar probando lo que el Paso 5 recibe.
+    """
+    inventario = {tipo: {} for tipo in pipeline.RESOURCE_TYPES}
+    for tipo, items in (("playbook", playbooks), ("example", examples),
+                        ("tool", tools), ("flow", flows)):
+        for item in items:
+            inventario[tipo][pipeline._cx_id_de(item)] = item
+    for version in versiones:
+        inventario["version"][pipeline._clave_de_version(version)] = version
+    if con_entorno:
+        inventario["environment"]["env-ficticio"] = {
+            "name": f"{AGENTE_FICTICIO}/environments/env-ficticio",
+            "displayName": pipeline.ENTORNO_PRODUCCION,
+            "versionConfigs": [{"version": v} for v in fijadas],
+        }
+    return inventario
+
+
+def agente_ficticio_completo():
+    """Los seis casos de la tabla del encargo, en un solo agente.
+
+        playbook A  contenido idéntico a su versión publicada  → igual
+        playbook B  contenido distinto                         → cambiado
+        playbook C  en el borrador, sin ninguna versión        → cambiado
+        flow F      contenido distinto                         → cambiado
+        tool T      contenido idéntico                         → igual
+        playbook D  fijado en el entorno, ausente del borrador  → borrado
+    """
+    a = _ficticio_playbook("A", "objetivo de A")
+    b = _ficticio_playbook("B", "objetivo NUEVO de B")
+    c = _ficticio_playbook("C", "objetivo de C")
+    d_congelado = _ficticio_playbook("D", "objetivo de D")
+    t = _ficticio_tool("T")
+    f = _ficticio_flow("F")
+
+    versiones = [
+        # A: la foto congelada es idéntica al borrador salvo en los campos que
+        # gestiona la API — que no pueden contar como contenido.
+        _ficticia_version(a["name"], 1,
+                          {**a, "tokenCount": 999, "createTime": "2020-01-01T00:00:00Z"},
+                          clave_contenido="playbook"),
+        # B: la foto congelada tiene el objetivo viejo.
+        _ficticia_version(b["name"], 1, {**b, "goal": "objetivo VIEJO de B"},
+                          clave_contenido="playbook"),
+        _ficticia_version(t["name"], 1, dict(t), clave_contenido="tool"),
+        _ficticia_version(f["name"], 1),
+        _ficticia_version(d_congelado["name"], 1, d_congelado,
+                          clave_contenido="playbook"),
+    ]
+    fijadas = [v["name"] for v in versiones]
+    return _ficticio_inventario(
+        playbooks=[a, b, c], tools=[t], flows=[f],
+        versiones=versiones, fijadas=fijadas,
+    )
+
+
+def comparar_ficticio(inventario, iguales=True, status=200):
+    """Corre la comparación real contra un inventario de mentira."""
+    with CompareVersionsFalso(iguales=iguales, status=status):
+        return pipeline._contenedores_cambiados(ContextoFicticio(), inventario)
+
+
+def _nombres(filas):
+    return sorted(f["cx_id"] for f in filas)
+
+
+def contenedor_de_pruebas(contexto, tipo, nombre, marca):
+    """Crea —o modifica— un contenedor propio del validador y lo devuelve.
+
+    Cada llamada deja una marca distinta dentro del contenedor, así que llamarla
+    dos veces con marcas distintas garantiza que difiere de cualquier versión
+    creada antes. Es la forma de provocar «hay algo que publicar» ahora que el
+    Paso 5 lo decide mirando el borrador y no leyendo una lista: sembrar una
+    anotación en Firestore ya no provoca nada.
+
+    Lleva el prefijo en su nombre para que el barrido de restos lo reconozca.
+    Modificar un contenedor que ya estuviera en el agente dejaría su contenido
+    cambiado sin que nada lo devolviera a su sitio, porque la limpieza borra por
+    nombre y ese no lo lleva.
+    """
+    spec = pipeline.RESOURCE_TYPES[tipo]
+    ruta = f"{contexto.parent}/{spec['api']}"
+    existentes = cx.list_all_pages(contexto.project, contexto.region, ruta,
+                                   spec["key"])
+    actual = next((x for x in existentes if x.get("displayName") == nombre), None)
+    cuerpo = {**CUERPO_MINIMO[tipo], "displayName": nombre}
+    if tipo == "playbook":
+        cuerpo["goal"] = f"objetivo {marca}"
+    else:
+        cuerpo["description"] = marca
+
+    if actual is None:
+        respuesta = cx.api_post(contexto.project, contexto.region, ruta, cuerpo)
+    else:
+        # Full Update: el remoto entero como base y lo nuevo por encima. Sin la
+        # base, un PATCH sin updateMask borra lo que no se menciona.
+        fusionado = {**{k: v for k, v in actual.items()
+                        if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS},
+                     **cuerpo}
+        respuesta = cx.api_patch(contexto.project, contexto.region,
+                                 actual["name"], fusionado)
+    if respuesta.status_code not in (200, 201):
+        raise AssertionError(
+            f"no se pudo preparar el {tipo} de pruebas {nombre}: "
+            f"{respuesta.status_code} {respuesta.text[:150]}"
+        )
+    return cx.resolve_operation(contexto.project, contexto.region, respuesta)
+
+
+def versiones_fijadas_ahora(contexto, entorno=None):
+    """Qué versión fija cada contenedor en el entorno, releído de CX.
+
+    Releído, no de una foto: comprobar «producción sirve exactamente esto» con
+    un inventario de antes de publicar demostraría lo contrario de lo que se
+    quiere demostrar.
+    """
+    inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["environment"])
+    return pipeline._versiones_fijadas(
+        inventario, entorno or pipeline.ENTORNO_PRODUCCION)
 
 
 # ── Guardas ──────────────────────────────────────────────────────────────────
@@ -859,6 +1134,423 @@ def nivel_0(runner):
 
     runner.check(0, "El comando IAM que muestra el panel se puede pegar tal cual",
                  el_comando_iam_se_puede_copiar)
+
+    # ── La comparación borrador ↔ producción, contra el agente ficticio ──────
+    #
+    # Aquí está el grueso de la cobertura del cambio, y no toca la red: el
+    # inventario se fabrica en memoria con la forma exacta de `inventariar_cx`,
+    # y la única llamada que la comparación haría —`compareVersions` de un
+    # flow— la contesta un doble.
+
+    def el_agente_ficticio_se_reparte_como_toca():
+        """0.1 — los seis casos de una vez, en un solo agente."""
+        resultado = comparar_ficticio(agente_ficticio_completo(), iguales=False)
+        esperado = {"cambiados": ["B", "C", "F"], "iguales": ["A", "T"],
+                    "borrados": ["D"]}
+        real = {clave: _nombres(filas) for clave, filas in resultado.items()}
+        return real == esperado, f"esperado {esperado} · real {real}"
+
+    runner.check(0, "El agente ficticio completo produce el reparto esperado: "
+                    "cambiados, iguales y borrados",
+                 el_agente_ficticio_se_reparte_como_toca)
+
+    def contenido_identico_no_es_un_cambio():
+        """0.2 — y 0.8: un cambio solo en los campos que gestiona la API
+        tampoco. La versión de A trae otro `tokenCount` y otro `createTime`."""
+        resultado = comparar_ficticio(agente_ficticio_completo(), iguales=False)
+        return "A" not in _nombres(resultado["cambiados"]), \
+            "un playbook idéntico a su versión publicada salió como cambiado"
+
+    runner.check(0, "Contenido idéntico no aparece como cambiado",
+                 contenido_identico_no_es_un_cambio)
+
+    def contenido_distinto_es_un_cambio():
+        """0.3"""
+        resultado = comparar_ficticio(agente_ficticio_completo(), iguales=False)
+        return "B" in _nombres(resultado["cambiados"]), \
+            "un playbook con otro contenido no salió como cambiado"
+
+    runner.check(0, "Contenido distinto aparece como cambiado",
+                 contenido_distinto_es_un_cambio)
+
+    def sin_ninguna_version_es_un_cambio():
+        """0.4 — necesita su primera versión."""
+        resultado = comparar_ficticio(agente_ficticio_completo(), iguales=False)
+        fila = next((f for f in resultado["cambiados"] if f["cx_id"] == "C"), None)
+        return fila is not None and fila["version_fijada"] is None, \
+            "un contenedor sin ninguna versión no salió como cambiado"
+
+    runner.check(0, "Un contenedor sin ninguna versión aparece como cambiado",
+                 sin_ninguna_version_es_un_cambio)
+
+    def fijado_y_ausente_es_un_borrado():
+        """0.5 — producción lo sirve y el borrador ya no lo tiene."""
+        resultado = comparar_ficticio(agente_ficticio_completo(), iguales=False)
+        fila = next((f for f in resultado["borrados"] if f["cx_id"] == "D"), None)
+        problemas = []
+        if fila is None:
+            problemas.append("D no salió como borrado")
+        else:
+            if fila["tipo"] != "playbook":
+                problemas.append(f"tipo {fila['tipo']!r} en vez de playbook")
+            if not fila["version_fijada"]:
+                problemas.append("sin decir qué versión lo fija")
+        if "D" in _nombres(resultado["cambiados"]):
+            problemas.append("además salió como cambiado")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Fijado en el entorno y ausente del borrador aparece como "
+                    "borrado",
+                 fijado_y_ausente_es_un_borrado)
+
+    def entorno_vacio_saca_todo_como_cambiado():
+        """0.6 — el agente nunca publicado: todo pendiente, nada borrado."""
+        inventario = agente_ficticio_completo()
+        inventario["environment"]["env-ficticio"]["versionConfigs"] = []
+        resultado = comparar_ficticio(inventario, iguales=False)
+        problemas = []
+        if _nombres(resultado["cambiados"]) != ["A", "B", "C", "F", "T"]:
+            problemas.append(f"cambiados {_nombres(resultado['cambiados'])}")
+        if resultado["borrados"]:
+            problemas.append(f"borrados {_nombres(resultado['borrados'])}")
+        if resultado["iguales"]:
+            problemas.append(f"iguales {_nombres(resultado['iguales'])}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Entorno vacío: todos los contenedores salen como cambiados "
+                    "y ninguno como borrado",
+                 entorno_vacio_saca_todo_como_cambiado)
+
+    def sin_entorno_de_produccion_no_revienta():
+        """0.7 — el Paso 1 lee esto solo para informar: ahí no toca romper."""
+        inventario = agente_ficticio_completo()
+        inventario["environment"] = {}
+        resultado = comparar_ficticio(inventario, iguales=False)
+        return (_nombres(resultado["cambiados"]) == ["A", "B", "C", "F", "T"]
+                and not resultado["borrados"]), \
+            f"con el agente sin entorno devolvió {resultado}"
+
+    runner.check(0, "Un agente sin entorno de producción no revienta: devuelve "
+                    "algo coherente",
+                 sin_entorno_de_produccion_no_revienta)
+
+    def los_campos_que_gestiona_la_api_no_son_contenido():
+        """0.8 — explícito, cambiando solo `createTime` en la foto congelada."""
+        a = _ficticio_playbook("A")
+        version = _ficticia_version(
+            a["name"], 1,
+            {**a, "createTime": "1999-01-01T00:00:00Z", "tokenCount": 7,
+             "name": "otra/ruta/entera"},
+            clave_contenido="playbook")
+        inventario = _ficticio_inventario(playbooks=[a], versiones=[version],
+                                          fijadas=[version["name"]])
+        resultado = comparar_ficticio(inventario)
+        return _nombres(resultado["iguales"]) == ["A"], \
+            f"un cambio solo en CAMPOS_LEIDOS_NO_ENVIADOS contó como cambio: {resultado}"
+
+    runner.check(0, "Un cambio solo en los campos que gestiona la API no cuenta "
+                    "como cambio",
+                 los_campos_que_gestiona_la_api_no_son_contenido)
+
+    def cambiar_un_example_cambia_su_playbook():
+        """0.9 — un playbook y sus examples son un solo contenedor."""
+        a = _ficticio_playbook("A")
+        congelado = _ficticio_example("E1", "A", texto="hola")
+        vivo = _ficticio_example("E1", "A", texto="hola CAMBIADO")
+        version = _ficticia_version(a["name"], 1, dict(a), hijos=[congelado],
+                                    clave_contenido="playbook",
+                                    clave_hijos="examples")
+        inventario = _ficticio_inventario(playbooks=[a], examples=[vivo],
+                                          versiones=[version],
+                                          fijadas=[version["name"]])
+        resultado = comparar_ficticio(inventario)
+        return _nombres(resultado["cambiados"]) == ["A"], \
+            f"cambiar un example no sacó su playbook como cambiado: {resultado}"
+
+    runner.check(0, "Cambiar un example hace que su playbook salga como cambiado",
+                 cambiar_un_example_cambia_su_playbook)
+
+    def borrar_un_example_cambia_su_playbook():
+        """0.14 — el borrado de un hijo es un cambio del contenedor.
+
+        Es el caso que se escapa si la comparación solo mira el contenedor:
+        el playbook está igual, y aun así lo que producción sirve ya no es lo
+        que hay en el borrador.
+        """
+        a = _ficticio_playbook("A")
+        congelado = _ficticio_example("E1", "A")
+        version = _ficticia_version(a["name"], 1, dict(a), hijos=[congelado],
+                                    clave_contenido="playbook",
+                                    clave_hijos="examples")
+        # El borrador ya no tiene ese example.
+        inventario = _ficticio_inventario(playbooks=[a], examples=[],
+                                          versiones=[version],
+                                          fijadas=[version["name"]])
+        resultado = comparar_ficticio(inventario)
+        return _nombres(resultado["cambiados"]) == ["A"], \
+            f"borrar un example no sacó su playbook como cambiado: {resultado}"
+
+    runner.check(0, "Borrar un example hace que su playbook salga como cambiado",
+                 borrar_un_example_cambia_su_playbook)
+
+    def anadir_el_primer_example_cambia_su_playbook():
+        """0.14 bis — CX omite `examples` cuando no había ninguno, en vez de
+        devolver una lista vacía. Tratar la ausencia como «no sé» dejaría pasar
+        el primer example de cada playbook."""
+        a = _ficticio_playbook("A")
+        version = _ficticia_version(a["name"], 1, dict(a),
+                                    clave_contenido="playbook")
+        inventario = _ficticio_inventario(
+            playbooks=[a], examples=[_ficticio_example("E1", "A")],
+            versiones=[version], fijadas=[version["name"]])
+        resultado = comparar_ficticio(inventario)
+        return _nombres(resultado["cambiados"]) == ["A"], \
+            f"añadir el primer example no sacó su playbook como cambiado: {resultado}"
+
+    runner.check(0, "Añadir el primer example de un playbook lo saca como cambiado",
+                 anadir_el_primer_example_cambia_su_playbook)
+
+    def los_tipos_sin_version_no_aparecen_nunca():
+        """0.10 — generator y agent_config no se versionan, así que no pueden
+        salir como cambiados: proponerlos sería proponer una llamada que CX
+        rechaza."""
+        inventario = agente_ficticio_completo()
+        inventario["generator"]["G"] = {
+            "name": f"{AGENTE_FICTICIO}/generators/G", "displayName": "G",
+            "promptText": {"text": "resume"}}
+        inventario["agent_config"]["agente-ficticio"] = {
+            "name": AGENTE_FICTICIO, "displayName": "agente"}
+        resultado = comparar_ficticio(inventario, iguales=False)
+        tipos = {f["tipo"] for lista in resultado.values() for f in lista}
+        sobran = tipos & set(pipeline.TIPOS_SIN_VERSION)
+        return not sobran, f"aparecen tipos sin versión: {sorted(sobran)}"
+
+    runner.check(0, "generator y agent_config no aparecen nunca en la comparación",
+                 los_tipos_sin_version_no_aparecen_nunca)
+
+    def un_tool_nativo_no_se_propone():
+        """Los tools que trae la plataforma no admiten versión — CX contesta
+        404 al pedirla. Proponerlos gastaría una llamada segura de fallar y
+        ensuciaría el recuento de lo que se versiona."""
+        nativo = {**_ficticio_tool("df-code-interpreter-tool"),
+                  "toolType": "BUILTIN_TOOL"}
+        inventario = _ficticio_inventario(tools=[nativo])
+        resultado = comparar_ficticio(inventario)
+        vacio = not any(resultado.values())
+        return vacio, f"un tool nativo se coló en la comparación: {resultado}"
+
+    runner.check(0, "Un tool nativo de la plataforma no se propone para versionar",
+                 un_tool_nativo_no_se_propone)
+
+    def la_comparacion_es_determinista():
+        """0.11 — mismo inventario, mismo resultado y mismo orden."""
+        inventario = agente_ficticio_completo()
+        primera = comparar_ficticio(inventario, iguales=False)
+        segunda = comparar_ficticio(inventario, iguales=False)
+        return primera == segunda, "dos llamadas dieron resultados distintos"
+
+    runner.check(0, "Determinismo: dos llamadas con el mismo inventario dan el "
+                    "mismo resultado y el mismo orden",
+                 la_comparacion_es_determinista)
+
+    def se_compara_contra_la_version_fijada_no_contra_la_ultima():
+        """0.12 — el check que caza el error que reproduciría el fallo original.
+
+        El entorno fija la `v3`. Existe además una `v4`, creada y nunca
+        publicada: el Paso 5 murió a mitad, o alguien la creó a mano. El
+        borrador coincide con la `v4` y no con la `v3`.
+
+        Comparando contra la fijada, el contenedor sale como **cambiado** y el
+        cambio llega a producción. Comparando contra «la última», saldría como
+        igual, no se crearía versión ninguna, el paso diría que fue bien y el
+        cambio se quedaría en el borrador para siempre.
+        """
+        borrador = _ficticio_playbook("A", "objetivo NUEVO")
+        v3 = _ficticia_version(borrador["name"], 3,
+                               {**borrador, "goal": "objetivo VIEJO"},
+                               clave_contenido="playbook")
+        v4 = _ficticia_version(borrador["name"], 4, dict(borrador),
+                               clave_contenido="playbook")
+        inventario = _ficticio_inventario(playbooks=[borrador],
+                                          versiones=[v3, v4],
+                                          fijadas=[v3["name"]])
+        resultado = comparar_ficticio(inventario)
+        fila = next((f for f in resultado["cambiados"] if f["cx_id"] == "A"), None)
+        if fila is None:
+            return False, ("se comparó contra la última versión creada (v4) y "
+                           "no contra la que el entorno fija (v3): el cambio no "
+                           "habría llegado nunca a producción")
+        return fila["version_fijada"] == v3["name"], \
+            f"dice comparar contra {fila['version_fijada']}"
+
+    runner.check(0, "Se compara contra la versión que el entorno FIJA, no contra "
+                    "la última creada",
+                 se_compara_contra_la_version_fijada_no_contra_la_ultima)
+
+    def con_versiones_pero_sin_puntero_es_un_cambio():
+        """0.13 — tener versiones no es estar publicado."""
+        a = _ficticio_playbook("A")
+        version = _ficticia_version(a["name"], 1, dict(a),
+                                    clave_contenido="playbook")
+        inventario = _ficticio_inventario(playbooks=[a], versiones=[version],
+                                          fijadas=[])
+        resultado = comparar_ficticio(inventario)
+        return _nombres(resultado["cambiados"]) == ["A"], \
+            f"un contenedor con versiones y sin puntero no salió como cambiado: {resultado}"
+
+    runner.check(0, "Un contenedor con versiones pero sin puntero en el entorno "
+                    "sale como cambiado",
+                 con_versiones_pero_sin_puntero_es_un_cambio)
+
+    def una_version_fijada_que_ya_no_existe_es_un_cambio():
+        """Alguien borró en la consola la versión que producción fijaba. Sin
+        con qué comparar, lo seguro es republicar — nunca dar por bueno."""
+        a = _ficticio_playbook("A")
+        inventario = _ficticio_inventario(
+            playbooks=[a], versiones=[],
+            fijadas=[f"{a['name']}/versions/9"])
+        resultado = comparar_ficticio(inventario)
+        return _nombres(resultado["cambiados"]) == ["A"], \
+            f"una versión fijada inexistente no sacó su contenedor como cambiado: {resultado}"
+
+    runner.check(0, "Si la versión que el entorno fija ya no existe, el "
+                    "contenedor sale como cambiado",
+                 una_version_fijada_que_ya_no_existe_es_un_cambio)
+
+    def un_borrador_vacio_no_revienta():
+        """0.15 — agente degenerado, sin ningún contenedor."""
+        resultado = comparar_ficticio(_ficticio_inventario())
+        return resultado == {"cambiados": [], "borrados": [], "iguales": []}, \
+            f"un borrador sin contenedores devolvió {resultado}"
+
+    runner.check(0, "Un borrador sin ningún contenedor no revienta",
+                 un_borrador_vacio_no_revienta)
+
+    def el_paso_5_ya_no_recuerda():
+        """0.16 — el mecanismo de la lista de Firestore ya no existe."""
+        rastros = []
+        for ruta in ARCHIVOS_PIPELINE:
+            texto = (REPO_ROOT / ruta).read_text()
+            for termino in ("list_pending_publication", "mark_published",
+                            "pendiente_publicar"):
+                if termino in texto:
+                    rastros.append(f"{ruta}: {termino}")
+        return not rastros, " · ".join(rastros)
+
+    runner.check(0, "El Paso 5 ya no recuerda: list_pending_publication, "
+                    "mark_published y pendiente_publicar no aparecen",
+                 el_paso_5_ya_no_recuerda)
+
+    def padres_versionables_ya_no_existe():
+        """0.17 — la traducción de «pendientes» a contenedores ya no hace falta:
+        la comparación devuelve contenedores directamente."""
+        texto = (REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py").read_text()
+        return "_padres_versionables" not in texto, \
+            "_padres_versionables sigue en el pipeline"
+
+    runner.check(0, "_padres_versionables ya no existe ni se llama",
+                 padres_versionables_ya_no_existe)
+
+    def la_deteccion_de_conflicto_sigue_en_pie():
+        """0.18 — anti-regresión. `huella_cx` y `record_resource_write` viven en
+        el mismo documento de Firestore que la marca que se retiró, pero sirven
+        para otra cosa: son el tercer punto de referencia que permite avisar de
+        que un resource cambió en el repositorio y en CX a la vez. Esa
+        protección importa **más** después de este cambio, porque ahora se edita
+        en la consola a propósito.
+        """
+        arbol = ast.parse((REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py")
+                          .read_text())
+        definidas = {n.name for n in ast.walk(arbol)
+                     if isinstance(n, ast.FunctionDef)}
+        llamadas = {(n.func.attr if isinstance(n.func, ast.Attribute)
+                     else getattr(n.func, "id", None))
+                    for n in ast.walk(arbol) if isinstance(n, ast.Call)}
+        firestore = (REPO_ROOT / "act/utils/firestore_client_cloudrun.py").read_text()
+        faltan = []
+        if "_marcar_conflicto" not in definidas:
+            faltan.append("_marcar_conflicto ya no se define")
+        if "_marcar_conflicto" not in llamadas:
+            faltan.append("_marcar_conflicto ya no se llama")
+        if "record_resource_write" not in llamadas:
+            faltan.append("record_resource_write ya no se llama")
+        if "def record_resource_write" not in firestore:
+            faltan.append("record_resource_write ya no existe en Firestore")
+        if "huella_cx" not in firestore:
+            faltan.append("huella_cx ya no se guarda")
+        if not any("huella_cx" in ast.dump(n) for n in ast.walk(arbol)):
+            faltan.append("el pipeline ya no lee huella_cx")
+        return not faltan, " · ".join(faltan)
+
+    runner.check(0, "Anti-regresión: la detección de conflicto sigue entera — "
+                    "huella_cx, record_resource_write y _marcar_conflicto",
+                 la_deteccion_de_conflicto_sigue_en_pie)
+
+    def only_pending_del_paso_3_sigue_intacto():
+        """0.19 — anti-regresión. Se llama parecido y no tiene nada que ver: es
+        el filtro de «reintentar solo lo que falló», lo manda el panel en la
+        petición y no lee Firestore."""
+        firma = inspect.signature(pipeline.step_3_apply_to_cx)
+        if "only_pending" not in firma.parameters:
+            return False, "step_3_apply_to_cx ya no acepta only_pending"
+        fuente = inspect.getsource(pipeline.step_3_apply_to_cx)
+        if "if only_pending:" not in fuente:
+            return False, "only_pending ya no filtra nada"
+        # Y sigue sin leer Firestore para decidirlo.
+        if "list_pending" in fuente:
+            return False, "only_pending pasó a leer Firestore"
+        return True, ""
+
+    runner.check(0, "Anti-regresión: el parámetro only_pending del Paso 3 sigue "
+                    "intacto y sigue sin leer Firestore",
+                 only_pending_del_paso_3_sigue_intacto)
+
+    def el_panel_ensena_los_borrados_que_el_paso_1_detecta():
+        """0.20 — el dato nuevo del Paso 1 llega a la pantalla con un `id`.
+
+        Mismo criterio que `aviso-sin-entorno`: un `id` concreto, no un texto
+        suelto que pueda estar hablando de otra cosa. Y en los dos paneles — el
+        de especificación y el que sirve Cloud Run—, porque un aviso que solo
+        existe en la especificación no lo ve nadie.
+        """
+        arbol = ast.parse((REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py")
+                          .read_text())
+        funcion = next(n for n in ast.walk(arbol)
+                       if isinstance(n, ast.FunctionDef)
+                       and n.name == "step_1_inventory")
+        devueltos = {
+            clave.value for nodo in ast.walk(funcion)
+            if isinstance(nodo, ast.Dict)
+            for clave in nodo.keys
+            if isinstance(clave, ast.Constant) and isinstance(clave.value, str)
+        }
+        problemas = []
+        if CAMPO_COMPARACION not in devueltos:
+            problemas.append(
+                f"el Paso 1 no devuelve `{CAMPO_COMPARACION}`")
+        for ruta in (PANEL, PANEL_CLOUDRUN):
+            texto = (REPO_ROOT / ruta).read_text()
+            if ID_AVISO_BORRADOS not in texto:
+                problemas.append(f"{ruta} no tiene el id `{ID_AVISO_BORRADOS}`")
+            elif CAMPO_COMPARACION not in texto:
+                problemas.append(
+                    f"{ruta} tiene el aviso pero no lee `{CAMPO_COMPARACION}`")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El panel enseña lo que el Paso 1 averigua: el aviso de "
+                    "contenedores borrados llega a la pantalla, en los dos paneles",
+                 el_panel_ensena_los_borrados_que_el_paso_1_detecta)
+
+    def el_log_del_paso_5_no_habla_de_resources_tocados():
+        """0.22 — el texto decía «N resources tocados desde la última
+        publicación», que describía el mecanismo retirado. Dejarlo sería que el
+        paso informara de algo que ya no es cierto."""
+        fuente = inspect.getsource(pipeline.step_5_publish)
+        return "resources tocados" not in fuente, \
+            "el log del Paso 5 sigue hablando de «resources tocados»"
+
+    runner.check(0, "El log del Paso 5 ya no habla de «resources tocados»",
+                 el_log_del_paso_5_no_habla_de_resources_tocados)
 
 
 # ── Nivel 1 · Solo lectura ───────────────────────────────────────────────────
@@ -2187,28 +2879,33 @@ def nivel_3(runner, project, agent_id, run_id):
                     "apuntar producción",
                  publicar_hace_tres_cosas_en_orden)
 
-    def publicar_solo_versiona_lo_tocado():
+    def publicar_solo_versiona_lo_que_difiere():
         """H4: el tiempo del paso tiene que ser proporcional al cambio, no al
-        tamaño del agente — y cada deploy no puede quemar un hueco de versión
-        en todos los playbooks contra un límite de 20."""
-        cliente = store.get_client()
-        pendientes = store.list_pending_publication(cliente, project, agent_id)
+        tamaño del agente — y cada deploy no puede quemar un hueco de versión en
+        todos los playbooks contra un límite de 20.
+
+        Lo que se cuenta ahora es lo que **difiere de lo que producción sirve**,
+        no lo que quedó anotado en Firestore. Es la misma regla, con una fuente
+        que no depende de que el cambio lo hiciera el pipeline.
+        """
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        comparacion = pipeline._contenedores_cambiados(contexto, inventario)
+        difieren = len(comparacion["cambiados"])
         pipeline.step_4_validate_tests(project, agent_id, "superados")
         resultado = pipeline.step_5_publish(project, agent_id, f"{etiqueta}_h4")
         if resultado["status"] != "ok":
             return False, resultado["status"]
         creadas = resultado["data"]["versiones_creadas"]
-        inventario, _, _ = pipeline.inventariar_cx(
-            contexto, tipos=["playbook", "flow"])
-        versionables = len(inventario.get("playbook", {})) + len(inventario.get("flow", {}))
-        return len(creadas) <= max(1, len(pendientes)) and len(creadas) < versionables + 1, (
-            f"{len(creadas)} versiones creadas con {len(pendientes)} resources "
-            f"tocados y {versionables} versionables en total"
+        versionables = sum(len(inventario.get(t, {}))
+                           for t in pipeline.CONTENIDO_EN_LA_VERSION)
+        return len(creadas) <= difieren, (
+            f"{len(creadas)} versiones creadas con {difieren} contenedores que "
+            f"difieren y {versionables} versionables en total"
         )
 
-    runner.check(3, "Publicar versiona solo lo que el diff tocó, no el agente "
-                    "entero (H4)",
-                 publicar_solo_versiona_lo_tocado)
+    runner.check(3, "Publicar versiona solo lo que difiere de producción, no el "
+                    "agente entero (H4)",
+                 publicar_solo_versiona_lo_que_difiere)
 
     def publicar_dos_veces_es_no_op():
         """Un reintento accidental del Paso 5 sobre un commit ya publicado no
@@ -2268,11 +2965,6 @@ def nivel_3(runner, project, agent_id, run_id):
                          if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
                 cuerpo["description"] = f"{PREFIJO}_{run_id}_poda_{i}"
                 cx.api_patch(project, contexto.region, flow["name"], cuerpo)
-                store.record_resource_write(
-                    contexto.store, project, agent_id, "flow",
-                    flow["name"].rsplit("/", 1)[-1], "prueba.yaml",
-                    display_name=flow.get("displayName"), operacion="PATCH",
-                    padre=None, pendiente_publicar=True)
                 pipeline.step_4_validate_tests(project, agent_id, "superados")
                 r = pipeline.step_5_publish(project, agent_id,
                                            f"{PREFIJO}_{run_id}_poda_{i}")
@@ -2742,8 +3434,8 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
         )
         try:
             otro_cliente = store.get_client()   # como un contenedor nuevo
-            leidos = store.list_pending_publication(otro_cliente, project, agent_id)
-            encontrado = any(r.get("cx_id") == marca for r in leidos)
+            leidos = store.list_resource_records(otro_cliente, project, agent_id)
+            encontrado = ("intent", marca) in leidos
             registro = store.get_resource_record(otro_cliente, project, agent_id,
                                                  "intent", marca)
             return (encontrado and registro is not None
@@ -2752,8 +3444,12 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                 "sobreviviendo fuera del proceso"
             )
         finally:
-            store.mark_published(cliente, project, agent_id,
-                                 [{"tipo": "intent", "cx_id": marca}])
+            # Se borra de verdad, no se marca. Antes se «cerraba» quitándole la
+            # marca de pendiente, que dejaba el documento sintético dentro de la
+            # auditoría del agente para siempre.
+            store._sub(cliente, project, agent_id, store.SUB_RESOURCES).document(
+                store._resource_doc_id("intent", marca)
+            ).delete()
 
     runner.check(4, "El progreso por resource vive en Firestore, no en memoria",
                  el_progreso_sobrevive_al_contenedor)
@@ -2854,22 +3550,19 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
         cliente = store.get_client()
         contexto = pipeline.Contexto(project, agent_id)
 
-        # Sin algo pendiente de publicar no se crea ninguna versión, y el
-        # escenario —una versión huérfana tras el corte— no llega a existir:
-        # el check pasaría sin haber probado nada. Se siembra la marca sobre un
-        # playbook real para que el Paso 5 tenga de verdad qué versionar.
-        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
-        playbooks = list(inventario.get("playbook", {}).values())
-        if not playbooks:
-            return False, "sin playbooks no se puede provocar el escenario"
-        store.record_resource_write(
-            cliente, project, agent_id, "playbook",
-            pipeline._cx_id_de(playbooks[0]), "sintetico/corte.yaml",
-            display_name=playbooks[0].get("displayName"), operacion="PATCH",
-        )
-        pendientes_antes = store.list_pending_publication(cliente, project, agent_id)
-        if not pendientes_antes:
-            return False, "no se pudo dejar nada pendiente de publicar"
+        # Si nada difiere de lo que producción sirve no se crea ninguna
+        # versión, y el escenario —una versión huérfana tras el corte— no llega
+        # a existir: el check pasaría sin haber probado nada. Se cambia un
+        # playbook de verdad en el borrador para que el Paso 5 tenga qué
+        # versionar. Se cambia en CX, no se anota en Firestore: es exactamente
+        # lo que el Paso 5 mira ahora.
+        contenedor_de_pruebas(contexto, "playbook", f"{PREFIJO}_{run_id}_corte",
+                              f"{PREFIJO}_{run_id}_corte_1")
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        difieren_antes = pipeline._contenedores_cambiados(
+            contexto, inventario)["cambiados"]
+        if not difieren_antes:
+            return False, "no se pudo dejar nada que difiriera de producción"
 
         original = pipeline._apuntar_entorno
         pipeline._apuntar_entorno = lambda *_a, **_k: (_ for _ in ()).throw(
@@ -2901,8 +3594,8 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
             return False, f"el reintento falló: {reintento['status']}"
         usadas = set(reintento["data"]["versiones_creadas"])
         return usadas == huerfanas, (
-            f"con {len(pendientes_antes)} resources pendientes, el corte dejó "
-            f"{len(huerfanas)} versiones creadas y el reintento usó "
+            f"con {len(difieren_antes)} contenedores distintos de producción, el "
+            f"corte dejó {len(huerfanas)} versiones creadas y el reintento usó "
             f"{len(usadas)}, de las que {len(usadas - huerfanas)} son nuevas. "
             f"Las que no se reutilizan quedan huérfanas."
         )
@@ -2915,36 +3608,21 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
         """Publicar falla, tocas OTRA cosa, y reintentas.
 
         Lo que sobró del intento anterior cubre lo de antes, no lo nuevo. Si se
-        da por buena la cobertura entera, el cambio nuevo se marca como
-        publicado sin haberse versionado — y no llega a producción nunca,
-        porque el deploy siguiente ya no lo ve pendiente.
+        da por buena la cobertura entera, el cambio nuevo no se versiona y no
+        llega a producción nunca.
+
+        Los dos cambios se hacen **en CX**, no anotándolos en Firestore: es lo
+        que el Paso 5 mira ahora, y hacerlo así prueba además que el reintento
+        ve un cambio que ningún paso del pipeline registró.
         """
         cliente = store.get_client()
         contexto = pipeline.Contexto(project, agent_id)
-        inventario, _, _ = pipeline.inventariar_cx(
-            contexto, tipos=["playbook", "flow"])
-        playbooks = list(inventario.get("playbook", {}).values())
-        flows = list(inventario.get("flow", {}).values())
-        if not playbooks or not flows:
-            return False, "hacen falta un playbook y un flow para provocarlo"
-
-        store.mark_published(cliente, project, agent_id,
-                             store.list_pending_publication(cliente, project, agent_id))
         store.clear_inflight_versions(cliente, project, agent_id)
 
-        # Los registros que este check va a sobrescribir, para devolverlos: si
-        # no, se llevaría por delante su huella y dejaría ciega la detección de
-        # conflicto de esos resources.
-        tocados = [("playbook", pipeline._cx_id_de(playbooks[0])),
-                   ("flow", pipeline._cx_id_de(flows[0]))]
-        previos = {(tp, ci): store.get_resource_record(cliente, project, agent_id, tp, ci)
-                   for tp, ci in tocados}
-
-        # 1 · Solo el playbook está pendiente. Se corta al apuntar el entorno.
-        store.record_resource_write(
-            cliente, project, agent_id, "playbook",
-            pipeline._cx_id_de(playbooks[0]), "sintetico/a.yaml",
-            display_name=playbooks[0].get("displayName"), operacion="PATCH")
+        # 1 · Se cambia solo el playbook. Se corta al apuntar el entorno.
+        contenedor_de_pruebas(contexto, "playbook",
+                              f"{PREFIJO}_{run_id}_post_pb",
+                              f"{PREFIJO}_{run_id}_post_1")
         original = pipeline._apuntar_entorno
         pipeline._apuntar_entorno = lambda *_a, **_k: (_ for _ in ()).throw(
             pipeline.PipelineError("corte inyectado"))
@@ -2959,13 +3637,15 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
         en_vuelo = store.get_inflight_versions(cliente, project, agent_id)
         if not en_vuelo or not en_vuelo.get("version_names"):
             return False, "el corte no dejó ninguna versión anotada"
-        del_playbook = set(en_vuelo["version_names"])
+        del_playbook = {v for v in en_vuelo["version_names"]
+                        if "/playbooks/" in v}
+        if not del_playbook:
+            return False, "el corte no dejó ninguna versión del playbook"
 
-        # 2 · Entre el fallo y el reintento se toca ADEMÁS el flow.
-        store.record_resource_write(
-            cliente, project, agent_id, "flow",
-            pipeline._cx_id_de(flows[0]), "sintetico/b.yaml",
-            display_name=flows[0].get("displayName"), operacion="PATCH")
+        # 2 · Entre el fallo y el reintento se cambia ADEMÁS un flow.
+        flow = contenedor_de_pruebas(contexto, "flow",
+                                     f"{PREFIJO}_{run_id}_post_flow",
+                                     f"{PREFIJO}_{run_id}_post_2")
 
         pipeline.step_4_validate_tests(project, agent_id, "superados")
         resultado = pipeline.step_5_publish(project, agent_id, f"{PREFIJO}_{run_id}_despues")
@@ -2974,22 +3654,13 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
 
         fijadas = resultado["data"]["versiones_creadas"]
         padres = {v.rsplit("/versions/", 1)[0] for v in fijadas}
-        tiene_flow = flows[0]["name"] in padres
+        tiene_flow = flow["name"] in padres
         reuso = bool(del_playbook & set(fijadas))
-        for (tp, ci), previo in previos.items():
-            if previo:
-                store.record_resource_write(
-                    cliente, project, agent_id, tp, ci, previo.get("archivo"),
-                    display_name=previo.get("display_name"),
-                    operacion=previo.get("operacion"),
-                    huella_cx=previo.get("huella_cx"),
-                    padre=previo.get("padre"),
-                    pendiente_publicar=bool(previo.get("pendiente_publicar")))
 
         return tiene_flow and reuso, (
             f"reutilizó lo del playbook: {reuso} · versionó el flow nuevo: "
-            f"{tiene_flow}. Sin versionar el flow, su cambio queda marcado como "
-            f"publicado y no llega a producción nunca"
+            f"{tiene_flow}. Sin versionar el flow, su cambio no llega a "
+            f"producción nunca"
         )
 
     runner.check(4, "Un cambio hecho entre el fallo y el reintento también se "
@@ -3036,11 +3707,6 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
                  if k not in pipeline.CAMPOS_LEIDOS_NO_ENVIADOS}
         cuerpo["description"] = f"{PREFIJO}_{run_id}_huella_vieja"
         cx.api_patch(project, contexto.region, flow["name"], cuerpo)
-        store.record_resource_write(
-            contexto.store, project, agent_id, "flow",
-            flow["name"].rsplit("/", 1)[-1], "prueba.yaml",
-            display_name=flow.get("displayName"), operacion="PATCH",
-            padre=None, pendiente_publicar=True)
 
         antes = foto()
         resultado = pipeline.step_5_publish(

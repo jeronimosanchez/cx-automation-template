@@ -1037,8 +1037,21 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
               f"⚠ El agente no tiene un entorno '{ENTORNO_PRODUCCION}'. Créalo "
               f"en la consola de CX — sin él el Paso 5 no puede publicar")
 
+    # Qué distancia hay entre el borrador y lo que producción sirve. Es la misma
+    # comparación que usará el Paso 5 para decidir qué versionar, hecha aquí solo
+    # para contarlo: si un contenedor va a desaparecer de producción, esto es lo
+    # único que lo dice antes de que pase, y el Paso 1 es el sitio donde saberlo
+    # todavía no cuesta nada.
+    comparacion = _contenedores_cambiados(contexto, inventario, on_log, log)
+    for borrado in comparacion["borrados"]:
+        _emit(log, on_log,
+              f"⚠ {borrado['tipo']} «{borrado['display_name'] or borrado['cx_id']}» "
+              f"lo sirve producción y ya no está en el borrador — publicar lo "
+              f"retira")
+
     return step_result("ok", log, {
         "tiene_entorno_produccion": tiene_produccion,
+        "comparacion_produccion": comparacion,
         "project": project,
         "agent_id": agent_id,
         "region": contexto.region,
@@ -1190,8 +1203,6 @@ def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
                 traido["cx_id"], traido["ruta"],
                 display_name=traido["display_name"], operacion="PULL",
                 huella_cx=traido["huella"],
-                # Traer al repositorio no toca CX: nada que publicar.
-                pendiente_publicar=False,
             )
 
         _emit(log, on_log,
@@ -1372,6 +1383,298 @@ def _huella_borrador(inventario):
     return hashlib.sha256("|".join(marcas).encode()).hexdigest()[:16]
 
 
+# ── Comparación borrador ↔ producción ────────────────────────────────────────
+#
+# La segunda comparación del pipeline, y la que no hay que confundir con la
+# primera. `calcular_diff` mira **repositorio ↔ borrador** y alimenta los Pasos
+# 2 y 3. Esta mira **borrador ↔ lo que el entorno de producción sirve**, y
+# alimenta el Paso 5. El borrador es el punto común; cada una mira a un lado.
+#
+# Por qué existe: hasta ahora el Paso 5 decidía qué versionar leyendo una lista
+# de Firestore que solo se rellenaba desde el Paso 3. Un cambio hecho a mano en
+# la consola de CX entra en el mismo borrador, pero no deja anotación ninguna:
+# la lista salía vacía, no se creaba ninguna versión, y el paso reportaba éxito.
+# Fallaba en silencio diciendo que fue bien. Mirando el borrador da igual quién
+# hizo el cambio, porque el borrador es el mismo para los dos.
+
+# Los tres contenedores que CX sabe congelar en una versión, y dónde guarda cada
+# versión el contenido de su contenedor. Verificado contra la API el 2026-08-11:
+#
+#   flow      → la versión NO guarda contenido. Sus únicas claves son
+#               ['createTime','displayName','name','nluSettings','state'], así
+#               que un flow no se puede comparar leyendo su versión. Para eso
+#               existe `compareVersions`.
+#   playbook  → el LIST de versiones ya devuelve `playbook` y `examples` en
+#               línea: comparar no cuesta ninguna llamada extra.
+#   tool      → el LIST ya devuelve `tool` en línea: tampoco cuesta ninguna.
+CONTENIDO_EN_LA_VERSION = {"flow": None, "playbook": "playbook", "tool": "tool"}
+
+# Hijos que no tienen versión propia y viajan dentro de la de su contenedor. Un
+# playbook y sus examples son un solo contenedor a efectos de versión: si cambia
+# un example —o se borra— el playbook ha cambiado, y su versión tiene que
+# rehacerse. Los hijos de un flow no hacen falta aquí: el contenido que devuelve
+# `compareVersions` ya trae sus pages y sus transition route groups dentro.
+HIJOS_EN_LA_VERSION = {"playbook": ("example", "examples")}
+
+# Cómo se nombra el borrador en el lenguaje del endpoint de comparación. No es
+# una versión que exista: es la forma que tiene CX de decir «el estado editable».
+VERSION_BORRADOR = "0"
+
+
+def _versiones_fijadas(inventario, entorno=ENTORNO_PRODUCCION):
+    """Qué versión FIJA el entorno para cada contenedor: {contenedor: versión}.
+
+    **La que el entorno fija, nunca la última creada.** No son lo mismo: se
+    puede crear una versión y no llegar a publicarla —el Paso 5 muere entre
+    crearla y apuntar el entorno, o alguien la crea a mano en la consola—, y en
+    ese momento existe una versión más nueva que la que producción sirve. Una
+    comparación que cogiera «la última» concluiría que no hay nada que hacer, y
+    el cambio no llegaría nunca a producción: exactamente el mismo fallo
+    silencioso que esta comparación viene a corregir, entrando por otra puerta.
+
+    Un agente sin ese entorno devuelve un diccionario vacío en vez de fallar: el
+    Paso 1 usa esto solo para informar, y ahí todavía no toca romper nada. Sin
+    punteros, todo el borrador sale como pendiente de publicar, que es la
+    lectura correcta de un agente que nunca se publicó.
+    """
+    for item in inventario.get("environment", {}).values():
+        if item.get("displayName") != entorno:
+            continue
+        return {
+            config["version"].rsplit("/versions/", 1)[0]: config["version"]
+            for config in item.get("versionConfigs", [])
+            if config.get("version")
+        }
+    return {}
+
+
+def _tipo_de_contenedor(nombre):
+    """De qué tipo es un contenedor, leído de su propia ruta en CX.
+
+    El segmento que precede a su id (`/flows/`, `/playbooks/`, `/tools/`) es el
+    mismo `RESOURCE_TYPES[tipo]["api"]` que construye esas rutas en el resto del
+    archivo, así que traducirlo con esa fuente evita una tabla nueva que se
+    desincronice de cómo CX nombra las cosas.
+    """
+    for tipo in CONTENIDO_EN_LA_VERSION:
+        if f"/{RESOURCE_TYPES[tipo]['api']}/" in (nombre or ""):
+            return tipo
+    return None
+
+
+def _hijos_en_el_borrador(inventario, tipo, contenedor_id):
+    """Los hijos que viajan dentro de la versión del contenedor, por su cx_id."""
+    par = HIJOS_EN_LA_VERSION.get(tipo)
+    if not par:
+        return {}
+    tipo_hijo, _ = par
+    return {
+        cx_id: hijo
+        for cx_id, hijo in inventario.get(tipo_hijo, {}).items()
+        if _padre_id_de(tipo_hijo, hijo) == contenedor_id
+    }
+
+
+def _hijos_en_la_version(version, tipo):
+    """Los mismos hijos, tal como quedaron congelados dentro de la versión.
+
+    La clave puede no venir: CX omite `examples` cuando el playbook no tenía
+    ninguno, en vez de devolver una lista vacía. Tratar la ausencia como «cero
+    hijos» es lo que hace que añadir el primer example salga como cambio.
+    """
+    par = HIJOS_EN_LA_VERSION.get(tipo)
+    if not par:
+        return {}
+    _, clave = par
+    return {_cx_id_de(hijo): hijo for hijo in (version.get(clave) or [])}
+
+
+def _huella_contenedor(item, hijos):
+    """Resumen estable del contenido de un contenedor junto con sus hijos.
+
+    Se apoya en `huella_resource`, que ya excluye los campos que la API gestiona
+    por su cuenta (`CAMPOS_LEIDOS_NO_ENVIADOS`). Comparar en crudo haría que
+    `createTime` o `tokenCount` sacaran todo como cambiado siempre.
+
+    Los hijos entran por su identificador y ordenados por él, no por su
+    posición: CX no garantiza el orden del LIST, y así la huella no depende de
+    en qué orden lleguen. El identificador es el mismo dentro y fuera de la
+    versión —verificado contra la API: el example congelado conserva el id que
+    tiene en el borrador—, así que un cambio de contenido de un hijo concreto se
+    ve, y no solo un cambio en el conjunto.
+    """
+    marcas = [huella_resource(item) or ""]
+    for cx_id, hijo in sorted(hijos.items()):
+        marcas.append(f"{cx_id}:{huella_resource(hijo)}")
+    return hashlib.sha256("|".join(marcas).encode()).hexdigest()[:32]
+
+
+def _misma_foto_de_flow(contexto, version_name, flow_name):
+    """Compara una versión de flow con el borrador de ese mismo flow.
+
+    Una versión de flow no guarda contenido, así que no se puede comparar
+    leyéndola. CX tiene un endpoint hecho justo para esto: `compareVersions`
+    contra `versions/0`, que es como nombra el borrador.
+
+    Verificado contra la API: cuando nada ha cambiado, los dos JSON son
+    **idénticos byte a byte** —los genera CX con el mismo serializador en los
+    dos lados—, así que no hace falta normalizar nada.
+
+    El contenido que devuelve trae el flow, sus pages, sus transition route
+    groups y los intents, entity types y webhooks que el flow **referencia**. Un
+    cambio en cualquiera de ellos sale por aquí sin tratamiento aparte. Un
+    webhook o un entity type que ningún flow referencia no aparece en el
+    contenido de ninguno — comprobado creando los dos y viéndolos entrar solo
+    después de referenciarlos.
+
+    Es un `POST`, pero no muta nada: solo compara y devuelve las dos fotos.
+
+    Devuelve True, False, o None si la versión ya no existe.
+    """
+    respuesta = cx.api_request(
+        "POST", contexto.project, contexto.region,
+        f"{version_name}:compareVersions",
+        body={"targetVersion": f"{flow_name}/versions/{VERSION_BORRADOR}"},
+    )
+    if respuesta.status_code == 404:
+        return None
+    if respuesta.status_code != 200:
+        # Nunca «asumo que no cambió»: dar por bueno un fallo de comparación es
+        # publicar a ciegas, que es el defecto que todo esto viene a corregir.
+        raise PipelineError(
+            f"No se pudo comparar el flow "
+            f"{flow_name.rsplit('/', 1)[-1]} con la versión que producción "
+            f"sirve: {respuesta.status_code} {respuesta.text[:200]}. No se "
+            f"publica sin saber si cambió."
+        )
+    cuerpo = respuesta.json()
+    return (cuerpo.get("baseVersionContentJson")
+            == cuerpo.get("targetVersionContentJson"))
+
+
+def _misma_foto(contexto, inventario, version_name, tipo, contenedor):
+    """Si una versión concreta guarda exactamente el borrador de su contenedor.
+
+    Devuelve True, False, o **None si esa versión ya no existe**, que no es lo
+    mismo que «distinta»: quien pregunta tiene que poder tratarlo como una
+    referencia perdida.
+
+    Es el único criterio de comparación del archivo, y lo usan los dos sitios
+    que lo necesitan —qué versionar y qué versión sobrante sigue valiendo—, para
+    que no puedan discrepar.
+    """
+    if tipo == "flow":
+        return _misma_foto_de_flow(contexto, version_name, contenedor["name"])
+
+    version = inventario.get("version", {}).get(
+        _clave_de_version({"name": version_name})
+    )
+    congelado = (version or {}).get(CONTENIDO_EN_LA_VERSION[tipo])
+    if not isinstance(congelado, dict):
+        return None
+    return (
+        _huella_contenedor(congelado, _hijos_en_la_version(version, tipo))
+        == _huella_contenedor(
+            contenedor, _hijos_en_el_borrador(inventario, tipo, _cx_id_de(contenedor))
+        )
+    )
+
+
+def _contenedores_cambiados(contexto, inventario, on_log=None, log=None):
+    """Qué contenedores difieren de lo que producción sirve ahora mismo.
+
+    Devuelve tres listas, y las tres importan:
+
+      `cambiados` — contenedores del borrador cuyo contenido no coincide con la
+                    versión que el entorno fija, **o que no tienen ninguna
+                    versión fijada todavía**. Es lo que el Paso 5 versiona.
+      `borrados`  — contenedores que el entorno fija y que ya no están en el
+                    borrador. Producción los sirve y no existen.
+      `iguales`   — el resto. Están para poder afirmar que no se versiona de
+                    más, que es lo que sostiene la regla del mínimo consumo de
+                    versiones.
+
+    **Se versiona solo lo que difiere, nunca el agente entero.** Los límites de
+    versiones vivas de CX son reales —20 por flow, 100 por playbook, 50 por
+    tool, el de playbook confirmado reventando en 100 con `FAILED_PRECONDITION`—
+    y versionar todo quemaría un hueco en cada contenedor en cada publicación,
+    además de publicar trabajo a medias de contenedores que nadie quería
+    publicar.
+
+    El coste está acotado por los contenedores **publicados**, no por el tamaño
+    del agente: los playbooks y los tools se comparan con lo que el inventario
+    ya trajo, y solo los flows fijados cuestan una llamada cada uno.
+
+    Los tipos que CX no versiona (`TIPOS_SIN_VERSION`) no aparecen nunca aquí:
+    solo se recorren los tres contenedores de `CONTENIDO_EN_LA_VERSION`. Los
+    tools nativos de la plataforma tampoco: no admiten versión, así que
+    proponerlos sería proponer una llamada que CX rechaza.
+
+    El orden es estable —por tipo y por identificador— para que dos lecturas del
+    mismo estado se puedan comparar entre sí.
+    """
+    log = log if log is not None else []
+    fijadas = _versiones_fijadas(inventario)
+    cambiados, iguales, borrados = [], [], []
+
+    for tipo in CONTENIDO_EN_LA_VERSION:
+        for cx_id, item in sorted(inventario.get(tipo, {}).items()):
+            if es_nativo(tipo, item):
+                continue
+            fila = {"tipo": tipo, "cx_id": cx_id, "name": item.get("name"),
+                    "display_name": item.get("displayName", "")}
+            fijada = fijadas.get(item.get("name"))
+            if not fijada:
+                # Tener versiones y no estar fijado no es estar al día: sin
+                # puntero, producción no lo sirve.
+                cambiados.append(
+                    {**fila, "version_fijada": None,
+                     "motivo": "producción todavía no lo sirve"})
+                continue
+            coincide = _misma_foto(contexto, inventario, fijada, tipo, item)
+            if coincide is None:
+                cambiados.append(
+                    {**fila, "version_fijada": fijada,
+                     "motivo": "la versión que el entorno fija ya no existe"})
+            elif coincide:
+                iguales.append({**fila, "version_fijada": fijada})
+            else:
+                cambiados.append(
+                    {**fila, "version_fijada": fijada,
+                     "motivo": "el borrador difiere de lo que producción sirve"})
+
+    en_el_borrador = {
+        item.get("name")
+        for tipo in CONTENIDO_EN_LA_VERSION
+        for item in inventario.get(tipo, {}).values()
+    }
+    for contenedor, fijada in sorted(fijadas.items()):
+        if contenedor in en_el_borrador:
+            continue
+        tipo = _tipo_de_contenedor(contenedor)
+        version = inventario.get("version", {}).get(
+            _clave_de_version({"name": fijada})
+        )
+        congelado = (version or {}).get(CONTENIDO_EN_LA_VERSION.get(tipo) or "")
+        borrados.append({
+            "tipo": tipo,
+            "cx_id": contenedor.rsplit("/", 1)[-1],
+            "name": contenedor,
+            # El nombre visible sale de la foto congelada cuando la versión
+            # todavía existe. Si también la borraron, queda el identificador:
+            # decir "" sería más limpio de leer y menos útil de buscar.
+            "display_name": (congelado.get("displayName", "")
+                             if isinstance(congelado, dict) else ""),
+            "version_fijada": fijada,
+        })
+
+    if cambiados or borrados:
+        _emit(log, on_log,
+              f"· Frente a producción · {len(cambiados)} contenedores "
+              f"difieren · {len(borrados)} borrados · {len(iguales)} al día")
+    return {"cambiados": cambiados, "borrados": borrados, "iguales": iguales}
+
+
 # ── 5 · Publicar en producción ───────────────────────────────────────────────
 
 def step_5_publish(project, agent_id, version_label,
@@ -1475,25 +1778,33 @@ def step_5_publish(project, agent_id, version_label,
                                {"fusionado": False, "publicado": False})
         _emit(log, on_log, f"✓ {contexto.rama} → {contexto.rama_principal}")
 
-        pendientes = store.list_pending_publication(
-            contexto.store, project, agent_id
-        )
+        # Qué versionar se decide **mirando el borrador**, no recordando lo que
+        # escribió el pipeline. Es lo único que hace que un cambio hecho a mano
+        # en la consola de CX llegue a producción: entra en el mismo borrador,
+        # y comparar el borrador no distingue quién lo puso ahí.
+        comparacion = _contenedores_cambiados(contexto, inventario, on_log, log)
+        cambiados = comparacion["cambiados"]
+        borrados = comparacion["borrados"]
 
         # Un intento anterior pudo crear las versiones y morir antes de fijar
         # el entorno. Esas versiones existen en CX y no las sirve nadie: si el
         # reintento crea otras, las primeras quedan huérfanas, consumiendo
         # hueco contra el límite por playbook sin que nada las reclame.
         _emit(log, on_log,
-              f"· 2/3 Versionando · {len(pendientes)} resources tocados desde "
-              f"la última publicación")
+              f"· 2/3 Versionando · {len(cambiados)} contenedores difieren de "
+              f"lo que producción sirve")
+        for borrado in borrados:
+            _emit(log, on_log,
+                  f"⚠ {borrado['tipo']} «{borrado['display_name'] or borrado['cx_id']}» "
+                  f"ya no está en el borrador y producción lo sirve — se retira "
+                  f"del entorno")
         reutilizables, faltan = _versiones_reutilizables(
-            contexto, inventario, pendientes, on_log, log
+            contexto, inventario, cambiados, on_log, log
         )
         nuevas, fallo = [], False
         if faltan:
             nuevas, fallo = _crear_versiones(
-                contexto, inventario, pendientes, version_label, on_log, log,
-                solo=faltan,
+                contexto, cambiados, version_label, on_log, log, solo=faltan,
             )
         versiones = reutilizables + nuevas
         if versiones:
@@ -1515,23 +1826,28 @@ def step_5_publish(project, agent_id, version_label,
 
         # Regla de la cadena completa: el entorno tiene que quedar apuntando a
         # todo, no solo a lo nuevo. Lo que no cambió conserva la versión que ya
-        # tenía; lo que cambió estrena la recién creada.
-        finales = _combinar_versiones(anteriores, versiones)
-        _apuntar_entorno(contexto, produccion, finales)
+        # tenía; lo que cambió estrena la recién creada; lo que ya no está en el
+        # borrador sale.
+        finales = _combinar_versiones(
+            anteriores, versiones, excluir=[b["name"] for b in borrados]
+        )
+        _apuntar_entorno(contexto, produccion, finales, borrados=borrados)
         if versiones:
             _emit(log, on_log,
                   f"✓ Producción sirviendo {version_label} · "
                   f"{len(versiones)} versiones nuevas · {len(finales)} fijadas")
         else:
             # Anunciar la etiqueta sin haber creado ninguna versión daría a
-            # entender que existe. Los tipos sin versión (intents, entity
-            # types, webhooks) llegan aquí sin nada que versionar.
+            # entender que existe. Se llega aquí de dos formas: porque nada
+            # difería de lo que producción ya sirve —lo normal cuando se
+            # republica sin cambios—, o porque lo aplicado es de tipos que CX no
+            # versiona (agent_config, generators, y los webhooks o entity types
+            # que ningún flow referencia).
             _emit(log, on_log,
-                  "✓ Publicado · no se creó ninguna versión: lo aplicado es de "
-                  "tipos que CX no versiona, así que producción sirve lo mismo "
-                  f"que antes ({len(finales)} versiones fijadas, sin cambios)")
+                  "✓ Publicado · no se creó ninguna versión: nada difería de lo "
+                  "que producción ya sirve, o lo aplicado es de tipos que CX no "
+                  f"versiona ({len(finales)} versiones fijadas)")
 
-        store.mark_published(contexto.store, project, agent_id, pendientes)
         store.clear_inflight_versions(contexto.store, project, agent_id)
 
         # Publicar nunca borra nada por su cuenta — pedido explícito de Jero
@@ -1543,7 +1859,7 @@ def step_5_publish(project, agent_id, version_label,
         # releía "en uso" fresco dentro de su propio candado antes de este
         # cambio (fix de esta misma noche) — sigue siendo el único camino de
         # borrado, y sigue exigiendo nombrar cada versión, nunca "todas".
-        tocados = list(_padres_versionables(inventario, pendientes))
+        tocados = [(c["name"], c["tipo"]) for c in cambiados]
         poda_pendiente = _contenedores_sobre_limite(contexto, tocados)
         if poda_pendiente:
             total = sum(len(c["candidatas"]) for c in poda_pendiente)
@@ -1558,6 +1874,10 @@ def step_5_publish(project, agent_id, version_label,
         "versiones_creadas": versiones, "versiones_anteriores": anteriores,
         "repo": contexto.repo, "rama_principal": contexto.rama_principal,
         "poda_pendiente": poda_pendiente,
+        # Qué se publicó y qué se retiró, para que el resultado se pueda
+        # contrastar sin volver a leer el agente.
+        "contenedores_cambiados": cambiados,
+        "contenedores_retirados": borrados,
     })
     store.record_run(contexto.store, project, agent_id, 5, "ok", log,
                      {"version": version_label})
@@ -1646,67 +1966,72 @@ def _contenedores_sobre_limite(contexto, tocados):
     return resultado
 
 
-def _versiones_reutilizables(contexto, inventario, pendientes, on_log, log):
+def _versiones_reutilizables(contexto, inventario, cambiados, on_log, log):
     """Versiones que un intento anterior creó y no llegó a fijar en el entorno.
 
-    Devuelve (reutilizables, padres_que_siguen_faltando).
+    Devuelve (reutilizables, contenedores_que_siguen_faltando).
 
     Reutilizar lo que sobró evita crear versiones duplicadas y quemar huecos
     contra el límite por playbook. Pero **no basta con que sobren**: hay que
-    comprobar tres cosas antes de darlas por buenas, y cada una tapa un camino
+    comprobar dos cosas antes de darlas por buenas, y cada una tapa un camino
     por el que se publicaría algo equivocado sin ningún aviso.
 
-    1. **Que sigan existiendo.** Alguien pudo borrarlas a mano entre intentos.
+    1. **Que su contenedor siga necesitando versión.** Si ya no difiere de lo
+       que producción sirve, esa versión no la pide nadie: fijarla sería
+       publicar una foto que nadie pidió. Se deja fuera y se reporta huérfana.
 
-    2. **Que su padre siga pendiente.** Si ya no lo está, esa versión no la
-       pide nadie: fijarla en producción sería publicar una foto que nadie
-       pidió. Se deja fuera y se reporta como huérfana.
+    2. **Que sean una foto del borrador de ahora.** Si el resource se volvió a
+       escribir después de crearse la versión, esa versión retrata el borrador
+       anterior. Reutilizarla publicaría el cambio antiguo y daría el nuevo por
+       publicado — el mismo fallo que todo esto viene a arreglar, entrando por
+       otra puerta.
 
-    3. **Que no se hayan quedado viejas.** Si el mismo resource se volvió a
-       escribir *después* de crearse la versión, esa versión es una foto del
-       borrador anterior. Reutilizarla publicaría el cambio antiguo y daría el
-       nuevo por publicado — el mismo fallo que esto viene a arreglar,
-       entrando por otra puerta.
+    La segunda comprobación **es la misma comparación de contenido** que decide
+    qué versionar, no una regla aparte: una versión sobrante vale si su
+    contenido coincide con el borrador actual, y punto. Antes se deducía de
+    marcas de tiempo —comparar cuándo se escribió cada pendiente contra cuándo
+    se creó la versión—, que era una forma indirecta de preguntar lo mismo y
+    dependía de que Firestore tuviera esas marcas. Que la versión ya no exista
+    sale del mismo sitio: el inventario lista todas las que hay, así que no
+    estar en él **es** no existir, y no cuesta una llamada por versión.
 
     Lo que no cubran queda como "sigue faltando", y el paso crea solo eso.
     """
     anotadas = store.get_inflight_versions(
         contexto.store, contexto.project, contexto.agent_id
     )
-    objetivos = _padres_versionables(inventario, pendientes)
-    necesarios = {nombre for nombre, _ in objetivos}
-    por_padre = {nombre: pend for (nombre, _), pend in objetivos.items()}
+    por_contenedor = {c["name"]: c for c in cambiados}
+    necesarios = set(por_contenedor)
 
     if not anotadas or not anotadas.get("version_names"):
         return [], necesarios
 
-    creado_en = anotadas.get("creado_en")
     reutilizables, huerfanas, caducadas, muertas = [], [], [], []
 
     for nombre in anotadas["version_names"]:
         padre = nombre.rsplit("/versions/", 1)[0]
-        if cx.api_get(contexto.project, contexto.region, nombre).status_code != 200:
-            muertas.append(nombre)
-            continue
-        if padre not in necesarios:
+        contenedor = por_contenedor.get(padre)
+        if contenedor is None:
             huerfanas.append(nombre)
             continue
-        posterior = [
-            p for p in por_padre.get(padre, [])
-            if creado_en and p.get("escrito_en") and p["escrito_en"] > creado_en
-        ]
-        if posterior:
+        item = inventario.get(contenedor["tipo"], {}).get(contenedor["cx_id"])
+        coincide = (None if item is None else
+                    _misma_foto(contexto, inventario, nombre,
+                                contenedor["tipo"], item))
+        if coincide is None:
+            muertas.append(nombre)
+        elif coincide:
+            reutilizables.append(nombre)
+        else:
             caducadas.append(nombre)
-            continue
-        reutilizables.append(nombre)
 
     if reutilizables:
         _emit(log, on_log,
               f"· Reutilizando {len(reutilizables)} versiones que un intento "
               f"anterior dejó creadas sin fijar, etiquetadas "
               f"'{anotadas.get('etiqueta')}'")
-    for lista, motivo in ((caducadas, "el resource cambió después de crearse"),
-                          (huerfanas, "su resource ya no está pendiente"),
+    for lista, motivo in ((caducadas, "su contenido ya no es el del borrador"),
+                          (huerfanas, "su contenedor ya no necesita versión"),
                           (muertas, "ya no existen en el agente")):
         if lista:
             _emit(log, on_log,
@@ -1721,16 +2046,18 @@ def _versiones_reutilizables(contexto, inventario, pendientes, on_log, log):
     return reutilizables, necesarios - cubiertos
 
 
-def _crear_versiones(contexto, inventario, pendientes, etiqueta, on_log, log,
-                    solo=None):
-    """Crea una versión por cada padre versionable que el diff tocó.
+def _crear_versiones(contexto, cambiados, etiqueta, on_log, log, solo=None):
+    """Crea una versión por cada contenedor que difiere de lo que produce sirve.
+
+    Recibe los contenedores ya calculados: aquí no se decide qué versionar, solo
+    se versiona. Quien lo decide es `_contenedores_cambiados`, comparando.
 
     Registra cada versión con su resultado y se para en el primer fallo, igual
     que el Paso 3. El bucle del pipeline local no lo hacía: si fallaba a mitad,
     lanzaba el error y las versiones ya creadas quedaban huérfanas, sin
     registrar ni limpiar.
     """
-    objetivos = sorted(_padres_versionables(inventario, pendientes))
+    objetivos = sorted((c["name"], c["tipo"]) for c in cambiados)
     if solo is not None:
         objetivos = [o for o in objetivos if o[0] in solo]
     creadas = []
@@ -1765,61 +2092,31 @@ def _crear_versiones(contexto, inventario, pendientes, etiqueta, on_log, log,
     return creadas, False
 
 
-def _padres_versionables(inventario, pendientes):
-    """Qué flows, playbooks y tools hay que versionar, y qué pide cada uno.
-
-    Devuelve {(nombre_del_padre, tipo): [pendientes que lo piden]}. La lista
-    hace falta para saber si una versión que sobró de un intento anterior
-    sigue valiendo: si algún pendiente se escribió después de crearse esa
-    versión, la versión es una foto vieja.
-
-
-    Un example no tiene versión propia: la tiene su playbook. Una page, la
-    suya el flow. Por eso lo tocado se traduce a su padre versionable antes de
-    crear nada.
-    """
-    objetivos = {}
-    for pendiente in pendientes:
-        tipo, cx_id = pendiente.get("tipo"), pendiente.get("cx_id")
-        if tipo in ("playbook", "flow", "tool"):
-            item = inventario.get(tipo, {}).get(cx_id)
-            if item:
-                objetivos.setdefault((item["name"], tipo), []).append(pendiente)
-            continue
-
-        tipo_padre = RESOURCE_TYPES.get(tipo, {}).get("padre")
-        if not tipo_padre:
-            continue
-
-        # Primero, el padre que quedó anotado al escribir. Es la única vía que
-        # funciona con un borrado: el hijo ya no está en el agente, así que
-        # buscarlo en el inventario no encuentra nada y el borrado nunca
-        # llegaría a producción.
-        padre_id = pendiente.get("padre")
-        if padre_id == PADRE_AGENTE:
-            continue  # cuelga del agente, no de un padre versionable
-        if not padre_id:
-            hijo = inventario.get(tipo, {}).get(cx_id) or {}
-            padre_id = _padre_id_de(tipo, hijo) if hijo else None
-        padre = inventario.get(tipo_padre, {}).get(padre_id)
-        if padre:
-            objetivos.setdefault((padre["name"], tipo_padre), []).append(pendiente)
-    return objetivos
-
-
 def _por_nombre(inventario, tipo):
     return [(item["name"], item) for item in inventario.get(tipo, {}).values()]
 
 
-def _combinar_versiones(anteriores, nuevas):
+def _combinar_versiones(anteriores, nuevas, excluir=()):
     """Une lo que ya estaba fijado con lo recién creado, una versión por padre.
 
     Sin esto, apuntar solo a lo nuevo dejaría fuera del entorno todo lo que no
     cambió, y el PATCH del entorno falla porque exige la cadena completa.
+
+    `excluir` es lo que hay que **restar**: los contenedores que ya no están en
+    el borrador. Sin poder restar, esto solo sabía añadir o mantener, y un
+    puntero a algo borrado sobrevivía a cualquier número de publicaciones —
+    producción seguía sirviendo una versión que todavía lo contenía, para
+    siempre y sin que nada lo dijera.
+
+    El orden es estable —alfabético por nombre de versión— para que dos
+    publicaciones seguidas sin cambios escriban exactamente la misma lista.
     """
+    excluidos = set(excluir)
     por_padre = {}
     for nombre in list(anteriores) + list(nuevas):
         padre = nombre.rsplit("/versions/", 1)[0]
+        if padre in excluidos:
+            continue
         por_padre[padre] = nombre
     return sorted(por_padre.values())
 
@@ -1834,8 +2131,17 @@ def _buscar_entorno(contexto, inventario, display_name):
     )
 
 
-def _apuntar_entorno(contexto, entorno, version_names):
-    """PATCH del entorno con updateMask — el único tipo que lo exige."""
+def _apuntar_entorno(contexto, entorno, version_names, borrados=()):
+    """PATCH del entorno con updateMask — el único tipo que lo exige.
+
+    `borrados` solo sirve para explicar un rechazo. Un entorno tiene que incluir
+    la versión de **todos los flows alcanzables desde el flow de inicio**
+    —documentado por Google: *"Otherwise, an error will be returned"*—, así que
+    quitar el puntero de un flow que todavía se alcanza hace que CX rechace el
+    PATCH con un mensaje suyo, que no menciona ni qué flow ni por qué. Sin
+    traducirlo, publicar fallaría con un error críptico justo en el paso final.
+    Un playbook o un tool sí se pueden retirar sin más.
+    """
     cuerpo = dict(entorno)
     cuerpo["versionConfigs"] = [{"version": nombre} for nombre in version_names]
     for campo in CAMPOS_LEIDOS_NO_ENVIADOS:
@@ -1845,6 +2151,19 @@ def _apuntar_entorno(contexto, entorno, version_names):
         params={"updateMask": "versionConfigs"},
     )
     if respuesta.status_code not in (200, 201):
+        flows_retirados = [b for b in borrados if b.get("tipo") == "flow"]
+        if flows_retirados:
+            nombres = ", ".join(
+                b.get("display_name") or b.get("cx_id") for b in flows_retirados
+            )
+            raise PipelineError(
+                f"CX no deja retirar de producción el flow {nombres}: un "
+                f"entorno tiene que fijar una versión de todos los flows que se "
+                f"alcanzan desde el flow de inicio, y ese todavía se alcanza. "
+                f"Quita antes lo que lleva hasta él en el borrador, o déjalo "
+                f"publicado. Respuesta de CX: {respuesta.status_code} "
+                f"{respuesta.text[:200]}"
+            )
         raise PipelineError(
             f"PATCH del entorno falló: {respuesta.status_code} "
             f"{respuesta.text[:200]}"

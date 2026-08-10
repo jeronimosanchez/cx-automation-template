@@ -1,0 +1,8 @@
+metadata:
+  tipo: playbook
+  padre: null
+  cx_id: null
+  agente: 4718db23-4031-4e70-b899-f3eb693060f0
+displayName: hey man
+goal: Placeholder de prueba — cuerpo vacío a propósito, solo para comprobar detección y subida.
+playbookType: TASK

@@ -357,30 +357,33 @@ def _sub(client, project, agent_id, subcoleccion):
 
 
 def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
-                          display_name=None, operacion=None, huella_cx=None, padre=None,
-                          pendiente_publicar=True):
+                          display_name=None, operacion=None, huella_cx=None,
+                          padre=None):
     """Deja constancia de qué archivo del repo escribió este resource.
 
     Se sobrescribe: solo interesa el último estado, así que esta parte no
     crece con el uso. Es lo que permite avisar si un `cx_id` cambia de archivo
     entre deploys (§12), síntoma de un YAML copiado de otro repo sin vaciar.
 
-    `pendiente_publicar` marca lo que se escribió en el borrador y todavía no
-    ha llegado a producción. Es lo que permite que el Paso 5 versione solo lo
-    que el diff tocó en vez del agente entero (H4): sin esta marca, la única
-    alternativa sería versionar todo y el tiempo del paso crecería con el
-    tamaño del agente en vez de con el del cambio.
-
     `huella_cx` resume cómo quedó el resource en CX **después** de esta
     escritura, y es el tercer punto de referencia que hace posible detectar un
     conflicto. El diff solo compara repositorio contra CX: con dos puntos no se
     puede saber si CX cambió por su cuenta o si nunca estuvo igual. Con este
     tercero, una huella distinta significa que alguien lo tocó por fuera —
-    típicamente editando en la consola.
+    típicamente editando en la consola. **Esa protección importa más, no menos,
+    desde que publicar da por hecho que se edita en la consola a propósito.**
 
     Es una huella del contenido y no una marca de tiempo de la API porque la
     API no la da: verificado contra CX real, ni el GET ni el PATCH devuelven
     `updateTime` en ninguno de los tipos.
+
+    Aquí vivía además una marca de "pendiente de publicar", que era lo que el
+    Paso 5 leía para decidir qué versionar. Se retiró: decidir recordando lo que
+    escribió el pipeline dejaba fuera todo lo editado a mano en la consola de
+    CX, y el paso reportaba éxito sin haber publicado nada. Ahora el Paso 5
+    compara el borrador con lo que producción sirve, y no le hace falta acordarse
+    de nada. Los documentos antiguos que todavía lleven la marca quedan inertes:
+    no los lee nadie.
     """
     _sub(client, project, agent_id, SUB_RESOURCES).document(
         _resource_doc_id(tipo, cx_id)
@@ -391,15 +394,8 @@ def record_resource_write(client, project, agent_id, tipo, cx_id, archivo,
         "display_name": display_name,
         "operacion": operacion,
         "huella_cx": huella_cx,
-        # De quién colgaba. Se guarda sobre todo por los borrados: al publicar,
-        # el hijo ya no está en el agente y no hay forma de averiguar a qué
-        # playbook o flow pertenecía para versionarlo.
         "padre": padre,
         "escrito_en": _now(),
-        # Traer un resource al repositorio no cambia nada en CX, así que no
-        # cuenta como pendiente de publicar: marcarlo hacía que la siguiente
-        # publicación versionara el agente entero.
-        "pendiente_publicar": pendiente_publicar,
     })
 
 
@@ -421,28 +417,6 @@ def get_resource_record(client, project, agent_id, tipo, cx_id):
         _resource_doc_id(tipo, cx_id)
     ).get()
     return snapshot.to_dict() if snapshot.exists else None
-
-
-def list_pending_publication(client, project, agent_id):
-    """Resources escritos en el borrador que aún no se han publicado."""
-    return [
-        snapshot.to_dict() for snapshot in
-        _sub(client, project, agent_id, SUB_RESOURCES)
-        .where(filter=firestore.FieldFilter("pendiente_publicar", "==", True))
-        .stream()
-    ]
-
-
-def mark_published(client, project, agent_id, resources):
-    """Quita la marca de pendiente a los resources que ya llegaron a producción.
-
-    Se llama al final del Paso 5, después de apuntar el entorno. Si el paso
-    falla antes, la marca se queda y el reintento vuelve a considerarlos.
-    """
-    for resource in resources:
-        _sub(client, project, agent_id, SUB_RESOURCES).document(
-            _resource_doc_id(resource["tipo"], resource["cx_id"])
-        ).update({"pendiente_publicar": False, "publicado_en": _now()})
 
 
 def record_run(client, project, agent_id, paso, status, log, data=None,
