@@ -181,8 +181,17 @@ def build_parent(project, region, agent_id):
 # ── HTTP ─────────────────────────────────────────────────────────────────────
 
 def api_request(method, project, region, path, body=None, params=None,
-                max_retries=3, base_delay=1.0, timeout=60):
+                max_retries=5, base_delay=2.0, timeout=60):
     """Llamada a la API con refresco de token ante 401 y backoff ante 429.
+
+    El backoff espera hasta ~30s repartidos en cinco intentos (2+4+8+16), no
+    los ~7s de tres intentos que había antes. La cuota de CX que dispara el 429
+    es **por minuto**, así que rendirse a los siete segundos era rendirse
+    dentro de la misma ventana que había que dejar pasar. Salió en una tanda de
+    validación real: dos corridas seguidas del nivel de escritura tumbaron un
+    check con un 429, y el paso siguiente lo leyó como un fallo del pipeline.
+    Un agente grande puede llegar al límite por sí solo — el inventario lee los
+    13 tipos y las versiones de cada contenedor.
 
     `path` es siempre un nombre de recurso relativo (`projects/…/playbooks/…`).
     Una URL absoluta es un error, no un atajo: el token de la cuenta de

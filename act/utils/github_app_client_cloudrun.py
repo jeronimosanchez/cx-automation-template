@@ -354,12 +354,21 @@ class GitHubAppClient:
                 return None
             raise
 
-    def create_branch(self, rama, desde):
+    def create_branch(self, rama, desde, intentos=4, espera=0.5):
         """Crea `rama` apuntando a la punta de `desde`. Idempotente.
 
         Devuelve (sha, creada). Si la rama ya existía devuelve su punta y
         False: dar de alta un agente dos veces no puede fallar por algo que ya
         estaba hecho, ni mover una rama con trabajo dentro hacia atrás.
+
+        **Confirma leyendo, no por el 201.** GitHub acepta la creación y tarda
+        un instante en hacer visible la referencia — el mismo retardo que ya
+        obligó a encadenar commits por `base_sha` en `commit_files`. Devolver
+        "creada" en cuanto llega el 201 hacía que quien preguntara justo
+        después se encontrara un 404 y diera el alta por fallida cuando no lo
+        estaba. Se relee hasta verla, con esperas crecientes cortas; si tras
+        todos los intentos sigue sin aparecer, se dice en vez de afirmar algo
+        que no se ha comprobado.
         """
         existente = self.branch_head_or_none(rama)
         if existente:
@@ -370,7 +379,18 @@ class GitHubAppClient:
             body={"ref": f"refs/heads/{rama}", "sha": origen},
             esperado=(201,),
         )
-        return origen, True
+        for intento in range(intentos):
+            if self.branch_head_or_none(rama) is not None:
+                return origen, True
+            time.sleep(espera * (2 ** intento))
+        # Sin `status_code`: no es un 404 de GitHub, es que nosotros no la
+        # hemos visto. Marcarlo como 404 haría que un `except` que trata el 404
+        # como "no existe" concluyera que hay que crearla otra vez.
+        raise GitHubError(
+            f"La rama {rama} se creó y GitHub todavía no la devuelve tras "
+            f"{intentos} lecturas. No se da el alta por buena sin verla: "
+            f"reintenta en unos segundos."
+        )
 
     def delete_branch(self, rama):
         """Borra una rama. Devuelve si existía.
