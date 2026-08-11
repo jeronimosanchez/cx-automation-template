@@ -3866,6 +3866,394 @@ def nivel_3(runner, project, agent_id, run_id):
                 "verificar fuera: con la región autodetectada, el pipeline puede "
                 "acabar operando en otra sin que nadie lo haya comprobado")
 
+    # ── Los diez que faltaban ────────────────────────────────────────────────
+
+    def _yaml_de_playbook(nombre, objetivo, cx_id=None, agente=None):
+        """El cuerpo mínimo de un playbook, con su cabecera."""
+        return yaml.safe_dump(
+            {"metadata": {"tipo": "playbook", "padre": None, "cx_id": cx_id,
+                          "agente": agente or agent_id},
+             "displayName": nombre, "goal": objetivo,
+             "playbookType": "ROUTINE",
+             "instruction": {"steps": [{"text": "haz algo"}]}},
+            allow_unicode=True, sort_keys=False)
+
+    def _cabecera_en_la_rama(ruta):
+        """La cabecera `metadata` de un archivo, leída de la rama de trabajo."""
+        archivos = contexto.gh.read_repo_files(contexto.gh.branch_head(contexto.rama))
+        if ruta not in archivos:
+            return None
+        return (yaml.safe_load(archivos[ruta]) or {}).get("metadata", {})
+
+    def lo_que_el_pipeline_dice_de_produccion_es_lo_que_cx_sirve():
+        """Que la foto del pipeline y la realidad de CX sean la misma cosa.
+
+        Todo el Paso 5 descansa en que `_versiones_fijadas` describe lo que los
+        usuarios reciben. Si el pipeline leyera producción por un camino que
+        divergiera del real, publicaría creyéndose otra cosa —y lo diría con un
+        ✓— sin que nada lo delatara.
+
+        Se lee dos veces por vías independientes: la del pipeline, y un LIST
+        crudo del entorno que no pasa por ninguna función suya. Y no basta con
+        que los punteros coincidan: un puntero puede resolver a una versión que
+        existe y cuyo contenedor ya no.
+        """
+        del_pipeline = versiones_fijadas_ahora(contexto)
+
+        crudo = {}
+        for entorno in cx.list_all_pages(
+                project, contexto.region,
+                f"{contexto.parent}/environments", "environments"):
+            if entorno.get("displayName") != pipeline.ENTORNO_PRODUCCION:
+                continue
+            for config in entorno.get("versionConfigs", []):
+                version = config["version"]
+                crudo[version.rsplit("/versions/", 1)[0]] = version
+
+        if del_pipeline != crudo:
+            return False, (
+                f"divergen · el pipeline ve {len(del_pipeline)} punteros y CX "
+                f"{len(crudo)} · solo el pipeline: "
+                f"{sorted(set(del_pipeline) - set(crudo))[:2]} · solo CX: "
+                f"{sorted(set(crudo) - set(del_pipeline))[:2]}")
+
+        for contenedor, version in crudo.items():
+            for ruta, que in ((version, "la versión fijada"),
+                              (contenedor, "el contenedor de una versión fijada")):
+                if cx.api_get(project, contexto.region, ruta).status_code != 200:
+                    return False, f"{que} no existe: {ruta.rsplit('/agents/', 1)[-1]}"
+        return True, f"{len(crudo)} punteros idénticos por las dos vías"
+
+    runner.check(3, "Lo que el pipeline dice que produce sirve es exactamente lo "
+                    "que CX sirve, leído por dos vías independientes",
+                 lo_que_el_pipeline_dice_de_produccion_es_lo_que_cx_sirve)
+
+    def el_paso_3_deja_el_cambio_en_el_borrador():
+        """Las dos mitades, no solo una.
+
+        Comprobar únicamente que producción no se movió deja pasar un Paso 3
+        que no escribió nada en absoluto: «no tocó producción» lo cumple
+        también el paso que no hizo nada. La otra mitad —que el cambio **está**
+        en el borrador— se comprueba releyendo CX, nunca el resultado del paso.
+        """
+        nombre = f"{etiqueta}_draft"
+        objetivo = f"objetivo que solo puede venir de este check ({run_id})"
+        ruta = f"definitions/playbooks/{nombre}.yaml"
+        contexto.gh.commit_files(
+            contexto.rama, {ruta: _yaml_de_playbook(nombre, objetivo)},
+            f"test({PREFIJO}): playbook para comprobar que el Paso 3 llega al borrador")
+
+        antes = versiones_fijadas_ahora(contexto)
+        pipeline.step_3_apply_to_cx(project, agent_id)
+        despues = versiones_fijadas_ahora(contexto)
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        en_el_borrador = next((p for p in inventario["playbook"].values()
+                               if p.get("displayName") == nombre), None)
+        problemas = []
+        if en_el_borrador is None:
+            problemas.append("no está en el borrador de CX tras el Paso 3")
+        elif en_el_borrador.get("goal") != objetivo:
+            problemas.append(f"está con otro contenido: {en_el_borrador.get('goal')!r}")
+        if antes != despues:
+            problemas.append("el Paso 3 movió algún puntero de producción")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(3, "El Paso 3 deja el cambio en el borrador de verdad, y no "
+                    "mueve producción — las dos mitades",
+                 el_paso_3_deja_el_cambio_en_el_borrador)
+
+    def el_cx_id_decide_patch_y_su_ausencia_post():
+        """Sin id, se crea; con id, se actualiza. Nunca al revés.
+
+        Es lo que separa «actualizar» de «duplicar»: si un archivo con id
+        acabara en POST, cada deploy dejaría una copia más en el agente.
+        """
+        nombre = f"{etiqueta}_verbo"
+        ruta = f"definitions/playbooks/{nombre}.yaml"
+        contexto.gh.commit_files(
+            contexto.rama, {ruta: _yaml_de_playbook(nombre, "sin id todavía")},
+            f"test({PREFIJO}): playbook sin cx_id, tiene que salir como POST")
+
+        plan = pipeline.step_3_apply_to_cx(
+            project, agent_id, dry_run=True)["data"]["operaciones"]
+        sin_id = next((o for o in plan if o["ruta"] == ruta), None)
+        if sin_id is None:
+            return False, "el plan no propone nada para un archivo sin cx_id"
+        if sin_id["operacion"] != "POST":
+            return False, f"sin cx_id propone {sin_id['operacion']}, no POST"
+
+        pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
+            {"tipo": "playbook", "ruta": ruta}])
+        cabecera = _cabecera_en_la_rama(ruta)
+        if not (cabecera or {}).get("cx_id"):
+            return False, "tras crearlo, el cx_id no volvió al archivo"
+
+        # Ahora que tiene id, cambiarlo tiene que proponer PATCH.
+        contexto.gh.commit_files(
+            contexto.rama,
+            {ruta: _yaml_de_playbook(nombre, "ahora con id y contenido nuevo",
+                                     cx_id=cabecera["cx_id"])},
+            f"test({PREFIJO}): mismo playbook con cx_id, tiene que salir como PATCH")
+        plan = pipeline.step_3_apply_to_cx(
+            project, agent_id, dry_run=True)["data"]["operaciones"]
+        con_id = next((o for o in plan if o["ruta"] == ruta), None)
+        if con_id is None:
+            return False, "con cx_id y contenido distinto, el plan no propone nada"
+        return con_id["operacion"] == "PATCH", (
+            f"con cx_id propone {con_id['operacion']}, no PATCH")
+
+    runner.check(3, "El cx_id decide el verbo: sin él POST, con él PATCH — "
+                    "nunca al revés",
+                 el_cx_id_decide_patch_y_su_ausencia_post)
+
+    def un_cx_id_fantasma_se_recrea_y_deja_una_sola_copia():
+        """El archivo apunta a un recurso que ya no existe en CX.
+
+        Pasa de verdad: se borra algo en la consola y su YAML se queda con el
+        id de un muerto. Un PATCH contra ese id fallaría para siempre; una
+        recreación que no actualizara el archivo dejaría una copia nueva en
+        cada deploy. Se comprueba lo tercero: se recrea, el id nuevo sustituye
+        al viejo, y en CX queda **una sola** copia.
+        """
+        nombre = f"{etiqueta}_fantasma"
+        ruta = f"definitions/playbooks/{nombre}.yaml"
+        contexto.gh.commit_files(
+            contexto.rama, {ruta: _yaml_de_playbook(nombre, "nace para morir")},
+            f"test({PREFIJO}): playbook que se borrará de CX dejando su id huérfano")
+        pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
+            {"tipo": "playbook", "ruta": ruta}])
+
+        viejo = (_cabecera_en_la_rama(ruta) or {}).get("cx_id")
+        if not viejo:
+            return False, "no se llegó a crear con id"
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        creado = inventario["playbook"].get(viejo)
+        if creado is None:
+            return False, "el id guardado no corresponde a nada en CX"
+        cx.api_delete(project, contexto.region, creado["name"])
+        if cx.api_get(project, contexto.region, creado["name"]).status_code != 404:
+            return False, "no se pudo borrar de CX para provocar el fantasma"
+
+        pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
+            {"tipo": "playbook", "cx_id": viejo, "ruta": ruta}])
+
+        nuevo = (_cabecera_en_la_rama(ruta) or {}).get("cx_id")
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
+        copias = [p for p in inventario["playbook"].values()
+                  if p.get("displayName") == nombre]
+        for copia in copias:
+            creados.append(copia["name"])
+
+        problemas = []
+        if not nuevo:
+            problemas.append("el archivo se quedó sin cx_id")
+        elif nuevo == viejo:
+            problemas.append(f"el archivo sigue con el id muerto {viejo[:8]}")
+        elif nuevo not in inventario["playbook"]:
+            problemas.append("el id nuevo del archivo no existe en CX")
+        if len(copias) != 1:
+            problemas.append(f"quedaron {len(copias)} copias en CX, no una")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(3, "Un cx_id fantasma se recrea, el id nuevo sustituye al muerto "
+                    "en el archivo, y queda una sola copia en CX",
+                 un_cx_id_fantasma_se_recrea_y_deja_una_sola_copia)
+
+    def el_mismo_cx_id_en_otro_archivo_avisa():
+        """Un id que aparece hoy en un archivo distinto al de la última vez.
+
+        Es el síntoma de un YAML copiado de otro repositorio sin vaciarle la
+        cabecera. Sin el aviso, se aplicaría en silencio sobre el recurso
+        equivocado — y el recurso equivocado es uno real.
+        """
+        nombre = f"{etiqueta}_mudanza"
+        ruta = f"definitions/playbooks/{nombre}.yaml"
+        contexto.gh.commit_files(
+            contexto.rama, {ruta: _yaml_de_playbook(nombre, "vive aquí de momento")},
+            f"test({PREFIJO}): playbook que después cambiará de archivo")
+        pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
+            {"tipo": "playbook", "ruta": ruta}])
+        cx_id = (_cabecera_en_la_rama(ruta) or {}).get("cx_id")
+        if not cx_id:
+            return False, "no se llegó a crear con id"
+
+        otra = f"definitions/playbooks/{nombre}_mudado.yaml"
+        contexto.gh.commit_files(
+            contexto.rama,
+            {ruta: "", otra: _yaml_de_playbook(nombre, "ahora vivo en otro archivo",
+                                               cx_id=cx_id)},
+            f"test({PREFIJO}): el mismo cx_id aparece en otro archivo")
+
+        avisos = pipeline.step_3_apply_to_cx(
+            project, agent_id, dry_run=True)["data"]["avisos_cambio_archivo"]
+        suyo = [a for a in avisos if a.get("cx_id") == cx_id]
+        if not suyo:
+            return False, ("el cx_id cambió de archivo y no se avisó: se "
+                           "aplicaría en silencio sobre el recurso equivocado")
+        return suyo[0]["archivo_ahora"] == otra, (
+            f"el aviso señala {suyo[0]['archivo_ahora']}, no {otra}")
+
+    runner.check(3, "El mismo cx_id en un archivo distinto al de la última vez "
+                    "dispara el aviso",
+                 el_mismo_cx_id_en_otro_archivo_avisa)
+
+    def un_yaml_de_otro_agente_no_se_despliega_aqui():
+        """La cabecera `agente` es lo que reparte los YAML entre agentes.
+
+        Si no filtrara, un despliegue se llevaría por delante los recursos de
+        otro agente del mismo repositorio. Se comprueba con dos archivos: uno
+        de otro agente y otro sin campo `agente`. Ninguno puede entrar en el
+        plan, y el plan tiene que seguir proponiendo lo que sí es de este.
+        """
+        ajeno = f"definitions/playbooks/{etiqueta}_ajeno.yaml"
+        huerfano = f"definitions/playbooks/{etiqueta}_huerfano.yaml"
+        propio = f"definitions/playbooks/{etiqueta}_propio.yaml"
+        sin_agente = yaml.safe_dump(
+            {"metadata": {"tipo": "playbook", "padre": None, "cx_id": None},
+             "displayName": f"{etiqueta}_huerfano", "goal": "sin dueño",
+             "playbookType": "ROUTINE",
+             "instruction": {"steps": [{"text": "haz algo"}]}},
+            allow_unicode=True, sort_keys=False)
+        contexto.gh.commit_files(
+            contexto.rama,
+            {ajeno: _yaml_de_playbook(f"{etiqueta}_ajeno", "de otro agente",
+                                      agente="00000000-0000-0000-0000-0000000000ff"),
+             huerfano: sin_agente,
+             propio: _yaml_de_playbook(f"{etiqueta}_propio", "de este agente")},
+            f"test({PREFIJO}): tres playbooks, solo uno es de este agente")
+
+        rutas = {o["ruta"] for o in pipeline.step_3_apply_to_cx(
+            project, agent_id, dry_run=True)["data"]["operaciones"]}
+        problemas = []
+        if ajeno in rutas:
+            problemas.append("el YAML de otro agente entró en el plan")
+        if huerfano in rutas:
+            problemas.append("el YAML sin campo agente entró en el plan")
+        if propio not in rutas:
+            problemas.append("el YAML de este agente NO entró: el filtro se pasa de largo")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(3, "La cabecera agente reparte de verdad: ni el YAML de otro "
+                    "agente ni el que no lo declara entran en el plan",
+                 un_yaml_de_otro_agente_no_se_despliega_aqui)
+
+    def un_contenedor_sin_publicar_sale_como_cambiado_contra_cx_real():
+        """El caso «nunca publicado», contra CX de verdad y no en memoria.
+
+        Tener versiones no es estar al día, y no tenerlas tampoco es un error:
+        es lo normal la primera vez. Si un contenedor sin puntero saliera como
+        «igual», su primera publicación no ocurriría nunca — el mismo fallo
+        silencioso, entrando por otra puerta.
+        """
+        nombre = f"{etiqueta}_nunca_publicado"
+        ruta = f"definitions/playbooks/{nombre}.yaml"
+        contexto.gh.commit_files(
+            contexto.rama, {ruta: _yaml_de_playbook(nombre, "todavía sin publicar")},
+            f"test({PREFIJO}): playbook que nace sin versión ni puntero")
+        pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
+            {"tipo": "playbook", "ruta": ruta}])
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto)
+        creado = next((p for p in inventario["playbook"].values()
+                       if p.get("displayName") == nombre), None)
+        if creado is None:
+            return False, "no se llegó a crear en CX"
+        creados.append(creado["name"])
+
+        comparacion = pipeline._contenedores_cambiados(contexto, inventario)
+        suyo = next((c for c in comparacion["cambiados"]
+                     if c["name"] == creado["name"]), None)
+        if suyo is None:
+            return False, ("un contenedor sin puntero en el entorno no sale como "
+                           "cambiado: su primera publicación no ocurriría nunca")
+        if any(i["name"] == creado["name"] for i in comparacion["iguales"]):
+            return False, "sale a la vez como cambiado y como igual"
+        return True, f"motivo: {suyo.get('motivo')}"
+
+    runner.check(3, "Un contenedor que existe pero que producción todavía no "
+                    "sirve sale como cambiado, contra CX real",
+                 un_contenedor_sin_publicar_sale_como_cambiado_contra_cx_real)
+
+    def el_rollback_se_puede_rehacer_de_verdad():
+        """Registrar a qué apuntaba producción no sirve si no se puede volver.
+
+        El check hermano comprueba que el dato queda guardado. Este comprueba
+        lo que ese dato promete: que con él se devuelve el entorno a donde
+        estaba. Se hace el viaje entero —ida y vuelta— y se deja producción
+        donde estaba al empezar, confirmándolo por lectura.
+        """
+        al_empezar = versiones_fijadas_ahora(contexto)
+        previas = store.get_previous_versions(store.get_client(), project, agent_id)
+        nombres = (previas or {}).get("version_names") or []
+        if not nombres:
+            return False, "no hay ningún registro de versiones anteriores"
+
+        vivas = [n for n in nombres
+                 if cx.api_get(project, contexto.region, n).status_code == 200]
+        if not vivas:
+            return True, ("las versiones anteriores registradas ya no existen — "
+                          "el rollback no es posible y el registro no lo oculta")
+
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["environment"])
+        entorno = pipeline._buscar_entorno(contexto, inventario,
+                                           pipeline.ENTORNO_PRODUCCION)
+        pipeline._apuntar_entorno(contexto, entorno, sorted(vivas))
+        tras_volver = versiones_fijadas_ahora(contexto)
+
+        # Y se deja como estaba, pase lo que pase con la comprobación.
+        inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["environment"])
+        entorno = pipeline._buscar_entorno(contexto, inventario,
+                                           pipeline.ENTORNO_PRODUCCION)
+        pipeline._apuntar_entorno(contexto, entorno, sorted(al_empezar.values()))
+        restaurado = versiones_fijadas_ahora(contexto)
+
+        esperado = {n.rsplit("/versions/", 1)[0]: n for n in sorted(vivas)}
+        problemas = []
+        if tras_volver != esperado:
+            problemas.append("el entorno no quedó en las versiones anteriores")
+        if restaurado != al_empezar:
+            problemas.append("no se pudo devolver producción a donde estaba")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(3, "El rollback se puede rehacer de verdad: con lo registrado "
+                    "se devuelve el entorno y se vuelve a dejar como estaba",
+                 el_rollback_se_puede_rehacer_de_verdad)
+
+    def publicar_con_el_candado_tomado_no_toca_produccion():
+        """Un Paso 3 en curso tiene que impedir que un Paso 5 publique encima.
+
+        Es el caso real de dos pestañas abiertas. Publicar sobre un borrador a
+        medio escribir subiría a producción un estado que nadie aprobó. El
+        candado es por proyecto, así que se toma tal cual lo tomaría el Paso 3.
+        """
+        cliente = store.get_client()
+        antes = versiones_fijadas_ahora(contexto)
+        token = store.acquire_lock(cliente, project, agent_id,
+                                   "aplicar en CX (simulado por el validador)")
+        try:
+            pipeline.step_4_validate_tests(project, agent_id, "superados")
+            try:
+                resultado = pipeline.step_5_publish(
+                    project, agent_id, f"{etiqueta}_candado")
+                paro = resultado["status"] not in ("ok",)
+                detalle = f"status={resultado['status']}"
+            except store.LockBusy as error:
+                paro, detalle = True, f"LockBusy: {str(error)[:60]}"
+        finally:
+            store.release_lock(cliente, project, agent_id, token)
+
+        despues = versiones_fijadas_ahora(contexto)
+        if not paro:
+            return False, "publicó con el candado de otra operación tomado"
+        return antes == despues, (
+            f"{detalle} pero producción se movió igualmente")
+
+    runner.check(3, "Con el candado tomado por otra operación, publicar no llega "
+                    "a tocar producción",
+                 publicar_con_el_candado_tomado_no_toca_produccion)
+
     # ── Limpieza · va al final, y pase lo que pase antes ─────────────────────
 
     def limpiar_cx():
