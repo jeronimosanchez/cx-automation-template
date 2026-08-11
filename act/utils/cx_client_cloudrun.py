@@ -193,6 +193,16 @@ def api_request(method, project, region, path, body=None, params=None,
     Un agente grande puede llegar al límite por sí solo — el inventario lee los
     13 tipos y las versiones de cada contenedor.
 
+    **Un corte de red se reintenta como un 429.** No es un código de estado
+    sino una excepción, así que antes subía directa y abortaba el paso entero:
+    un segundo de conexión caída a mitad del Paso 3 deja el borrador escrito a
+    medias, y a mitad del Paso 5 deja versiones creadas sin entorno apuntado.
+    El pipeline hace cientos de llamadas por corrida — un transitorio de red no
+    es un caso raro. Solo se reintenta lo que es seguro reintentar por sí solo:
+    si la conexión se cae **sin respuesta**, la petición no llegó a completarse
+    y repetirla no duplica nada. Un timeout de lectura no entra aquí: ahí el
+    servidor pudo haber procesado la escritura y repetirla sí podría duplicar.
+
     `path` es siempre un nombre de recurso relativo (`projects/…/playbooks/…`).
     Una URL absoluta es un error, no un atajo: el token de la cuenta de
     servicio no puede acabar apuntando a un host que decida quien llama (C3).
@@ -206,19 +216,31 @@ def api_request(method, project, region, path, body=None, params=None,
     url = f"{build_base(region)}/{path.lstrip('/')}"
     already_refreshed = False
     response = None
+    ultimo_corte = None
 
     for attempt in range(max_retries):
-        response = requests.request(
-            method, url, headers=get_headers(project), json=body, params=params,
-            timeout=timeout,
-        )
-        if response.status_code == 401 and not already_refreshed:
-            already_refreshed = True
+        try:
             response = requests.request(
-                method, url,
-                headers=get_headers(project, force_refresh=True),
-                json=body, params=params, timeout=timeout,
+                method, url, headers=get_headers(project), json=body,
+                params=params, timeout=timeout,
             )
+            if response.status_code == 401 and not already_refreshed:
+                already_refreshed = True
+                response = requests.request(
+                    method, url,
+                    headers=get_headers(project, force_refresh=True),
+                    json=body, params=params, timeout=timeout,
+                )
+        except requests.exceptions.ConnectionError as error:
+            ultimo_corte = error
+            if attempt < max_retries - 1:
+                _sleep(base_delay * (2 ** attempt))
+                continue
+            raise ApiError(
+                f"La conexión con la API se cayó {max_retries} veces seguidas "
+                f"al llamar a {method} {path[:80]}. No se ha completado la "
+                f"petición: {ultimo_corte}"
+            ) from ultimo_corte
         if response.status_code != 429:
             _comprobar_region(response, region)
             return response
