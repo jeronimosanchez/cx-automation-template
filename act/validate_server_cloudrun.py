@@ -1031,6 +1031,17 @@ def _barrer(contexto):
     Al empezar y al terminar. Al empezar porque un `finally` no sobrevive a un
     SIGKILL: el residuo de una corrida que murió a medias se limpia en la
     siguiente, no se acumula para siempre.
+
+    **Lo que un entorno sigue fijando tras desanclar no es residuo.** Por
+    construcción solo puede ser una versión de un contenedor legítimo del
+    agente —el flow de arranque, un playbook suyo— que lleva el prefijo porque
+    el validador publicó con ese nombre, no porque el contenedor sea de prueba.
+    Producción tiene que apuntar a alguna versión de esos contenedores, y el
+    flow de arranque ni siquiera se puede desanclar: CX exige versión para todo
+    flow alcanzable desde él. Contarlas como suciedad convertía una corrida
+    correcta en dos FAIL — pasó, y el mismo criterio ya estaba corregido en
+    `validate_pipeline_cloudrun.py`. Se devuelven aparte, para que se vean sin
+    contarse como residuo.
     """
     inventario, _, _ = pipeline.inventariar_cx(contexto)
     desancladas = _desanclar_lo_de_las_pruebas(contexto, inventario)
@@ -1045,10 +1056,10 @@ def _barrer(contexto):
     objetivos += [i for tipo, items in inventario.items() if tipo != "version"
                   for i in items.values() if _lleva_la_marca(tipo, i)]
 
-    borrados, resistentes = [], []
+    borrados, resistentes, servidas = [], [], []
     for item in objetivos:
         if item["name"] in en_uso:
-            resistentes.append(item["name"])
+            servidas.append(item["name"])
             continue
         cx.api_delete(contexto.project, contexto.region, item["name"])
         # El borrado se confirma leyendo, nunca por el código de la respuesta.
@@ -1057,7 +1068,7 @@ def _barrer(contexto):
             borrados.append(item["name"])
         else:
             resistentes.append(item["name"])
-    return desancladas, borrados, resistentes
+    return desancladas, borrados, resistentes, servidas
 
 
 def _limpiar_registros_de_prueba(cliente, project, agent_id):
@@ -1116,7 +1127,9 @@ def nivel_3(runner, servidor, project, agent_id, run_id):
         runner.check(3, "Barrido de restos de corridas anteriores antes de crear nada",
                      lambda: (lambda r: (not r[2], f"{r[0]} desancladas · "
                                                    f"{len(r[1])} borradas · "
-                                                   f"resisten {r[2]}"))(_barrer(contexto)))
+                                                   f"resisten {r[2]} · "
+                                                   f"{len(r[3])} las sirve un entorno "
+                                                   f"y no se tocan"))(_barrer(contexto)))
 
         def el_paso_5_se_niega_sin_un_paso_4_superado():
             """El candado del Paso 5, por HTTP. Es el mismo que la Fase 4 probó
@@ -1315,9 +1328,10 @@ def nivel_3(runner, servidor, project, agent_id, run_id):
         # ── Limpieza ────────────────────────────────────────────────────────────
 
         def cero_residuo_en_cx():
-            desancladas, borrados, resisten = _barrer(contexto)
+            desancladas, borrados, resisten, servidas = _barrer(contexto)
             return not resisten, (f"{desancladas} desancladas · {len(borrados)} "
-                                  f"borrados · resisten {resisten}")
+                                  f"borrados · resisten {resisten} · "
+                                  f"{len(servidas)} las sirve un entorno y no se tocan")
 
         runner.check(3, "Cero residuo en CX: lo creado se borra y el borrado se "
                         "confirma leyendo", cero_residuo_en_cx)
@@ -1584,7 +1598,7 @@ def nivel_4(runner, servidor, project, agent_id, run_id):
             lo que la muerte súbita dejara a medias. Luego se comprueba que un
             servidor nuevo puede volver a escribir."""
             _liberar_candado()
-            desancladas, borrados, resisten = _barrer(contexto)
+            desancladas, borrados, resisten, servidas = _barrer(contexto)
             fallos = []
             for rama, sha in ((contexto.rama, rama_al_empezar),
                               (contexto.rama_principal, principal_al_empezar)):
@@ -1601,8 +1615,17 @@ def nivel_4(runner, servidor, project, agent_id, run_id):
                     fallos.append(f"un servidor nuevo no puede escribir: "
                                   f"HTTP {respuesta.status_code}")
             inventario, _, _ = pipeline.inventariar_cx(contexto)
+            # Lo que un entorno sirve no cuenta como resto, por la misma razón
+            # que en `_barrer`: es una versión de un contenedor legítimo del
+            # agente que lleva el prefijo porque el validador publicó con ese
+            # nombre. Producción tiene que apuntar a alguna, y el flow de
+            # arranque no se puede desanclar.
+            servidas = {c["version"]
+                        for e in inventario.get("environment", {}).values()
+                        for c in e.get("versionConfigs", [])}
             restos = [i["name"] for t, items in inventario.items()
-                      for i in items.values() if _lleva_la_marca(t, i)]
+                      for i in items.values()
+                      if _lleva_la_marca(t, i) and i["name"] not in servidas]
             if restos:
                 fallos.append(f"quedan resources con el prefijo: {restos}")
             return not fallos, (" · ".join(fallos) or

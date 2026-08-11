@@ -141,10 +141,39 @@ class CheckRunner:
     """Recolector de resultados. Una excepción cuenta como FAIL de ese check,
     no como caída del script: un nivel tiene que poder terminar y contarlo."""
 
-    def __init__(self):
+    def __init__(self, solo=None):
         self.results = []
+        # Filtro por texto del nombre. Sin él, depurar un check exige tragarse
+        # el nivel entero —veinticinco minutos por vuelta—, y comprobar que un
+        # check caza el defecto que dice cazar cuesta una corrida completa por
+        # cada defecto que se inyecta. Con el filtro, esa comprobación pasa de
+        # horas a minutos, que es la diferencia entre hacerla y no hacerla.
+        #
+        # Lo omitido se registra como omitido, nunca se calla: una corrida
+        # filtrada no puede leerse después como una corrida completa.
+        self.solo = (solo or "").strip().lower() or None
+        self.omitidos = 0
+
+    def _pasa_el_filtro(self, name):
+        if not self.solo:
+            return True
+        # El barrido y la limpieza corren SIEMPRE, filtre lo que filtre. No son
+        # cobertura, son las que dejan el agente como estaba: filtrarlas
+        # convertía cada corrida acotada en un depósito de residuo. Pasó —
+        # doce corridas filtradas dejaron siete playbooks vivos y siete
+        # punteros de prueba en el entorno de producción, y los validadores
+        # siguientes lo declararon todo limpio porque su propio barrido inicial
+        # los borraba... después de que otra corrida los hubiera vuelto a
+        # publicar. Una herramienta para depurar no puede ensuciar lo que
+        # depura.
+        if any(m in name.lower() for m in ("barrido", "residuo")):
+            return True
+        return self.solo in name.lower()
 
     def check(self, level, name, funcion):
+        if not self._pasa_el_filtro(name):
+            self.omitidos += 1
+            return None
         try:
             resultado = funcion()
             if isinstance(resultado, tuple):
@@ -4239,6 +4268,14 @@ def nivel_3(runner, project, agent_id, run_id):
                            "cambiado: su primera publicación no ocurriría nunca")
         if any(i["name"] == creado["name"] for i in comparacion["iguales"]):
             return False, "sale a la vez como cambiado y como igual"
+        # El motivo también, no solo el grupo. Sin esto el check pasaba con el
+        # defecto dentro: al romper la rama de «sin puntero», el contenedor
+        # caía igualmente en `cambiados` por otro camino —el de «la versión
+        # fijada ya no existe»— y el resultado parecía correcto por accidente.
+        # Comprobarlo se descubrió inyectando ese defecto a propósito.
+        if suyo.get("motivo") != "producción todavía no lo sirve":
+            return False, (f"sale como cambiado pero por otro camino: "
+                           f"{suyo.get('motivo')!r}")
         return True, f"motivo: {suyo.get('motivo')}"
 
     runner.check(3, "Un contenedor que existe pero que producción todavía no "
@@ -4252,10 +4289,30 @@ def nivel_3(runner, project, agent_id, run_id):
         lo que ese dato promete: que con él se devuelve el entorno a donde
         estaba. Se hace el viaje entero —ida y vuelta— y se deja producción
         donde estaba al empezar, confirmándolo por lectura.
+
+        **Exige que el registro sea de esta publicación, no uno cualquiera.**
+        El registro vive en Firestore y sobrevive entre corridas: leerlo a
+        secas hacía que el check pasara con el guardado roto, apoyándose en lo
+        que dejó una corrida anterior. Se descubrió inyectando ese defecto: la
+        prueba seguía en verde. Ahora se anota la marca de tiempo previa, se
+        publica, y se exige que haya avanzado.
         """
+        cliente = store.get_client()
+        marca_antes = (store.get_previous_versions(cliente, project, agent_id)
+                       or {}).get("guardado_en")
+
+        pipeline.step_4_validate_tests(project, agent_id, "superados")
+        publicacion = pipeline.step_5_publish(project, agent_id,
+                                              f"{etiqueta}_rollback")
+        if publicacion["status"] != "ok":
+            return False, f"no se pudo publicar para provocar el registro: {publicacion['status']}"
+
         al_empezar = versiones_fijadas_ahora(contexto)
-        previas = store.get_previous_versions(store.get_client(), project, agent_id)
-        nombres = (previas or {}).get("version_names") or []
+        previas = store.get_previous_versions(cliente, project, agent_id) or {}
+        if previas.get("guardado_en") == marca_antes:
+            return False, ("publicar no actualizó el registro de versiones "
+                           "anteriores: el rollback se apoyaría en un dato viejo")
+        nombres = previas.get("version_names") or []
         if not nombres:
             return False, "no hay ningún registro de versiones anteriores"
 
@@ -5241,10 +5298,16 @@ def main(argv=None):
                              "para probar que comparten repositorio sin mezclarse")
     parser.add_argument("--levels", default="0",
                         help="Niveles a ejecutar: '0', '0-2', '3,4'")
+    parser.add_argument("--solo",
+                        help="Ejecuta solo los checks cuyo nombre contenga este "
+                             "texto. Para depurar uno suelto, o para comprobar "
+                             "que caza el defecto que dice cazar sin pagar el "
+                             "nivel entero. Lo omitido se declara al final: una "
+                             "corrida filtrada nunca se lee como completa.")
     args = parser.parse_args(argv)
 
     niveles = parse_levels(args.levels)
-    runner = CheckRunner()
+    runner = CheckRunner(solo=args.solo)
     run_id = uuid.uuid4().hex[:8]
 
     necesita_destino = any(n in niveles for n in (1, 2, 3, 4))
@@ -5300,6 +5363,11 @@ def main(argv=None):
 
     c = runner.counts()
     print(f"\nRESUMEN: {c[PASS]} PASS · {c[FAIL]} FAIL · {c[SKIP]} SKIP")
+    if runner.solo:
+        # Se dice siempre, y con el número: sin esta línea, el resumen de una
+        # corrida filtrada es indistinguible del de una completa.
+        print(f"CORRIDA FILTRADA por «{runner.solo}» — {runner.omitidos} checks "
+              f"no se ejecutaron. Esto NO es una validación completa.")
     if c[SKIP]:
         print("Los SKIP no son cobertura: cada uno dice arriba qué falta para "
               "poder ejecutarlo.")
