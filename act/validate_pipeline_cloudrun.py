@@ -478,6 +478,97 @@ def versiones_fijadas_ahora(contexto, entorno=None):
         inventario, entorno or pipeline.ENTORNO_PRODUCCION)
 
 
+# ── Barrido de CX · compartido, a propósito ──────────────────────────────────
+#
+# Vive aquí y no dentro de un nivel porque el Nivel 3 sabía desanclar antes de
+# borrar y el Nivel 4 no sabía nada: creaba resources, los publicaba, y su única
+# limpieza era la de las ramas. El resultado fue residuo real —cuatro resources
+# vivos y cuatro punteros de prueba en el entorno de producción— con la corrida
+# declarando «cero residuo». Compartiendo el código, el conocimiento no puede
+# estar en un nivel y faltar en el otro.
+
+def desanclar_lo_de_las_pruebas(contexto, project):
+    """Quita del entorno las versiones de contenedores que creó una prueba.
+
+    Es el primer eslabón y sin él los otros no se pueden romper: mientras un
+    entorno fije una versión suya, CX se niega a borrar el contenedor —
+    *"cannot be deleted because it is still referenced in the following
+    environments"*. Devuelve cuántas desancló.
+    """
+    inventario, _, _ = pipeline.inventariar_cx(contexto)
+    desancladas = 0
+    for entorno in list(inventario.get("environment", {}).values()):
+        fijadas = [c["version"] for c in entorno.get("versionConfigs", [])]
+        sobreviven = []
+        for version in fijadas:
+            padre = version.rsplit("/versions/", 1)[0]
+            respuesta = cx.api_get(project, contexto.region, padre)
+            nombre = (respuesta.json().get("displayName", "")
+                      if respuesta.status_code == 200 else "")
+            if str(nombre).startswith(PREFIJO):
+                desancladas += 1
+            else:
+                sobreviven.append(version)
+        if len(sobreviven) != len(fijadas):
+            pipeline._apuntar_entorno(contexto, entorno, sobreviven)
+    return desancladas
+
+
+def barrer_cx_de_las_pruebas(contexto, project, creados=()):
+    """Desancla, borra lo que lleva el prefijo, y lo confirma leyendo.
+
+    Las versiones de playbook llevan la marca en `description` y no en
+    `displayName`, porque ese endpoint no acepta displayName: buscar solo por
+    displayName las dejaba fuera del barrido para siempre y se acumulaban
+    contra el límite por playbook.
+
+    Lo que siga fijado **tras** desanclar no es residuo y no hace fallar nada.
+    Por construcción solo puede ser una versión de un contenedor legítimo del
+    agente —el flow de arranque, un playbook suyo— que lleva la etiqueta de una
+    corrida solo porque el validador publicó con ese nombre. Producción tiene
+    que apuntar a alguna versión de esos contenedores; borrarla rompería el
+    entorno, y el flow de arranque ni siquiera se puede desanclar. Se informa
+    para que se vea, pero no se cuenta como suciedad.
+
+    Lo que sí falla es `pendientes`: algo que **no** estaba fijado, que por
+    tanto se podía borrar, y que tras el DELETE sigue ahí al releerlo.
+    """
+    desancladas = desanclar_lo_de_las_pruebas(contexto, project)
+    inventario, _, _ = pipeline.inventariar_cx(contexto)
+    en_uso = {
+        config["version"]
+        for entorno in inventario.get("environment", {}).values()
+        for config in entorno.get("versionConfigs", [])
+    }
+    objetivos = set(creados) | {
+        item["name"]
+        for tipo, items in inventario.items() for item in items.values()
+        if _lleva_la_marca(tipo, item)
+    }
+
+    pendientes, servidos = [], []
+    for nombre in sorted(objetivos):
+        if nombre in en_uso:
+            servidos.append(nombre.rsplit("/", 1)[-1])
+            continue
+        cx.api_delete(project, contexto.region, nombre)
+        # El borrado se confirma leyendo, no por el código de respuesta.
+        if cx.api_get(project, contexto.region, nombre).status_code != 404:
+            pendientes.append(nombre)
+
+    partes = []
+    if pendientes:
+        partes.append(
+            f"no se borraron: {[p.rsplit('/', 1)[-1] for p in pendientes]}")
+    if desancladas:
+        partes.append(f"{desancladas} desancladas")
+    if servidos:
+        partes.append(
+            f"{len(servidos)} versiones de contenedores del agente siguen "
+            f"fijadas y no se tocan: {servidos}")
+    return not pendientes, " · ".join(partes)
+
+
 # ── Guardas ──────────────────────────────────────────────────────────────────
 
 # Ramas que este script no puede tocar bajo ningún concepto. El Paso 5 fusiona
@@ -2465,54 +2556,14 @@ def nivel_3(runner, project, agent_id, run_id):
     # siguiente no podía fusionar.
     principal_al_empezar = contexto.gh.branch_head(contexto.rama_principal)
 
-    def _desanclar_lo_de_las_pruebas(inventario):
-        """Quita del entorno de producción las versiones de resources de prueba.
-
-        Es el primer eslabón de la cadena de residuo, y sin él los otros dos no
-        se pueden romper: publicar crea una versión del flow o playbook de
-        prueba, esa versión queda fijada en producción, y entonces CX se niega
-        a borrar el resource — *"cannot be deleted because it is still
-        referenced in the following environments"*. El resource se queda, su
-        versión se queda, y a la corrida siguiente hay dos.
-
-        Devuelve cuántas desancló.
-        """
-        entornos = list(inventario.get("environment", {}).values())
-        desancladas = 0
-        for entorno in entornos:
-            fijadas = [c["version"] for c in entorno.get("versionConfigs", [])]
-            sobreviven = []
-            for version in fijadas:
-                padre = version.rsplit("/versions/", 1)[0]
-                respuesta = cx.api_get(project, contexto.region, padre)
-                nombre = (respuesta.json().get("displayName", "")
-                          if respuesta.status_code == 200 else "")
-                if str(nombre).startswith(PREFIJO):
-                    desancladas += 1
-                else:
-                    sobreviven.append(version)
-            if len(sobreviven) != len(fijadas):
-                pipeline._apuntar_entorno(contexto, entorno, sobreviven)
-        return desancladas
+    def _desanclar_lo_de_las_pruebas(_inventario=None):
+        """Delega en la compartida — ver `desanclar_lo_de_las_pruebas`."""
+        return desanclar_lo_de_las_pruebas(contexto, project)
 
     def barrer_restos_previos():
         """Barrido al empezar: un finally no sobrevive a un SIGKILL, así que el
         residuo de una corrida muerta se limpia en la siguiente."""
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        desancladas = _desanclar_lo_de_las_pruebas(inventario)
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        # Las versiones primero: mientras exista una version de un resource de
-        # prueba, CX se niega a borrar el resource.
-        restos = [item for item in inventario.get("version", {}).values()
-                  if _lleva_la_marca("version", item)]
-        restos += [
-            item for tipo, items in inventario.items() if tipo != "version"
-            for item in items.values() if _lleva_la_marca(tipo, item)
-        ]
-        for resto in restos:
-            cx.api_delete(project, contexto.region, resto["name"])
-        return True, (f"{desancladas} versiones desancladas de un entorno · "
-                      f"{len(restos)} restos borrados")
+        return barrer_cx_de_las_pruebas(contexto, project)
 
     runner.check(3, "Barrido de restos antes de empezar", barrer_restos_previos)
 
@@ -3878,12 +3929,30 @@ def nivel_3(runner, project, agent_id, run_id):
              "instruction": {"steps": [{"text": "haz algo"}]}},
             allow_unicode=True, sort_keys=False)
 
-    def _cabecera_en_la_rama(ruta):
-        """La cabecera `metadata` de un archivo, leída de la rama de trabajo."""
-        archivos = contexto.gh.read_repo_files(contexto.gh.branch_head(contexto.rama))
-        if ruta not in archivos:
-            return None
-        return (yaml.safe_load(archivos[ruta]) or {}).get("metadata", {})
+    def _cabecera_en_la_rama(ruta, distinto_de=..., intentos=5, espera=0.6):
+        """La cabecera `metadata` de un archivo, leída de la rama de trabajo.
+
+        `distinto_de` reintenta la lectura hasta que el `cx_id` deje de ser ese
+        valor. Hace falta porque leer una rama recién escrita puede devolver el
+        estado anterior —GitHub tarda un instante en publicar la referencia, el
+        mismo retardo que obligó a encadenar commits por `base_sha` y a que
+        `create_branch` confirme leyendo—. Sin esto, un check que comprueba «el
+        id volvió al archivo» justo después de escribirlo falla por la latencia
+        y acusa al pipeline de un defecto que no tiene: pasó exactamente eso, y
+        reproducirlo aislado demostró que el paso sí lo había guardado.
+
+        Con `distinto_de` sin dar, lee una vez y devuelve lo que haya.
+        """
+        for intento in range(intentos):
+            archivos = contexto.gh.read_repo_files(
+                contexto.gh.branch_head(contexto.rama))
+            cabecera = ((yaml.safe_load(archivos[ruta]) or {}).get("metadata", {})
+                        if ruta in archivos else None)
+            if distinto_de is ... or (cabecera or {}).get("cx_id") != distinto_de:
+                return cabecera
+            if intento < intentos - 1:
+                time.sleep(espera * (2 ** intento))
+        return cabecera
 
     def lo_que_el_pipeline_dice_de_produccion_es_lo_que_cx_sirve():
         """Que la foto del pipeline y la realidad de CX sean la misma cosa.
@@ -3985,7 +4054,7 @@ def nivel_3(runner, project, agent_id, run_id):
 
         pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
             {"tipo": "playbook", "ruta": ruta}])
-        cabecera = _cabecera_en_la_rama(ruta)
+        cabecera = _cabecera_en_la_rama(ruta, distinto_de=None)
         if not (cabecera or {}).get("cx_id"):
             return False, "tras crearlo, el cx_id no volvió al archivo"
 
@@ -4024,7 +4093,7 @@ def nivel_3(runner, project, agent_id, run_id):
         pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
             {"tipo": "playbook", "ruta": ruta}])
 
-        viejo = (_cabecera_en_la_rama(ruta) or {}).get("cx_id")
+        viejo = (_cabecera_en_la_rama(ruta, distinto_de=None) or {}).get("cx_id")
         if not viejo:
             return False, "no se llegó a crear con id"
 
@@ -4039,7 +4108,7 @@ def nivel_3(runner, project, agent_id, run_id):
         pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
             {"tipo": "playbook", "cx_id": viejo, "ruta": ruta}])
 
-        nuevo = (_cabecera_en_la_rama(ruta) or {}).get("cx_id")
+        nuevo = (_cabecera_en_la_rama(ruta, distinto_de=viejo) or {}).get("cx_id")
         inventario, _, _ = pipeline.inventariar_cx(contexto, tipos=["playbook"])
         copias = [p for p in inventario["playbook"].values()
                   if p.get("displayName") == nombre]
@@ -4075,7 +4144,7 @@ def nivel_3(runner, project, agent_id, run_id):
             f"test({PREFIJO}): playbook que después cambiará de archivo")
         pipeline.step_3_apply_to_cx(project, agent_id, aplicar=[
             {"tipo": "playbook", "ruta": ruta}])
-        cx_id = (_cabecera_en_la_rama(ruta) or {}).get("cx_id")
+        cx_id = (_cabecera_en_la_rama(ruta, distinto_de=None) or {}).get("cx_id")
         if not cx_id:
             return False, "no se llegó a crear con id"
 
@@ -4257,48 +4326,8 @@ def nivel_3(runner, project, agent_id, run_id):
     # ── Limpieza · va al final, y pase lo que pase antes ─────────────────────
 
     def limpiar_cx():
-        """Borra todo lo que lleva el prefijo, y confirma leyendo.
-
-        Una excepción declarada: la versión que el entorno de producción está
-        sirviendo no se puede borrar mientras la sirva — la API se niega, y con
-        razón. Deja de estar en uso en cuanto la corrida siguiente publique
-        otra, y entonces la barre el barrido inicial. Se cuenta aquí en vez de
-        callarla, porque un residuo silencioso se lee luego como limpieza que
-        sí ocurrió.
-        """
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        desancladas = _desanclar_lo_de_las_pruebas(inventario)
-        inventario, _, _ = pipeline.inventariar_cx(contexto)
-        en_uso = {
-            config["version"]
-            for entorno in inventario.get("environment", {}).values()
-            for config in entorno.get("versionConfigs", [])
-        }
-        # Las versiones de playbook llevan la marca en `description` y no en
-        # `displayName`, porque el endpoint de versiones de playbook no acepta
-        # displayName. Buscar solo por displayName las dejaba fuera del barrido
-        # para siempre, y se acumulaban contra el limite de 20 por playbook.
-        objetivos = set(creados) | {
-            item["name"]
-            for tipo, items in inventario.items() for item in items.values()
-            if _lleva_la_marca(tipo, item)
-        }
-
-        pendientes, servidos = [], []
-        for nombre in objetivos:
-            if nombre in en_uso:
-                servidos.append(nombre.rsplit("/", 1)[-1])
-                continue
-            cx.api_delete(project, contexto.region, nombre)
-            # El borrado se confirma leyendo, no por el código de respuesta.
-            if cx.api_get(project, contexto.region, nombre).status_code != 404:
-                pendientes.append(nombre)
-
-        detalle = f"no se borraron: {pendientes}" if pendientes else (
-            f"{desancladas} desancladas · {len(servidos)} siguen en uso"
-            if (desancladas or servidos) else ""
-        )
-        return not pendientes, detalle
+        """Desancla y borra todo lo del prefijo — ver `barrer_cx_de_las_pruebas`."""
+        return barrer_cx_de_las_pruebas(contexto, project, creados)
 
     runner.check(3, "Cero residuo en CX: lo creado se borra y el borrado se "
                     "confirma leyendo el resultado",
@@ -5099,6 +5128,30 @@ def nivel_4(runner, project, agent_id, run_id, hermano=None):
     runner.check(4, "Cuota: ninguna versión creada corresponde a un contenedor "
                     "que no cambió",
                  ninguna_version_creada_sobra)
+
+    def limpiar_cx_del_nivel_4():
+        """El barrido de CX que este nivel no tenía.
+
+        Se descubrió comparando una foto del agente antes y después de una
+        corrida entera: el nivel había dejado cuatro resources vivos y cuatro
+        punteros suyos en el entorno de producción, y la corrida declaraba
+        «cero residuo» — porque su única limpieza era la de las ramas. El Nivel
+        3 sí sabía desanclar antes de borrar; aquí ese conocimiento
+        sencillamente no estaba.
+
+        Usa la misma función que el Nivel 3, no una copia: es lo único que
+        impide que los dos vuelvan a discrepar.
+
+        El contexto se construye aquí, fresco. El del principio del nivel se
+        creó antes de que varios checks movieran las ramas, y barrer es
+        exactamente el momento en que hay que leer el estado de ahora.
+        """
+        return barrer_cx_de_las_pruebas(
+            pipeline.Contexto(project, agent_id), project)
+
+    runner.check(4, "Cero residuo en CX: este nivel también desancla y borra lo "
+                    "que creó, confirmándolo leyendo",
+                 limpiar_cx_del_nivel_4)
 
     def limpiar_repositorio_del_nivel_4():
         """Devuelve las dos ramas al punto en que empezó el nivel.
