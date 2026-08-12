@@ -1872,13 +1872,40 @@ function pintarBorradosDeProduccion(comparacion) {
   const lista = $('lista-borrados-produccion');
   if (lista) {
     lista.innerHTML = borrados.map(f => `
-      <div style="border-top:1px solid var(--border);padding:8px 0">
+      <div style="border-top:1px solid var(--border);padding:10px 0">
         <span style="color:var(--text-3)">${esc(NOMBRE_DE_TIPO[f.tipo] || f.tipo || '—')}</span>
-        &middot; <strong>${esc(f.display_name || f.cx_id || '—')}</strong><br>
-        <span style="color:var(--text-3)">producci&oacute;n lo sirve &middot; el borrador ya no lo tiene</span>
+        &middot; <strong>${esc(f.display_name || f.cx_id || '—')}</strong>
+        <div style="margin-top:6px;color:var(--text-3);line-height:1.9">
+          ${recorridoDeLoRetirado(f).join('<br>')}
+        </div>
       </div>`).join('');
   }
   mostrar('aviso-borrados-produccion', borrados.length > 0, 'flex');
+}
+
+/* Las tres líneas del recorrido: qué está hecho, qué falta y quién lo hará.
+
+   Antes decía una sola cosa —«producción lo sirve · el borrador ya no lo
+   tiene»— y eso dejaba fuera lo único que sorprende: que el archivo puede
+   seguir en el repositorio. Cuando sigue, el Paso 3 vuelve a crear el resource
+   en CX y **CX le asigna un identificador nuevo**: no es el que volvió, es
+   otro con el mismo nombre, y el puntero viejo se queda en producción
+   señalando a nada. Quien borra en la consola de CX creyendo que ha borrado se
+   entera una pasada después, con dos resources donde había uno.
+
+   Se dice en pasado lo que ya ocurrió y en futuro lo que falta. Un aviso que
+   anuncia como pendiente algo ya hecho enseña mal el sistema: dentro de dos
+   semanas este popup es lo único que va a contar en qué estado se está.     */
+
+function recorridoDeLoRetirado(f) {
+  const hecho = '<span style="color:var(--success)">&#10003;</span> Ya no est&aacute; en el borrador de CX';
+  const enProduccion = '&middot; Producci&oacute;n lo sirve &mdash; el Paso 5 le quitar&aacute; su puntero';
+  const archivo = f.ruta
+    ? `<span style="color:var(--gate)">&middot; Su archivo sigue en el repositorio ` +
+      `(<code>${esc(String(f.ruta).split('/').pop())}</code>) &mdash; el Paso 3 lo ` +
+      `crear&iacute;a otra vez en CX, con un identificador nuevo</span>`
+    : '&middot; Tampoco est&aacute; en el repositorio &mdash; el borrado es completo';
+  return [hecho, archivo, enProduccion];
 }
 
 function cerrarAvisoBorrados() {

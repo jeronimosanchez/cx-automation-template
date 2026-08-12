@@ -1762,11 +1762,14 @@ def nivel_0(runner):
             {"tipo": "playbook", "cx_id": "con-foto", "display_name": "De la versión"},
         ]
         solo_repo = [
-            {"tipo": "playbook", "cx_id": "ced5bc20", "display_name": "2_prueba_2"},
-            {"tipo": "playbook", "cx_id": "fddeea0b", "display_name": "01_prueba-fake"},
-            {"tipo": "playbook", "cx_id": "con-foto", "display_name": "El del archivo"},
+            {"tipo": "playbook", "cx_id": "ced5bc20", "display_name": "2_prueba_2",
+             "ruta": "definitions/a/playbooks/2_prueba_2.yaml"},
+            {"tipo": "playbook", "cx_id": "fddeea0b", "display_name": "01_prueba-fake",
+             "ruta": "definitions/a/playbooks/01_prueba_fake.yaml"},
+            {"tipo": "playbook", "cx_id": "con-foto", "display_name": "El del archivo",
+             "ruta": "definitions/a/playbooks/con_foto.yaml"},
         ]
-        pipeline.nombrar_lo_retirado(borrados, solo_repo)
+        pipeline.describir_lo_retirado(borrados, solo_repo)
         real = [b["display_name"] for b in borrados]
         esperado = [
             "2_prueba_2",       # lo dice el archivo
@@ -1775,10 +1778,25 @@ def nivel_0(runner):
             "",                 # mismo cx_id, otro tipo: no se confunden
             "De la versión",    # la foto gana; el archivo no la pisa
         ]
-        return real == esperado, f"esperado {esperado} · real {real}"
+        # La ruta decide qué va a pasar después: con archivo el Paso 3 lo
+        # recrearía; sin archivo el borrado es completo. `None` es respuesta.
+        rutas = [b["ruta"] for b in borrados]
+        rutas_esperadas = [
+            "definitions/a/playbooks/2_prueba_2.yaml",
+            "definitions/a/playbooks/01_prueba_fake.yaml",
+            None,   # no hay archivo: borrado completo
+            None,   # otro tipo con el mismo cx_id: no hereda su archivo
+            "definitions/a/playbooks/con_foto.yaml",   # nombre de la versión, ruta del archivo
+        ]
+        problemas = []
+        if real != esperado:
+            problemas.append(f"nombres: esperado {esperado} · real {real}")
+        if rutas != rutas_esperadas:
+            problemas.append(f"rutas: esperado {rutas_esperadas} · real {rutas}")
+        return not problemas, " · ".join(problemas) or "nombres y rutas correctos"
 
-    runner.check(0, "Lo retirado de producción se nombra desde el archivo cuando "
-                    "su versión ya no existe",
+    runner.check(0, "Lo retirado de producción dice su nombre y si su archivo "
+                    "sigue vivo, aunque su versión ya no exista",
                  lo_retirado_se_nombra_desde_el_repositorio)
 
     def entorno_vacio_saca_todo_como_cambiado():

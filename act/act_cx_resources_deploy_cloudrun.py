@@ -544,35 +544,47 @@ def es_nativo(tipo, item):
 TIPOS_FUERA_DEL_REPARTO = ("version", "environment")
 
 
-def nombrar_lo_retirado(borrados, solo_repo):
-    """Pone nombre a lo que producción sirve y el borrador ya no tiene.
+def describir_lo_retirado(borrados, solo_repo):
+    """Dice cómo se llama, y si su archivo sigue vivo, lo que producción sirve
+    y el borrador ya no tiene.
 
-    El nombre visible sale normalmente de la foto congelada de la versión que
-    el entorno fija. No sirve en el caso más frecuente: **borrar un contenedor
-    en la consola de CX se lleva por delante sus versiones**. Verificado contra
-    la API — el contenedor contesta `404` y su lista de versiones contesta
-    `200` con la lista vacía. El entorno se queda apuntando a algo que se ha
-    evaporado, y no hay foto de la que leer nada.
-
-    Queda el archivo del repositorio, que todavía lo describe y sí lleva el
-    nombre. Sin esto el aviso decía «Playbook · ced5bc20-ac6e-4126-b3d5-
+    **El nombre.** Sale normalmente de la foto congelada de la versión que el
+    entorno fija. No sirve en el caso más frecuente: borrar un contenedor en la
+    consola de CX **se lleva por delante sus versiones**. Verificado contra la
+    API — el contenedor contesta `404` y su lista de versiones contesta `200`
+    con la lista vacía. El entorno se queda apuntando a algo evaporado, y no
+    hay foto de la que leer nada. Queda el archivo del repositorio, que todavía
+    lo describe. Sin esto el aviso decía «Playbook · ced5bc20-ac6e-4126-b3d5-
     118a981f7638»: exacto e inútil, porque nadie decide sobre un identificador.
 
-    Solo rellena lo que falta: un nombre que venga de la versión gana, porque
-    es el de lo que producción sirve de verdad. Y si tampoco hay archivo
-    —borrado en los dos sitios— se queda el identificador: es lo único que
-    sobrevive, e inventar un nombre sería peor que no darlo.
+    Solo rellena el nombre que falta: si la versión lo dio, ese gana — es el de
+    lo que producción sirve de verdad. Y si tampoco hay archivo —borrado en los
+    dos sitios— se queda el identificador: es lo único que sobrevive, e
+    inventar un nombre sería peor que no darlo.
+
+    **La ruta.** Es la que decide qué va a pasar después, y son dos finales
+    opuestos. Si el archivo sigue en el repositorio, el Paso 3 vuelve a crear
+    el resource en CX — y CX le asigna un identificador **nuevo**, así que no
+    es el que volvió: es otro con el mismo nombre, y el puntero viejo se queda
+    en producción señalando a nada. Si el archivo tampoco está, el borrado es
+    completo. Sin este dato el aviso solo contaba una de las dos historias, y
+    quien borra en la consola de CX se lleva la sorpresa una pasada después.
 
     Modifica `borrados` en el sitio y no devuelve nada.
     """
     del_repositorio = {
-        (f.get("tipo"), f.get("cx_id")): f.get("display_name", "")
+        (f.get("tipo"), f.get("cx_id")): f
         for f in solo_repo or ()
     }
     for borrado in borrados or ():
+        archivo = del_repositorio.get(
+            (borrado.get("tipo"), borrado.get("cx_id"))) or {}
         if not borrado.get("display_name"):
-            borrado["display_name"] = del_repositorio.get(
-                (borrado.get("tipo"), borrado.get("cx_id")), "")
+            borrado["display_name"] = archivo.get("display_name", "")
+        # `None` es «tampoco está en el repositorio», que es una respuesta, no
+        # un dato que falte: es la diferencia entre un borrado completo y uno
+        # que el Paso 3 va a deshacer.
+        borrado["ruta"] = archivo.get("ruta")
 
 
 def emparejar(inventario, repositorio):
@@ -1121,7 +1133,7 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
     # único que lo dice antes de que pase, y el Paso 1 es el sitio donde saberlo
     # todavía no cuesta nada.
     comparacion = _contenedores_cambiados(contexto, inventario, on_log, log)
-    nombrar_lo_retirado(comparacion["borrados"], grupos["solo_repo"])
+    describir_lo_retirado(comparacion["borrados"], grupos["solo_repo"])
     for borrado in comparacion["borrados"]:
         _emit(log, on_log,
               f"⚠ {borrado['tipo']} «{borrado['display_name'] or borrado['cx_id']}» "

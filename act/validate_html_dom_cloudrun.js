@@ -884,6 +884,59 @@ const escenarios = [
 },
 
 {
+  nombre: 'El aviso de retirada cuenta el recorrido entero, y dice si el archivo lo va a resucitar',
+  porQue: 'Decía una sola cosa: «producción lo sirve, el borrador ya no lo tiene». Se ' +
+          'callaba lo único que sorprende — que el archivo puede seguir en el ' +
+          'repositorio, y entonces el Paso 3 vuelve a crear el resource en CX con un ' +
+          'identificador NUEVO. Quien borra en la consola de CX creyendo que ha ' +
+          'borrado se encuentra una pasada después con dos resources donde había uno ' +
+          'y un puntero muerto en producción. Pasó de verdad, probándolo. Y va en ' +
+          'pasado lo hecho y en futuro lo que falta: un aviso que anuncia como ' +
+          'pendiente algo ya ocurrido hace buscar dónde confirmarlo.',
+  async ejecutar() {
+    const monta = async borrados => {
+      const servidor = new ServidorFalso(rutasBase({
+        '/step/1': {sobre: sobre('ok', ['✓'], {
+          project: PROYECTO, agent_id: AGENTE, region: 'europe-west1', repo: REPO,
+          rama: 'rama-de-prueba', commit: 'fedcba9', total_cx: 1, total_borrador: 1,
+          versiones: 1, total_archivos: 1, tiene_entorno_produccion: true,
+          emparejados: [], solo_cx: [], solo_repo: [], sin_agente: [],
+          comparacion_produccion: {cambiados: [], borrados, iguales: []},
+        })},
+      }));
+      const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null}));
+      pulsar(dom, 'btn-start-inventory');
+      await reposar(dom, 6);
+      return (texto(dom, 'lista-borrados-produccion') || '').replace(/\s+/g, ' ');
+    };
+
+    // Con archivo vivo: el Paso 3 lo resucitaría con otro identificador.
+    const conArchivo = await monta([{tipo:'playbook', cx_id:'p9',
+      display_name:'2_prueba_2', ruta:'definitions/a/playbooks/2_prueba_2.yaml'}]);
+    // Sin archivo: el borrado es completo.
+    const sinArchivo = await monta([{tipo:'playbook', cx_id:'p9',
+      display_name:'2_prueba_2', ruta:null}]);
+
+    const problemas = [];
+    // Lo que ya ocurrió, en pasado, en los dos casos.
+    for (const [caso, t] of [['con-archivo', conArchivo], ['sin-archivo', sinArchivo]]) {
+      if (!/ya no está en el borrador/i.test(t)) problemas.push(`${caso}: no dice lo ya hecho`);
+      if (!/Paso 5/.test(t) || !/puntero/i.test(t)) problemas.push(`${caso}: no dice quién lo retira`);
+    }
+    // La línea que cambia según el archivo — y no debe filtrarse al otro caso.
+    if (!/sigue en el repositorio/i.test(conArchivo)) problemas.push('con-archivo: no avisa de que el archivo sigue');
+    if (!/2_prueba_2\.yaml/.test(conArchivo)) problemas.push('con-archivo: no nombra el archivo');
+    if (!/identificador nuevo/i.test(conArchivo)) problemas.push('con-archivo: no avisa del identificador nuevo');
+    if (!/tampoco está en el repositorio/i.test(sinArchivo)) problemas.push('sin-archivo: no dice que el borrado es completo');
+    if (/sigue en el repositorio/i.test(sinArchivo)) problemas.push('sin-archivo: dice que el archivo sigue, y no está');
+
+    return {ok: problemas.length === 0,
+            detalle: problemas.length ? problemas.join(' · ')
+              : `con-archivo="${conArchivo.slice(0, 150)}" | sin-archivo="${sinArchivo.slice(0, 90)}"`};
+  },
+},
+
+{
   nombre: 'Sin nada borrado, el aviso de retirada no aparece',
   porQue: 'Pasa poco. Un popup que sale siempre se cierra sin leerlo, y el día ' +
           'que dice algo tampoco se lee.',
