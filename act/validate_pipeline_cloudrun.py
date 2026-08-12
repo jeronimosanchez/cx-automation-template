@@ -49,7 +49,13 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # El panel es la especificación: varios checks lo contrastan contra el código.
-PANEL = "docs/panels/act_cx_resources_deploy_v2.html"
+# La maqueta `act_cx_resources_deploy_v2.html` ya NO se valida. Era la prueba
+# de diseño de la que salió el panel de trabajo, y los dos han divergido tanto
+# que mantenerla al día sería reimplementar cada cambio en dos archivos de
+# 150K. Un gemelo visual mantenido a mano no es una especificación: es una
+# segunda implementación que envejece sin avisar — y esta sesión ha enseñado
+# dos veces lo que cuesta la deriva silenciosa. Se queda como registro
+# histórico; lo que se comprueba es el panel que se sirve.
 # Y el que sirve Cloud Run de verdad. Son dos archivos y los dos tienen que
 # enseñar lo mismo: un aviso que solo existe en la especificación no lo ve nadie.
 PANEL_CLOUDRUN = "docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html"
@@ -61,7 +67,7 @@ CAMPO_COMPARACION = "comparacion_produccion"
 ID_AVISO_BORRADOS = "aviso-borrados-produccion"
 # Y el campo con que el Paso 1 dice cuáles de los emparejados dicen algo
 # distinto en el repositorio, con el `id` de su aviso. Mismo motivo: lo usan el
-# check y los dos paneles.
+# check y el panel.
 CAMPO_DIFIEREN = "difieren_del_repositorio"
 ID_AVISO_DIFIEREN = "aviso-difieren-repo"
 if str(REPO_ROOT) not in sys.path:
@@ -995,9 +1001,14 @@ def nivel_0(runner):
         Se comprueba aquí, sin red, comparando las etiquetas del panel contra
         los campos que devuelve el paso.
         """
-        panel = (REPO_ROOT / PANEL).read_text()
-        bloque = panel[panel.find('id="inv-done"'):panel.find('id="view-2"')]
-        etiquetas = re.findall(r'class="grupo-label">([^<]+)<', bloque)
+        # Las etiquetas salen de las llamadas a `tarjetaGrupo`, no del
+        # maquetado: en el panel que se sirve las tarjetas se pintan desde el
+        # JavaScript, y en el HTML estático no hay ninguna. Buscarlas por
+        # `class="grupo-label"` encontraba las de la maqueta —que ya no se
+        # valida— y además recogería el rótulo «Con cambios», que es un
+        # apartado dentro de una tarjeta y no una tarjeta.
+        panel = (REPO_ROOT / PANEL_CLOUDRUN).read_text()
+        etiquetas = re.findall(r"tarjetaGrupo\('[^']+',\s*'([^']+)'", panel)
         esperado = {
             "Emparejados": "emparejados",
             "Solo en CX": "solo_cx",
@@ -1146,7 +1157,7 @@ def nivel_0(runner):
         se comprueba contra el código que la escritura ya no existe, y solo
         entonces se exige que el panel tampoco la nombre.
         """
-        panel = (REPO_ROOT / PANEL).read_text()
+        panel = (REPO_ROOT / PANEL_CLOUDRUN).read_text()
         # Contra el árbol, no contra el texto del archivo: el código explica en
         # un comentario por qué se retiró el marcador, y buscar la cadena a
         # secas encontraba ese comentario y daba la escritura por viva. El
@@ -1191,7 +1202,7 @@ def nivel_0(runner):
             for clave in nodo.keys
             if isinstance(clave, ast.Constant) and isinstance(clave.value, str)
         }
-        panel = (REPO_ROOT / PANEL).read_text()
+        panel = (REPO_ROOT / PANEL_CLOUDRUN).read_text()
         problemas = []
         if "tiene_entorno_produccion" not in devueltos:
             problemas.append("el Paso 1 ya no averigua si falta el entorno")
@@ -1218,7 +1229,7 @@ def nivel_0(runner):
         que dispara el botón. Sin botón, ese campo viaja para nada y un agente
         sin rama deja el paso muerto sin decir por qué.
         """
-        panel = (REPO_ROOT / PANEL).read_text()
+        panel = (REPO_ROOT / PANEL_CLOUDRUN).read_text()
         problemas = []
         if not hasattr(pipeline, "register_agent"):
             problemas.append("el pipeline no expone el alta")
@@ -1609,7 +1620,7 @@ def nivel_0(runner):
         """
         esperados = set(pipeline.ROLES_DEL_ALTA)
         problemas = []
-        for ruta in (PANEL, PANEL_CLOUDRUN):
+        for ruta in (PANEL_CLOUDRUN,):
             nombrados = set(re.findall(r"roles/[A-Za-z.]+",
                                        (REPO_ROOT / ruta).read_text()))
             if nombrados and nombrados != esperados:
@@ -1640,7 +1651,7 @@ def nivel_0(runner):
         if "\n" not in comando:
             return True, ""
         problemas = []
-        for ruta in (PANEL, PANEL_CLOUDRUN):
+        for ruta in (PANEL_CLOUDRUN,):
             for etiqueta in re.findall(r"<code id=\"tool-comando-iam\"[^>]*>",
                                        (REPO_ROOT / ruta).read_text()):
                 if "white-space:pre" not in etiqueta:
@@ -2137,9 +2148,9 @@ def nivel_0(runner):
         """0.20 — el dato nuevo del Paso 1 llega a la pantalla con un `id`.
 
         Mismo criterio que `aviso-sin-entorno`: un `id` concreto, no un texto
-        suelto que pueda estar hablando de otra cosa. Y en los dos paneles — el
-        de especificación y el que sirve Cloud Run—, porque un aviso que solo
-        existe en la especificación no lo ve nadie.
+        suelto que pueda estar hablando de otra cosa. Sobre el panel que se sirve
+        y no sobre la maqueta: un aviso que solo existiera en una prueba de
+        diseño no lo vería nadie.
         """
         arbol = ast.parse((REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py")
                           .read_text())
@@ -2156,7 +2167,7 @@ def nivel_0(runner):
         if CAMPO_COMPARACION not in devueltos:
             problemas.append(
                 f"el Paso 1 no devuelve `{CAMPO_COMPARACION}`")
-        for ruta in (PANEL, PANEL_CLOUDRUN):
+        for ruta in (PANEL_CLOUDRUN,):
             texto = (REPO_ROOT / ruta).read_text()
             if ID_AVISO_BORRADOS not in texto:
                 problemas.append(f"{ruta} no tiene el id `{ID_AVISO_BORRADOS}`")
@@ -2166,7 +2177,7 @@ def nivel_0(runner):
         return not problemas, " · ".join(problemas)
 
     runner.check(0, "El panel enseña lo que el Paso 1 averigua: el aviso de "
-                    "contenedores borrados llega a la pantalla, en los dos paneles",
+                    "contenedores borrados llega a la pantalla",
                  el_panel_ensena_los_borrados_que_el_paso_1_detecta)
 
     def el_panel_ensena_que_un_emparejado_difiere_del_repositorio():
@@ -2213,7 +2224,7 @@ def nivel_0(runner):
         if CAMPO_DIFIEREN not in devueltos:
             problemas.append(f"el Paso 1 no devuelve `{CAMPO_DIFIEREN}`")
         atributo = f'id="{ID_AVISO_DIFIEREN}"'
-        for ruta in (PANEL, PANEL_CLOUDRUN):
+        for ruta in (PANEL_CLOUDRUN,):
             texto = (REPO_ROOT / ruta).read_text()
             if atributo not in texto:
                 problemas.append(
@@ -2226,7 +2237,7 @@ def nivel_0(runner):
         return not problemas, " · ".join(problemas)
 
     runner.check(0, "El panel enseña lo que el Paso 1 averigua: los emparejados "
-                    "que difieren del repositorio se marcan, en los dos paneles",
+                    "que difieren del repositorio se marcan en la pantalla",
                  el_panel_ensena_que_un_emparejado_difiere_del_repositorio)
 
     def el_log_del_paso_5_no_habla_de_resources_tocados():

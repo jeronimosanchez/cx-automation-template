@@ -489,6 +489,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Proyecto: <strong style="color:var(--text)" id="gate3-project">&mdash;</strong> &middot; Agente: <strong style="color:var(--text)" id="gate3-agent">&mdash;</strong></p>
         <p>Se van a aplicar <strong style="color:var(--text)"><span id="deploy-count">0</span> resources</strong> de los marcados arriba. Los recursos sin cambios no se tocan.</p>
+        <!-- La rama se movió por fuera del pipeline.
+
+             Cada paso vuelve a preguntar la punta de la rama, y eso es
+             correcto: el Paso 2 escribe commits y el Paso 3 tiene que ver lo
+             que se acaba de traer. Lo que nadie miraba es si además se movió
+             por otro sitio. Si alguien empuja entre el Paso 1 y el Paso 3, el
+             plan pasa a incluir cambios que quien está mirando el panel no ha
+             visto nunca, y los aplicaría creyendo que aprueba solo lo suyo.
+
+             Informa, no bloquea: casi siempre es un compañero trabajando, y
+             aplicarlo puede ser justo lo que toca. Lo que no puede pasar es
+             que ocurra sin que nadie lo sepa. -->
+        <div id="aviso-rama-movida" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+          <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; La rama se movi&oacute; desde el Paso 1</p>
+          <p style="font-size:12px;color:var(--text-2);line-height:1.6" id="aviso-rama-movida-texto"></p>
+        </div>
         <div id="agent-config-warning" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
           <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; Este deploy incluye cambios que no admiten versi&oacute;n</p>
           <p style="font-size:12px;color:var(--text-2);line-height:1.5">Estos tipos no se pueden congelar en una versi&oacute;n, as&iacute; que el cambio lo ver&aacute;n los usuarios en el mismo instante en que lo apliques &mdash; sin pasar por los tests del paso siguiente.</p>
@@ -2081,6 +2097,20 @@ function actualizarPies() {
       : '<span style="color:var(--text-3)">Nada marcado &mdash; todos se quedan solo en CX</span>');
 }
 
+function pintarAvisoRamaMovida() {
+  const caja = $('aviso-rama-movida');
+  if (!caja) return;
+  const movida = (estado.plan || {}).rama_movida;
+  if (!movida) { mostrar('aviso-rama-movida', false); return; }
+  $('aviso-rama-movida-texto').innerHTML =
+    `El Paso 1 ley&oacute; <code>${esc(String(movida.antes).slice(0,7))}</code> y este plan ` +
+    `sale de <code>${esc(String(movida.ahora).slice(0,7))}</code>. Alguien ha subido algo a ` +
+    `<code>${esc(oNada((estado.plan||{}).rama))}</code> por fuera del pipeline, y esos cambios ` +
+    `est&aacute;n en la tabla de arriba aunque no aparecieran en el inventario. ` +
+    `Rev&iacute;salos antes de aplicar.`;
+  mostrar('aviso-rama-movida', true);
+}
+
 function actualizarAvisoSinVersion() {
   const aviso = $('agent-config-warning');
   if (!aviso) return;
@@ -2143,25 +2173,33 @@ function traerAlRepo() {
 // filas marcadas y a un clic de distancia. Una confirmación que ofrece al lado
 // lo opuesto de lo que confirma no es una confirmación: es una bifurcación sin
 // avisar. Vuelve al cancelar y al confirmar.
+// Lo que se enseña en la confirmación es lo que se apunta. Se leía la tabla
+// otra vez al confirmar, y el diálogo no la tapa: bastaba tocar una casilla
+// con la confirmación abierta para apuntar algo distinto de lo que ponía
+// delante. Congelarlo al abrir es lo único que hace que la lista sea una
+// promesa y no una foto de un momento cualquiera.
+let cxApuntadosParaBorrar = [];
+
 function pedirEliminarDeCx() {
-  const filas = filasMarcadas('tabla-repo');
-  if (!filas.length) return;
-  $('lista-borrado').innerHTML =
-    filas.map(f => `· ${esc(NOMBRE_DE_TIPO[f.dataset.tipo]||f.dataset.tipo)} · ${esc(f.dataset.nombre)}`).join('<br>');
+  cxApuntadosParaBorrar = filasMarcadas('tabla-repo').map(f => ({
+    tipo: f.dataset.tipo, cx_id: f.dataset.cxId, resource: f.dataset.nombre,
+  }));
+  if (!cxApuntadosParaBorrar.length) return;
+  $('lista-borrado').innerHTML = cxApuntadosParaBorrar.map(
+    r => `· ${esc(NOMBRE_DE_TIPO[r.tipo]||r.tipo)} · ${esc(r.resource)}`).join('<br>');
   mostrar('confirmar-borrado', true);
   mostrar('traer-gate', false);
 }
 
 function cancelarEliminarDeCx() {
+  cxApuntadosParaBorrar = [];
   mostrar('confirmar-borrado', false);
   mostrar('traer-gate', true);
 }
 
 function confirmarEliminarDeCx() {
-  filasMarcadas('tabla-repo').forEach(f => {
-    estado.eliminar.push({tipo: f.dataset.tipo, cx_id: f.dataset.cxId,
-                          resource: f.dataset.nombre});
-  });
+  cxApuntadosParaBorrar.forEach(r => estado.eliminar.push(r));
+  cxApuntadosParaBorrar = [];
   // Lo apuntado cambia lo que el Paso 3 va a hacer: el plan anterior ya no vale.
   estado.plan = null;
   guardarEstado();
@@ -2231,6 +2269,7 @@ function pedirBorrarDelRepo() {
 
 function cancelarBorrarDelRepo() {
   restosApuntados = [];
+  cxApuntadosParaBorrar = [];
   mostrar('confirmar-borrado-repo', false);
   mostrar('traer-gate', true);
 }
@@ -2356,6 +2395,7 @@ function renderTablaCx() {
   const selTodos = $('sel-todos-cx');
   if (selTodos) { selTodos.disabled = cerrado || !operaciones.length; if (cerrado) selTodos.checked = false; }
   actualizarPies();
+  pintarAvisoRamaMovida();
 }
 
 function confirmDeploy() {
@@ -2953,7 +2993,7 @@ function resetDeploy() {
   setRunning(false);
 
   ['inv-log','inv-done','traer-log','traer-done','confirmar-borrado','deploy-log',
-   'confirmar-borrado-repo','dir-restos',
+   'confirmar-borrado-repo','dir-restos','aviso-rama-movida',
    'deploy-done','deploy-fail','confirmar-terminar','tests-fail','tests-log',
    'prod-log','aviso-draft-movido','plan-log','panel-versiones','aviso-interrumpido',
   ].forEach(id => mostrar(id, false));

@@ -1028,6 +1028,55 @@ const escenarios = [
 },
 
 {
+  nombre: 'Si la rama se movió por fuera del pipeline, el Paso 3 lo dice antes de aplicar',
+  porQue: 'Cada paso vuelve a preguntar la punta de la rama, y eso está bien —el Paso ' +
+          '2 escribe commits y el Paso 3 tiene que ver lo que se acaba de traer—. Lo ' +
+          'que nadie miraba es si además se movió por otro sitio: si alguien empuja ' +
+          'entre el Paso 1 y el Paso 3, el plan incluye cambios que quien mira el ' +
+          'panel no ha visto nunca, y los aplicaría creyendo que aprueba solo lo suyo. ' +
+          'Informa y no bloquea, pero callarlo es lo único inaceptable.',
+  async ejecutar() {
+    const monta = async ramaMovida => {
+      const servidor = new ServidorFalso(rutasBase({
+        '/step/3': () => ({sobre: sobre('ok', ['[dry-run]'], {
+          dry_run: true, rama: 'rama-de-prueba', repo: REPO, commit: 'nnnnnnn',
+          rama_movida: ramaMovida,
+          operaciones: [{operacion:'PATCH', tipo:'playbook', cx_id:'p1',
+            ruta:'a/uno.yaml', resource:'Uno', sin_version:false,
+            conflicto:false, result:null}],
+          avisos_cambio_archivo: [], sin_version: [], conflictos: [],
+        })}),
+      }));
+      const dom = await abrirPanel(servidor, estadoHasta(3));
+      dom.window.viewStep(3);
+      await reposar(dom, 8);
+      return dom;
+    };
+
+    const movida = await monta({antes: 'vvvvvvvaaa', ahora: 'nnnnnnnbbb'});
+    const seVe = visibleDeVerdad(movida, 'aviso-rama-movida');
+    const texto1 = (texto(movida, 'aviso-rama-movida') || '').replace(/\s+/g, ' ');
+
+    const quieta = await monta(null);
+    const seVeQuieta = visibleDeVerdad(quieta, 'aviso-rama-movida');
+
+    const problemas = [];
+    if (!seVe) problemas.push('con la rama movida no se avisa');
+    if (!/vvvvvvv/.test(texto1)) problemas.push('no dice de qué commit venía');
+    if (!/nnnnnnn/.test(texto1)) problemas.push('no dice en cuál está el plan');
+    if (!/rama-de-prueba/.test(texto1)) problemas.push('no nombra la rama');
+    if (seVeQuieta) problemas.push('avisa con la rama donde el pipeline la dejó');
+    // Informa, no bloquea: el gate del Paso 3 sigue en pie.
+    if (!visibleDeVerdad(movida, 'btn-confirm-deploy'))
+      problemas.push('el aviso bloqueó el paso en vez de informar');
+
+    return {ok: problemas.length === 0,
+            detalle: problemas.length ? problemas.join(' · ')
+              : `aviso="${texto1.slice(0, 130)}" quieta=${seVeQuieta}`};
+  },
+},
+
+{
   nombre: 'En el plan, la operación va delante y el archivo enlaza al commit que ese plan leyó',
   porQue: 'La operación es lo que se decide al marcar la casilla, y estaba la última: ' +
           'la ruta del archivo ensanchaba la tabla y la empujaba fuera de la vista, ' +
@@ -1667,6 +1716,11 @@ const escenarios = [
     // así que el botón de borrar continúa habilitado.
     pulsar(dom, 'btn-eliminar');
     await reposar(dom, 2);
+    // Lo que se enseña es lo que se apunta. El diálogo no tapa la tabla, así
+    // que se desmarca la fila con la confirmación ya abierta: si el confirmar
+    // releyera las casillas, se enseñaría una cosa y se apuntaría otra —o
+    // ninguna—. La lista congelada al abrir es la que manda.
+    dom.window.document.querySelector('#tabla-repo tbody input:not(:disabled)').checked = false;
     dom.window.confirmarEliminarDeCx();
     await reposar(dom, 2);
     const traerTrasConfirmar = visibleDeVerdad(dom, 'btn-traer');

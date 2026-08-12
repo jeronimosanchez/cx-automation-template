@@ -1254,6 +1254,42 @@ def _yaml_para_repo(tipo, item, padre_id=None, agente=None):
     return yaml.safe_dump(documento, allow_unicode=True, sort_keys=False)
 
 
+def _commit_que_dejo_el_pipeline(contexto):
+    """El último commit de la rama que el propio pipeline vio o escribió.
+
+    Cada paso vuelve a preguntar la punta de la rama, y eso está bien: el Paso
+    2 escribe commits y el Paso 3 tiene que ver lo que se acaba de traer. Lo
+    que nadie miraba es si además se movió **por otro sitio**.
+
+    La diferencia importa porque cambia quién decide. Que la rama avance por
+    los commits del pipeline es el pipeline funcionando: lo que aparece en el
+    plan es lo que se acaba de pedir. Que avance por un empujón de fuera es
+    otra cosa — el plan pasa a incluir cambios que quien mira el panel no ha
+    visto nunca, y los aplicaría creyendo que aprueba solo lo suyo.
+
+    Se lee del historial de ejecuciones, no de lo que mande el panel: el panel
+    puede llevar horas abierto, y preguntarle a él por el estado sería
+    preguntárselo a quien tiene la foto más vieja.
+
+    Devuelve `None` si no hay ninguna ejecución con commit anotado — un agente
+    recién estrenado, o un historial podado. Sin referencia no se avisa: un
+    aviso que salta sin saber es ruido, y el ruido se aprende a ignorar.
+    """
+    try:
+        ejecuciones = store.list_runs(contexto.store, contexto.project,
+                                      contexto.agent_id)
+    except Exception:
+        # El historial es una ayuda, no un requisito: si Firestore no contesta,
+        # el paso sigue. Perder el aviso es peor que nada; parar el deploy por
+        # no poder darlo sería mucho peor.
+        return None
+    for ejecucion in ejecuciones:
+        commit = (ejecucion.get("data") or {}).get("commit")
+        if commit:
+            return commit
+    return None
+
+
 def _mensaje_del_paso_2(traidos, borrados, agent_id):
     """El mensaje del commit dice lo que el commit hace, en las dos direcciones.
 
@@ -1462,6 +1498,17 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
               f"⚠ {aviso['tipo']}/{aviso['cx_id']} cambió de archivo: "
               f"{aviso['archivo_antes']} → {aviso['archivo_ahora']}")
 
+    # ¿Se movió la rama por fuera del pipeline desde el paso anterior?
+    ultimo_visto = _commit_que_dejo_el_pipeline(contexto)
+    rama_movida = None
+    if ultimo_visto and ultimo_visto != repositorio["commit"]:
+        rama_movida = {"antes": ultimo_visto, "ahora": repositorio["commit"]}
+        _emit(log, on_log,
+              f"⚠ La rama {contexto.rama} se movió por fuera del pipeline: "
+              f"{ultimo_visto[:7]} → {repositorio['commit'][:7]}. Este plan "
+              f"incluye lo que haya subido quien la movió, y eso no salió en "
+              f"el Paso 1. Revísalo antes de aplicar")
+
     conflictos = [op for op in operaciones if op["conflicto"]]
     for conflicto in conflictos:
         _emit(log, on_log,
@@ -1494,6 +1541,8 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
             "repo": contexto.repo,
             "rama": contexto.rama,
             "commit": repositorio["commit"],
+            # `None` cuando la rama está donde el pipeline la dejó.
+            "rama_movida": rama_movida,
         })
 
     if not operaciones:
@@ -1519,7 +1568,9 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
         "conflictos": conflictos,
     })
     store.record_run(contexto.store, project, agent_id, 3,
-                     resultado["status"], log, {"aplicadas": resultado["data"]["aplicadas"]})
+                     resultado["status"], log,
+                     {"aplicadas": resultado["data"]["aplicadas"],
+                      "commit": contexto.gh.branch_head(contexto.rama)})
     return resultado
 
 
