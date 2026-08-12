@@ -232,31 +232,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <select id="project-select" class="snapshot-input" style="max-width:240px" onchange="onProjectSelected()" disabled>
               <option value="" selected disabled>cargando proyectos&hellip;</option>
             </select>
-            <!-- Siempre visible, no solo cuando el listado se cae entero.
-                 El desplegable trae los proyectos que la cuenta de servicio
-                 alcanza, que casi nunca son todos: un proyecto recién creado no
-                 sale hasta que se le concede permiso. Cuando este campo solo
-                 aparecía ante un fallo total del listado, el caso normal —lista
-                 corta, el proyecto que buscas no está— no tenía salida, y con
-                 él quedaba inalcanzable la tarjeta `alta-proyecto`, que existe
-                 justo para ese caso y dice «es lo normal en un proyecto recién
-                 creado»: para verla hay que seleccionar el proyecto, y ese
-                 proyecto no está en la lista. El onboarding real solo salió
-                 adelante por la Tool de vincular, que sí tiene campo libre. -->
-            <div id="project-manual" style="margin-top:8px;max-width:340px">
-              <div id="project-manual-nota" style="display:none;font-size:11px;color:var(--gate);line-height:1.5;margin-bottom:6px"></div>
-              <div style="display:flex;gap:8px">
-                <input type="text" id="project-manual-input" class="snapshot-input" placeholder="p. ej. mi-proyecto-505310" style="max-width:200px">
-                <button class="btn btn-ghost" onclick="usarProyectoManual()">Usar</button>
-              </div>
-              <div style="font-size:11px;color:var(--text-3);line-height:1.5;margin-top:6px">
-                El <strong>identificador</strong>, no el nombre: en la consola de Google Cloud
-                es la columna <em>ID</em>, con guiones y a menudo terminado en números
-                (<code style="color:var(--text-2)">mi-proyecto-505310</code>), no
-                <em>&laquo;Mi Proyecto&raquo;</em>.
-              </div>
-            </div>
-          </div>
+                      </div>
           <div>
             <label for="agent-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Agente</label>
             <select id="agent-select" class="snapshot-input" style="max-width:240px" onchange="onAgentSelected()" disabled>
@@ -272,32 +248,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div id="alta-agente-log" style="display:none;margin-top:10px">
             <div class="output-block" id="alta-agente-log-block" style="height:70px;overflow-y:auto"></div>
           </div>
-          <!-- Un proyecto nuevo no lo ve la cuenta de servicio hasta que se le
-               concede permiso sobre él, y sin organización eso es un permiso
-               por proyecto: no hay dónde concederlo una sola vez. El aviso vive
-               aquí, donde se tropieza, y no en un script que hay que saber que
-               existe — el repositorio de un proyecto nuevo tampoco lo tendría
-               dentro. -->
-          <div id="alta-proyecto" style="display:none;margin-top:12px">
-            <div class="dir-card hacia-cx" style="margin-bottom:0">
-              <div class="dir-head">⚠ El servidor no alcanza este proyecto</div>
-              <div class="dir-body">
-                <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-bottom:10px">
-                  El proyecto existe, pero la cuenta de servicio del pipeline no tiene
-                  permiso sobre él. Es lo normal en un proyecto recién creado. Pega esto
-                  en tu terminal y vuelve a intentarlo — solo hace falta una vez por proyecto.
-                </div>
-                <div class="output-block" id="alta-proyecto-comando"
-                     style="height:auto;max-height:170px;overflow:auto;white-space:pre-wrap;
-                            word-break:break-all;font-size:11px;line-height:1.7"></div>
-                <div style="display:flex;gap:8px;margin-top:10px">
-                  <button class="btn btn-primary" onclick="copiarAltaProyecto()">Copiar</button>
-                  <button class="btn btn-ghost" onclick="reintentarProyecto()">Reintentar</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
         <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
         <div id="error-1" style="display:none;margin-top:16px"></div>
       </div>
@@ -1187,14 +1137,6 @@ async function comprobarServidor() {
   const indicador = $('estado-servidor');
   try {
     const sobre = await llamar('/health');
-    // La cuenta con la que corre el servidor, para poder componer el comando
-    // IAM de un proyecto que todavía no alcanza. Viene de él y no se escribe
-    // aquí: si se redespliega con otra, el comando sigue siendo el correcto.
-    SA_DEL_SERVIDOR = sobre.data.service_account || SA_DEL_SERVIDOR;
-    if (Array.isArray(sobre.data.roles_del_alta) && sobre.data.roles_del_alta.length) {
-      ROLES_DEL_ALTA.length = 0;
-      for (const rol of sobre.data.roles_del_alta) ROLES_DEL_ALTA.push([rol, PORQUE_DEL_ROL[rol] || '']);
-    }
     const n = (sobre.data.endpoints || []).length;
     if (indicador) {
       indicador.innerHTML = `<span style="color:#4ade80">●</span> servidor en marcha · ${n} rutas`;
@@ -1267,18 +1209,12 @@ function anadirOpcionManual(select, valor) {
  * esta rama, ese caso dejaba un desplegable vacío sin explicación.
  */
 function avisarListadoIncompleto(motivo) {
-  const nota = $('project-manual-nota');
-  if (!nota) return;
-  nota.textContent = motivo || '';
-  nota.style.display = motivo ? 'block' : 'none';
-}
-
-function usarProyectoManual() {
-  const valor = ($('project-manual-input').value || '').trim();
-  if (!valor) return;
-  const select = $('project-select');
-  anadirOpcionManual(select, valor);
-  onProjectSelected();
+  // El desplegable trae solo los proyectos que la cuenta de servicio alcanza.
+  // Cuando ni eso se puede listar, el aviso va al error del paso: el campo
+  // manual se retiró del Paso 1 —el alta de un proyecto vive en su Tool, que
+  // es donde se hace una vez por proyecto— así que ya no hay dónde pintarlo
+  // aquí, y callarlo dejaría un desplegable vacío sin explicación.
+  if (motivo) pintarError('error-1', new Error(motivo));
 }
 
 async function cargarAgentes(project) {
@@ -1304,67 +1240,7 @@ async function cargarAgentes(project) {
     agentSel.disabled = true;
     actualizarCajaRepo();
     pintarError('error-1', error);
-    mostrarAltaProyecto(project, error);
   }
-}
-
-// La cuenta de servicio que el servidor declara en su salud. Se pregunta, no se
-// escribe aquí: si el servicio se redespliega con otra, el comando que se copie
-// tiene que seguir siendo el correcto.
-let SA_DEL_SERVIDOR = null;
-
-// Por qué hace falta cada rol. El texto es del panel; la lista de roles la
-// manda el servidor, para que no puedan discrepar si algún día cambia.
-const PORQUE_DEL_ROL = {
-  'roles/browser': 'para que el proyecto salga en el desplegable',
-  'roles/dialogflow.admin': 'para leer y escribir el agente',
-  'roles/serviceusage.serviceUsageConsumer': 'para cargar la cuota al proyecto',
-};
-
-const ROLES_DEL_ALTA = Object.entries(PORQUE_DEL_ROL);
-
-/**
- * Por los campos del error, no por su texto.
- *
- * Miraba si el mensaje contenía «403», «permission» o «permiso», y eso no
- * distingue nada: el mensaje lleva dentro el identificador del proyecto, y uno
- * como `mi-proyecto-40312` contiene «403». Cualquier fallo sobre él —una caída
- * de red, un 404, un 500— pasaba por falta de permisos y mandaba a conceder
- * roles para arreglar algo que no son roles, que es justo lo que
- * `mostrarAltaProyecto` dice que no debe hacer.
- *
- * Los dos campos existen ya: `llamar()` pone `http` en toda respuesta no-2xx y
- * `reason` con lo que el servidor declara. Un fallo de conexión no trae `http`,
- * así que deja de contar como permiso, que es lo correcto. Además leía
- * `error.motivo`, que `FalloDelPanel` no define en ningún sitio: la señal
- * estructurada nunca llegó a consultarse.
- */
-function esFaltaDePermiso(error) {
-  return !!error && (error.http === 403 || error.reason === 'missing_permission');
-}
-
-function mostrarAltaProyecto(project, error) {
-  // Solo ante una falta de permiso. Enseñar el comando ante cualquier fallo
-  // —una caída de red, un proyecto mal escrito— mandaría a conceder permisos
-  // para arreglar algo que no son permisos.
-  if (!project || !esFaltaDePermiso(error)) return mostrar('alta-proyecto', false);
-  const sa = SA_DEL_SERVIDOR || '<CUENTA-DE-SERVICIO-DEL-SERVIDOR>';
-  $('alta-proyecto-comando').textContent = ROLES_DEL_ALTA
-    .map(([rol, porque], i) =>
-      `# ${porque}\ngcloud projects add-iam-policy-binding ${project} \\\n` +
-      `  --member=serviceAccount:${sa} \\\n  --role=${rol}` +
-      (i < ROLES_DEL_ALTA.length - 1 ? '\n' : ''))
-    .join('\n');
-  mostrar('alta-proyecto', true);
-}
-
-function copiarAltaProyecto() {
-  navigator.clipboard.writeText($('alta-proyecto-comando').textContent || '');
-}
-
-function reintentarProyecto() {
-  mostrar('alta-proyecto', false);
-  onProjectSelected();
 }
 
 function agenteElegido() {
@@ -1624,11 +1500,10 @@ function renderInventario() {
       (d.emparejados||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}` +
         (difiereDelRepo(d, f)
           ? ' <span style="color:var(--gate)">&middot; difiere del repositorio</span>' : '')),
-      'Est&aacute;n en CX y tienen archivo en el repositorio.', 'var(--success)',
+      'Est&aacute;n en CX y tienen archivo en el repositorio.', 'var(--success)', '',
       (d.difieren_del_repositorio||[]).length
-        ? `<div class="grupo-desc" id="aviso-difieren-repo" style="margin-top:8px;color:var(--gate)">` +
-          `${d.difieren_del_repositorio.length} dice${d.difieren_del_repositorio.length!==1?'n':''} ` +
-          `algo distinto en el repositorio &mdash; el Paso 3 los actualizar&iacute;a.</div>`
+        ? ` <span id="aviso-difieren-repo" style="color:var(--gate);font-size:15px;` +
+          `font-weight:600">&middot; ${d.difieren_del_repositorio.length} con cambios</span>`
         : ''),
     tarjetaGrupo('cx', 'Solo en CX',
       (d.solo_cx||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}` +

@@ -1651,39 +1651,6 @@ def nivel_0(runner):
     runner.check(0, "El panel enseña el comando IAM sin pegar dos líneas en una",
                  el_panel_no_pega_dos_lineas_del_comando_iam_en_una)
 
-    def el_panel_decide_por_el_codigo_y_no_por_el_texto():
-        """«403» aparece dentro de los identificadores de proyecto.
-
-        La tarjeta que manda conceder permisos se decidía buscando «403»,
-        «permission» o «permiso» en el texto del error. El texto lleva dentro el
-        identificador del proyecto, y uno como `mi-proyecto-40312` contiene
-        «403»: cualquier fallo sobre él —una caída de red, un 404, un 500— pasaba
-        por falta de permisos. Es exactamente lo que el comentario de
-        `mostrarAltaProyecto` dice que no puede pasar.
-
-        Y leía `error.motivo`, que `FalloDelPanel` no define en ningún sitio: la
-        señal estructurada que manda el servidor (`reason`) nunca llegó a
-        consultarse.
-        """
-        texto = (REPO_ROOT / PANEL_CLOUDRUN).read_text()
-        cuerpo = texto[texto.find("function esFaltaDePermiso"):]
-        cuerpo = cuerpo[:cuerpo.find("\n}")]
-        problemas = []
-        if not cuerpo:
-            return False, "el panel ya no tiene esFaltaDePermiso"
-        if "error.motivo" in cuerpo:
-            problemas.append("lee error.motivo, que el error nunca define")
-        if "'403'" in cuerpo or '"403"' in cuerpo:
-            problemas.append("clasifica por el texto, y «403» aparece dentro de "
-                             "los identificadores de proyecto")
-        if "reason" not in cuerpo and "http" not in cuerpo:
-            problemas.append("no consulta el código HTTP ni el motivo del servidor")
-        return not problemas, " · ".join(problemas)
-
-    runner.check(0, "El panel decide si falta un permiso por el código de la "
-                    "respuesta, no por el texto",
-                 el_panel_decide_por_el_codigo_y_no_por_el_texto)
-
     def una_url_ssh_se_rechaza_con_su_motivo():
         """La forma SSH de GitHub no lleva `//`, y colaba.
 

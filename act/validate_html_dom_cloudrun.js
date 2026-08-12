@@ -1091,66 +1091,6 @@ const escenarios = [
   },
 },
 
-{
-  nombre: 'El campo para escribir un proyecto a mano está desde el principio, y con él se alcanza la tarjeta de permisos',
-  porQue: 'El desplegable solo trae los proyectos que la cuenta de servicio ' +
-          'alcanza, que casi nunca son todos. El campo manual aparecía únicamente ' +
-          'cuando el listado se caía entero, así que el caso normal —la lista ' +
-          'funciona, y el proyecto que buscas no está en ella— no tenía salida. ' +
-          'Con él quedaba inalcanzable la tarjeta que explica cómo conceder el ' +
-          'permiso, que dice «es lo normal en un proyecto recién creado»: para ' +
-          'verla hay que seleccionar el proyecto, y ese proyecto no está listado.',
-  async ejecutar() {
-    const NUEVO = 'proyecto-recien-creado';
-    const SA = 'robot-de-prueba@ejemplo.iam.gserviceaccount.com';
-    const servidor = new ServidorFalso(rutasBase({
-      '/health': {sobre: sobre('ok', ['servidor en marcha'],
-        {endpoints: ['/health'], service_account: SA})},
-      [`/discover?project=${NUEVO}`]: {http: 403, sobre: sobre('error',
-        [`La cuenta de servicio no alcanza ${NUEVO}`], {reason: 'missing_permission'})},
-    }));
-    const dom = await abrirPanel(servidor);
-    // El listado ha funcionado —dos proyectos— y el que se busca no está.
-    const listados = [...dom.window.document.querySelectorAll('#project-select option')]
-      .map(o => o.value).filter(Boolean);
-    const campo = visibleDeVerdad(dom, 'project-manual-input');
-    // El aviso ámbar es del fallo total del listado, no del campo: si saliera
-    // siempre, diría que algo va mal cuando no va mal nada.
-    const avisoSinFallo = visible(dom, 'project-manual-nota');
-
-    dom.window.document.getElementById('project-manual-input').value = NUEVO;
-    dom.window.usarProyectoManual();
-    await reposar(dom, 8);
-    const elegido = dom.window.document.getElementById('project-select').value;
-    const tarjeta = visible(dom, 'alta-proyecto');
-    const comando = texto(dom, 'alta-proyecto-comando') || '';
-
-    // Segunda mitad: cuando el listado sí se cae del todo, el campo sigue ahí y
-    // además aparece el motivo que manda el servidor.
-    const caido = new ServidorFalso(rutasBase({
-      '/discover': {http: 403, sobre: sobre('error',
-        ['La cuenta de servicio no puede listar los proyectos de esta organización'],
-        {reason: 'missing_permission', manual_entry: true})},
-    }));
-    const dom2 = await abrirPanel(caido);
-    const campoTrasFallo = visibleDeVerdad(dom2, 'project-manual-input');
-    const aviso = texto(dom2, 'project-manual-nota') || '';
-
-    return {
-      ok: campo === true && avisoSinFallo === false
-          && !listados.includes(NUEVO) && listados.length === 2
-          && elegido === NUEVO
-          && servidor.llamadasA(`/discover?project=${NUEVO}`).length === 1
-          && tarjeta === true && comando.includes(NUEVO) && comando.includes(SA)
-          && campoTrasFallo === true && visible(dom2, 'project-manual-nota')
-          && /no puede listar/i.test(aviso),
-      detalle: `campo=${campo} aviso-sin-fallo=${avisoSinFallo} ` +
-               `listados=${JSON.stringify(listados)} elegido=${elegido} ` +
-               `tarjeta=${tarjeta} campo-tras-fallo=${campoTrasFallo} ` +
-               `aviso="${aviso.slice(0, 60)}"`,
-    };
-  },
-},
 
 {
   nombre: 'El Paso 2 manda exactamente lo marcado y no ofrece traer lo nativo de la plataforma',
