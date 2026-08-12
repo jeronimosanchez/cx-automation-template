@@ -1698,22 +1698,34 @@ function startInventory() {
   });
 }
 
-function tarjetaGrupo(clase, etiqueta, filas, descripcion, color, pie, coletilla) {
+/* Los añadidos van en un objeto y no como argumentos sueltos al final. No es
+   estilo: esta función llegó a tener siete posiciones, y colar un argumento de
+   más no da error en JavaScript —sobra en silencio—. Pasó: la coletilla que
+   dice cuántos han cambiado se perdió así, sin que nada avisara, y solo se
+   notó mirando la pantalla. Con nombres, un añadido que no existe se lee como
+   lo que es en el sitio donde se escribe.
+
+   `total` existe porque el número grande y las filas dejaron de ser lo mismo:
+   los emparejados que cambiaron se listan aparte, así que la lista tiene menos
+   filas de las que cuenta la tarjeta.                                        */
+function tarjetaGrupo(clase, etiqueta, filas, descripcion, color, opciones) {
+  const {pie, coletilla, total} = opciones || {};
+  const cuantos = total === undefined ? filas.length : total;
   const visibles = filas.slice(0, 3);
   const resto = filas.slice(3);
   const id = 'grupo-' + clase;
   return `
     <div class="grupo-card ${clase}" onclick="toggleGrupo(this)">
       <div class="grupo-label">${etiqueta}</div>
-      <div class="grupo-num" style="color:${color}">${filas.length}${coletilla || ''}</div>
+      <div class="grupo-num" style="color:${color}">${cuantos}${coletilla || ''}</div>
       <div class="grupo-desc">${descripcion}</div>
       <div class="grupo-lista" id="${id}">${visibles.join('<br>') || '<span style="color:var(--text-3)">nada</span>'}
         ${resto.length ? `<span class="grupo-extra" style="display:none"><br>${resto.slice(0,20).join('<br>')}` +
           (resto.length > 20 ? `<br><span style="color:var(--text-3)">… y ${resto.length - 20} más</span>` : '') +
           '</span>' : ''}
       </div>
-      ${resto.length ? `<div class="grupo-toggle">Ver los ${filas.length} &#9662;</div>` : ''}
       ${pie || ''}
+      ${resto.length ? `<div class="grupo-toggle">Ver los ${cuantos} &#9662;</div>` : ''}
     </div>`;
 }
 
@@ -1728,19 +1740,44 @@ function renderInventario() {
   const nombre = f => esc(f.display_name || f.ruta || f.cx_id || '');
   const tipo = f => esc(NOMBRE_DE_TIPO[f.tipo] || f.tipo);
 
+  // Los emparejados se parten en dos: los que dicen lo mismo que el
+  // repositorio y los que no. Sin separarlos, un resource modificado era
+  // indistinguible de uno idéntico —los dos caían en la misma lista— y el
+  // cambio no se veía hasta el Paso 3.
+  //
+  // Cada uno sale UNA vez y en un solo sitio. Estuvo en los dos —en ámbar
+  // arriba y otra vez en el bloque— y al desplegar se leía como dos resources
+  // distintos con el mismo nombre. Que lo modificado tenga su propio apartado
+  // ya dice lo que hay que decir: el sitio ES el mensaje.
+  //
+  // Y lo dice con palabras, no solo con el ámbar. El color es un atajo para
+  // quien lo ve; quien no lo distingue necesita que el apartado se llame «Con
+  // cambios». Además el bloque queda fuera de lo que se pliega —la tarjeta se
+  // cierra a tres filas— así que lo que cambió se ve con la tarjeta cerrada.
+  //
+  // El número grande sigue contando los emparejados enteros, cambiados
+  // incluidos: es cuántos hay, no cuántos se listan arriba. Por eso `total`.
+  const emparejados = d.emparejados || [];
+  const cambiados = emparejados.filter(f => difiereDelRepo(d, f));
+  const igualitos = emparejados.filter(f => !difiereDelRepo(d, f));
+  const fila = f => `${tipo(f)} &middot; ${nombre(f)}`;
+
   $('grupos-inventario').innerHTML = [
-    tarjetaGrupo('emp', 'Emparejados',
-      // Marcados los que dicen algo distinto en el repositorio. Sin esto, un
-      // resource modificado era indistinguible de uno idéntico: los dos caían
-      // aquí, y el cambio no se veía hasta el Paso 3.
-      (d.emparejados||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}` +
-        (difiereDelRepo(d, f)
-          ? ' <span style="color:var(--gate)">&middot; difiere del repositorio</span>' : '')),
-      'Est&aacute;n en CX y tienen archivo en el repositorio.', 'var(--success)', '',
-      (d.difieren_del_repositorio||[]).length
-        ? ` <span id="aviso-difieren-repo" style="color:var(--gate);font-size:15px;` +
-          `font-weight:600">&middot; ${d.difieren_del_repositorio.length} con cambios</span>`
-        : ''),
+    tarjetaGrupo('emp', 'Emparejados', igualitos.map(fila),
+      'Est&aacute;n en CX y tienen archivo en el repositorio.', 'var(--success)', {
+        total: emparejados.length,
+        coletilla: cambiados.length
+          ? ` <span id="aviso-difieren-repo" style="color:var(--gate);font-size:15px;` +
+            `font-weight:600">(${cambiados.length} con cambios)</span>`
+          : '',
+        pie: cambiados.length
+          ? `<div id="bloque-con-cambios" style="margin-top:12px;padding-top:10px;` +
+            `border-top:1px solid var(--border)">` +
+            `<div class="grupo-label" style="color:var(--gate);margin-bottom:0">Con cambios</div>` +
+            `<div class="grupo-lista" style="margin-top:6px;color:var(--gate)">` +
+            `${cambiados.map(fila).join('<br>')}</div></div>`
+          : '',
+      }),
     tarjetaGrupo('cx', 'Solo en CX',
       (d.solo_cx||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}` +
         (f.nativo ? ' <span style="color:var(--text-3)">(nativo de CX)</span>' : '')),
@@ -1751,8 +1788,9 @@ function renderInventario() {
       'var(--accent-light)'),
     tarjetaGrupo('huerfano', 'Sin agente asignado',
       (d.sin_agente||[]).map(f => `${esc(f.ruta)} <span style="color:var(--text-3)">&middot; ${esc(f.motivo||'')}</span>`),
-      'Tienen cabecera pero no dicen a qu&eacute; agente pertenecen.', 'var(--gate)',
-      '<div class="grupo-desc" style="margin-top:8px;color:var(--gate)">Para que cuenten en alg&uacute;n agente, escribe <code>agente</code> en su cabecera.</div>'),
+      'Tienen cabecera pero no dicen a qu&eacute; agente pertenecen.', 'var(--gate)', {
+        pie: '<div class="grupo-desc" style="margin-top:8px;color:var(--gate)">Para que cuenten en alg&uacute;n agente, escribe <code>agente</code> en su cabecera.</div>',
+      }),
   ].join('');
 
   const faltaEntorno = d.tiene_entorno_produccion === false;

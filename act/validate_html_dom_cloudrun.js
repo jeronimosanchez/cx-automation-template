@@ -574,6 +574,78 @@ const escenarios = [
 },
 
 {
+  nombre: 'Lo que cambió se dice con palabras y con sitio propio, no solo con un color',
+  porQue: 'Un resource modificado y uno idéntico caen los dos en «Emparejados». Si la ' +
+          'única diferencia fuera el color, quien no lo distingue vería ocho iguales ' +
+          'y el cambio no llegaría al Paso 3 con nadie mirándolo. Y la tarjeta se ' +
+          'pliega a tres filas: lo que cambió puede ser la séptima, así que el bloque ' +
+          'que lo nombra tiene que estar fuera de lo plegado. Ya se perdió una vez en ' +
+          'silencio —un argumento de más en la función de la tarjeta— sin que nada avisara.',
+  async ejecutar() {
+    const emparejados = [
+      {tipo:'flow', cx_id:'f1', display_name:'Sin tocar 1'},
+      {tipo:'playbook', cx_id:'p9', display_name:'El que cambió'},
+      {tipo:'intent', cx_id:'i1', display_name:'Sin tocar 2'},
+      {tipo:'example', cx_id:'x1', display_name:'Sin tocar 3'},
+    ];
+    const monta = async difieren => {
+      const servidor = new ServidorFalso(rutasBase({
+        '/step/1': {sobre: sobre('ok', ['✓'], {
+          project: PROYECTO, agent_id: AGENTE, region: 'europe-west1', repo: REPO,
+          rama: 'rama-de-prueba', commit: 'abc1234', total_cx: 4, total_borrador: 4,
+          versiones: 0, total_archivos: 4, tiene_entorno_produccion: true,
+          emparejados, solo_cx: [], solo_repo: [], sin_agente: [],
+          difieren_del_repositorio: difieren,
+        })},
+      }));
+      const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null}));
+      pulsar(dom, 'btn-start-inventory');
+      await reposar(dom, 6);
+      return dom;
+    };
+
+    const dom = await monta([{tipo:'playbook', cx_id:'p9'}]);
+    const tarjeta = dom.window.document.querySelector('#grupos-inventario .grupo-card.emp');
+    const num = tarjeta.querySelector('.grupo-num').textContent.trim();
+    const bloque = dom.window.document.getElementById('bloque-con-cambios');
+    const textoBloque = bloque ? bloque.textContent.replace(/\s+/g, ' ').trim() : '';
+    const lista = dom.window.document.getElementById('grupo-emp');
+
+    // El número grande cuenta los emparejados ENTEROS —cambiados incluidos—
+    // aunque la lista de arriba tenga una fila menos por cada uno.
+    const filasArriba = (lista.textContent.match(/·/g) || []).length;
+
+    // Una vez y en un solo sitio: en el apartado propio, no en la lista.
+    const vecesEnLaTarjeta = (tarjeta.textContent.match(/El que cambió/g) || []).length;
+    const enLaLista = lista.textContent.includes('El que cambió');
+
+    // Ámbar dentro del bloque: el atajo visual sigue estando.
+    const ambar = bloque ? [...bloque.querySelectorAll('*')]
+      .some(e => /f59e0b|--gate/.test(e.getAttribute('style') || '')) : false;
+
+    // El bloque vive fuera de lo que se pliega: se ve con la tarjeta cerrada.
+    const dentroDeLoPlegado = !!(bloque && bloque.closest('.grupo-extra'));
+
+    // Sin ningún cambio: el total sigue, sin paréntesis y sin bloque.
+    const limpio = await monta([]);
+    const tarjetaLimpia = limpio.window.document.querySelector('#grupos-inventario .grupo-card.emp');
+    const numLimpio = tarjetaLimpia.querySelector('.grupo-num').textContent.trim();
+    const filasLimpio = (limpio.window.document.getElementById('grupo-emp').textContent.match(/·/g) || []).length;
+    const bloqueLimpio = !!limpio.window.document.getElementById('bloque-con-cambios');
+
+    const ok = num === '4 (1 con cambios)' && filasArriba === 3
+      && textoBloque.toLowerCase().includes('con cambios')
+      && textoBloque.includes('El que cambió')
+      && vecesEnLaTarjeta === 1 && enLaLista === false
+      && ambar === true && !dentroDeLoPlegado
+      && numLimpio === '4' && filasLimpio === 4 && bloqueLimpio === false;
+    return {ok, detalle: `num="${num}" filas-arriba=${filasArriba} veces-en-la-tarjeta=${vecesEnLaTarjeta} ` +
+      `en-la-lista=${enLaLista} bloque="${textoBloque}" ambar=${ambar} plegado=${dentroDeLoPlegado} · ` +
+      `sin-cambios: num="${numLimpio}" filas=${filasLimpio} bloque=${bloqueLimpio}`};
+  },
+},
+
+{
   nombre: 'El registro del Paso 1 se pinta según llega, no al terminar el paso',
   porQue: 'Un paso de minutos con la pantalla quieta se lee como colgado, y lo que se ' +
           'hace entonces es recargar a mitad de una escritura. El pipeline ya emitía cada ' +
