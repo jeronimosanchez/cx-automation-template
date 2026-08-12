@@ -404,7 +404,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="sel-todos" id="fila-sel-todos-cx"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)"> Seleccionar todos</label></div>
             <div class="diff-wrap">
               <table class="diff-table" id="tabla-cx">
-                <thead><tr><th id="col-marcar-cx" style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
+                <!-- «Operación» va primero, y no es cosmética: es lo que se
+                     decide al marcar la casilla. Estaba la última, detrás de
+                     la ruta del archivo — que es larga, ensanchaba la tabla
+                     más que la tarjeta y empujaba la operación fuera de la
+                     vista. Se leía «Playbook · 01_prueba-fake · definitions/…»
+                     sin llegar nunca a saber si eso se iba a crear, modificar
+                     o borrar, y la leyenda de abajo explicaba unos distintivos
+                     que no se alcanzaban. Si algo tiene que quedar fuera al
+                     estrecharse, que sea la ruta: sirve para localizar, no
+                     para decidir. -->
+                <thead><tr><th id="col-marcar-cx" style="width:34px"></th><th>Operaci&oacute;n</th><th>Tipo</th><th>Resource</th><th>Archivo</th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
@@ -1729,6 +1739,44 @@ function tarjetaGrupo(clase, etiqueta, filas, descripcion, color, opciones) {
     </div>`;
 }
 
+/* ── La celda del archivo ─────────────────────────────────────────────────
+   Enseña el nombre y esconde la ruta, porque la ruta es casi toda repetida:
+   `definitions/<agente>/` es igual en todas las filas —y el agente ya está en
+   la cabecera del panel— y la carpeta (`playbooks/`, `examples/`) es justo lo
+   que dice la columna Tipo. Lo único que distingue una fila de otra es el
+   nombre del archivo. La ruta entera se quedaba con el ancho de la tabla para
+   repetir tres veces lo ya sabido.
+
+   Va enlazada al **commit del que salió este plan**, no a la rama. Cada paso
+   vuelve a preguntar la punta de la rama, así que enlazar a la rama abriría lo
+   que haya ahora, que puede no ser lo que la tabla está describiendo. Un
+   enlace que enseña otra cosa es peor que no tener enlace.
+
+   Sin repositorio o sin commit no se inventa una dirección: queda el nombre y
+   la ruta completa en el tooltip.                                          */
+
+function baseDeGitHub() {
+  const plan = estado.plan || {};
+  // El commit sale del plan y de ningún otro sitio. Caer al del Paso 1 sería
+  // el error que este enlace viene a evitar: el Paso 2 escribe commits, así
+  // que para cuando se mira el plan la rama ya se movió, y el enlace abriría
+  // un contenido anterior al que la tabla describe. Sin commit del plan no
+  // hay enlace — un enlace que enseña otra cosa engaña más que su ausencia.
+  const repo = plan.repo || (estado.inventario || {}).repo || estado.repo;
+  return repo && plan.commit
+    ? `https://github.com/${repo}/blob/${plan.commit}/` : null;
+}
+
+function celdaArchivo(ruta) {
+  if (!ruta) return '<code style="color:var(--text-3)">&mdash;</code>';
+  const nombre = String(ruta).split('/').pop();
+  const base = baseDeGitHub();
+  if (!base) return `<code style="color:var(--text-3)" title="${esc(ruta)}">${esc(nombre)}</code>`;
+  return `<a href="${esc(base + ruta)}" target="_blank" rel="noopener noreferrer"
+    title="${esc(ruta)}" style="color:var(--accent-light);text-decoration:none"
+    onclick="event.stopPropagation()"><code>${esc(nombre)}</code> &#8599;</a>`;
+}
+
 function difiereDelRepo(d, f) {
   return (d.difieren_del_repositorio || []).some(
     x => x.tipo === f.tipo && x.cx_id === f.cx_id);
@@ -2091,12 +2139,12 @@ function renderTablaCx() {
         style="${cerrado && !op.result ? 'opacity:.55' : ''}">
       ${cerrado ? '' : `<td style="width:34px"><input type="checkbox"
           onchange="actualizarPies();refrescarDeriva()"></td>`}
+      <td><span class="pill ${PILL_DE_OPERACION[op.operacion]||'pill-dim'}">${esc(NOMBRE_DE_OPERACION[op.operacion]||op.operacion)}</span> ${marca}
+        ${op.error ? `<div style="color:#f87171;font-size:11px;margin-top:4px">${esc(op.error)}</div>` : ''}</td>
       <td>${esc(NOMBRE_DE_TIPO[op.tipo]||op.tipo)}</td>
       <td><code>${esc(op.resource)}</code>${op.conflicto ?
         ' <span style="color:var(--gate);font-size:11px">&middot; conflicto: cambi&oacute; tambi&eacute;n en CX</span>' : ''}</td>
-      <td><code style="color:var(--text-3)">${esc(op.ruta || '—')}</code></td>
-      <td><span class="pill ${PILL_DE_OPERACION[op.operacion]||'pill-dim'}">${esc(NOMBRE_DE_OPERACION[op.operacion]||op.operacion)}</span> ${marca}
-        ${op.error ? `<div style="color:#f87171;font-size:11px;margin-top:4px">${esc(op.error)}</div>` : ''}</td>
+      <td>${celdaArchivo(op.ruta)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="${cerrado ? 4 : 5}" style="color:var(--text-3)">Nada que aplicar: el repositorio y el agente dicen lo mismo.</td></tr>`;
 

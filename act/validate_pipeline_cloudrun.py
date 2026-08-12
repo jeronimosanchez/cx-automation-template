@@ -1749,6 +1749,38 @@ def nivel_0(runner):
                     "borrado",
                  fijado_y_ausente_es_un_borrado)
 
+    def lo_retirado_se_nombra_desde_el_repositorio():
+        """0.5b — borrar en la consola de CX se lleva las versiones, así que el
+        nombre no puede salir de la foto congelada. Sale del archivo, que
+        todavía lo describe. Y si tampoco hay archivo, queda el identificador:
+        inventar un nombre sería peor que no darlo."""
+        borrados = [
+            {"tipo": "playbook", "cx_id": "ced5bc20", "display_name": ""},
+            {"tipo": "playbook", "cx_id": "fddeea0b", "display_name": ""},
+            {"tipo": "playbook", "cx_id": "sin-archivo", "display_name": ""},
+            {"tipo": "flow", "cx_id": "ced5bc20", "display_name": ""},
+            {"tipo": "playbook", "cx_id": "con-foto", "display_name": "De la versión"},
+        ]
+        solo_repo = [
+            {"tipo": "playbook", "cx_id": "ced5bc20", "display_name": "2_prueba_2"},
+            {"tipo": "playbook", "cx_id": "fddeea0b", "display_name": "01_prueba-fake"},
+            {"tipo": "playbook", "cx_id": "con-foto", "display_name": "El del archivo"},
+        ]
+        pipeline.nombrar_lo_retirado(borrados, solo_repo)
+        real = [b["display_name"] for b in borrados]
+        esperado = [
+            "2_prueba_2",       # lo dice el archivo
+            "01_prueba-fake",   # lo dice el archivo
+            "",                 # ni versión ni archivo: queda el cx_id
+            "",                 # mismo cx_id, otro tipo: no se confunden
+            "De la versión",    # la foto gana; el archivo no la pisa
+        ]
+        return real == esperado, f"esperado {esperado} · real {real}"
+
+    runner.check(0, "Lo retirado de producción se nombra desde el archivo cuando "
+                    "su versión ya no existe",
+                 lo_retirado_se_nombra_desde_el_repositorio)
+
     def entorno_vacio_saca_todo_como_cambiado():
         """0.6 — el agente nunca publicado: todo pendiente, nada borrado."""
         inventario = agente_ficticio_completo()

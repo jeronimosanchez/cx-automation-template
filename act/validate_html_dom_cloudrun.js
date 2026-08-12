@@ -975,6 +975,69 @@ const escenarios = [
 },
 
 {
+  nombre: 'En el plan, la operación va delante y el archivo enlaza al commit que ese plan leyó',
+  porQue: 'La operación es lo que se decide al marcar la casilla, y estaba la última: ' +
+          'la ruta del archivo ensanchaba la tabla y la empujaba fuera de la vista, ' +
+          'con una leyenda abajo explicando unos distintivos que no se alcanzaban. Y el ' +
+          'enlace tiene que ir al commit de ESTE plan, no a la rama ni al del Paso 1: ' +
+          'el Paso 2 escribe commits, así que para cuando se mira el plan la rama ya se ' +
+          'movió. Un enlace que abre otro contenido del que la tabla describe engaña más ' +
+          'que no tener enlace.',
+  async ejecutar() {
+    const RUTA = 'definitions/agente-de-prueba/playbooks/01_prueba_fake.yaml';
+    const COMMIT = 'abc1234def5678';
+    const plan = extra => ({sobre: sobre('ok', ['[dry-run]'], Object.assign({
+      dry_run: true,
+      operaciones: [{operacion:'PATCH', tipo:'playbook', cx_id:'p1', ruta:RUTA,
+                     resource:'01_prueba-fake', sin_version:false, conflicto:false,
+                     result:null}],
+      avisos_cambio_archivo: [], sin_version: [], conflictos: [],
+    }, extra))});
+
+    const monta = async extra => {
+      const servidor = new ServidorFalso(rutasBase({'/step/3': () => plan(extra)}));
+      const dom = await abrirPanel(servidor, estadoHasta(3));
+      dom.window.viewStep(3);
+      await reposar(dom, 8);
+      return dom;
+    };
+
+    // El plan trae su propio commit: el enlace sale de ahí.
+    const dom = await monta({repo: REPO, rama: 'rama-de-prueba', commit: COMMIT});
+    const doc = dom.window.document;
+    const cabeceras = [...doc.querySelectorAll('#tabla-cx thead th')]
+      .map(t => t.textContent.trim()).filter(Boolean);
+    const celdas = [...doc.querySelectorAll('#tabla-cx tbody tr td')];
+    const enlace = doc.querySelector('#tabla-cx tbody a');
+
+    const laOperacionVaPrimero = cabeceras[0] === 'Operación'
+      && /Modificar/.test(celdas[1].textContent);   // celdas[0] es la casilla
+    const soloElNombre = enlace && enlace.textContent.trim().startsWith('01_prueba_fake.yaml')
+      && !enlace.textContent.includes('definitions/');
+    const alCommit = enlace &&
+      enlace.getAttribute('href') === `https://github.com/${REPO}/blob/${COMMIT}/${RUTA}`;
+    const laRutaEnElTooltip = enlace && enlace.getAttribute('title') === RUTA;
+    const seAbreFuera = enlace && enlace.getAttribute('target') === '_blank'
+      && /noopener/.test(enlace.getAttribute('rel') || '');
+
+    // Sin commit no se inventa una dirección: queda el nombre y su tooltip.
+    const sinCommit = await monta({});
+    const a2 = sinCommit.window.document.querySelector('#tabla-cx tbody a');
+    const codigo = sinCommit.window.document
+      .querySelectorAll('#tabla-cx tbody tr td')[4];
+    const degradaBien = !a2 && codigo
+      && codigo.textContent.trim() === '01_prueba_fake.yaml'
+      && codigo.querySelector('[title]').getAttribute('title') === RUTA;
+
+    const ok = laOperacionVaPrimero && soloElNombre && alCommit
+      && laRutaEnElTooltip && seAbreFuera && degradaBien;
+    return {ok, detalle: `cabeceras=${JSON.stringify(cabeceras)} operación-primero=${laOperacionVaPrimero} ` +
+      `solo-el-nombre=${soloElNombre} al-commit=${alCommit} tooltip=${laRutaEnElTooltip} ` +
+      `fuera=${seAbreFuera} sin-commit-degrada=${degradaBien}`};
+  },
+},
+
+{
   nombre: 'Un deploy parcial (HTTP 200 con status "error") se pinta como fallo, nunca como éxito',
   porQue: 'Es el fallo silencioso más caro del contrato: el servidor devuelve el ' +
           'resultado del pipeline tal cual con código 200, así que un panel que ' +

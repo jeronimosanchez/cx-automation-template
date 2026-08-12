@@ -544,6 +544,37 @@ def es_nativo(tipo, item):
 TIPOS_FUERA_DEL_REPARTO = ("version", "environment")
 
 
+def nombrar_lo_retirado(borrados, solo_repo):
+    """Pone nombre a lo que producción sirve y el borrador ya no tiene.
+
+    El nombre visible sale normalmente de la foto congelada de la versión que
+    el entorno fija. No sirve en el caso más frecuente: **borrar un contenedor
+    en la consola de CX se lleva por delante sus versiones**. Verificado contra
+    la API — el contenedor contesta `404` y su lista de versiones contesta
+    `200` con la lista vacía. El entorno se queda apuntando a algo que se ha
+    evaporado, y no hay foto de la que leer nada.
+
+    Queda el archivo del repositorio, que todavía lo describe y sí lleva el
+    nombre. Sin esto el aviso decía «Playbook · ced5bc20-ac6e-4126-b3d5-
+    118a981f7638»: exacto e inútil, porque nadie decide sobre un identificador.
+
+    Solo rellena lo que falta: un nombre que venga de la versión gana, porque
+    es el de lo que producción sirve de verdad. Y si tampoco hay archivo
+    —borrado en los dos sitios— se queda el identificador: es lo único que
+    sobrevive, e inventar un nombre sería peor que no darlo.
+
+    Modifica `borrados` en el sitio y no devuelve nada.
+    """
+    del_repositorio = {
+        (f.get("tipo"), f.get("cx_id")): f.get("display_name", "")
+        for f in solo_repo or ()
+    }
+    for borrado in borrados or ():
+        if not borrado.get("display_name"):
+            borrado["display_name"] = del_repositorio.get(
+                (borrado.get("tipo"), borrado.get("cx_id")), "")
+
+
 def emparejar(inventario, repositorio):
     """Reparte todo lo leído en los tres grupos que pinta el Paso 1.
 
@@ -1090,6 +1121,7 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
     # único que lo dice antes de que pase, y el Paso 1 es el sitio donde saberlo
     # todavía no cuesta nada.
     comparacion = _contenedores_cambiados(contexto, inventario, on_log, log)
+    nombrar_lo_retirado(comparacion["borrados"], grupos["solo_repo"])
     for borrado in comparacion["borrados"]:
         _emit(log, on_log,
               f"⚠ {borrado['tipo']} «{borrado['display_name'] or borrado['cx_id']}» "
@@ -1381,6 +1413,15 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
             "operaciones": operaciones, "dry_run": True,
             "avisos_cambio_archivo": avisos, "sin_version": sin_version,
             "conflictos": conflictos,
+            # De qué commit salió ESTE plan. Cada paso vuelve a preguntar la
+            # punta de la rama, así que el commit del Paso 1 puede no ser el
+            # que se acaba de leer aquí. El panel enlaza cada archivo a este
+            # commit: si enlazara a la rama —o al commit del Paso 1— podría
+            # abrir un contenido distinto del que la tabla describe, que es
+            # exactamente el engaño que el enlace venía a evitar.
+            "repo": contexto.repo,
+            "rama": contexto.rama,
+            "commit": repositorio["commit"],
         })
 
     if not operaciones:
