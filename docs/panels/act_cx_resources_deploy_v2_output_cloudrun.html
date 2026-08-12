@@ -235,8 +235,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div id="project-manual" style="display:none;margin-top:8px;max-width:340px">
               <div id="project-manual-nota" style="font-size:11px;color:var(--gate);line-height:1.5;margin-bottom:6px"></div>
               <div style="display:flex;gap:8px">
-                <input type="text" id="project-manual-input" class="snapshot-input" placeholder="id del proyecto" style="max-width:200px">
+                <input type="text" id="project-manual-input" class="snapshot-input" placeholder="p. ej. mi-proyecto-505310" style="max-width:200px">
                 <button class="btn btn-ghost" onclick="usarProyectoManual()">Usar</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-3);line-height:1.5;margin-top:6px">
+                El <strong>identificador</strong>, no el nombre: en la consola de Google Cloud
+                es la columna <em>ID</em>, con guiones y a menudo terminado en números
+                (<code style="color:var(--text-2)">mi-proyecto-505310</code>), no
+                <em>&laquo;Mi Proyecto&raquo;</em>.
               </div>
             </div>
           </div>
@@ -254,6 +260,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           </div>
           <div id="alta-agente-log" style="display:none;margin-top:10px">
             <div class="output-block" id="alta-agente-log-block" style="height:70px;overflow-y:auto"></div>
+          </div>
+          <!-- Un proyecto nuevo no lo ve la cuenta de servicio hasta que se le
+               concede permiso sobre él, y sin organización eso es un permiso
+               por proyecto: no hay dónde concederlo una sola vez. El aviso vive
+               aquí, donde se tropieza, y no en un script que hay que saber que
+               existe — el repositorio de un proyecto nuevo tampoco lo tendría
+               dentro. -->
+          <div id="alta-proyecto" style="display:none;margin-top:12px">
+            <div class="dir-card hacia-cx" style="margin-bottom:0">
+              <div class="dir-head">⚠ El servidor no alcanza este proyecto</div>
+              <div class="dir-body">
+                <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-bottom:10px">
+                  El proyecto existe, pero la cuenta de servicio del pipeline no tiene
+                  permiso sobre él. Es lo normal en un proyecto recién creado. Pega esto
+                  en tu terminal y vuelve a intentarlo — solo hace falta una vez por proyecto.
+                </div>
+                <div class="output-block" id="alta-proyecto-comando"
+                     style="height:auto;max-height:170px;overflow:auto;white-space:pre-wrap;
+                            word-break:break-all;font-size:11px;line-height:1.7"></div>
+                <div style="display:flex;gap:8px;margin-top:10px">
+                  <button class="btn btn-primary" onclick="copiarAltaProyecto()">Copiar</button>
+                  <button class="btn btn-ghost" onclick="reintentarProyecto()">Reintentar</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
@@ -1137,6 +1168,14 @@ async function comprobarServidor() {
   const indicador = $('estado-servidor');
   try {
     const sobre = await llamar('/health');
+    // La cuenta con la que corre el servidor, para poder componer el comando
+    // IAM de un proyecto que todavía no alcanza. Viene de él y no se escribe
+    // aquí: si se redespliega con otra, el comando sigue siendo el correcto.
+    SA_DEL_SERVIDOR = sobre.data.service_account || SA_DEL_SERVIDOR;
+    if (Array.isArray(sobre.data.roles_del_alta) && sobre.data.roles_del_alta.length) {
+      ROLES_DEL_ALTA.length = 0;
+      for (const rol of sobre.data.roles_del_alta) ROLES_DEL_ALTA.push([rol, PORQUE_DEL_ROL[rol] || '']);
+    }
     const n = (sobre.data.endpoints || []).length;
     if (indicador) {
       indicador.innerHTML = `<span style="color:#4ade80">●</span> servidor en marcha · ${n} rutas`;
@@ -1239,7 +1278,53 @@ async function cargarAgentes(project) {
     agentSel.disabled = true;
     actualizarCajaRepo();
     pintarError('error-1', error);
+    mostrarAltaProyecto(project, error);
   }
+}
+
+// La cuenta de servicio que el servidor declara en su salud. Se pregunta, no se
+// escribe aquí: si el servicio se redespliega con otra, el comando que se copie
+// tiene que seguir siendo el correcto.
+let SA_DEL_SERVIDOR = null;
+
+// Por qué hace falta cada rol. El texto es del panel; la lista de roles la
+// manda el servidor, para que no puedan discrepar si algún día cambia.
+const PORQUE_DEL_ROL = {
+  'roles/browser': 'para que el proyecto salga en el desplegable',
+  'roles/dialogflow.admin': 'para leer y escribir el agente',
+  'roles/serviceusage.serviceUsageConsumer': 'para cargar la cuota al proyecto',
+};
+
+const ROLES_DEL_ALTA = Object.entries(PORQUE_DEL_ROL);
+
+function esFaltaDePermiso(error) {
+  const texto = `${(error && error.motivo) || ''} ${(error && error.message) || error || ''}`.toLowerCase();
+  return texto.includes('403') || texto.includes('missing_permission') ||
+         texto.includes('permission') || texto.includes('permiso');
+}
+
+function mostrarAltaProyecto(project, error) {
+  // Solo ante una falta de permiso. Enseñar el comando ante cualquier fallo
+  // —una caída de red, un proyecto mal escrito— mandaría a conceder permisos
+  // para arreglar algo que no son permisos.
+  if (!project || !esFaltaDePermiso(error)) return mostrar('alta-proyecto', false);
+  const sa = SA_DEL_SERVIDOR || '<CUENTA-DE-SERVICIO-DEL-SERVIDOR>';
+  $('alta-proyecto-comando').textContent = ROLES_DEL_ALTA
+    .map(([rol, porque], i) =>
+      `# ${porque}\ngcloud projects add-iam-policy-binding ${project} \\\n` +
+      `  --member=serviceAccount:${sa} \\\n  --role=${rol}` +
+      (i < ROLES_DEL_ALTA.length - 1 ? '\n' : ''))
+    .join('\n');
+  mostrar('alta-proyecto', true);
+}
+
+function copiarAltaProyecto() {
+  navigator.clipboard.writeText($('alta-proyecto-comando').textContent || '');
+}
+
+function reintentarProyecto() {
+  mostrar('alta-proyecto', false);
+  onProjectSelected();
 }
 
 function agenteElegido() {

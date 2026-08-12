@@ -139,6 +139,29 @@ TIPOS_SIN_VERSION = ("agent_config", "generator")
 
 ENTORNO_PRODUCCION = "production"
 
+# Lo que la cuenta de servicio necesita sobre CADA proyecto que vaya a manejar.
+# Sin organización no hay ningún sitio donde concederlo una sola vez —los
+# proyectos sueltos no cuelgan de nada común—, así que esto se repite por
+# proyecto y el panel tiene que poder decirlo cuando se tropieza con uno nuevo.
+#
+# Los tres, y ninguno sobra:
+#   browser                      → `resourcemanager.projects.list`, que es lo
+#                                  único que hace que el proyecto aparezca en el
+#                                  desplegable. `dialogflow.admin` da `.get`
+#                                  pero no `.list`.
+#   dialogflow.admin             → leer y escribir el agente.
+#   serviceusage...Consumer      → `serviceusage.services.use`, que exige la
+#                                  cabecera `x-goog-user-project` de TODA
+#                                  llamada a CX. `dialogflow.admin` NO lo
+#                                  incluye: sin él todo sale 403 aunque el
+#                                  primero esté concedido (hallazgo X1,
+#                                  `docs/cloudrun_diseno_servidor.md §8.4`).
+ROLES_DEL_ALTA = (
+    "roles/browser",
+    "roles/dialogflow.admin",
+    "roles/serviceusage.serviceUsageConsumer",
+)
+
 # Marcas de que una rama principal es provisional. No es una lista de nombres
 # prohibidos: es una señal para que publicar no diga "✓" en silencio cuando el
 # código va a parar a una rama de pruebas en vez de a la real del repositorio.
@@ -2416,10 +2439,20 @@ def link_project_repo(project, repo_url, rama_principal="main",
     # algún día hace falta declarar algo por repositorio, el archivo se crea
     # entonces, junto con quien lo lea.
 
-    comando_iam = (
+    # Los tres, no uno. `dialogflow.admin` **no incluye**
+    # `serviceusage.services.use`, que es lo que exige la cabecera
+    # `x-goog-user-project` de toda llamada a CX: sin el segundo rol, todas
+    # salen con 403 aunque el primero esté concedido (hallazgo X1,
+    # `docs/cloudrun_diseno_servidor.md §8.4`). Y `roles/browser` es lo que
+    # hace que el proyecto aparezca en el desplegable, porque `dialogflow.admin`
+    # da `resourcemanager.projects.get` pero no `.list`. Este comando devolvía
+    # solo el primero: quien lo siguiera al pie de la letra se quedaba con un
+    # proyecto invisible y con 403 en cuanto lo escribía a mano.
+    cuenta = cx.runtime_service_account()
+    comando_iam = " && \\\n".join(
         f"gcloud projects add-iam-policy-binding {project} "
-        f"--member=serviceAccount:{cx.runtime_service_account()} "
-        f"--role=roles/dialogflow.admin"
+        f"--member=serviceAccount:{cuenta} --role={rol}"
+        for rol in ROLES_DEL_ALTA
     )
     _emit(log, on_log,
           "Falta un paso manual: ejecuta el comando IAM que devuelve este paso")

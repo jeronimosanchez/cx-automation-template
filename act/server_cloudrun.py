@@ -563,11 +563,27 @@ def salud():
     fuera: los dos son "no contesta". Distinguirlos es lo que permite matar el
     proceso en el primer caso en vez de dejarlo ocupando el puerto.
     """
+    # La cuenta con la que corre este proceso, para que el panel pueda componer
+    # el comando IAM de un proyecto que el servidor todavía no alcanza. Se
+    # pregunta y no se escribe en el panel: si el servicio se redespliega con
+    # otra cuenta, el comando que se copie tiene que seguir siendo el correcto.
+    #
+    # Best-effort a propósito. La salud responde si el proceso está en pie, y
+    # eso no puede depender de que se pueda averiguar la identidad: si fallara,
+    # un arranque sano se vería igual que uno roto, que es justo lo que este
+    # endpoint existe para distinguir.
+    try:
+        cuenta = cx.runtime_service_account()
+    except Exception:
+        cuenta = None
+
     return pipeline.step_result("ok", ["servidor en marcha"], {
         "endpoints": sorted(
             regla.rule for regla in app.url_map.iter_rules()
             if regla.rule != "/static/<path:filename>"
         ),
+        "service_account": cuenta,
+        "roles_del_alta": list(pipeline.ROLES_DEL_ALTA),
     })
 
 

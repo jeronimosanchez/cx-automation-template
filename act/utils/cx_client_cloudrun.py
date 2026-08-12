@@ -131,6 +131,30 @@ def runtime_service_account():
     email = getattr(credentials, "service_account_email", None)
     if email and email != "default":
         return email
+
+    # En Cloud Run las credenciales llegan de la plataforma y `google.auth`
+    # las expone con `service_account_email == "default"`: el nombre real no
+    # viaja en ellas. Quien lo tiene es el servidor de metadatos, y es la vía
+    # documentada para preguntárselo desde dentro de la instancia.
+    #
+    # Este caso se descubrió con el servicio ya desplegado: la función caía
+    # hasta el `userinfo` de abajo, que **no devuelve email para el token de
+    # una cuenta de servicio**, y acababa lanzando el error de más abajo. O
+    # sea: el comando IAM que el panel enseña para ejecutar a mano no se podía
+    # construir precisamente donde hace falta, en producción.
+    try:
+        respuesta = requests.get(
+            "http://metadata.google.internal/computeMetadata/v1/instance/"
+            "service-accounts/default/email",
+            headers={"Metadata-Flavor": "Google"}, timeout=5,
+        )
+        if respuesta.status_code == 200 and "@" in respuesta.text:
+            return respuesta.text.strip()
+    except requests.exceptions.RequestException:
+        # Fuera de GCP ese host no existe. No es un fallo: significa que se
+        # está corriendo en local, y ahí sirve el `userinfo` de abajo.
+        pass
+
     respuesta = requests.get(
         "https://www.googleapis.com/oauth2/v3/userinfo",
         headers={"Authorization": f"Bearer {get_token()}"}, timeout=30,
