@@ -280,14 +280,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="done-banner"><p>Inventario completado &#10003;</p></div>
 
         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
+          <!--
+            Las tres tarjetas responden a **d&oacute;nde est&aacute;** cada cosa, no a **si
+            cambi&oacute;**: un resource que est&aacute; en los dos sitios cae en
+            &laquo;Emparejados&raquo; tanto si coincide como si el archivo dice otra
+            cosa, y ah&iacute; se vuelve indistinguible. Un playbook modificado en el
+            repositorio no aparec&iacute;a por ninguna parte en el Paso 1, y el cambio
+            solo se ve&iacute;a en el Paso 3.
+
+            Por eso el Paso 1 devuelve `difieren_del_repositorio` &mdash; los
+            emparejados que el Paso 3 actualizar&iacute;a&mdash;, y cada uno se marca
+            en su fila. El pie de la tarjeta (`aviso-difieren-repo`) los cuenta.
+          -->
           <div class="grupo-card emp" onclick="toggleGrupo(this)">
             <div class="grupo-label">Emparejados</div>
             <div class="grupo-num" style="color:var(--success)">42</div>
             <div class="grupo-desc">Est&aacute;n en CX y tienen archivo en el repositorio.</div>
-            <div class="grupo-lista">petal_cx_orchestrator.yaml<br>compra.yaml<br>checkout.yaml
-              <span class="grupo-extra" style="display:none"><br>registro_task.yaml<br>gestion_deuda.yaml<br>handoff.yaml<br>calculo_entrega_task.yaml<br>identificacion_task.yaml<br>petaldatatool.yaml<br>agent.yaml<br><span style="color:var(--text-3)">&hellip; y 32 m&aacute;s</span></span>
+            <div class="grupo-lista">petal_cx_orchestrator.yaml<br>compra.yaml <span style="color:var(--gate)">&middot; difiere del repositorio</span><br>checkout.yaml
+              <span class="grupo-extra" style="display:none"><br>registro_task.yaml<br>gestion_deuda.yaml <span style="color:var(--gate)">&middot; difiere del repositorio</span><br>handoff.yaml<br>calculo_entrega_task.yaml<br>identificacion_task.yaml<br>petaldatatool.yaml<br>agent.yaml<br><span style="color:var(--text-3)">&hellip; y 32 m&aacute;s</span></span>
             </div>
             <div class="grupo-toggle">Ver los 42 &#9662;</div>
+            <div class="grupo-desc" id="aviso-difieren-repo" style="margin-top:8px;color:var(--gate)">2 dicen algo distinto en el repositorio &mdash; el Paso 3 los actualizar&iacute;a.</div>
           </div>
           <div class="grupo-card cx" onclick="toggleGrupo(this)">
             <div class="grupo-label">Solo en CX</div>
@@ -395,7 +408,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <div id="lista-borrado" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
               <div style="display:flex;gap:10px">
                 <button class="btn btn-danger" onclick="confirmarEliminarDeCx()">S&iacute;, apuntar para borrar</button>
-                <button class="btn btn-ghost" onclick="document.getElementById('confirmar-borrado').style.display='none'">Cancelar</button>
+                <button class="btn btn-ghost" onclick="cancelarEliminarDeCx()">Cancelar</button>
               </div>
             </div>
           </div>
@@ -455,10 +468,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             Se va a aplicar en CX <span class="dir-flecha">repositorio &rarr; CX</span>
           </div>
           <div class="dir-body">
-            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)"> Seleccionar todos</label></div>
+            <div class="sel-todos" id="fila-sel-todos-cx"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)"> Seleccionar todos</label></div>
             <div class="diff-wrap">
               <table class="diff-table" id="tabla-cx">
-                <thead><tr><th style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
+                <thead><tr><th id="col-marcar-cx" style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
                 <tbody>
                   <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Playbook</td><td><code>Compra</code></td><td><code style="color:var(--text-3)">compra.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
                   <tr><td><input type="checkbox" onchange="actualizarPies();refrescarDeriva()"></td><td>Playbook</td><td><code>Orquestador</code></td><td><code style="color:var(--text-3)">petal_cx_orchestrator.yaml</code></td><td><span class="pill pill-mod">Modificar</span></td></tr>
@@ -736,7 +749,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="action-result-title">Pega este comando en tu terminal</div>
             <div class="action-result-desc">Una vez por proyecto; cubre todos sus agentes, tambi&eacute;n los que crees despu&eacute;s. <span style="color:var(--text-3)">(terminal)</span>
               <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-top:8px">
-                <code id="tool-comando-iam" style="flex:1;font-size:11px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;word-break:break-all">gcloud projects add-iam-policy-binding &lt;proyecto&gt; --member=serviceAccount:act-cloudrun-sa@cloud-run-multiproyecto.iam.gserviceaccount.com --role=roles/dialogflow.admin</code>
+                <!-- Los tres roles, como los concede el alta de verdad
+                     (`ROLES_DEL_ALTA`). Esta maqueta enseñaba solo
+                     `dialogflow.admin`, que era el defecto que el pipeline
+                     arregló el 2026-08-12: sin `serviceusage…Consumer` toda
+                     llamada a CX sale 403 por la cabecera `x-goog-user-project`,
+                     y sin `browser` el proyecto no aparece en el desplegable.
+                     Una especificación que enseña el comando incompleto es una
+                     invitación a volver a él. -->
+                <code id="tool-comando-iam" style="flex:1;font-size:11px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;white-space:pre-wrap;word-break:break-all">gcloud projects add-iam-policy-binding &lt;proyecto&gt; --member=serviceAccount:&lt;cuenta-del-servidor&gt; --role=roles/browser &amp;&amp; \
+gcloud projects add-iam-policy-binding &lt;proyecto&gt; --member=serviceAccount:&lt;cuenta-del-servidor&gt; --role=roles/dialogflow.admin &amp;&amp; \
+gcloud projects add-iam-policy-binding &lt;proyecto&gt; --member=serviceAccount:&lt;cuenta-del-servidor&gt; --role=roles/serviceusage.serviceUsageConsumer</code>
                 <button onclick="copiarComandoIam(this)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
               </div>
             </div>
@@ -1561,12 +1584,25 @@ function traerAlRepo() {
 
 // Borrar es la única acción destructiva del paso: se enseña qué se borra
 // antes de pedir la confirmación, no después.
+//
+// Y mientras esa confirmación está abierta se retira el bloque de acciones. Lo
+// que quedaba justo debajo de la caja roja era «Traer al repositorio» — la
+// acción **contraria** a la que se está confirmando, activa, sobre las mismas
+// filas marcadas y a un clic de distancia. Una confirmación que ofrece al lado
+// lo opuesto de lo que confirma no es una confirmación: es una bifurcación sin
+// avisar. Vuelve al cancelar y al confirmar.
 function pedirEliminarDeCx() {
   const filas = filasMarcadas('tabla-repo');
   if (!filas.length) { alert('No hay nada marcado.'); return; }
   document.getElementById('lista-borrado').innerHTML =
     filas.map(f => '· ' + f.cells[1].textContent + ' · ' + f.cells[2].textContent.trim()).join('<br>');
   document.getElementById('confirmar-borrado').style.display = 'block';
+  document.getElementById('traer-gate').style.display = 'none';
+}
+
+function cancelarEliminarDeCx() {
+  document.getElementById('confirmar-borrado').style.display = 'none';
+  document.getElementById('traer-gate').style.display = 'block';
 }
 
 function confirmarEliminarDeCx() {
@@ -1582,6 +1618,7 @@ function confirmarEliminarDeCx() {
     f.remove();
   });
   document.getElementById('confirmar-borrado').style.display = 'none';
+  document.getElementById('traer-gate').style.display = 'block';
   const quedan = document.querySelectorAll('#tabla-repo tbody tr').length;
   refrescarDeriva();
   actualizarPies();
@@ -1718,25 +1755,40 @@ function accionesMarcadas() {
   });
 }
 
-// Al terminar, la lista se queda en pantalla pero deja de ser editable: cada
-// fila dice si se aplicó o si quedó fuera, y lo que quedó fuera sigue siendo
-// una diferencia entre el repositorio y el agente.
+// Al terminar, la lista se queda en pantalla pero deja de ser un formulario:
+// pasa a ser el resumen de lo que se escribió. Cada fila dice si se aplicó o si
+// quedó fuera, y lo que quedó fuera sigue siendo una diferencia entre el
+// repositorio y el agente.
+//
+// Las casillas y el «Seleccionar todos» se van, no se deshabilitan:
+// deshabilitadas seguían en pantalla, y una casilla visible después de un
+// «2 de 2 se aplicaron en CX» invita a volver a marcar algo que ya está en el
+// agente. La columna se va también de la cabecera — dejarla correría una celda
+// todas las filas.
 function cerrarTablaCx(aplicadas) {
   paso3Cerrado = true;
   const nombresAplicados = new Set(aplicadas.map(a => a.nombre));
   const selTodos = document.getElementById('sel-todos-cx');
   if (selTodos) { selTodos.checked = false; selTodos.disabled = true; }
+  const filaSelTodos = document.getElementById('fila-sel-todos-cx');
+  if (filaSelTodos) filaSelTodos.style.display = 'none';
+  const columna = document.getElementById('col-marcar-cx');
+  if (columna) columna.style.display = 'none';
   const filas = [...document.querySelectorAll('#tabla-cx tbody tr')];
   filas.forEach(f => {
-    const chk = f.querySelector('input[type=checkbox]');
-    if (chk) chk.disabled = true;
+    // El nombre y la celda de la operación se leen ANTES de quitar la casilla:
+    // al irse esa celda todas las demás corren un puesto, y `cells[2]` pasaría
+    // a ser el archivo en vez del resource.
     const nombre = f.cells[2].querySelector('code').textContent.trim();
+    const celdaOperacion = f.cells[4];
     const dentro = nombresAplicados.has(nombre);
-    f.cells[4].insertAdjacentHTML('beforeend',
+    celdaOperacion.insertAdjacentHTML('beforeend',
       dentro
         ? ' <span class="pill pill-ok">Aplicado</span>'
         : ' <span class="pill pill-dim">Qued&oacute; fuera</span>');
     if (!dentro) f.style.opacity = '.55';
+    const casilla = f.querySelector('input[type=checkbox]');
+    if (casilla) casilla.closest('td').remove();
   });
   const pieCx = document.getElementById('pie-cx');
   const fuera = filas.length - aplicadas.length;
@@ -2293,6 +2345,11 @@ function resetTablas() {
     const c = document.getElementById(id);
     if (c) { c.checked = false; c.disabled = false; }
   });
+  // La fila del «Seleccionar todos» del Paso 3 vive fuera de la tabla, así que
+  // reponer el HTML de la tabla no la devuelve: sin esto, el deploy siguiente
+  // arrancaba con la tabla marcable y sin su «Seleccionar todos».
+  const filaSelTodos = document.getElementById('fila-sel-todos-cx');
+  if (filaSelTodos) filaSelTodos.style.display = '';
   // El Paso 2 vuelve a su estado de partida: sin traída hecha, sin panel de
   // borrado abierto y con la salida "continuar sin modificar" de vuelta.
   ['traer-log','traer-done','confirmar-borrado'].forEach(id => {

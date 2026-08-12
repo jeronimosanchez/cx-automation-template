@@ -59,6 +59,11 @@ PANEL_CLOUDRUN = "docs/panels/act_cx_resources_deploy_v2_output_cloudrun.html"
 # los usan varios checks y el panel: si cambian, cambian en un solo sitio.
 CAMPO_COMPARACION = "comparacion_produccion"
 ID_AVISO_BORRADOS = "aviso-borrados-produccion"
+# Y el campo con que el Paso 1 dice cuáles de los emparejados dicen algo
+# distinto en el repositorio, con el `id` de su aviso. Mismo motivo: lo usan el
+# check y los dos paneles.
+CAMPO_DIFIEREN = "difieren_del_repositorio"
+ID_AVISO_DIFIEREN = "aviso-difieren-repo"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -332,6 +337,106 @@ class _RespuestaFalsa:
 
     def json(self):
         return self._cuerpo
+
+
+class _GitHubFalso:
+    """Repositorio de mentira: solo sabe decir si una rama existe."""
+
+    def __init__(self, ramas=("main", "master")):
+        self.ramas = ramas
+
+    def branch_head(self, rama):
+        if rama not in self.ramas:
+            raise AssertionError(f"la rama {rama} no existe en el doble")
+        return "0" * 40
+
+
+class VincularConDobles:
+    """Sustituye lo que `link_project_repo` toca fuera, para el Nivel 0.
+
+    La herramienta de vincular habla con tres sitios —Resource Manager, el
+    repositorio y el registro de Firestore— y su comportamiento interesante
+    está en lo que hace cuando alguno **contesta mal**: un proyecto en la
+    papelera, un 500, un corte de red, una cuenta de servicio que no se puede
+    averiguar. Nada de eso se puede provocar contra la infraestructura real, y
+    esperar a que ocurra solo no es una prueba.
+
+    Guarda lo que se escribiría en Firestore en un diccionario, que es lo que
+    permite comprobar el **efecto** —qué quedó registrado— en vez del estado
+    que la función dice haber alcanzado. Cualquier petición HTTP que no sea la
+    de Resource Manager revienta a propósito: si el código saliera a la red por
+    otro camino, el check tiene que enterarse en vez de pasar de casualidad.
+    """
+
+    def __init__(self, respuesta=None, cuenta="doble@ejemplo.invalid",
+                 guardado=None, ramas=("main", "master")):
+        # `respuesta` es lo que contesta Resource Manager: una `_RespuestaFalsa`
+        # o una excepción de `requests` que se lanza en su lugar.
+        self.respuesta = respuesta or _RespuestaFalsa(
+            200, {"projectId": "x", "lifecycleState": "ACTIVE"})
+        self.cuenta = cuenta
+        self.guardado = dict(guardado or {})
+        self.gh = _GitHubFalso(ramas)
+        self.urls = []
+        self._originales = {}
+
+    def __enter__(self):
+        self._originales = {
+            "get": pipeline.requests.get,
+            "token": cx.get_token,
+            "cuenta": cx.runtime_service_account,
+            "leer": store.get_project_mapping,
+            "escribir": store.save_project_mapping,
+        }
+
+        def get_falso(url, **kwargs):
+            if not url.startswith(cx.RESOURCE_MANAGER_BASE):
+                raise AssertionError(f"El Nivel 0 no habla con la red: {url}")
+            self.urls.append(url)
+            if isinstance(self.respuesta, Exception):
+                raise self.respuesta
+            return self.respuesta
+
+        def cuenta_falsa():
+            if isinstance(self.cuenta, Exception):
+                raise self.cuenta
+            return self.cuenta
+
+        def leer(_cliente, project):
+            if project not in self.guardado:
+                raise store.MappingNotFound(f"{project} sin vincular")
+            return self.guardado[project]
+
+        def escribir(_cliente, project, repo, rama_principal="main"):
+            documento = {"project": project, "repo": repo,
+                         "rama_principal": rama_principal}
+            self.guardado[project] = documento
+            return documento
+
+        pipeline.requests.get = get_falso
+        cx.get_token = lambda *a, **k: "token-de-mentira"
+        cx.runtime_service_account = cuenta_falsa
+        store.get_project_mapping = leer
+        store.save_project_mapping = escribir
+        return self
+
+    def __exit__(self, *_):
+        pipeline.requests.get = self._originales["get"]
+        cx.get_token = self._originales["token"]
+        cx.runtime_service_account = self._originales["cuenta"]
+        store.get_project_mapping = self._originales["leer"]
+        store.save_project_mapping = self._originales["escribir"]
+        return False
+
+    def vincular(self, project="proyecto-de-mentira-1",
+                 repo_url="https://github.com/octo/repo", rama_principal="main"):
+        """Llama a la herramienta con los dobles puestos.
+
+        `client=self` a propósito: si algún camino intentara construir el
+        cliente real de Firestore, no lo tendría delante.
+        """
+        return pipeline.link_project_repo(
+            project, repo_url, rama_principal, client=self, gh=self.gh)
 
 
 def _ficticio_playbook(cx_id, goal="objetivo", display=None):
@@ -1255,6 +1360,360 @@ def nivel_0(runner):
     runner.check(0, "El comando IAM que muestra el panel se puede pegar tal cual",
                  el_comando_iam_se_puede_copiar)
 
+    # ── Vincular: lo que pasa cuando algo de fuera contesta mal ──────────────
+    #
+    # La herramienta habla con Resource Manager, con el repositorio y con el
+    # registro. Su comportamiento interesante no está en el camino bueno, sino
+    # en qué hace cuando alguno de los tres contesta mal — y eso no se puede
+    # provocar contra la infraestructura real. Los tres se sustituyen con
+    # `VincularConDobles`, que además guarda lo que se escribiría: así cada
+    # check mira el efecto (qué quedó registrado) y no el estado que la función
+    # dice haber alcanzado.
+
+    def la_forma_del_id_es_la_que_documenta_google():
+        """La regla, letra por letra, contra la documentación de GCP.
+
+        «It must be 6 to 30 characters in length · It can only contain
+        lowercase letters, numbers, and hyphens · It must start with a letter ·
+        It cannot end with a hyphen» (Resource Manager,
+        creating-managing-projects, consultada 2026-08-12).
+
+        Es la única barrera real contra una errata: la API contesta 403 tanto a
+        un proyecto que no existe como a uno sin permiso, así que aflojar esto
+        deja el alta sin ninguna comprobación, y apretarlo de más rechaza
+        proyectos que existen de verdad.
+        """
+        validos = ["abcdef", "a" * 30, "mi-proyecto-505310", "a-1-b-2-c",
+                   "proyecto1"]
+        invalidos = ["abcde", "a" * 31, "1proyecto", "-proyecto", "proyecto-",
+                     "MI-Proyecto-1", "mi_proyecto", "mi proyecto", "", None]
+        problemas = []
+        for bueno in validos:
+            if not pipeline.ID_PROYECTO_VALIDO.match(bueno):
+                problemas.append(f"rechaza {bueno!r}, que es válido")
+        for malo in invalidos:
+            if pipeline.ID_PROYECTO_VALIDO.match(malo or ""):
+                problemas.append(f"acepta {malo!r}, que no lo es")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "La forma que se exige a un identificador de proyecto es la "
+                    "que documenta Google",
+                 la_forma_del_id_es_la_que_documenta_google)
+
+    def un_salto_de_linea_al_final_no_es_un_identificador():
+        """En Python, `$` casa también justo antes de un salto de línea final.
+
+        Con `$` en vez de `\\Z`, un identificador con un salto al final pasaba
+        por bien formado. Y no se quedaba en el registro: viajaba hasta el
+        comando IAM y lo partía en dos —`gcloud projects add-iam-policy-binding
+        mi-proyecto` por un lado y `--member=…` por otro—, así que pegarlo
+        ejecuta un comando incompleto y después un «command not found». Lo
+        único que ese comando tiene que saber hacer es pegarse entero.
+
+        Se comprueba por el efecto —la herramienta se niega y no registra
+        nada—, no leyendo el patrón.
+        """
+        with VincularConDobles() as dobles:
+            try:
+                dobles.vincular("proyecto-de-mentira-1\n")
+                return False, "vinculó un identificador con un salto de línea"
+            except pipeline.PipelineError:
+                pass
+            return not dobles.guardado, f"además registró {list(dobles.guardado)}"
+
+    runner.check(0, "Un identificador con un salto de línea al final no pasa por "
+                    "bien formado",
+                 un_salto_de_linea_al_final_no_es_un_identificador)
+
+    def un_proyecto_en_la_papelera_no_se_vincula():
+        """Un 200 no significa que el proyecto siga vivo.
+
+        Resource Manager contesta 200 durante los 30 días que un proyecto pasa
+        en la papelera antes de borrarse de verdad, con
+        `lifecycleState: DELETE_REQUESTED`. Y el desplegable lo construye
+        `list_gcp_projects`, que solo cuenta los `ACTIVE`: vincular uno así
+        decía «Proyecto vinculado ✓» sobre algo que no iba a aparecer nunca en
+        el desplegable — el mismo final que la errata que motivó esta
+        comprobación, con otro disfraz.
+        """
+        papelera = _RespuestaFalsa(200, {"projectId": "p",
+                                         "lifecycleState": "DELETE_REQUESTED"})
+        with VincularConDobles(respuesta=papelera) as dobles:
+            motivo = ""
+            try:
+                resultado = dobles.vincular()
+                return False, ("vinculó un proyecto pendiente de borrado: "
+                               f"{resultado['log']}")
+            except pipeline.PipelineError as error:
+                motivo = str(error)
+            problemas = []
+            if "DELETE_REQUESTED" not in motivo:
+                problemas.append(f"el error no dice en qué estado está: {motivo[:80]}")
+            if dobles.guardado:
+                problemas.append(f"además registró {list(dobles.guardado)}")
+            return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Un proyecto en la papelera no se vincula como si estuviera vivo",
+                 un_proyecto_en_la_papelera_no_se_vincula)
+
+    def un_fallo_que_no_es_de_permisos_no_se_anuncia_como_tal():
+        """Un 500 no es «todavía no te han dado permiso».
+
+        El aviso del 403 dice que es lo normal antes de conceder los roles de
+        abajo, y para un 403 lo es. Dándolo también ante un 500, un 429 o un
+        401, manda a conceder permisos para arreglar algo que no son permisos —
+        y quien lo siga se queda esperando un efecto que no va a llegar.
+        """
+        roto = _RespuestaFalsa(500, {"error": "backend error"})
+        with VincularConDobles(respuesta=roto) as dobles:
+            log = " ".join(dobles.vincular()["log"])
+        problemas = []
+        if "permisos de abajo" in log:
+            problemas.append("un 500 se anuncia como falta de permisos")
+        if "500" not in log:
+            problemas.append(f"el aviso no dice qué contestó Resource Manager: {log[:90]}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Un fallo que no es de permisos no se anuncia como si lo fuera",
+                 un_fallo_que_no_es_de_permisos_no_se_anuncia_como_tal)
+
+    def un_corte_de_red_no_tumba_el_alta():
+        """Lo que no se puede confirmar se avisa, también cuando es la red.
+
+        Esta comprobación no bloquea nada por definición —un 403 pasa con un
+        aviso—, así que un transitorio de red no puede ser lo único capaz de
+        impedir el alta. Y subía como excepción: `ConnectionError` no está en la
+        traducción de errores del servidor, así que llegaba al panel como
+        «Fallo interno del servidor», que no menciona el proyecto ni qué hacer.
+        """
+        corte = requests.exceptions.ConnectionError("la conexión se cayó")
+        with VincularConDobles(respuesta=corte) as dobles:
+            resultado = dobles.vincular("proyecto-de-mentira-2")
+            log = " ".join(resultado["log"])
+            problemas = []
+            if resultado["status"] != "ok":
+                problemas.append(f"el alta no terminó: {resultado['status']}")
+            if "proyecto-de-mentira-2" not in dobles.guardado:
+                problemas.append("no registró el proyecto")
+            if "no se ha podido comprobar" not in log.lower():
+                problemas.append(f"no avisa de que no pudo comprobarlo: {log[:90]}")
+            return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Un corte de red al comprobar el proyecto avisa y sigue, no "
+                    "tumba el alta",
+                 un_corte_de_red_no_tumba_el_alta)
+
+    def sin_cuenta_de_servicio_no_queda_el_proyecto_a_medias():
+        """Si no hay comando que devolver, tampoco hay alta.
+
+        La cuenta se preguntaba **después** de escribir en Firestore. Cuando no
+        se puede averiguar —y no se pudo: en Cloud Run la pone la plataforma y
+        `google.auth` la expone como `default`, así que allí falló hasta que
+        `runtime_service_account` aprendió a preguntarle al servidor de
+        metadatos— la herramienta devolvía error sin comando, con el proyecto ya
+        vinculado y sin que nada lo dijera. Un alta sin su comando IAM no sirve
+        de nada: el proyecto queda registrado y sigue sin permisos.
+        """
+        sin_cuenta = cx.AuthError("no se sabe con qué cuenta corre el proceso")
+        with VincularConDobles(cuenta=sin_cuenta) as dobles:
+            try:
+                dobles.vincular("proyecto-de-mentira-3")
+                return False, "dijo que vinculó sin poder construir el comando IAM"
+            except cx.AuthError:
+                pass
+            return not dobles.guardado, (
+                f"el proyecto quedó registrado igualmente: {list(dobles.guardado)}")
+
+    runner.check(0, "Vincular no deja el proyecto registrado cuando no puede "
+                    "devolver el comando IAM",
+                 sin_cuenta_de_servicio_no_queda_el_proyecto_a_medias)
+
+    def revincular_con_otra_rama_devuelve_la_que_hay_guardada():
+        """La respuesta no puede nombrar una rama distinta de la registrada.
+
+        Vincular dos veces el mismo repositorio no reescribe el documento —es lo
+        que pasa al abrir la herramienta por costumbre—, así que la rama
+        principal tampoco cambia. Devolver la que se pidió hacía que la
+        respuesta dijera `master` mientras el registro seguía guardando `main`,
+        y nada delataba la diferencia: `branch_head` acababa de confirmar que la
+        rama pedida existe de verdad en el repositorio.
+        """
+        ya = {"proyecto-de-mentira-4": {"project": "proyecto-de-mentira-4",
+                                        "repo": "octo/repo",
+                                        "rama_principal": "main"}}
+        with VincularConDobles(guardado=ya) as dobles:
+            resultado = dobles.vincular("proyecto-de-mentira-4",
+                                        rama_principal="master")
+            devuelta = resultado["data"]["rama_principal"]
+            guardada = dobles.guardado["proyecto-de-mentira-4"]["rama_principal"]
+            problemas = []
+            if devuelta != guardada:
+                problemas.append(f"devuelve {devuelta!r} y tiene guardada {guardada!r}")
+            if "master" not in " ".join(resultado["log"]):
+                problemas.append("no dice que la rama pedida no es la registrada")
+            return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Revincular con otra rama principal devuelve la rama que hay "
+                    "guardada, no la que se pidió",
+                 revincular_con_otra_rama_devuelve_la_que_hay_guardada)
+
+    def el_comando_iam_concede_los_tres_roles():
+        """Los tres, no uno. Y cada línea, un comando entero.
+
+        `dialogflow.admin` **no incluye** `serviceusage.services.use`, que es lo
+        que exige la cabecera `x-goog-user-project` de toda llamada a CX: sin el
+        segundo rol todas salen 403 aunque el primero esté concedido. Y sin
+        `roles/browser` el proyecto no aparece en el desplegable, porque
+        `dialogflow.admin` da `projects.get` pero no `.list`. El comando
+        devolvía solo el primero: quien lo siguiera al pie de la letra se
+        quedaba con un proyecto invisible y con 403 en cuanto lo escribía.
+
+        Se mira el comando que la herramienta devuelve de verdad y no la
+        constante, porque lo que se copia es el comando. Y línea a línea: si un
+        valor mal formado parte una en dos, la mitad de abajo deja de ser un
+        `gcloud` y no lo caza contar roles.
+        """
+        with VincularConDobles() as dobles:
+            comando = dobles.vincular()["data"]["comando_iam"]
+        problemas = []
+        roles = re.findall(r"--role=(\S+)", comando)
+        if roles != list(pipeline.ROLES_DEL_ALTA):
+            problemas.append(f"concede {roles}, no {list(pipeline.ROLES_DEL_ALTA)}")
+        incompletas = [
+            i for i, linea in enumerate(comando.splitlines(), 1)
+            if not (linea.startswith("gcloud projects add-iam-policy-binding")
+                    and "--member=serviceAccount:" in linea
+                    and "--role=" in linea)
+        ]
+        if incompletas:
+            problemas.append(f"las líneas {incompletas} no son un gcloud entero")
+        if "$" in comando:
+            problemas.append("lleva una variable de shell sin resolver")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El comando IAM concede los tres roles del alta y cada línea "
+                    "es un gcloud entero",
+                 el_comando_iam_concede_los_tres_roles)
+
+    def los_paneles_ensenan_los_mismos_roles_que_concede_el_alta():
+        """Un comando incompleto en pantalla se sigue igual que uno completo.
+
+        El comando IAM es el único paso del onboarding que ocurre fuera del
+        panel: lo ejecuta una persona copiándolo. La maqueta enseñaba solo
+        `roles/dialogflow.admin` —el defecto que el pipeline acababa de
+        arreglar—, y una especificación que enseña el comando incompleto es una
+        invitación a volver a él.
+
+        Solo se exige a los paneles que nombran algún rol: uno que no nombra
+        ninguno no está prometiendo nada.
+        """
+        esperados = set(pipeline.ROLES_DEL_ALTA)
+        problemas = []
+        for ruta in (PANEL, PANEL_CLOUDRUN):
+            nombrados = set(re.findall(r"roles/[A-Za-z.]+",
+                                       (REPO_ROOT / ruta).read_text()))
+            if nombrados and nombrados != esperados:
+                problemas.append(
+                    f"{pathlib_stem(ruta)} nombra {sorted(nombrados)} · faltan "
+                    f"{sorted(esperados - nombrados)}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Los paneles enseñan los mismos roles que concede el alta",
+                 los_paneles_ensenan_los_mismos_roles_que_concede_el_alta)
+
+    def el_panel_no_pega_dos_lineas_del_comando_iam_en_una():
+        """Un salto de línea colapsado convierte la continuación en un espacio.
+
+        El comando son tres `gcloud` unidos por `&&` más una barra y un salto de
+        línea. En HTML, un salto dentro de un elemento sin `white-space` se
+        colapsa en un espacio, y una barra seguida de espacio no continúa la
+        línea: escapa el espacio, y la terminal contesta «command not found».
+        El botón Copiar copia el `textContent` y nunca tuvo el problema; lo
+        tenía justo quien selecciona el texto con el ratón, que es lo que hace
+        cualquiera con un comando en pantalla.
+
+        Se exige solo si el comando lleva saltos de verdad, y eso se lee del que
+        la herramienta devuelve — no del panel.
+        """
+        with VincularConDobles() as dobles:
+            comando = dobles.vincular()["data"]["comando_iam"]
+        if "\n" not in comando:
+            return True, ""
+        problemas = []
+        for ruta in (PANEL, PANEL_CLOUDRUN):
+            for etiqueta in re.findall(r"<code id=\"tool-comando-iam\"[^>]*>",
+                                       (REPO_ROOT / ruta).read_text()):
+                if "white-space:pre" not in etiqueta:
+                    problemas.append(f"{pathlib_stem(ruta)}: el comando se pinta "
+                                     f"sin conservar los saltos de línea")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El panel enseña el comando IAM sin pegar dos líneas en una",
+                 el_panel_no_pega_dos_lineas_del_comando_iam_en_una)
+
+    def el_panel_decide_por_el_codigo_y_no_por_el_texto():
+        """«403» aparece dentro de los identificadores de proyecto.
+
+        La tarjeta que manda conceder permisos se decidía buscando «403»,
+        «permission» o «permiso» en el texto del error. El texto lleva dentro el
+        identificador del proyecto, y uno como `mi-proyecto-40312` contiene
+        «403»: cualquier fallo sobre él —una caída de red, un 404, un 500— pasaba
+        por falta de permisos. Es exactamente lo que el comentario de
+        `mostrarAltaProyecto` dice que no puede pasar.
+
+        Y leía `error.motivo`, que `FalloDelPanel` no define en ningún sitio: la
+        señal estructurada que manda el servidor (`reason`) nunca llegó a
+        consultarse.
+        """
+        texto = (REPO_ROOT / PANEL_CLOUDRUN).read_text()
+        cuerpo = texto[texto.find("function esFaltaDePermiso"):]
+        cuerpo = cuerpo[:cuerpo.find("\n}")]
+        problemas = []
+        if not cuerpo:
+            return False, "el panel ya no tiene esFaltaDePermiso"
+        if "error.motivo" in cuerpo:
+            problemas.append("lee error.motivo, que el error nunca define")
+        if "'403'" in cuerpo or '"403"' in cuerpo:
+            problemas.append("clasifica por el texto, y «403» aparece dentro de "
+                             "los identificadores de proyecto")
+        if "reason" not in cuerpo and "http" not in cuerpo:
+            problemas.append("no consulta el código HTTP ni el motivo del servidor")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El panel decide si falta un permiso por el código de la "
+                    "respuesta, no por el texto",
+                 el_panel_decide_por_el_codigo_y_no_por_el_texto)
+
+    def una_url_ssh_se_rechaza_con_su_motivo():
+        """La forma SSH de GitHub no lleva `//`, y colaba.
+
+        La comprobación exigía «algo/algo», y `git@github.com:owner/repo` la
+        cumple: el repositorio quedaba registrado como
+        `git@github.com:owner/repo`, y el fallo llegaba una llamada más tarde
+        como un 404 de GitHub sobre una rama, sin mencionar la URL, que era lo
+        que estaba mal. Es la forma que ofrece el propio botón «Code» de
+        GitHub, así que no es un caso rebuscado.
+        """
+        problemas = []
+        for url in ("git@github.com:octo/repo.git",
+                    "ssh://git@github.com/octo/repo"):
+            try:
+                problemas.append(f"acepta {url} → {pipeline._repo_desde_url(url)!r}")
+            except ValueError:
+                pass
+        # Y lo legítimo sigue pasando, que es la otra mitad de la comprobación.
+        for url, esperado in (("https://github.com/octo/repo", "octo/repo"),
+                              ("https://github.com/octo/repo.git", "octo/repo"),
+                              ("https://github.com/octo/repo/", "octo/repo"),
+                              ("octo/repo", "octo/repo")):
+            if pipeline._repo_desde_url(url) != esperado:
+                problemas.append(f"rechaza {url}, que es válido")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Una URL SSH de GitHub se rechaza diciendo qué forma se "
+                    "espera, no se convierte en un repositorio imposible",
+                 una_url_ssh_se_rechaza_con_su_motivo)
+
     # ── La comparación borrador ↔ producción, contra el agente ficticio ──────
     #
     # Aquí está el grueso de la cobertura del cambio, y no toca la red: el
@@ -1660,6 +2119,66 @@ def nivel_0(runner):
     runner.check(0, "El panel enseña lo que el Paso 1 averigua: el aviso de "
                     "contenedores borrados llega a la pantalla, en los dos paneles",
                  el_panel_ensena_los_borrados_que_el_paso_1_detecta)
+
+    def el_panel_ensena_que_un_emparejado_difiere_del_repositorio():
+        """0.23 — el otro dato nuevo del Paso 1, con el mismo criterio que 0.20.
+
+        Las tres tarjetas del Paso 1 responden a **dónde está** cada cosa, no a
+        **si cambió**: un resource que está en los dos sitios cae en
+        «Emparejados» tanto si coincide como si el archivo dice otra cosa, y ahí
+        se vuelve indistinguible. Un playbook modificado en el repositorio no
+        aparecía por ninguna parte en el Paso 1, y el cambio solo se veía en el
+        Paso 3.
+
+        Por eso el paso empezó a devolver `difieren_del_repositorio`. El panel
+        de Cloud Run lo pinta y la maqueta se quedó atrás — y la maqueta es la
+        especificación que varios checks de este nivel contrastan contra el
+        código: una que enseña menos que el panel real invita a construir de
+        menos. Se exige en los dos, con un `id` concreto y no un texto suelto,
+        por el mismo motivo que `aviso-sin-entorno`: «difiere del repositorio»
+        podría estar hablando de cualquier otra cosa.
+
+        Y se busca el `id` **escrito como atributo**, no el nombre suelto.
+        Salió al romper este check a propósito: quitado el `id` del elemento de
+        la maqueta, el check seguía en verde porque el nombre aparecía también
+        dentro del comentario que explica de dónde sale el aviso. Un comentario
+        no es pantalla, así que buscar el nombre a secas dejaba pasar
+        exactamente el defecto que este check existe para cazar.
+
+        Y en las dos direcciones: si el Paso 1 deja de calcularlo, este check
+        también salta, en vez de seguir exigiendo un aviso que ya no tiene qué
+        contar.
+        """
+        arbol = ast.parse((REPO_ROOT / "act/act_cx_resources_deploy_cloudrun.py")
+                          .read_text())
+        funcion = next(n for n in ast.walk(arbol)
+                       if isinstance(n, ast.FunctionDef)
+                       and n.name == "step_1_inventory")
+        devueltos = {
+            clave.value for nodo in ast.walk(funcion)
+            if isinstance(nodo, ast.Dict)
+            for clave in nodo.keys
+            if isinstance(clave, ast.Constant) and isinstance(clave.value, str)
+        }
+        problemas = []
+        if CAMPO_DIFIEREN not in devueltos:
+            problemas.append(f"el Paso 1 no devuelve `{CAMPO_DIFIEREN}`")
+        atributo = f'id="{ID_AVISO_DIFIEREN}"'
+        for ruta in (PANEL, PANEL_CLOUDRUN):
+            texto = (REPO_ROOT / ruta).read_text()
+            if atributo not in texto:
+                problemas.append(
+                    f"{pathlib_stem(ruta)} no tiene ningún elemento con "
+                    f"{atributo}")
+            elif CAMPO_DIFIEREN not in texto:
+                problemas.append(
+                    f"{pathlib_stem(ruta)} tiene el aviso pero no dice de qué "
+                    f"campo sale (`{CAMPO_DIFIEREN}`)")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El panel enseña lo que el Paso 1 averigua: los emparejados "
+                    "que difieren del repositorio se marcan, en los dos paneles",
+                 el_panel_ensena_que_un_emparejado_difiere_del_repositorio)
 
     def el_log_del_paso_5_no_habla_de_resources_tocados():
         """0.22 — el texto decía «N resources tocados desde la última
@@ -2142,6 +2661,39 @@ def nivel_1(runner, project, agent_id, region, run_id, hermano=None):
 
     runner.check(1, "Descubrimiento sin proyecto devuelve la lista de proyectos GCP",
                  descubrimiento_lista_proyectos)
+
+    def resource_manager_no_distingue_lo_que_no_existe():
+        """La premisa de la que cuelga toda la comprobación del proyecto.
+
+        `_comprobar_proyecto_existe` rechaza un 404 y deja pasar el resto con un
+        aviso, y eso solo se entiende sabiendo qué contesta la API de verdad:
+        **403 a un identificador que no existe**, igual que a uno que existe y
+        no se puede ver — a propósito, para no revelar qué proyectos hay. Por eso
+        la errata que motivó la comprobación (`royecto-fake-505310`, sin la `p`)
+        sigue pasando con un aviso, y por eso la única barrera de verdad es la
+        forma del identificador.
+
+        Este check está para que esa premisa no se dé por buena de memoria: si
+        algún día contestara 404, la comprobación sí podría rechazar una errata
+        y merece rehacerse. Se pregunta por un identificador con el sufijo
+        aleatorio de la corrida, que no puede existir, y es una lectura: no crea
+        ni toca nada.
+        """
+        inventado = f"no-existe-{run_id}-{uuid.uuid4().hex[:6]}"
+        respuesta = requests.get(
+            f"{cx.RESOURCE_MANAGER_BASE}/projects/{inventado}",
+            headers={"Authorization": f"Bearer {cx.get_token()}",
+                     "Content-Type": "application/json"},
+            timeout=30,
+        )
+        return respuesta.status_code == 403, (
+            f"contestó {respuesta.status_code} a un proyecto inventado. Si es "
+            f"404, `_comprobar_proyecto_existe` ya puede rechazar una errata y "
+            f"hay que revisarla")
+
+    runner.check(1, "Resource Manager contesta 403 —no 404— a un proyecto que no "
+                    "existe: por eso una errata no se puede cazar preguntando",
+                 resource_manager_no_distingue_lo_que_no_existe)
 
     def descubrimiento_lista_agentes_con_su_repositorio():
         datos = pipeline.discover(project)["data"]

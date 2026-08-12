@@ -172,6 +172,23 @@ function visible(dom, id) {
   return !!e && e.style.display !== 'none';
 }
 
+/** Si un elemento se ve de verdad, subiendo por sus padres.
+ *
+ *  `visible()` mira el `display` del propio elemento y no vale para preguntar
+ *  por un botón: ocultar el bloque que lo contiene lo quita de la pantalla sin
+ *  tocarlo, así que su `style.display` sigue vacío y la comprobación diría que
+ *  se ofrece cuando no se ofrece. Sin subir por los padres, una prueba sobre
+ *  «esta acción ya no está» pasaría con la acción todavía ahí.                */
+function visibleDeVerdad(dom, id) {
+  let e = dom.window.document.getElementById(id);
+  if (!e) return false;
+  while (e && e !== dom.window.document.documentElement) {
+    if (e.style && e.style.display === 'none') return false;
+    e = e.parentElement;
+  }
+  return true;
+}
+
 function pulsar(dom, id) {
   const e = dom.window.document.getElementById(id);
   if (!e) throw new Error(`no existe el elemento ${id}`);
@@ -966,6 +983,171 @@ const escenarios = [
           && llamada.cuerpo.project === PROYECTO && llamada.cuerpo.agent === AGENTE
           && llamada.cuerpo.rama === 'agente/propuesta',
       detalle: `iniciar-bloqueado-sin-rama=${iniciarBloqueadoSinRama} cuerpo=${JSON.stringify(llamada && llamada.cuerpo)}`,
+    };
+  },
+},
+
+{
+  nombre: 'Aplicado el Paso 3, la tabla pasa a ser un resumen: sin casillas y sin «Seleccionar todos»',
+  porQue: 'El deploy terminaba diciendo «2 de 2 se aplicaron en CX» y la tabla ' +
+          'conservaba las casillas y el «Seleccionar todos», solo deshabilitados. ' +
+          'Deshabilitar no basta: una casilla que se ve invita a marcar, y lo que ' +
+          'hay debajo ya está escrito en el agente — volver a aplicarlo lo ' +
+          'escribiría dos veces. Lo que queda tras escribir es un resumen, no un ' +
+          'formulario. Se comprueba también que la cabecera pierde su columna: si ' +
+          'se fueran las celdas y no ella, cada fila quedaría corrida un puesto.',
+  async ejecutar() {
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/3': (cuerpo) => cuerpo.dry_run
+        ? {sobre: sobre('ok', ['[dry-run] Plan de 2 operaciones:'], {dry_run:true, operaciones:[
+            {operacion:'PATCH', tipo:'playbook', cx_id:'p1', ruta:'uno.yaml', resource:'Uno', sin_version:false, conflicto:false, result:null},
+            {operacion:'POST', tipo:'example', cx_id:'e1', ruta:'dos.yaml', resource:'Dos', sin_version:false, conflicto:false, result:null},
+          ], avisos_cambio_archivo:[], sin_version:[], conflictos:[]})}
+        : {sobre: sobre('ok', ['✓ Deploy completado — 2 resources'], {
+            fallo:false, aplicadas:2, operaciones:[
+              {operacion:'PATCH', tipo:'playbook', cx_id:'p1', ruta:'uno.yaml', resource:'Uno', result:'OK'},
+              {operacion:'POST', tipo:'example', cx_id:'e1', ruta:'dos.yaml', resource:'Dos', result:'OK'},
+            ], avisos_cambio_archivo:[], sin_version:[], conflictos:[]})},
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(3));
+    dom.window.viewStep(3);
+    await reposar(dom, 8);
+    const casillasAntes = dom.window.document
+      .querySelectorAll('#tabla-cx tbody input[type=checkbox]').length;
+    dom.window.document.querySelectorAll('#tabla-cx tbody input').forEach(c => c.click());
+    pulsar(dom, 'btn-confirm-deploy');
+    await reposar(dom, 8);
+
+    const casillas = dom.window.document
+      .querySelectorAll('#tabla-cx tbody input[type=checkbox]').length;
+    const selTodos = visibleDeVerdad(dom, 'sel-todos-cx');
+    // Las columnas que quedan a la vista arriba y las celdas de cada fila
+    // tienen que ser las mismas: es lo que separa quitar una columna de
+    // descuadrar la tabla.
+    const columnas = [...dom.window.document.querySelectorAll('#tabla-cx thead th')]
+      .filter(th => th.style.display !== 'none').length;
+    const filas = [...dom.window.document.querySelectorAll('#tabla-cx tbody tr')];
+    const celdas = filas.map(f => f.cells.length);
+    // Y sigue siendo el resumen que dice qué se escribió.
+    const aplicados = filas.filter(f => /Aplicado/.test(f.textContent)).length;
+    const pie = texto(dom, 'pie-cx') || '';
+    return {
+      ok: casillasAntes === 2 && casillas === 0 && selTodos === false
+          && columnas === 4 && JSON.stringify(celdas) === JSON.stringify([4, 4])
+          && aplicados === 2 && pie.includes('2 de 2'),
+      detalle: `casillas antes=${casillasAntes} después=${casillas} ` +
+               `sel-todos=${selTodos} columnas=${columnas} celdas=${JSON.stringify(celdas)} ` +
+               `aplicados=${aplicados} pie="${pie.slice(0, 40)}"`,
+    };
+  },
+},
+
+{
+  nombre: 'Mientras se confirma un borrado no se ofrece la acción contraria, y al cerrar la confirmación vuelve',
+  porQue: 'Al marcar un resource y pulsar «Eliminar de CX» aparecía la ' +
+          'confirmación «Apuntar para borrar en el Paso 3» y justo debajo seguía ' +
+          '«Traer al repositorio» — lo opuesto de lo que se está confirmando, ' +
+          'activo y sobre las mismas filas marcadas. Una confirmación que ofrece ' +
+          'al lado lo contrario no confirma nada. Y tiene que volver al cerrarse: ' +
+          'un arreglo que dejara el Paso 2 sin sus botones cambiaría un defecto ' +
+          'por otro peor.',
+  async ejecutar() {
+    const servidor = new ServidorFalso(rutasBase());
+    const dom = await abrirPanel(servidor, estadoHasta(2));
+    dom.window.viewStep(2);
+    await reposar(dom, 4);
+    const traerAntes = visibleDeVerdad(dom, 'btn-traer');
+
+    dom.window.document.querySelector('#tabla-repo tbody input:not(:disabled)').click();
+    pulsar(dom, 'btn-eliminar');
+    await reposar(dom, 2);
+    const confirmacion = visible(dom, 'confirmar-borrado');
+    const traerDurante = visibleDeVerdad(dom, 'btn-traer');
+    const listaBorrado = texto(dom, 'lista-borrado') || '';
+
+    dom.window.cancelarEliminarDeCx();
+    await reposar(dom, 2);
+    const traerTrasCancelar = visibleDeVerdad(dom, 'btn-traer');
+    const confirmacionTrasCancelar = visible(dom, 'confirmar-borrado');
+
+    // Y por el otro camino de salida: confirmando. Sigue marcado lo de antes,
+    // así que el botón de borrar continúa habilitado.
+    pulsar(dom, 'btn-eliminar');
+    await reposar(dom, 2);
+    dom.window.confirmarEliminarDeCx();
+    await reposar(dom, 2);
+    const traerTrasConfirmar = visibleDeVerdad(dom, 'btn-traer');
+    const apuntados = dom.window.eval('estado.eliminar.length');
+
+    return {
+      ok: traerAntes === true && confirmacion === true && traerDurante === false
+          && listaBorrado.includes('Solo en CX')
+          && traerTrasCancelar === true && confirmacionTrasCancelar === false
+          && traerTrasConfirmar === true && apuntados === 1,
+      detalle: `traer antes=${traerAntes} durante=${traerDurante} ` +
+               `tras-cancelar=${traerTrasCancelar} tras-confirmar=${traerTrasConfirmar} ` +
+               `confirmacion=${confirmacion} apuntados=${apuntados}`,
+    };
+  },
+},
+
+{
+  nombre: 'El campo para escribir un proyecto a mano está desde el principio, y con él se alcanza la tarjeta de permisos',
+  porQue: 'El desplegable solo trae los proyectos que la cuenta de servicio ' +
+          'alcanza, que casi nunca son todos. El campo manual aparecía únicamente ' +
+          'cuando el listado se caía entero, así que el caso normal —la lista ' +
+          'funciona, y el proyecto que buscas no está en ella— no tenía salida. ' +
+          'Con él quedaba inalcanzable la tarjeta que explica cómo conceder el ' +
+          'permiso, que dice «es lo normal en un proyecto recién creado»: para ' +
+          'verla hay que seleccionar el proyecto, y ese proyecto no está listado.',
+  async ejecutar() {
+    const NUEVO = 'proyecto-recien-creado';
+    const SA = 'robot-de-prueba@ejemplo.iam.gserviceaccount.com';
+    const servidor = new ServidorFalso(rutasBase({
+      '/health': {sobre: sobre('ok', ['servidor en marcha'],
+        {endpoints: ['/health'], service_account: SA})},
+      [`/discover?project=${NUEVO}`]: {http: 403, sobre: sobre('error',
+        [`La cuenta de servicio no alcanza ${NUEVO}`], {reason: 'missing_permission'})},
+    }));
+    const dom = await abrirPanel(servidor);
+    // El listado ha funcionado —dos proyectos— y el que se busca no está.
+    const listados = [...dom.window.document.querySelectorAll('#project-select option')]
+      .map(o => o.value).filter(Boolean);
+    const campo = visibleDeVerdad(dom, 'project-manual-input');
+    // El aviso ámbar es del fallo total del listado, no del campo: si saliera
+    // siempre, diría que algo va mal cuando no va mal nada.
+    const avisoSinFallo = visible(dom, 'project-manual-nota');
+
+    dom.window.document.getElementById('project-manual-input').value = NUEVO;
+    dom.window.usarProyectoManual();
+    await reposar(dom, 8);
+    const elegido = dom.window.document.getElementById('project-select').value;
+    const tarjeta = visible(dom, 'alta-proyecto');
+    const comando = texto(dom, 'alta-proyecto-comando') || '';
+
+    // Segunda mitad: cuando el listado sí se cae del todo, el campo sigue ahí y
+    // además aparece el motivo que manda el servidor.
+    const caido = new ServidorFalso(rutasBase({
+      '/discover': {http: 403, sobre: sobre('error',
+        ['La cuenta de servicio no puede listar los proyectos de esta organización'],
+        {reason: 'missing_permission', manual_entry: true})},
+    }));
+    const dom2 = await abrirPanel(caido);
+    const campoTrasFallo = visibleDeVerdad(dom2, 'project-manual-input');
+    const aviso = texto(dom2, 'project-manual-nota') || '';
+
+    return {
+      ok: campo === true && avisoSinFallo === false
+          && !listados.includes(NUEVO) && listados.length === 2
+          && elegido === NUEVO
+          && servidor.llamadasA(`/discover?project=${NUEVO}`).length === 1
+          && tarjeta === true && comando.includes(NUEVO) && comando.includes(SA)
+          && campoTrasFallo === true && visible(dom2, 'project-manual-nota')
+          && /no puede listar/i.test(aviso),
+      detalle: `campo=${campo} aviso-sin-fallo=${avisoSinFallo} ` +
+               `listados=${JSON.stringify(listados)} elegido=${elegido} ` +
+               `tarjeta=${tarjeta} campo-tras-fallo=${campoTrasFallo} ` +
+               `aviso="${aviso.slice(0, 60)}"`,
     };
   },
 },

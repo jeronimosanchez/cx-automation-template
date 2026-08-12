@@ -525,13 +525,23 @@ def es_nativo(tipo, item):
     return tipo == "tool" and item.get("toolType") == "BUILTIN_TOOL"
 
 
-# Las versiones no son definiciones: son fotos que crea el Paso 5. No tienen
-# archivo en el repositorio ni deberían tenerlo, así que no entran en el
-# reparto de tres grupos — si entraran, cada versión aparecería como "solo en
-# CX" y el Paso 2 ofrecería traérselas al repositorio, que no significa nada.
-# Se inventarían igual porque el Paso 5 y el desplegable de versiones las
-# necesitan; simplemente se cuentan aparte.
-TIPOS_FUERA_DEL_REPARTO = ("version",)
+# Ni las versiones ni los entornos son definiciones: son **estado de
+# despliegue** que crea y mueve el Paso 5. No tienen archivo en el repositorio
+# ni deberían tenerlo, así que no entran en el reparto de tres grupos — si
+# entraran, cada uno aparecería como "solo en CX" y el Paso 2 ofrecería
+# traérselo, que no significa nada. Se inventarían igual porque el Paso 5 y el
+# desplegable de versiones los necesitan; simplemente se cuentan aparte.
+#
+# El entorno se añadió después de verlo: un agente recién dado de alta enseñaba
+# «solo en CX: 2» con el tool nativo y el entorno `production` dentro, y ese
+# contador ya no podía bajar de 2 nunca. Un contador que siempre marca lo mismo
+# no dice nada; el valor de este es que llegue a cero, para que el día que
+# marque uno signifique que apareció algo que nadie puso.
+#
+# Y traerlo era peor que inútil: `environment` está en `TIPOS_NO_DESPLEGABLES`,
+# así que el YAML resultante no lo podría aplicar el Paso 3 jamás — un archivo
+# muerto en el repositorio, ofrecido por el propio panel.
+TIPOS_FUERA_DEL_REPARTO = ("version", "environment")
 
 
 def emparejar(inventario, repositorio):
@@ -539,8 +549,12 @@ def emparejar(inventario, repositorio):
 
     Ningún resource cae en dos grupos: la suma de los tres cuadra con lo
     leído, que es uno de los criterios de validación del paso.
+
+    Los nativos de la plataforma salen aparte, en `nativos`: existen en CX,
+    no se pueden traer, y contarlos entre lo pendiente dejaba el número
+    clavado en 1 para siempre.
     """
-    emparejados, solo_cx, solo_repo = [], [], []
+    emparejados, solo_cx, solo_repo, nativos = [], [], [], []
 
     for tipo, items in inventario.items():
         if tipo in TIPOS_FUERA_DEL_REPARTO:
@@ -555,12 +569,21 @@ def emparejar(inventario, repositorio):
             }
             if cx_id in del_repo:
                 emparejados.append({**fila, "ruta": del_repo[cx_id]["ruta"]})
+            elif es_nativo(tipo, item):
+                # Fuera del reparto, no marcado dentro de él. Estaba en "solo
+                # en CX" con la etiqueta «no se puede traer», y eso dejaba el
+                # contador clavado en 1 en todos los agentes para siempre. Un
+                # número que nunca puede bajar a cero no informa de nada; el
+                # valor de este es justo que llegue a cero, para que el día que
+                # marque uno signifique que apareció algo que nadie puso.
+                #
+                # No se pierde nada: son iguales en todo agente de CX, no se
+                # pueden traer ni desplegar ni versionar, y verlos no habilita
+                # ninguna acción. Quien quiera consultarlos los tiene en la
+                # consola, que es donde se gestionan.
+                nativos.append(fila)
             else:
-                solo_cx.append({
-                    **fila,
-                    "nativo": es_nativo(tipo, item),
-                    "traible": not es_nativo(tipo, item),
-                })
+                solo_cx.append({**fila, "nativo": False, "traible": True})
 
     for tipo, del_repo in repositorio["por_tipo"].items():
         if tipo in TIPOS_FUERA_DEL_REPARTO:
@@ -580,7 +603,7 @@ def emparejar(inventario, repositorio):
         })
 
     return {"emparejados": emparejados, "solo_cx": solo_cx,
-            "solo_repo": solo_repo}
+            "solo_repo": solo_repo, "nativos": nativos}
 
 
 # ── Diff ─────────────────────────────────────────────────────────────────────
@@ -1073,9 +1096,36 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
               f"lo sirve producción y ya no está en el borrador — publicar lo "
               f"retira")
 
+    # Cuáles de los emparejados difieren del repositorio. Las tres tarjetas
+    # responden a **dónde está** cada cosa, no a **si cambió**: un resource que
+    # está en los dos sitios cae en «emparejados» tanto si coincide como si el
+    # archivo dice otra cosa, y ahí se vuelve indistinguible.
+    #
+    # Salió probándolo: un playbook modificado en el repositorio no aparecía
+    # por ninguna parte en el Paso 1 —«solo en el repositorio: 1», que era el
+    # nuevo— y el cambio solo se veía en el Paso 3, con dos operaciones. Quien
+    # mira el Paso 1 concluye que hay un cambio cuando hay dos.
+    #
+    # Y es un hueco raro, porque el paso ya dice qué difiere frente a
+    # **producción**: miraba hacia un lado y no hacia el otro. No cuesta
+    # ninguna llamada — el inventario y el repositorio ya están leídos.
+    operaciones = calcular_diff(contexto, inventario, repositorio)
+    difieren = [
+        {"tipo": o["tipo"], "cx_id": o["cx_id"], "ruta": o["ruta"],
+         "display_name": o["resource"], "operacion": o["operacion"],
+         "conflicto": o["conflicto"]}
+        for o in operaciones if o["operacion"] == "PATCH"
+    ]
+    if difieren:
+        _emit(log, on_log,
+              f"· {len(difieren)} de los emparejados difieren del repositorio "
+              f"— el Paso 3 los actualizaría")
+
     return step_result("ok", log, {
         "tiene_entorno_produccion": tiene_produccion,
         "comparacion_produccion": comparacion,
+        # De los emparejados, cuáles dicen algo distinto en el repositorio.
+        "difieren_del_repositorio": difieren,
         "project": project,
         "agent_id": agent_id,
         "region": contexto.region,
@@ -1102,6 +1152,10 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
         # Los de otros agentes del proyecto. Se cuentan para que las cifras
         # cuadren, no se enseñan como pendientes de nada.
         "otros_agentes": len(repositorio["otros_agentes"]),
+        # Los nativos de la plataforma. Se cuentan para que las cifras cuadren
+        # y para poder verlos si se quiere, pero no entran en «solo en CX»: no
+        # son algo pendiente de traer, son algo que CX pone y nadie gestiona.
+        "nativos": grupos["nativos"],
     })
 
 
@@ -1391,6 +1445,20 @@ def step_4_validate_tests(project, agent_id, resultado, client=None, gh=None,
     })
 
 
+# Lo que NO es el borrador, y por tanto no entra en su huella. Las versiones
+# son fotos que crea el Paso 5 y los entornos son punteros que mueve el Paso 5:
+# ninguno de los dos es estado editable, y contarlos hacía que **el pipeline se
+# invalidara a sí mismo**.
+#
+# El caso real: el Paso 5 hace tres cosas seguidas —fusionar, versionar,
+# apuntar— y murió en la tercera porque el agente no tenía entorno de
+# producción. Al reintentar, el gate del Paso 4 abortó diciendo «el borrador se
+# movió»: no se había movido, lo que había cambiado eran las tres versiones que
+# él mismo acababa de crear. Un Paso 5 a medias quedaba irreintentable
+# justamente en el momento más delicado, con la rama ya fusionada.
+TIPOS_FUERA_DE_LA_HUELLA = ("version", "environment")
+
+
 def _huella_borrador(inventario):
     """Marca del estado del borrador, para detectar si se movió después.
 
@@ -1399,9 +1467,14 @@ def _huella_borrador(inventario):
     en ningún tipo. Con la fecha, la huella se reducía a la lista de nombres y
     solo cambiaba al añadir o quitar un resource — nunca al modificar uno, que
     es justo el caso que el gate del Paso 5 tiene que detectar.
+
+    Y solo del borrador: versiones y entornos quedan fuera — ver
+    `TIPOS_FUERA_DE_LA_HUELLA`.
     """
     marcas = []
     for tipo in sorted(inventario):
+        if tipo in TIPOS_FUERA_DE_LA_HUELLA:
+            continue
         for cx_id, item in sorted(inventario[tipo].items()):
             marcas.append(f"{tipo}:{cx_id}:{huella_resource(item)}")
     return hashlib.sha256("|".join(marcas).encode()).hexdigest()[:16]
@@ -1772,6 +1845,34 @@ def step_5_publish(project, agent_id, version_label,
                 "motivo": "el borrador se movió después de declarar los tests",
                 "huella_al_validar": huella_al_validar,
                 "huella_ahora": huella_ahora,
+            })
+
+        # Sin entorno de producción no hay dónde publicar, y eso se sabe ahora
+        # —el inventario ya está leído— no en el tercer acto.
+        #
+        # El Paso 1 avisaba de esto desde hace tiempo, pero avisar no bastó:
+        # ocurrió de verdad. Se recorrieron los Pasos 2, 3 y 4 con el aviso ya
+        # dado, y el Paso 5 lo descubrió **después** de fusionar la rama en la
+        # principal y de crear tres versiones. Un aviso cuatro pasos antes de
+        # que importe se lee y se olvida; lo que protege es negarse aquí.
+        #
+        # Y no se crea automáticamente a propósito: el panel despliega, no crea
+        # infraestructura. Un entorno nace con las versiones que fija, y elegir
+        # esas versiones es una decisión de quien publica, no del paso que las
+        # publica.
+        if not any(item.get("displayName") == ENTORNO_PRODUCCION
+                   for item in inventario.get("environment", {}).values()):
+            _emit(log, on_log,
+                  f"⚠ Este agente no tiene un entorno llamado "
+                  f"'{ENTORNO_PRODUCCION}'. No se publica, y no se ha tocado "
+                  f"nada: no se ha fusionado la rama ni se ha creado ninguna "
+                  f"versión. Créalo en la consola de Dialogflow CX —el panel "
+                  f"despliega, no crea infraestructura— y vuelve a empezar "
+                  f"desde el Paso 1.")
+            return step_result("aborted", log, {
+                "fusionado": False, "publicado": False,
+                "motivo": f"el agente no tiene un entorno '{ENTORNO_PRODUCCION}'",
+                "falta_entorno_produccion": True,
             })
 
         # La rama principal de un proyecto puede quedarse apuntando a una de
@@ -2276,7 +2377,31 @@ def discover(project=None, client=None, on_log=None):
 # caracteres, minúsculas, dígitos y guiones, empezando por letra y sin terminar
 # en guión. Es lo único que se puede exigir aquí con certeza — ver
 # `_comprobar_proyecto_existe`.
-ID_PROYECTO_VALIDO = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
+#
+# Termina en `\Z` y no en `$` a propósito: en Python `$` **también casa justo
+# antes de un salto de línea final**, así que `"mi-proyecto-505310\n"` pasaba
+# por identificador bien formado. Y no se quedaba en un detalle: ese salto
+# viajaba hasta el comando IAM, que se parte en dos líneas —`gcloud projects
+# add-iam-policy-binding mi-proyecto` y, aparte, `--member=…`— y deja de
+# funcionar al pegarlo, que es lo único que ese comando tiene que saber hacer.
+ID_PROYECTO_VALIDO = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]\Z")
+
+
+def _aviso_sin_confirmar(project, porque):
+    """El aviso de «no se ha podido comprobar», diciendo qué pasó de verdad.
+
+    Se separa del aviso del 403 porque no dicen lo mismo. El 403 sí tiene una
+    causa conocida —el servidor todavía no tiene permiso sobre el proyecto— y
+    una salida: el comando de abajo. Un 500, un 429 o un corte de red no son
+    eso, y anunciarlos con el texto del 403 manda a conceder permisos para
+    arreglar algo que no son permisos.
+    """
+    return (
+        f"⚠ No se ha podido comprobar el proyecto {project}: {porque}. El alta "
+        f"sigue, pero nadie ha confirmado el identificador: si tras ejecutar el "
+        f"comando el proyecto no aparece en el desplegable, revísalo letra por "
+        f"letra."
+    )
 
 
 def _comprobar_proyecto_existe(project):
@@ -2298,35 +2423,82 @@ def _comprobar_proyecto_existe(project):
     confirmación de verdad llega después, cuando tras conceder los permisos el
     proyecto aparece o no aparece en el desplegable.
 
+    **El 404 es una red de seguridad, no la defensa.** Comprobado contra la API
+    real (2026-08-12): Resource Manager v1 contesta **403** a un identificador
+    que no existe, igual que a uno existente sin permiso. Así que la errata que
+    dio origen a esta función —`royecto-fake-505310`, sin la `p`— sigue pasando
+    por aquí con un aviso, porque tiene forma válida; lo único que la detiene es
+    el `gcloud` de después, que falla sobre un proyecto inexistente. Si algún
+    día la API pasara a devolver 404, esto sí podría rechazarla: el Nivel 1 lo
+    vigila con un check que pregunta por un identificador inventado.
+
     Devuelve un aviso para el log, o None si no hay nada que advertir.
     """
     if not ID_PROYECTO_VALIDO.match(project or ""):
+        # `!r` y no «comillas»: lo que suele sobrar es un espacio o un salto de
+        # línea al final, y entre comillas tipográficas no se ve. Quien lee el
+        # error tiene que poder ver el carácter que sobra.
         raise PipelineError(
-            f"«{project}» no tiene forma de identificador de proyecto GCP: van "
+            f"{project!r} no tiene forma de identificador de proyecto GCP: van "
             f"entre 6 y 30 caracteres, en minúsculas, con dígitos y guiones, "
             f"empezando por letra. Es el ID que aparece en la columna «ID» de "
             f"la consola, no el nombre visible."
         )
 
-    respuesta = requests.get(
-        f"{cx.RESOURCE_MANAGER_BASE}/projects/{project}",
-        headers={"Authorization": f"Bearer {cx.get_token()}",
-                 "Content-Type": "application/json"},
-        timeout=30,
-    )
+    try:
+        respuesta = requests.get(
+            f"{cx.RESOURCE_MANAGER_BASE}/projects/{project}",
+            headers={"Authorization": f"Bearer {cx.get_token()}",
+                     "Content-Type": "application/json"},
+            timeout=30,
+        )
+    except requests.exceptions.RequestException as error:
+        # Un corte de red o un timeout son «no se ha podido comprobar», que es
+        # un estado que esta función ya sabe contestar. Antes subían como
+        # excepción y tumbaban el alta entera por un transitorio, y encima con
+        # un 500 mudo: el servidor no traduce `ConnectionError`, así que lo
+        # contesta como «Fallo interno del servidor», que no menciona ni el
+        # proyecto ni qué hacer. Esta comprobación no bloquea nada por
+        # definición — que se caiga la red no puede bloquear más que ella.
+        return _aviso_sin_confirmar(project, f"la petición no llegó ({error})")
+
     if respuesta.status_code == 200:
+        # El 200 no basta: un proyecto **en la papelera** lo devuelve durante
+        # los 30 días que tarda en borrarse de verdad. Y `list_gcp_projects`
+        # solo cuenta los `ACTIVE`, así que vincular uno así decía «Proyecto
+        # vinculado ✓» sobre algo que no iba a aparecer nunca en el desplegable
+        # — exactamente el fallo que esta función existe para evitar, con otro
+        # disfraz.
+        try:
+            estado = (respuesta.json() or {}).get("lifecycleState") or "ACTIVE"
+        except ValueError:
+            estado = "ACTIVE"
+        if estado != "ACTIVE":
+            raise PipelineError(
+                f"El proyecto «{project}» existe pero está pendiente de borrado "
+                f"({estado}), así que no aparecerá en el desplegable ni podrá "
+                f"desplegarse. Restáuralo desde la consola de Google Cloud "
+                f"—«Recursos pendientes de eliminación»— o usa otro proyecto."
+            )
         return None
     if respuesta.status_code == 404:
         raise PipelineError(
             f"El proyecto «{project}» no existe. Comprueba el identificador: "
             f"es el ID de la columna «ID» de la consola, no el nombre visible."
         )
-    return (
-        f"⚠ Este servidor todavía no ve el proyecto {project} — es lo normal "
-        f"antes de concederle los permisos de abajo. No se ha podido confirmar "
-        f"que el identificador sea correcto: si tras ejecutar el comando el "
-        f"proyecto no aparece en el desplegable, revísalo letra por letra."
-    )
+    if respuesta.status_code == 403:
+        return (
+            f"⚠ Este servidor todavía no ve el proyecto {project} — es lo normal "
+            f"antes de concederle los permisos de abajo. No se ha podido confirmar "
+            f"que el identificador sea correcto: si tras ejecutar el comando el "
+            f"proyecto no aparece en el desplegable, revísalo letra por letra."
+        )
+    # Cualquier otro estado —500, 429, 401— no es «falta permiso», y decirlo
+    # con esas palabras manda a conceder roles para arreglar algo que no son
+    # roles. Se avisa de lo que pasó de verdad y se sigue, que es lo que ya
+    # hace esta función con todo lo que no puede confirmar.
+    return _aviso_sin_confirmar(
+        project, f"Resource Manager contestó {respuesta.status_code}")
 
 
 def rama_propuesta(agent_id, display_name=None):
@@ -2476,6 +2648,16 @@ def link_project_repo(project, repo_url, rama_principal="main",
     github.branch_head(rama_principal)
     _emit(log, on_log, f"✓ Acceso al repositorio {repo}, rama {rama_principal}")
 
+    # La cuenta de servicio se averigua **antes de escribir**, por lo mismo que
+    # el repositorio se lee antes: sin ella no hay comando IAM que devolver, y
+    # el alta sin ese comando no sirve de nada. Preguntándola al final, un fallo
+    # aquí dejaba el proyecto ya vinculado en Firestore y la herramienta
+    # reportando error, sin comando y sin que nada dijera que el vínculo sí
+    # había quedado escrito. No es hipotético: fue el estado que dejó cada alta
+    # hecha desde Cloud Run mientras `runtime_service_account` no sabía
+    # preguntarle al servidor de metadatos.
+    cuenta = cx.runtime_service_account()
+
     # Un proyecto tiene un solo repositorio. Vincular dos veces el mismo no es
     # un error —es lo que pasa al abrir la herramienta por costumbre—; cambiarlo
     # por otro sí, porque dejaría a los agentes ya dados de alta apuntando a
@@ -2488,6 +2670,19 @@ def link_project_repo(project, repo_url, rama_principal="main",
                 f"proyecto tiene un solo repositorio, y todos sus agentes viven "
                 f"dentro. Para usar otro, desvincula el proyecto primero."
             )
+        # Revincular no reescribe el documento, así que tampoco cambia la rama
+        # principal — y devolver la que se pidió hacía que la respuesta dijera
+        # `master` mientras Firestore seguía guardando `main`. Peor todavía:
+        # `branch_head` acaba de confirmar que la rama pedida existe, así que
+        # nada delataba que no se había guardado. Se devuelve lo que hay
+        # guardado, y si no es lo que se pidió se dice.
+        if ya["rama_principal"] != rama_principal:
+            _emit(log, on_log,
+                  f"⚠ La rama principal del proyecto sigue siendo "
+                  f"{ya['rama_principal']}, no {rama_principal}: vincular de "
+                  f"nuevo no la cambia. Para cambiarla, desvincula el proyecto "
+                  f"primero.")
+        rama_principal = ya["rama_principal"]
         _emit(log, on_log, f"· El proyecto ya estaba vinculado a {repo}")
         nuevo = False
     except store.MappingNotFound:
@@ -2513,7 +2708,6 @@ def link_project_repo(project, repo_url, rama_principal="main",
     # da `resourcemanager.projects.get` pero no `.list`. Este comando devolvía
     # solo el primero: quien lo siguiera al pie de la letra se quedaba con un
     # proyecto invisible y con 403 en cuanto lo escribía a mano.
-    cuenta = cx.runtime_service_account()
     comando_iam = " && \\\n".join(
         f"gcloud projects add-iam-policy-binding {project} "
         f"--member=serviceAccount:{cuenta} --role={rol}"
@@ -2529,11 +2723,21 @@ def link_project_repo(project, repo_url, rama_principal="main",
 
 
 def _repo_desde_url(repo_url):
-    """De una URL de GitHub a 'owner/nombre'."""
+    """De una URL de GitHub a 'owner/nombre'.
+
+    Ni `@` ni `:` en las dos mitades, y eso es lo que rechaza la forma SSH.
+    `git@github.com:owner/repo.git` no lleva `//`, así que la comprobación
+    anterior lo daba por bueno y devolvía `git@github.com:owner/repo` como
+    nombre de repositorio: GitHub contestaba 404 sobre esa ruta imposible tres
+    llamadas más tarde, y el mensaje hablaba de una rama que no existe en vez
+    de la URL que estaba mal. Un nombre de usuario o de repositorio de GitHub
+    no puede llevar ninguno de los dos caracteres, así que esto no rechaza
+    nada legítimo.
+    """
     limpio = (repo_url or "").strip().rstrip("/")
     limpio = re.sub(r"^https?://github\.com/", "", limpio)
     limpio = re.sub(r"\.git$", "", limpio)
-    if not re.match(r"^[^/]+/[^/]+$", limpio):
+    if not re.match(r"^[^/@:]+/[^/@:]+$", limpio):
         raise ValueError(
             f"No se reconoce como repositorio de GitHub: {repo_url!r}. "
             f"Formato esperado: https://github.com/usuario/repo"

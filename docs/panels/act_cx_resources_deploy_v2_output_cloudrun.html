@@ -232,8 +232,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <select id="project-select" class="snapshot-input" style="max-width:240px" onchange="onProjectSelected()" disabled>
               <option value="" selected disabled>cargando proyectos&hellip;</option>
             </select>
-            <div id="project-manual" style="display:none;margin-top:8px;max-width:340px">
-              <div id="project-manual-nota" style="font-size:11px;color:var(--gate);line-height:1.5;margin-bottom:6px"></div>
+            <!-- Siempre visible, no solo cuando el listado se cae entero.
+                 El desplegable trae los proyectos que la cuenta de servicio
+                 alcanza, que casi nunca son todos: un proyecto recién creado no
+                 sale hasta que se le concede permiso. Cuando este campo solo
+                 aparecía ante un fallo total del listado, el caso normal —lista
+                 corta, el proyecto que buscas no está— no tenía salida, y con
+                 él quedaba inalcanzable la tarjeta `alta-proyecto`, que existe
+                 justo para ese caso y dice «es lo normal en un proyecto recién
+                 creado»: para verla hay que seleccionar el proyecto, y ese
+                 proyecto no está en la lista. El onboarding real solo salió
+                 adelante por la Tool de vincular, que sí tiene campo libre. -->
+            <div id="project-manual" style="margin-top:8px;max-width:340px">
+              <div id="project-manual-nota" style="display:none;font-size:11px;color:var(--gate);line-height:1.5;margin-bottom:6px"></div>
               <div style="display:flex;gap:8px">
                 <input type="text" id="project-manual-input" class="snapshot-input" placeholder="p. ej. mi-proyecto-505310" style="max-width:200px">
                 <button class="btn btn-ghost" onclick="usarProyectoManual()">Usar</button>
@@ -368,7 +379,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <div id="lista-borrado" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
               <div style="display:flex;gap:10px">
                 <button class="btn btn-danger" onclick="confirmarEliminarDeCx()">S&iacute;, apuntar para borrar</button>
-                <button class="btn btn-ghost" onclick="document.getElementById('confirmar-borrado').style.display='none'">Cancelar</button>
+                <button class="btn btn-ghost" onclick="cancelarEliminarDeCx()">Cancelar</button>
               </div>
             </div>
           </div>
@@ -429,10 +440,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             Se va a aplicar en CX <span class="dir-flecha">repositorio &rarr; CX</span>
           </div>
           <div class="dir-body">
-            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)"> Seleccionar todos</label></div>
+            <div class="sel-todos" id="fila-sel-todos-cx"><label><input type="checkbox" id="sel-todos-cx" onchange="marcarTodos('tabla-cx', this.checked)"> Seleccionar todos</label></div>
             <div class="diff-wrap">
               <table class="diff-table" id="tabla-cx">
-                <thead><tr><th style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
+                <thead><tr><th id="col-marcar-cx" style="width:34px"></th><th>Tipo</th><th>Resource</th><th>Archivo</th><th>Operaci&oacute;n</th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
@@ -724,7 +735,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="action-result-title">Pega este comando en tu terminal</div>
             <div class="action-result-desc">Una vez por proyecto; cubre todos sus agentes, tambi&eacute;n los que crees despu&eacute;s. <span style="color:var(--text-3)">(terminal)</span>
               <div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-top:8px">
-                <code id="tool-comando-iam" style="flex:1;font-size:11px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;word-break:break-all">&mdash;</code>
+                <!-- `white-space:pre-wrap` no es cosmética: el comando son tres
+                     `gcloud` unidos por `&& \` y un salto de línea, y sin esto
+                     el navegador colapsa el salto en un espacio. Lo que se ve
+                     —y lo que se copia al seleccionarlo con el ratón— pasa a
+                     ser `&& \ gcloud`, donde la barra escapa el espacio en vez
+                     de continuar la línea, y bash contesta «command not found».
+                     El botón Copiar copia el textContent y nunca tuvo el
+                     problema; lo tenía justo quien no usa el botón. -->
+                <code id="tool-comando-iam" style="flex:1;font-size:11px;color:#93c5fd;font-family:'SF Mono',Menlo,monospace;white-space:pre-wrap;word-break:break-all">&mdash;</code>
                 <button onclick="copiarComandoIam(this)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-3);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">Copiar</button>
               </div>
             </div>
@@ -1219,7 +1238,7 @@ async function cargarProyectos() {
   } catch (error) {
     select.disabled = false;
     if (error.reason === 'missing_permission') {
-      habilitarEntradaManualDeProyecto(error.message);
+      avisarListadoIncompleto(error.message);
     } else {
       pintarError('error-1', error);
     }
@@ -1234,17 +1253,24 @@ function anadirOpcionManual(select, valor) {
 }
 
 /**
+ * El aviso ámbar de encima del campo manual, no el campo.
+ *
+ * El campo está siempre en pantalla —ver el comentario del HTML—: escribir un
+ * proyecto a mano hace falta también cuando el listado funciona, porque la
+ * cuenta de servicio solo ve aquellos sobre los que tiene permiso y un
+ * proyecto recién creado nunca está entre ellos. Lo que sí es excepcional es
+ * que el listado se caiga entero, y eso es lo único que este aviso cuenta.
+ *
  * El servidor distingue «no tengo permiso para listar proyectos» de un fallo
  * cualquiera (403 con `manual_entry`) justamente porque con ese permiso
  * ausente se puede seguir trabajando escribiendo el identificador a mano. Sin
  * esta rama, ese caso dejaba un desplegable vacío sin explicación.
  */
-function habilitarEntradaManualDeProyecto(motivo) {
-  const caja = $('project-manual');
-  if (!caja) return;
-  caja.style.display = 'block';
+function avisarListadoIncompleto(motivo) {
   const nota = $('project-manual-nota');
-  if (nota) nota.textContent = motivo || '';
+  if (!nota) return;
+  nota.textContent = motivo || '';
+  nota.style.display = motivo ? 'block' : 'none';
 }
 
 function usarProyectoManual() {
@@ -1297,10 +1323,24 @@ const PORQUE_DEL_ROL = {
 
 const ROLES_DEL_ALTA = Object.entries(PORQUE_DEL_ROL);
 
+/**
+ * Por los campos del error, no por su texto.
+ *
+ * Miraba si el mensaje contenía «403», «permission» o «permiso», y eso no
+ * distingue nada: el mensaje lleva dentro el identificador del proyecto, y uno
+ * como `mi-proyecto-40312` contiene «403». Cualquier fallo sobre él —una caída
+ * de red, un 404, un 500— pasaba por falta de permisos y mandaba a conceder
+ * roles para arreglar algo que no son roles, que es justo lo que
+ * `mostrarAltaProyecto` dice que no debe hacer.
+ *
+ * Los dos campos existen ya: `llamar()` pone `http` en toda respuesta no-2xx y
+ * `reason` con lo que el servidor declara. Un fallo de conexión no trae `http`,
+ * así que deja de contar como permiso, que es lo correcto. Además leía
+ * `error.motivo`, que `FalloDelPanel` no define en ningún sitio: la señal
+ * estructurada nunca llegó a consultarse.
+ */
 function esFaltaDePermiso(error) {
-  const texto = `${(error && error.motivo) || ''} ${(error && error.message) || error || ''}`.toLowerCase();
-  return texto.includes('403') || texto.includes('missing_permission') ||
-         texto.includes('permission') || texto.includes('permiso');
+  return !!error && (error.http === 403 || error.reason === 'missing_permission');
 }
 
 function mostrarAltaProyecto(project, error) {
@@ -1565,6 +1605,11 @@ function tarjetaGrupo(clase, etiqueta, filas, descripcion, color, pie) {
     </div>`;
 }
 
+function difiereDelRepo(d, f) {
+  return (d.difieren_del_repositorio || []).some(
+    x => x.tipo === f.tipo && x.cx_id === f.cx_id);
+}
+
 function renderInventario() {
   const d = estado.inventario;
   if (!d) return;
@@ -1573,8 +1618,18 @@ function renderInventario() {
 
   $('grupos-inventario').innerHTML = [
     tarjetaGrupo('emp', 'Emparejados',
-      (d.emparejados||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}`),
-      'Est&aacute;n en CX y tienen archivo en el repositorio.', 'var(--success)'),
+      // Marcados los que dicen algo distinto en el repositorio. Sin esto, un
+      // resource modificado era indistinguible de uno idéntico: los dos caían
+      // aquí, y el cambio no se veía hasta el Paso 3.
+      (d.emparejados||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}` +
+        (difiereDelRepo(d, f)
+          ? ' <span style="color:var(--gate)">&middot; difiere del repositorio</span>' : '')),
+      'Est&aacute;n en CX y tienen archivo en el repositorio.', 'var(--success)',
+      (d.difieren_del_repositorio||[]).length
+        ? `<div class="grupo-desc" id="aviso-difieren-repo" style="margin-top:8px;color:var(--gate)">` +
+          `${d.difieren_del_repositorio.length} dice${d.difieren_del_repositorio.length!==1?'n':''} ` +
+          `algo distinto en el repositorio &mdash; el Paso 3 los actualizar&iacute;a.</div>`
+        : ''),
     tarjetaGrupo('cx', 'Solo en CX',
       (d.solo_cx||[]).map(f => `${tipo(f)} &middot; ${nombre(f)}` +
         (f.nativo ? ' <span style="color:var(--text-3)">(nativo de CX)</span>' : '')),
@@ -1791,12 +1846,25 @@ function traerAlRepo() {
 
 // Borrar es la única acción destructiva del paso: se enseña qué se borra antes
 // de pedir la confirmación, no después.
+//
+// Y mientras esa confirmación está abierta se retira el bloque de acciones. Lo
+// que quedaba justo debajo de la caja roja era «Traer al repositorio» — la
+// acción **contraria** a la que se está confirmando, activa, sobre las mismas
+// filas marcadas y a un clic de distancia. Una confirmación que ofrece al lado
+// lo opuesto de lo que confirma no es una confirmación: es una bifurcación sin
+// avisar. Vuelve al cancelar y al confirmar.
 function pedirEliminarDeCx() {
   const filas = filasMarcadas('tabla-repo');
   if (!filas.length) return;
   $('lista-borrado').innerHTML =
     filas.map(f => `· ${esc(NOMBRE_DE_TIPO[f.dataset.tipo]||f.dataset.tipo)} · ${esc(f.dataset.nombre)}`).join('<br>');
   mostrar('confirmar-borrado', true);
+  mostrar('traer-gate', false);
+}
+
+function cancelarEliminarDeCx() {
+  mostrar('confirmar-borrado', false);
+  mostrar('traer-gate', true);
 }
 
 function confirmarEliminarDeCx() {
@@ -1808,6 +1876,7 @@ function confirmarEliminarDeCx() {
   estado.plan = null;
   guardarEstado();
   mostrar('confirmar-borrado', false);
+  mostrar('traer-gate', true);
   renderTablaRepo();
 }
 
@@ -1851,6 +1920,15 @@ function renderTablaCx() {
     || (estado.plan && estado.plan.operaciones) || [];
   const cerrado = estado.paso3Cerrado;
 
+  // Aplicado el Paso 3, la tabla deja de ser un formulario y pasa a ser el
+  // resumen de lo que se escribió: se van las casillas y el «Seleccionar
+  // todos». Deshabilitarlas no bastaba — seguían en pantalla, y una casilla
+  // visible después de un «2 de 2 se aplicaron en CX» invita a volver a marcar
+  // algo que ya está en el agente. La columna se va también de la cabecera:
+  // dejarla ahí correría una celda todas las filas.
+  mostrar('fila-sel-todos-cx', !cerrado);
+  mostrar('col-marcar-cx', !cerrado, 'table-cell');
+
   cuerpo.innerHTML = operaciones.map(op => {
     const marca = {OK:'<span class="pill pill-ok">Aplicado</span>',
                    ERROR:'<span class="pill pill-err">Error</span>',
@@ -1860,8 +1938,8 @@ function renderTablaCx() {
     <tr data-tipo="${esc(op.tipo)}" data-cx-id="${esc(op.cx_id||'')}" data-ruta="${esc(op.ruta||'')}"
         data-sin-version="${op.sin_version ? 'si' : 'no'}"
         style="${cerrado && !op.result ? 'opacity:.55' : ''}">
-      <td style="width:34px"><input type="checkbox" ${cerrado ? 'disabled' : ''}
-          onchange="actualizarPies();refrescarDeriva()"></td>
+      ${cerrado ? '' : `<td style="width:34px"><input type="checkbox"
+          onchange="actualizarPies();refrescarDeriva()"></td>`}
       <td>${esc(NOMBRE_DE_TIPO[op.tipo]||op.tipo)}</td>
       <td><code>${esc(op.resource)}</code>${op.conflicto ?
         ' <span style="color:var(--gate);font-size:11px">&middot; conflicto: cambi&oacute; tambi&eacute;n en CX</span>' : ''}</td>
@@ -1869,7 +1947,7 @@ function renderTablaCx() {
       <td><span class="pill ${PILL_DE_OPERACION[op.operacion]||'pill-dim'}">${esc(NOMBRE_DE_OPERACION[op.operacion]||op.operacion)}</span> ${marca}
         ${op.error ? `<div style="color:#f87171;font-size:11px;margin-top:4px">${esc(op.error)}</div>` : ''}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="5" style="color:var(--text-3)">Nada que aplicar: el repositorio y el agente dicen lo mismo.</td></tr>';
+  }).join('') || `<tr><td colspan="${cerrado ? 4 : 5}" style="color:var(--text-3)">Nada que aplicar: el repositorio y el agente dicen lo mismo.</td></tr>`;
 
   const selTodos = $('sel-todos-cx');
   if (selTodos) { selTodos.disabled = cerrado || !operaciones.length; if (cerrado) selTodos.checked = false; }
@@ -2466,7 +2544,13 @@ function resetDeploy() {
    'deploy-done','deploy-fail','confirmar-terminar','tests-fail','tests-log',
    'prod-log','aviso-draft-movido','plan-log','panel-versiones','aviso-interrumpido',
   ].forEach(id => mostrar(id, false));
-  ['inv-start','tests-gate','prod-gate','deploy-gate'].forEach(id => mostrar(id, true));
+  // `traer-gate` y `fila-sel-todos-cx` se ocultan durante el pipeline —el
+  // primero mientras se confirma un borrado, el segundo al cerrarse el Paso 3—
+  // así que el reinicio tiene que reponerlos: si no, el deploy siguiente
+  // arrancaba sin los botones del Paso 2 y sin el «Seleccionar todos».
+  ['inv-start','tests-gate','prod-gate','deploy-gate','traer-gate',
+   'fila-sel-todos-cx'].forEach(id => mostrar(id, true));
+  mostrar('col-marcar-cx', true, 'table-cell');
   ['sin-modificar-2','sin-modificar-3'].forEach(id => mostrar(id, true, 'flex'));
   ['inv-log-block','traer-log-block','deploy-log-block','prod-log-block',
    'tests-log-block','plan-log-block','alta-agente-log-block',

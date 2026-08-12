@@ -255,7 +255,15 @@ def nivel_0(runner):
         """
         # Lo que sí cuenta como que el fallo sale a algún sitio: pintarlo,
         # escribirlo en un elemento, relanzarlo, o devolverlo a quien llamó.
-        SALIDAS = r"(pintarError|innerHTML|textContent|mostrar\(|habilitar\w+|throw|return)"
+        #
+        # `avisar\w+` está por lo mismo que `habilitar\w+`: son funciones que
+        # ponen un aviso en pantalla. Hace falta nombrarlas una a una porque el
+        # patrón de arriba no cruza llaves —se queda en el primer `}`, que en un
+        # `catch` con `if` es el del `if`—, así que un `pintarError` que viva en
+        # la rama `else` no llega a leerse. Reconocer el nombre es lo que
+        # distingue ahí un catch mudo de uno que sí avisa.
+        SALIDAS = (r"(pintarError|innerHTML|textContent|mostrar\(|habilitar\w+"
+                   r"|avisar\w+|throw|return)")
         mudos = []
         for coincidencia in re.finditer(r"catch\s*\(([^)]*)\)\s*\{([^}]*)\}", script):
             cuerpo = coincidencia.group(2)
