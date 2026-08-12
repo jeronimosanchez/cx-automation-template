@@ -1254,8 +1254,25 @@ def _yaml_para_repo(tipo, item, padre_id=None, agente=None):
     return yaml.safe_dump(documento, allow_unicode=True, sort_keys=False)
 
 
-def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
-                        on_log=None):
+def _mensaje_del_paso_2(traidos, borrados, agent_id):
+    """El mensaje del commit dice lo que el commit hace, en las dos direcciones.
+
+    Un solo commit puede traer y borrar a la vez, y decir solo «traer N» sobre
+    un commit que además borra archivos deja el historial mintiendo justo donde
+    se va a mirar cuando algo falte.
+    """
+    partes = []
+    if traidos:
+        partes.append(f"traer {len(traidos)} resources")
+    if borrados:
+        partes.append(f"borrar {len(borrados)} archivos sin resource en CX")
+    etiqueta = "pull" if traidos and not borrados else (
+        "limpieza" if borrados and not traidos else "sync")
+    return f"chore({etiqueta}): {' y '.join(partes)} de {agent_id}"
+
+
+def step_2_pull_to_repo(project, agent_id, traer, borrar=(), client=None,
+                        gh=None, on_log=None):
     """Escribe en el repositorio los resources que solo existen en el agente.
 
     Va antes de aplicar nada a propósito: si primero se completa el
@@ -1307,12 +1324,55 @@ def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
                             "huella": huella_resource(item)})
             _emit(log, on_log, f"✓ {ruta}")
 
-        if not archivos:
-            _emit(log, on_log, "· Nada que traer")
-            return step_result("ok", log, {"traidos": [], "commit": None})
+        # Y lo contrario: archivos que describen algo que ya no está en CX.
+        #
+        # Solo se admiten los de `cx_id fantasma` — tienen cabecera con un
+        # identificador que el agente ya no reconoce. Un archivo **sin**
+        # `cx_id` es otra cosa: algo recién escrito que todavía no ha subido, y
+        # ofrecer borrarlo sería ofrecer tirar el trabajo que se acaba de
+        # hacer. Y si el resource sigue vivo en CX se rechaza también: borrar
+        # su archivo lo dejaría huérfano y la pasada siguiente propondría
+        # traerlo de vuelta, dando vueltas sin que nadie decida nada.
+        #
+        # Sin esto, borrar en la consola de CX no borraba nada: el archivo
+        # sobrevivía y el Paso 3 recreaba el resource con un identificador
+        # nuevo. Este es el único sitio del pipeline que escribe en el
+        # repositorio, así que es donde tiene que estar.
+        borrados_del_repo = []
+        for peticion in borrar or ():
+            tipo, cx_id = peticion.get("tipo"), peticion.get("cx_id")
+            if not cx_id:
+                raise PipelineError(
+                    f"Se pidió borrar del repositorio un {tipo} sin cx_id. Un "
+                    f"archivo sin cx_id no ha llegado nunca a CX: no es un "
+                    f"resto de algo borrado, es trabajo sin subir."
+                )
+            if inventario.get(tipo, {}).get(cx_id) is not None:
+                raise PipelineError(
+                    f"Se pidió borrar del repositorio {tipo}/{cx_id} y ese "
+                    f"resource sigue existiendo en CX. Bórralo primero de CX, "
+                    f"o su archivo se quedaría sin dueño."
+                )
+            entrada = repositorio["por_tipo"].get(tipo, {}).get(cx_id)
+            if entrada is None:
+                raise PipelineError(
+                    f"Se pidió borrar del repositorio {tipo}/{cx_id} y ningún "
+                    f"archivo lo reclama."
+                )
+            archivos[entrada["ruta"]] = None
+            borrados_del_repo.append({
+                "tipo": tipo, "cx_id": cx_id, "ruta": entrada["ruta"],
+                "display_name": entrada.get("display_name", ""),
+            })
+            _emit(log, on_log, f"✗ {entrada['ruta']} — se borra del repositorio")
 
-        mensaje = (f"chore(pull): traer {len(archivos)} resources de "
-                   f"{agent_id} al repositorio")
+        if not archivos:
+            _emit(log, on_log, "· Nada que traer ni que borrar")
+            return step_result("ok", log,
+                               {"traidos": [], "borrados_del_repo": [],
+                                "commit": None})
+
+        mensaje = _mensaje_del_paso_2(traidos, borrados_del_repo, agent_id)
         commit = contexto.gh.commit_files(contexto.rama, archivos, mensaje)
         if commit:
             _emit(log, on_log, f"✓ commit {commit[:7]} en {contexto.rama}")
@@ -1332,8 +1392,8 @@ def step_2_pull_to_repo(project, agent_id, traer, client=None, gh=None,
               "seguir trabajando")
 
     resultado = step_result("ok", log, {
-        "traidos": traidos, "commit": commit, "repo": contexto.repo,
-        "rama": contexto.rama,
+        "traidos": traidos, "borrados_del_repo": borrados_del_repo,
+        "commit": commit, "repo": contexto.repo, "rama": contexto.rama,
     })
     store.record_run(contexto.store, project, agent_id, 2, "ok", log,
                      resultado["data"])

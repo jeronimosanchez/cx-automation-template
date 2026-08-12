@@ -2082,6 +2082,38 @@ def nivel_0(runner):
                     "huella_cx, record_resource_write y _marcar_conflicto",
                  la_deteccion_de_conflicto_sigue_en_pie)
 
+    def el_paso_2_solo_borra_restos():
+        """0.19b — borrar del repositorio es la mitad que faltaba, y la que más
+        daño hace si se equivoca de archivo. El panel ya no ofrece los casos
+        peligrosos, pero el servidor es lo último que queda entre una petición
+        y un `git rm`: tiene que rechazarlos aunque se los pidan a mano."""
+        firma = inspect.signature(pipeline.step_2_pull_to_repo)
+        if "borrar" not in firma.parameters:
+            return False, "step_2_pull_to_repo ya no acepta borrar"
+        fuente = inspect.getsource(pipeline.step_2_pull_to_repo)
+        faltan = []
+        # 1 · sin cx_id no es un resto, es trabajo sin subir.
+        if "if not cx_id:" not in fuente:
+            faltan.append("ya no rechaza borrar un archivo sin cx_id")
+        # 2 · si el resource sigue vivo en CX, su archivo no sobra.
+        if "inventario.get(tipo, {}).get(cx_id) is not None" not in fuente:
+            faltan.append("ya no rechaza borrar el archivo de un resource vivo en CX")
+        # 3 · no se borra lo que ningún archivo reclama.
+        if 'repositorio["por_tipo"]' not in fuente:
+            faltan.append("ya no comprueba que exista el archivo")
+        # 4 · el borrado viaja en el mismo commit que la traída.
+        if "commit_files" not in fuente:
+            faltan.append("el borrado dejó de ir por el commit único")
+        # 5 · y el cliente sabe borrar: un contenido None quita la entrada.
+        if "if contenido is None:" not in inspect.getsource(
+                pipeline.GitHubAppClient.commit_files):
+            faltan.append("commit_files ya no sabe borrar un archivo")
+        return not faltan, " · ".join(faltan)
+
+    runner.check(0, "El Paso 2 solo borra del repositorio los restos: rechaza lo "
+                    "que no ha subido, lo que sigue vivo en CX y lo que no existe",
+                 el_paso_2_solo_borra_restos)
+
     def only_pending_del_paso_3_sigue_intacto():
         """0.19 — anti-regresión. Se llama parecido y no tiene nada que ver: es
         el filtro de «reintentar solo lo que falló», lo manda el panel en la

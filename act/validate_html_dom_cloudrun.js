@@ -1686,6 +1686,77 @@ const escenarios = [
 
 
 {
+  nombre: 'El Paso 2 ofrece borrar del repositorio solo los restos, nunca lo que aún no ha subido',
+  porQue: 'Borrar en la consola de CX no borraba nada: el archivo sobrevivía y el ' +
+          'Paso 3 recreaba el resource con un identificador NUEVO, dejando el ' +
+          'puntero viejo muerto en producción. Pasó probándolo. Pero la oferta tiene ' +
+          'que ser solo para los restos —cabecera con un cx_id que CX ya no ' +
+          'reconoce—: un archivo SIN cx_id es trabajo recién escrito que aún no ha ' +
+          'subido, y ofrecer borrarlo sería ofrecer tirarlo. Y la lista se congela al ' +
+          'confirmar: releer las casillas dejaría enseñar unas y borrar otras.',
+  async ejecutar() {
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/2': {sobre: sobre('ok', ['✗ borrado'], {
+        traidos: [], borrados_del_repo: [{tipo:'playbook', cx_id:'muerto-1',
+          ruta:'definitions/a/playbooks/viejo.yaml', display_name:'Viejo'}],
+        commit:'ccccccc', repo: REPO, rama:'rama-de-prueba'})},
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(2, {
+      inventario: Object.assign(estadoHasta(2).inventario, {solo_cx: [], solo_repo: [
+        {tipo:'playbook', cx_id:'muerto-1', display_name:'Viejo',
+         ruta:'definitions/a/playbooks/viejo.yaml', motivo:'cx_id fantasma'},
+        {tipo:'playbook', cx_id:'muerto-2', display_name:'Otro viejo',
+         ruta:'definitions/a/playbooks/otro.yaml', motivo:'cx_id fantasma'},
+        {tipo:'example', cx_id:null, display_name:'Recién escrito',
+         ruta:'definitions/a/examples/nuevo.yaml', motivo:'sin cx_id'},
+      ]}),
+    }));
+    dom.window.viewStep(2);
+    await reposar(dom, 4);
+    const doc = dom.window.document;
+
+    const filas = [...doc.querySelectorAll('#tabla-restos tbody tr')];
+    const nombres = filas.map(f => f.dataset.nombre);
+    const visible = dom.window.getComputedStyle(doc.getElementById('dir-restos')).display !== 'none';
+    // El botón no se ofrece hasta que hay algo marcado.
+    const apagadoSinMarcar = doc.getElementById('btn-borrar-repo').disabled === true;
+
+    // Se marca el primero y se abre la confirmación.
+    filas[0].querySelector('input').checked = true;
+    dom.window.actualizarPies();
+    const encendido = doc.getElementById('btn-borrar-repo').disabled === false;
+    dom.window.pedirBorrarDelRepo();
+    await reposar(dom, 2);
+    const enLaConfirmacion = (doc.getElementById('lista-borrado-repo').textContent || '');
+
+    // Alguien toca las casillas con el diálogo abierto: la lista congelada manda.
+    filas[0].querySelector('input').checked = false;
+    filas[1].querySelector('input').checked = true;
+
+    pulsar(dom, 'btn-confirmar-borrado-repo');
+    await reposar(dom, 8);
+    const cuerpo = (servidor.llamadasA('/step/2')[0] || {}).cuerpo || {};
+    const mandados = (cuerpo.borrar_del_repo || []).map(b => b.cx_id);
+
+    const problemas = [];
+    if (!visible) problemas.push('el bloque de restos no se ve');
+    if (JSON.stringify(nombres) !== JSON.stringify(['Viejo', 'Otro viejo']))
+      problemas.push(`filas=${JSON.stringify(nombres)} — debería listar solo los dos fantasma`);
+    if (!apagadoSinMarcar) problemas.push('el botón se ofrece sin nada marcado');
+    if (!encendido) problemas.push('el botón sigue apagado con una fila marcada');
+    if (!/Viejo/.test(enLaConfirmacion)) problemas.push('la confirmación no nombra lo que va a borrar');
+    if (JSON.stringify(mandados) !== JSON.stringify(['muerto-1']))
+      problemas.push(`se mandó ${JSON.stringify(mandados)} y se había confirmado ["muerto-1"]`);
+    if ((cuerpo.traer || []).length) problemas.push('borrar arrastró un traer que nadie pidió');
+
+    return {ok: problemas.length === 0,
+            detalle: problemas.length ? problemas.join(' · ')
+              : `filas=${JSON.stringify(nombres)} mandados=${JSON.stringify(mandados)} ` +
+                `apagado-sin-marcar=${apagadoSinMarcar}`};
+  },
+},
+
+{
   nombre: 'El Paso 2 manda exactamente lo marcado y no ofrece traer lo nativo de la plataforma',
   porQue: 'Lo nativo no se puede traer: dejar marcarlo produce un error del ' +
           'servidor por algo que el panel ya sabía.',

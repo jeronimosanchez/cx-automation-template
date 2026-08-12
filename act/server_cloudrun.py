@@ -546,8 +546,14 @@ def paso_2_traer_al_repositorio():
     project, agent = _exigir(cuerpo, "project", "agent")
     _comprobar_destino(project, agent)
     traer = _lista(cuerpo, "traer", [])
+    # Las dos direcciones en la misma llamada, y por tanto en el mismo commit:
+    # traer al repositorio lo que solo está en CX, y borrar del repositorio los
+    # archivos que describen algo que CX ya no tiene. Partirlo en dos endpoints
+    # partiría también el commit, y un fallo entre los dos dejaría el
+    # repositorio a medias.
+    borrar = _lista(cuerpo, "borrar_del_repo", [])
     return _responder(lambda emitir: pipeline.step_2_pull_to_repo(
-        project, agent, traer, on_log=emitir,
+        project, agent, traer, borrar, on_log=emitir,
     ))
 
 

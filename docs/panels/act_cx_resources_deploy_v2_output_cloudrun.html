@@ -347,6 +347,55 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="dir-pie"><span id="pie-repo">&mdash;</span></div>
         </div>
 
+        <!-- Direcci&oacute;n 3: restos en el repositorio de lo que CX ya no tiene.
+
+             Es la mitad que faltaba. Sin ella, borrar en la consola de CX no
+             borraba nada: el archivo sobreviv&iacute;a, el Paso 3 recreaba el
+             resource con un identificador NUEVO, y produccci&oacute;n se
+             quedaba con un puntero muerto apuntando al viejo. Pas&oacute; de
+             verdad probando el pipeline.
+
+             Va en el Paso 2 porque es el &uacute;nico paso que escribe en el
+             repositorio: ya tiene permiso, mensaje de commit y confirmaci&oacute;n.
+             Una segunda puerta al mismo caj&oacute;n ser&iacute;a otra cosa que
+             mantener.
+
+             Solo salen los de `cx_id fantasma` &mdash; con cabecera cuyo
+             identificador CX ya no reconoce. Un archivo SIN `cx_id` es lo
+             contrario: algo reci&eacute;n escrito que a&uacute;n no ha subido,
+             y ofrecer borrarlo ser&iacute;a ofrecer tirar el trabajo que se
+             acaba de hacer. -->
+        <div class="dir-card hacia-repo" id="dir-restos" style="display:none">
+          <div class="dir-head">
+            Se va a borrar del repositorio <span class="dir-flecha">restos sin resource en CX</span>
+          </div>
+          <div class="dir-body">
+            <div style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:8px">
+              &#9888; <span id="num-restos">0</span> archivos describen algo que CX ya no tiene
+            </div>
+            <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Se borraron en la consola de CX y su archivo sobrevivi&oacute;. <strong style="color:var(--gate)">Si lo dejas, el Paso 3 los crear&aacute; otra vez en CX con un identificador nuevo</strong> &mdash; y el puntero viejo se queda en producci&oacute;n apuntando a nada.</p>
+            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-restos" onchange="marcarTodos('tabla-restos', this.checked)"> Seleccionar todos</label></div>
+            <div class="diff-wrap" style="margin-bottom:14px">
+              <table class="diff-table" id="tabla-restos">
+                <tbody></tbody>
+              </table>
+            </div>
+
+            <div id="confirmar-borrado-repo" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
+              <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Borrar estos archivos del repositorio</div>
+              <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
+                Se borran <strong>ahora</strong>, en un commit de la rama &mdash; no espera al Paso 3. El resource que describ&iacute;an ya no existe en CX, as&iacute; que no se pierde nada vivo.<br>
+                Queda en el historial de git: <code>git show</code> del commit lo recupera.</p>
+              <div id="lista-borrado-repo" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-danger" id="btn-confirmar-borrado-repo" onclick="borrarDelRepo()">S&iacute;, borrar del repositorio</button>
+                <button class="btn btn-ghost" onclick="cancelarBorrarDelRepo()">Cancelar</button>
+              </div>
+            </div>
+          </div>
+          <div class="dir-pie"><span id="pie-restos">&mdash;</span></div>
+        </div>
+
       <div class="gate-block re-ejecuta" id="traer-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Repositorio: <strong style="color:var(--text)" id="traer-repo">&mdash;</strong> &middot; Rama: <strong style="color:var(--text)" id="traer-rama">&mdash;</strong></p>
@@ -354,6 +403,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-traer" onclick="traerAlRepo()" disabled>Traer al repositorio &rarr;</button>
           <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
+          <button class="btn btn-danger" id="btn-borrar-repo" onclick="pedirBorrarDelRepo()" disabled>Borrar del repositorio</button>
         </div>
       </div>
 
@@ -2004,6 +2054,20 @@ function actualizarPies() {
     const b = $(id);
     if (b) b.disabled = repo.marcadas === 0;
   });
+  // Los restos van por su cuenta: borrar del repositorio no depende de lo que
+  // se haya marcado para traer, y atarlos al mismo contador apagaría el botón
+  // con filas suyas marcadas delante.
+  const restos = cuenta('tabla-restos');
+  const botonRestos = $('btn-borrar-repo');
+  if (botonRestos) botonRestos.disabled = restos.marcadas === 0;
+  const pieRestos = $('pie-restos');
+  if (pieRestos) pieRestos.innerHTML = restos.total === 0
+    ? '<span style="color:var(--success)">&#10003; No queda ning&uacute;n archivo sin resource en CX</span>'
+    : (restos.marcadas
+      ? `<strong style="color:var(--error)">${restos.marcadas} de ${restos.total}</strong> se borrar&aacute;n del repositorio`
+      : '<span style="color:var(--text-3)">Nada marcado &mdash; el Paso 3 los recrear&aacute; en CX</span>');
+  const todosRestos = $('sel-todos-restos');
+  if (todosRestos && restos.total) todosRestos.checked = restos.marcadas === restos.total;
   if (pieCx && !estado.paso3Cerrado) pieCx.innerHTML = cx.marcadas
     ? `<strong style="color:#93c5fd">${cx.marcadas} de ${cx.total}</strong> se aplicar&aacute;n en CX al continuar`
     : '<span style="color:var(--text-3)">Nada marcado &mdash; no se tocar&aacute; CX</span>';
@@ -2104,6 +2168,120 @@ function confirmarEliminarDeCx() {
   mostrar('confirmar-borrado', false);
   mostrar('traer-gate', true);
   renderTablaRepo();
+}
+
+/* ── Paso 2 · Restos en el repositorio ─────────────────────────────────────
+   Archivos cuya cabecera lleva un `cx_id` que el agente ya no reconoce: el
+   resource se borró en la consola de CX y su archivo sobrevivió.
+
+   Solo esos. Un archivo sin `cx_id` no es un resto — es algo recién escrito
+   que aún no ha subido a CX, y ofrecer borrarlo sería ofrecer tirar el trabajo
+   que se acaba de hacer. El servidor lo rechaza igualmente; aquí ni se enseña,
+   porque una acción peligrosa que se ofrece y luego se rechaza es peor que no
+   ofrecerla.                                                                */
+
+const MOTIVO_FANTASMA = 'cx_id fantasma';
+
+function restosDelRepositorio() {
+  const yaBorrados = new Set(
+    ((estado.traido && estado.traido.borrados_del_repo) || [])
+      .map(b => `${b.tipo}/${b.cx_id}`));
+  return ((estado.inventario && estado.inventario.solo_repo) || []).filter(
+    f => f.motivo === MOTIVO_FANTASMA && f.cx_id &&
+         !yaBorrados.has(`${f.tipo}/${f.cx_id}`));
+}
+
+function renderTablaRestos() {
+  const cuerpo = document.querySelector('#tabla-restos tbody');
+  if (!cuerpo) return;
+  const filas = restosDelRepositorio();
+  cuerpo.innerHTML = filas.map(f => `
+    <tr data-tipo="${esc(f.tipo)}" data-cx-id="${esc(f.cx_id)}"
+        data-nombre="${esc(f.display_name || f.cx_id)}" data-ruta="${esc(f.ruta || '')}">
+      <td style="width:34px"><input type="checkbox" onchange="actualizarPies()"></td>
+      <td>${esc(NOMBRE_DE_TIPO[f.tipo]||f.tipo)}</td>
+      <td><code>${esc(f.display_name || f.cx_id)}</code></td>
+      <td><code style="color:var(--text-3)" title="${esc(f.ruta||'')}">${esc(String(f.ruta||'—').split('/').pop())}</code></td>
+    </tr>`).join('');
+  mostrar('dir-restos', filas.length > 0);
+  const num = $('num-restos');
+  if (num) num.textContent = filas.length;
+  const todos = $('sel-todos-restos');
+  if (todos) { todos.disabled = !filas.length; if (!filas.length) todos.checked = false; }
+  actualizarPies();
+}
+
+// La lista se congela al abrir la confirmación y es la que se borra. Leer las
+// casillas otra vez al confirmar dejaría enseñar unas y borrar otras si algo
+// las tocó en medio — el diálogo no tapa la tabla.
+let restosApuntados = [];
+
+function pedirBorrarDelRepo() {
+  restosApuntados = filasMarcadas('tabla-restos').map(f => ({
+    tipo: f.dataset.tipo, cx_id: f.dataset.cxId,
+    nombre: f.dataset.nombre, ruta: f.dataset.ruta,
+  }));
+  if (!restosApuntados.length) return;
+  $('lista-borrado-repo').innerHTML = restosApuntados.map(
+    r => `· ${esc(NOMBRE_DE_TIPO[r.tipo]||r.tipo)} · ${esc(r.nombre)} ` +
+         `<span style="color:var(--text-3)">&middot; ${esc(r.ruta)}</span>`).join('<br>');
+  mostrar('confirmar-borrado-repo', true);
+  mostrar('traer-gate', false);
+}
+
+function cancelarBorrarDelRepo() {
+  restosApuntados = [];
+  mostrar('confirmar-borrado-repo', false);
+  mostrar('traer-gate', true);
+}
+
+function borrarDelRepo() {
+  const borrar = restosApuntados.map(r => ({tipo: r.tipo, cx_id: r.cx_id}));
+  if (!borrar.length) return;
+  conBoton('btn-confirmar-borrado-repo', async () => {
+    limpiarError('error-2');
+    mostrar('confirmar-borrado-repo', false);
+    mostrar('traer-gate', true);
+    mostrar('traer-log', true);
+    pintarLog('traer-log-block', [], true);
+    const parar = relojDeEspera('traer-log-block', 'borrando del repositorio');
+    marcarEnCurso(2, 'POST /step/2');
+    let sinFin = false;
+    try {
+      const sobre = await llamar('/step/2', {metodo:'POST', cuerpo:{
+        project: estado.project, agent: estado.agentId, traer: [],
+        borrar_del_repo: borrar,
+      }, onLinea: l => pintarLinea('traer-log-block', l)});
+      parar();
+      pintarLog('traer-log-block', sobre.log, true);
+      if (sobre.status !== 'ok') throw new FalloDelPanel(
+        `Borrar del repositorio terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+        {url: sobre.url});
+      // Se acumula igual que lo traído: dos borrados seguidos no pueden perder
+      // el primero.
+      const previos = (estado.traido && estado.traido.borrados_del_repo) || [];
+      estado.traido = Object.assign({}, estado.traido, sobre.data, {
+        traidos: (estado.traido && estado.traido.traidos) || [],
+        borrados_del_repo: previos.concat(sobre.data.borrados_del_repo || []),
+      });
+      // El repositorio ya no es el que el Paso 3 midió.
+      estado.plan = null;
+      restosApuntados = [];
+      guardarEstado();
+      renderTablaRestos();
+      $('traer-commit').innerHTML = sobre.data.commit
+        ? `commit <code>${esc(String(sobre.data.commit).slice(0,7))}</code> en <code>${esc(oNada(sobre.data.rama))}</code>`
+        : 'sin cambios reales &mdash; no se cre&oacute; ning&uacute;n commit';
+      mostrar('traer-done', true);
+      mostrar('sin-modificar-2', false);
+    } catch (error) {
+      parar();
+      sinFin = !!(error && error.sinFin);
+      pintarError('error-2', error, sinFin ? AVISO_FLUJO_CORTADO : null);
+    } finally {
+      if (!sinFin) limpiarEnCurso();
+    }
+  });
 }
 
 /* ── Paso 3 · Aplicar en CX · POST /step/3 ────────────────────────────────── */
@@ -2731,7 +2909,7 @@ function viewStep(id) {
     // como quedó, sin los botones que lo volverían a ejecutar.
     v.classList.toggle('paso-cerrado', idx >= 0 && estado.stepStates[idx] === 'done');
   }
-  if (id === 2) renderTablaRepo();
+  if (id === 2) { renderTablaRepo(); renderTablaRestos(); }
   if (id === 3) {
     renderTablaCx();
     if (!estado.plan && !estado.paso3Cerrado) cargarPlan();
@@ -2775,6 +2953,7 @@ function resetDeploy() {
   setRunning(false);
 
   ['inv-log','inv-done','traer-log','traer-done','confirmar-borrado','deploy-log',
+   'confirmar-borrado-repo','dir-restos',
    'deploy-done','deploy-fail','confirmar-terminar','tests-fail','tests-log',
    'prod-log','aviso-draft-movido','plan-log','panel-versiones','aviso-interrumpido',
   ].forEach(id => mostrar(id, false));
@@ -2791,7 +2970,7 @@ function resetDeploy() {
   ].forEach(id => { const e = $(id); if (e) e.innerHTML = ''; });
   ['error-1','error-2','error-3','error-4','error-5','error-tool','error-versiones']
     .forEach(limpiarError);
-  ['btn-start-inventory','btn-traer','btn-eliminar','btn-confirm-deploy',
+  ['btn-start-inventory','btn-traer','btn-eliminar','btn-borrar-repo','btn-confirm-deploy',
    'btn-confirm-prod','btn-tests-ok','btn-tests-ko','btn-retry-failed',
    'btn-ver-versiones','btn-borrar-versiones',
   ].forEach(id => { const b = $(id); if (b) { delete b.dataset.rehabilitar; b.disabled = false; b.style.opacity = ''; } });
@@ -2800,7 +2979,10 @@ function resetDeploy() {
   if (cuerpoCx) cuerpoCx.innerHTML = '';
   const cuerpoRepo = document.querySelector('#tabla-repo tbody');
   if (cuerpoRepo) cuerpoRepo.innerHTML = '';
-  ['sel-todos-cx','sel-todos-repo'].forEach(id => {
+  const cuerpoRestos = document.querySelector('#tabla-restos tbody');
+  if (cuerpoRestos) cuerpoRestos.innerHTML = '';
+  restosApuntados = [];
+  ['sel-todos-cx','sel-todos-repo','sel-todos-restos'].forEach(id => {
     const c = $(id); if (c) { c.checked = false; c.disabled = false; }
   });
   $('version-batch-label').value = generateVersionLabel();

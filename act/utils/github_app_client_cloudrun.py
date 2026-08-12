@@ -283,10 +283,16 @@ class GitHubAppClient:
     def commit_files(self, rama, archivos, mensaje, base_sha=None):
         """Escribe varios archivos en un único commit, o ninguno.
 
-        `archivos` es {ruta: contenido en texto}. Devuelve el SHA del commit,
-        o None si el contenido ya coincidía con lo que había — repetir la
-        misma traída sin cambios intermedios no debe producir un segundo
-        commit vacío.
+        `archivos` es {ruta: contenido en texto}, y **un contenido `None`
+        borra ese archivo**: el árbol de Git quita una entrada cuando su `sha`
+        viene a null. Va aquí y no en un método aparte para que borrar herede
+        lo que ya protege a escribir — el commit único, el encadenado por
+        `base_sha` y el corte cuando nada cambia. Un borrado por su cuenta
+        podría dejar el repositorio a medias entre dos commits.
+
+        Devuelve el SHA del commit, o None si el contenido ya coincidía con lo
+        que había — repetir la misma traída sin cambios intermedios no debe
+        producir un segundo commit vacío.
 
         `base_sha` encadena commits seguidos sin volver a leer la referencia.
         Hace falta porque la lectura de una rama recién escrita puede devolver
@@ -307,6 +313,12 @@ class GitHubAppClient:
 
         entradas = []
         for ruta, contenido in archivos.items():
+            if contenido is None:
+                entradas.append({
+                    "path": ruta, "mode": MODO_ARCHIVO, "type": "blob",
+                    "sha": None,
+                })
+                continue
             blob = self._request(
                 "POST", f"/repos/{self.repo}/git/blobs",
                 body={"content": contenido, "encoding": "utf-8"},
