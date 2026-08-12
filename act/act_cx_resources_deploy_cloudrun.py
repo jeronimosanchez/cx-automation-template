@@ -2272,20 +2272,42 @@ def discover(project=None, client=None, on_log=None):
 
 # ── 7 · Vincular proyecto y repositorio · alta de agente ─────────────────────
 
+# Reglas de un identificador de proyecto GCP, según su documentación: 6 a 30
+# caracteres, minúsculas, dígitos y guiones, empezando por letra y sin terminar
+# en guión. Es lo único que se puede exigir aquí con certeza — ver
+# `_comprobar_proyecto_existe`.
+ID_PROYECTO_VALIDO = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
+
+
 def _comprobar_proyecto_existe(project):
-    """Se niega a vincular un proyecto que no existe o al que no se llega.
+    """Lo poco que se puede afirmar del proyecto antes de vincularlo.
 
-    Un identificador mal escrito se registraba tal cual: pasó con
-    `royecto-fake-505310` —le faltaba la `p`— y el panel dijo «Proyecto
-    vinculado ✓». Los comandos IAM que devolvió apuntaban a ese fantasma, no
-    concedieron nada, y el proyecto de verdad seguía sin aparecer sin que nada
-    dijera por qué. Comprobar el repositorio y no el proyecto era la asimetría
-    que lo permitía.
+    **No se puede comprobar que exista, y conviene entender por qué.** Quien
+    pregunta es el servidor, con su cuenta de servicio, y un proyecto recién
+    creado todavía no le ha concedido nada — es justo la situación para la que
+    existe esta herramienta. Resource Manager responde **403 tanto si el
+    proyecto no existe como si existe y falta permiso**, a propósito, para no
+    revelar qué proyectos hay. Desde aquí, un proyecto nuevo legítimo y un
+    identificador mal escrito son indistinguibles.
 
-    Un 403 no se trata como «no existe»: significa que el proyecto está ahí y
-    que a quien pregunta le falta permiso para verlo, que es un problema
-    distinto y tiene otra respuesta.
+    Un primer intento sí bloqueaba ante el 403, y bloqueaba justo el caso
+    normal: dar de alta un proyecto al que el servidor aún no llega.
+
+    Así que se valida solo la forma, que es lo único cierto, y un 404 —que sí
+    es inequívoco— se rechaza. El resto se deja pasar y se avisa: la
+    confirmación de verdad llega después, cuando tras conceder los permisos el
+    proyecto aparece o no aparece en el desplegable.
+
+    Devuelve un aviso para el log, o None si no hay nada que advertir.
     """
+    if not ID_PROYECTO_VALIDO.match(project or ""):
+        raise PipelineError(
+            f"«{project}» no tiene forma de identificador de proyecto GCP: van "
+            f"entre 6 y 30 caracteres, en minúsculas, con dígitos y guiones, "
+            f"empezando por letra. Es el ID que aparece en la columna «ID» de "
+            f"la consola, no el nombre visible."
+        )
+
     respuesta = requests.get(
         f"{cx.RESOURCE_MANAGER_BASE}/projects/{project}",
         headers={"Authorization": f"Bearer {cx.get_token()}",
@@ -2293,18 +2315,17 @@ def _comprobar_proyecto_existe(project):
         timeout=30,
     )
     if respuesta.status_code == 200:
-        return
-    if respuesta.status_code in (403, 404):
+        return None
+    if respuesta.status_code == 404:
         raise PipelineError(
-            f"No se llega al proyecto «{project}». O el identificador está mal "
-            f"escrito —es el ID, con guiones, no el nombre que se ve en la "
-            f"consola— o este servidor no tiene permiso sobre él. No se ha "
-            f"registrado nada: vincular un proyecto que no existe deja un "
-            f"vínculo muerto y unos comandos IAM que no conceden nada."
+            f"El proyecto «{project}» no existe. Comprueba el identificador: "
+            f"es el ID de la columna «ID» de la consola, no el nombre visible."
         )
-    raise PipelineError(
-        f"No se pudo comprobar si el proyecto «{project}» existe: "
-        f"{respuesta.status_code} {respuesta.text[:200]}"
+    return (
+        f"⚠ Este servidor todavía no ve el proyecto {project} — es lo normal "
+        f"antes de concederle los permisos de abajo. No se ha podido confirmar "
+        f"que el identificador sea correcto: si tras ejecutar el comando el "
+        f"proyecto no aparece en el desplegable, revísalo letra por letra."
     )
 
 
@@ -2440,19 +2461,12 @@ def link_project_repo(project, repo_url, rama_principal="main",
     firestore_client = client or store.get_client()
     repo = _repo_desde_url(repo_url)
 
-    # El proyecto tiene que existir. Esto se comprobaba del repositorio y no
-    # del proyecto, y esa asimetría dejaba pasar un identificador mal escrito:
-    # se registró `royecto-fake-505310` —sin la `p`— y la herramienta dijo
-    # «Proyecto vinculado ✓» sobre algo que no existe. Los tres comandos IAM
-    # que devolvió apuntaban a ese fantasma, así que no concedieron nada, y el
-    # proyecto de verdad seguía sin aparecer sin que nada explicara por qué.
-    #
-    # Se pregunta a Resource Manager y no a la API de CX: un proyecto puede
-    # existir y no tener Dialogflow activado todavía, y eso no es motivo para
-    # rechazar el alta — el propio panel dice después que hay que crear el
-    # agente en la consola.
-    _comprobar_proyecto_existe(project)
-    _emit(log, on_log, f"✓ El proyecto {project} existe")
+    # Se comprobaba el repositorio y no el proyecto, y esa asimetría dejó
+    # registrar `royecto-fake-505310` —sin la `p`— con un «Proyecto vinculado
+    # ✓» encima. Lo que se puede afirmar aquí es menos de lo que parece: ver
+    # `_comprobar_proyecto_existe`.
+    aviso = _comprobar_proyecto_existe(project)
+    _emit(log, on_log, aviso or f"✓ El proyecto {project} existe y se ve desde aquí")
 
     # La rama principal tiene que existir ya: la creó quien creó el
     # repositorio, y es de donde nacen las ramas de los agentes. Se lee antes
