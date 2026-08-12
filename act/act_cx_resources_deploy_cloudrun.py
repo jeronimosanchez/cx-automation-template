@@ -46,6 +46,7 @@ import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
+import requests
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -2271,6 +2272,42 @@ def discover(project=None, client=None, on_log=None):
 
 # ── 7 · Vincular proyecto y repositorio · alta de agente ─────────────────────
 
+def _comprobar_proyecto_existe(project):
+    """Se niega a vincular un proyecto que no existe o al que no se llega.
+
+    Un identificador mal escrito se registraba tal cual: pasó con
+    `royecto-fake-505310` —le faltaba la `p`— y el panel dijo «Proyecto
+    vinculado ✓». Los comandos IAM que devolvió apuntaban a ese fantasma, no
+    concedieron nada, y el proyecto de verdad seguía sin aparecer sin que nada
+    dijera por qué. Comprobar el repositorio y no el proyecto era la asimetría
+    que lo permitía.
+
+    Un 403 no se trata como «no existe»: significa que el proyecto está ahí y
+    que a quien pregunta le falta permiso para verlo, que es un problema
+    distinto y tiene otra respuesta.
+    """
+    respuesta = requests.get(
+        f"{cx.RESOURCE_MANAGER_BASE}/projects/{project}",
+        headers={"Authorization": f"Bearer {cx.get_token()}",
+                 "Content-Type": "application/json"},
+        timeout=30,
+    )
+    if respuesta.status_code == 200:
+        return
+    if respuesta.status_code in (403, 404):
+        raise PipelineError(
+            f"No se llega al proyecto «{project}». O el identificador está mal "
+            f"escrito —es el ID, con guiones, no el nombre que se ve en la "
+            f"consola— o este servidor no tiene permiso sobre él. No se ha "
+            f"registrado nada: vincular un proyecto que no existe deja un "
+            f"vínculo muerto y unos comandos IAM que no conceden nada."
+        )
+    raise PipelineError(
+        f"No se pudo comprobar si el proyecto «{project}» existe: "
+        f"{respuesta.status_code} {respuesta.text[:200]}"
+    )
+
+
 def rama_propuesta(agent_id, display_name=None):
     """El nombre de rama que el sistema propone para un agente.
 
@@ -2402,6 +2439,20 @@ def link_project_repo(project, repo_url, rama_principal="main",
     log = []
     firestore_client = client or store.get_client()
     repo = _repo_desde_url(repo_url)
+
+    # El proyecto tiene que existir. Esto se comprobaba del repositorio y no
+    # del proyecto, y esa asimetría dejaba pasar un identificador mal escrito:
+    # se registró `royecto-fake-505310` —sin la `p`— y la herramienta dijo
+    # «Proyecto vinculado ✓» sobre algo que no existe. Los tres comandos IAM
+    # que devolvió apuntaban a ese fantasma, así que no concedieron nada, y el
+    # proyecto de verdad seguía sin aparecer sin que nada explicara por qué.
+    #
+    # Se pregunta a Resource Manager y no a la API de CX: un proyecto puede
+    # existir y no tener Dialogflow activado todavía, y eso no es motivo para
+    # rechazar el alta — el propio panel dice después que hay que crear el
+    # agente en la consola.
+    _comprobar_proyecto_existe(project)
+    _emit(log, on_log, f"✓ El proyecto {project} existe")
 
     # La rama principal tiene que existir ya: la creó quien creó el
     # repositorio, y es de donde nacen las ramas de los agentes. Se lee antes
