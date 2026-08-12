@@ -294,6 +294,68 @@ function estadoHasta(paso, extra) {
 
 const escenarios = [
 
+/* De quién cuelga cada bloque de pantalla. No es maqueta: cada paso empieza
+   escondiendo el bloque de sus mandos, y lo que quede dentro de ese bloque se
+   apaga con él. Un bloque que debería sobrevivir a ese gesto —el registro que
+   se llena, el resultado, el error que explica el fallo— no puede colgar de lo
+   que se esconde.
+
+   Se comprueba el padre y no la visibilidad porque un `</div>` de menos no lo
+   ve nadie: el navegador no se queja, la vista se sigue pintando y el
+   JavaScript no falla. Solo cambia el árbol, en silencio. Pasó de verdad —un
+   cierre perdido al borrar un bloque vecino metió el registro, el resultado y
+   el error dentro de los mandos del Paso 1, y pulsar el botón dejaba la
+   pantalla en blanco para siempre, sin log, sin error y sin forma de saber por
+   qué. Los 35 checks pasaron con el defecto dentro, porque todos preguntaban
+   por el `display` propio de cada bloque, que era el correcto.              */
+{
+  nombre: 'Cada bloque de pantalla cuelga de quien debe: esconder los mandos no esconde la respuesta',
+  porQue: 'Si el registro, el resultado o el error cuelgan del bloque que el paso ' +
+          'esconde al arrancar, se apagan con él: la pantalla queda en blanco y ' +
+          'muda aunque el paso vaya bien y aunque falle.',
+  async ejecutar() {
+    // id → id del ancestro con id más cercano que le corresponde.
+    //
+    // El patrón es el mismo en los cuatro pasos: un bloque con los mandos que
+    // el paso esconde al arrancar, y a su lado —nunca dentro— el registro, el
+    // resultado y el error. En los Pasos 2 y 5 los mandos son `traer-gate` y
+    // `prod-gate`, y sus hermanos cuelgan del contenedor de la vista.
+    const PADRE_ESPERADO = {
+      // Paso 1 — los mandos son `inv-start`.
+      'inv-start': 'view-1',
+      'inv-log': 'view-1', 'inv-done': 'view-1', 'error-1': 'view-1',
+      'btn-start-inventory': 'inv-start',
+      'inv-log-block': 'inv-log', 'grupos-inventario': 'inv-done',
+      // Paso 2 — los mandos son `traer-gate`, dentro del bloque «hay cambios».
+      'traer-gate': 'diff-has-changes',
+      'btn-traer': 'traer-gate', 'btn-eliminar': 'traer-gate',
+      'traer-log': 'diff-has-changes', 'traer-done': 'diff-has-changes',
+      'error-2': 'diff-has-changes',
+      'traer-log-block': 'traer-log',
+      // Paso 3 — los mandos son `deploy-gate`.
+      'deploy-gate': 'view-3', 'btn-confirm-deploy': 'deploy-gate',
+      'deploy-log': 'view-3', 'deploy-done': 'view-3',
+      'deploy-fail': 'view-3', 'error-3': 'view-3',
+      'deploy-log-block': 'deploy-log',
+      // Paso 5 — los mandos son `prod-gate`.
+      'prod-gate': 'view-5', 'btn-confirm-prod': 'prod-gate',
+      'prod-log': 'view-5', 'error-5': 'view-5',
+      'prod-log-block': 'prod-log',
+    };
+    const servidor = new ServidorFalso(rutasBase());
+    const dom = await abrirPanel(servidor);
+    const mal = [];
+    for (const [id, esperado] of Object.entries(PADRE_ESPERADO)) {
+      const e = dom.window.document.getElementById(id);
+      if (!e) { mal.push(`${id}: no existe`); continue; }
+      let p = e.parentElement, real = null;
+      while (p) { if (p.id) { real = p.id; break; } p = p.parentElement; }
+      if (real !== esperado) mal.push(`${id} cuelga de ${real} y no de ${esperado}`);
+    }
+    return {ok: mal.length === 0, detalle: mal.length ? mal.join(' · ') : `${Object.keys(PADRE_ESPERADO).length} bloques en su sitio`};
+  },
+},
+
 {
   nombre: 'Al abrir, el panel pregunta al servidor por su salud y por los proyectos',
   porQue: 'Los desplegables no pueden salir de una lista escrita en el HTML: sin ' +

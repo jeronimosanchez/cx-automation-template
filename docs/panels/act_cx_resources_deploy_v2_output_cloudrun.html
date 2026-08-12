@@ -253,6 +253,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div id="alta-agente-log" style="display:none;margin-top:10px">
             <div class="output-block" id="alta-agente-log-block" style="height:70px;overflow-y:auto"></div>
           </div>
+        </div>
         <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
       </div>
       <!-- El error vive FUERA de `inv-start`, y no es un detalle de maqueta:
@@ -2712,11 +2713,33 @@ function resetDeploy() {
  * quedarían sin saber sobre qué agente actúan.
  */
 function reponerPantalla() {
+  // Pintar ANTES de esconder, y con red debajo. Estaba al revés: se ocultaba
+  // `inv-start`, se mostraba `inv-done` y se pintaba después. Si `renderInventario`
+  // lanzaba —un estado guardado por una versión anterior del panel con otra
+  // forma— quedaban los selectores escondidos, el resultado vacío y la pantalla
+  // en blanco. Y como esto corre en el arranque del script sin `try`, la
+  // excepción mataba todo lo que venía detrás: la barra lateral se quedaba en
+  // «En progreso…» y el desplegable no se llenaba nunca. Sin ningún error a la
+  // vista, porque nadie llegó a pintarlo.
+  //
+  // Un estado que no se puede reponer se descarta y se dice: volver al punto de
+  // partida es recuperable, una pantalla muda no.
   if (estado.inventario) {
-    mostrar('inv-start', false);
-    mostrar('inv-done', true);
-    renderInventario();
-    noRehabilitar('btn-start-inventory');
+    try {
+      renderInventario();
+      mostrar('inv-start', false);
+      mostrar('inv-done', true);
+      noRehabilitar('btn-start-inventory');
+    } catch (error) {
+      estado.inventario = null;
+      guardarEstado();
+      mostrar('inv-start', true);
+      mostrar('inv-done', false);
+      pintarError('error-1', new Error(
+        'No se pudo recuperar el inventario guardado, así que se ha descartado: ' +
+        (error && error.message ? error.message : error) +
+        '. Vuelve a pulsar «Iniciar inventario».'));
+    }
   }
   if (estado.traido) {
     mostrar('traer-done', true);
