@@ -38,6 +38,12 @@ recibe destino, no toca CX, Firestore ni GitHub, y no dice nada de ningún
 agente. Existe porque «arrancó pero no responde» tiene que poder distinguirse
 de «no arrancó», y sin nada que consultar esa diferencia no se puede observar.
 
+Los cuatro pasos largos —`/step/1`, `/step/2`, `/step/3` y `/step/5`— pueden
+además emitir su registro **según ocurre**, si quien llama lo pide con
+`Accept: text/event-stream`. No es un endpoint más ni cambia el contrato: el
+sobre `{status, log, data}` sigue llegando entero, dentro del evento que marca
+el final. Ver `_respuesta_en_flujo`.
+
 Tres cosas separan esto del servidor local que sustituye (`act/server.py`,
 retirado):
 
@@ -59,8 +65,11 @@ Arranque:
 """
 
 import functools
+import json
 import os
+import queue
 import sys
+import threading
 import traceback
 from pathlib import Path
 
@@ -70,7 +79,7 @@ if str(REPO_ROOT) not in sys.path:
 
 import google.api_core.exceptions
 import google.auth.exceptions
-from flask import Flask, jsonify, redirect, request, send_file
+from flask import Flask, Response, jsonify, redirect, request, send_file
 from flask_cors import CORS
 
 from act import act_cx_resources_deploy_cloudrun as pipeline
@@ -355,12 +364,155 @@ def endpoint(vista):
     @functools.wraps(vista)
     def envoltura(*args, **kwargs):
         try:
-            return jsonify(vista(*args, **kwargs)), 200
+            resultado = vista(*args, **kwargs)
+            # Un paso que emite el registro según ocurre ya trae su propia
+            # respuesta hecha —ver `_responder`—: envolverla otra vez la
+            # convertiría en un JSON con un objeto de Flask dentro.
+            if isinstance(resultado, Response):
+                return resultado
+            return jsonify(resultado), 200
         except Exception as error:           # noqa: BLE001 — se traduce, no se traga
             mensaje, codigo, datos = _traducir(error)
             _registrar(f"✗ {request.method} {request.path} → {codigo}: {mensaje}")
             return jsonify(pipeline.step_result("error", [mensaje], datos)), codigo
     return envoltura
+
+
+# ── El registro según ocurre ─────────────────────────────────────────────────
+#
+# Los pasos largos tardan minutos y el pipeline ya emite cada línea en el
+# momento en que ocurre, por el `on_log` que reciben todas sus funciones. Lo
+# que faltaba era el transporte: el servidor las acumulaba y las mandaba de
+# golpe al terminar, así que el panel solo podía contar segundos. Este canal
+# las lleva según salen.
+#
+# **Es un canal añadido, no un cambio de contrato.** El sobre sigue siendo
+# `{status, log, data}` con el registro entero dentro; quien no pida el flujo
+# —`curl`, un cliente viejo, el propio panel para el plan en dry-run— recibe
+# exactamente lo de siempre.
+#
+# **Negociado por la cabecera `Accept`**, no por un parámetro de la URL ni por
+# una ruta paralela. Tres razones, en orden de peso:
+#
+#   1. Los nueve puntos de entrada siguen siendo nueve. Una ruta gemela por
+#      paso duplicaría la superficie que el panel, `/health` y los validadores
+#      enumeran, y con ella la posibilidad de que las dos versiones de un mismo
+#      paso dejen de hacer lo mismo.
+#   2. Es exactamente para lo que existe `Accept`: la operación es la misma y
+#      lo que cambia es la representación de la respuesta.
+#   3. Un parámetro en la URL viaja en la dirección, y la dirección se copia,
+#      se cachea y se comparte. La forma de la respuesta no debería depender de
+#      algo que se pega en un chat.
+#
+# **Y Server-Sent Events, no NDJSON.** SSE tiene eventos con nombre, que es lo
+# que permite distinguir «una línea más» de «terminado» sin inspeccionar el
+# contenido de cada trozo. Además su `Content-Type` es el que los proxys de
+# por medio reconocen como flujo: `cloud-run-proxy`, que es como se alcanza
+# este servicio desde un Mac, reenvía sin acumular en cuanto ve
+# `text/event-stream`, y con cualquier otro tipo agrupa por intervalos.
+
+TIPO_FLUJO = "text/event-stream"
+
+
+def _quiere_flujo():
+    """Si quien llama pidió recibir el registro según ocurre."""
+    return TIPO_FLUJO in request.headers.get("Accept", "")
+
+
+def _evento(nombre, datos):
+    """Un evento con nombre en el formato de Server-Sent Events.
+
+    El JSON va en una sola línea a propósito: en SSE el salto de línea separa
+    campos, así que un `data:` con saltos dentro llega partido en trozos que el
+    cliente no puede volver a juntar.
+    """
+    return f"event: {nombre}\ndata: {json.dumps(datos, ensure_ascii=False)}\n\n"
+
+
+def _responder(trabajo):
+    """Ejecuta el trabajo del paso y contesta — en flujo si se pidió.
+
+    `trabajo` recibe la función a la que el pipeline le pasa cada línea, y
+    devuelve el sobre. Sin flujo, esto es literalmente lo que había antes.
+    """
+    if not _quiere_flujo():
+        return trabajo(_registrar)
+    return _respuesta_en_flujo(trabajo)
+
+
+def _respuesta_en_flujo(trabajo):
+    """El paso corriendo en un hilo y sus líneas saliendo por la conexión.
+
+    El pipeline **empuja** cada línea (llama a `on_log`) y una respuesta HTTP
+    se **tira** (el servidor pide el trozo siguiente). Una cola entre los dos
+    traduce lo uno en lo otro: el hilo del paso mete líneas, el generador de la
+    respuesta las saca. Sin cola no hay forma de ceder el control entre línea y
+    línea, que es justamente lo que hace falta para que salgan según ocurren.
+
+    **El evento `fin` es la única marca de que el paso terminó**, y trae el
+    sobre completo más el código HTTP que le habría correspondido. Su ausencia
+    significa «no sé si terminó» y nunca «terminó bien»: una conexión puede
+    morir después de la mitad de las líneas, y sin una marca explícita eso es
+    indistinguible de un paso corto que acabó pronto. Por eso el código HTTP
+    viaja **dentro** del evento: las cabeceras salen antes de que el paso
+    empiece, así que a esas alturas siempre son 200 y ya no pueden decir nada.
+
+    La cola no tiene tope a propósito. Si quien escucha se va, el hilo del paso
+    tiene que poder terminar lo que estaba escribiendo en CX y en el
+    repositorio; con un tope se quedaría bloqueado poniendo una línea que ya no
+    lee nadie, a mitad de una escritura.
+    """
+    lineas = queue.Queue()
+    FIN = object()
+    # Todo lo que hace falta de la petición se lee **aquí**, antes de que
+    # arranque nada: ni el hilo ni el generador viven dentro del contexto de
+    # petición de Flask, y tocarlo desde ahí falla de una forma que solo se ve
+    # en producción.
+    ruta = f"{request.method} {request.path}"
+
+    def emitir(linea):
+        # También al log del contenedor: los dos destinos importan y no son el
+        # mismo: quien opera mira los logs de Cloud Run mucho después de que la
+        # conexión del panel se haya cerrado.
+        _registrar(linea)
+        lineas.put(linea)
+
+    def trabajar():
+        try:
+            sobre, codigo = trabajo(emitir), 200
+        except Exception as error:       # noqa: BLE001 — se traduce, no se traga
+            mensaje, codigo, datos = _traducir(error)
+            _registrar(f"✗ {ruta} → {codigo}: {mensaje}")
+            sobre = pipeline.step_result("error", [mensaje], datos)
+        lineas.put((FIN, codigo, sobre))
+
+    # `daemon`: un contenedor al que Cloud Run manda SIGTERM tiene diez
+    # segundos, y un hilo no-daemon podría alargar el cierre esperando una
+    # publicación de minutos. El corte se cuenta igual que cualquier otro: sin
+    # evento `fin`, quien llama no da el paso por terminado.
+    threading.Thread(target=trabajar, name="paso-en-flujo", daemon=True).start()
+
+    def eventos():
+        # Un comentario SSE antes de nada: obliga a que las cabeceras salgan ya
+        # y da una señal observable de «la conexión está abierta y no se ha
+        # perdido» mientras el paso todavía no ha emitido su primera línea.
+        yield ": flujo abierto\n\n"
+        while True:
+            elemento = lineas.get()
+            if isinstance(elemento, tuple) and elemento[0] is FIN:
+                yield _evento("fin", {"http": elemento[1], "sobre": elemento[2]})
+                return
+            yield _evento("log", {"linea": elemento})
+
+    return Response(eventos(), mimetype=TIPO_FLUJO, headers={
+        # `no-transform` además de `no-cache`: hay proxys que recomprimen —y
+        # por tanto acumulan— lo que pasa por ellos si no se les dice que no.
+        "Cache-Control": "no-cache, no-transform",
+        # Para los proxys de la familia nginx, que acumulan por defecto. Cloud
+        # Run no lo necesita; cuesta una cabecera y evita depender de por dónde
+        # se sirva esto mañana.
+        "X-Accel-Buffering": "no",
+    })
 
 
 # ── Los cinco pasos ──────────────────────────────────────────────────────────
@@ -369,6 +521,12 @@ def endpoint(vista):
 # endpoint sí hace, porque es trabajo de adaptador y no de pipeline: leer el
 # body, comprobar que trae destino, comprobar que ese destino está permitido, y
 # traducir el resultado a HTTP.
+#
+# Cuatro de los cinco pasan por `_responder`, que es lo que les permite emitir
+# el registro según ocurre si quien llama lo pide. Son los que tardan: leer el
+# agente entero, escribir en el repositorio, aplicar en CX y publicar. El Paso
+# 4 no está: declara el resultado de unos tests y termina en una escritura, sin
+# nada que contar por el camino.
 
 @app.post("/step/1")
 @endpoint
@@ -376,7 +534,9 @@ def paso_1_inventario():
     cuerpo = _cuerpo()
     project, agent = _exigir(cuerpo, "project", "agent")
     _comprobar_destino(project, agent)
-    return pipeline.step_1_inventory(project, agent, on_log=_registrar)
+    return _responder(lambda emitir: pipeline.step_1_inventory(
+        project, agent, on_log=emitir,
+    ))
 
 
 @app.post("/step/2")
@@ -385,9 +545,10 @@ def paso_2_traer_al_repositorio():
     cuerpo = _cuerpo()
     project, agent = _exigir(cuerpo, "project", "agent")
     _comprobar_destino(project, agent)
-    return pipeline.step_2_pull_to_repo(
-        project, agent, _lista(cuerpo, "traer", []), on_log=_registrar,
-    )
+    traer = _lista(cuerpo, "traer", [])
+    return _responder(lambda emitir: pipeline.step_2_pull_to_repo(
+        project, agent, traer, on_log=emitir,
+    ))
 
 
 @app.post("/step/3")
@@ -396,14 +557,15 @@ def paso_3_aplicar_en_cx():
     cuerpo = _cuerpo()
     project, agent = _exigir(cuerpo, "project", "agent")
     _comprobar_destino(project, agent)
-    return pipeline.step_3_apply_to_cx(
+    aplicar = _lista(cuerpo, "aplicar")
+    eliminar = _lista(cuerpo, "eliminar", [])
+    dry_run = bool(cuerpo.get("dry_run", False))
+    only_pending = _lista(cuerpo, "only_pending")
+    return _responder(lambda emitir: pipeline.step_3_apply_to_cx(
         project, agent,
-        aplicar=_lista(cuerpo, "aplicar"),
-        eliminar=_lista(cuerpo, "eliminar", []),
-        dry_run=bool(cuerpo.get("dry_run", False)),
-        only_pending=_lista(cuerpo, "only_pending"),
-        on_log=_registrar,
-    )
+        aplicar=aplicar, eliminar=eliminar, dry_run=dry_run,
+        only_pending=only_pending, on_log=emitir,
+    ))
 
 
 @app.post("/step/4")
@@ -429,9 +591,10 @@ def paso_5_publicar():
     cuerpo = _cuerpo()
     project, agent = _exigir(cuerpo, "project", "agent")
     _comprobar_destino(project, agent)
-    return pipeline.step_5_publish(
-        project, agent, cuerpo.get("version_label"), on_log=_registrar,
-    )
+    etiqueta = cuerpo.get("version_label")
+    return _responder(lambda emitir: pipeline.step_5_publish(
+        project, agent, etiqueta, on_log=emitir,
+    ))
 
 
 # ── Los que no pertenecen a ningún paso ──────────────────────────────────────

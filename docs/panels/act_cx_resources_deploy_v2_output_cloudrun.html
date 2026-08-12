@@ -226,6 +226,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <span style="color:var(--text-2)">El repositorio es del proyecto, no de cada agente: sin vincular uno, ninguno de sus agentes tiene con qu&eacute; comparar.</span>
           <button class="btn btn-gate" style="margin-top:10px;font-size:12px;padding:5px 12px" onclick="viewTool('onboarding')">Vincular un repositorio &rarr;</button>
         </div>
+        <!-- El descubrimiento pregunta a todas las regiones de CX a la vez. Si
+             alguna no contesta se devuelve lo encontrado, y esta caja dice
+             cuál faltó: un desplegable incompleto sin aviso se lee como la
+             lista entera, y un agente que existe pasa por inexistente. -->
+        <div id="aviso-regiones-caidas" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6"></div>
         <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap">
           <div>
             <label for="project-select" style="display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Proyecto</label>
@@ -249,8 +254,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="output-block" id="alta-agente-log-block" style="height:70px;overflow-y:auto"></div>
           </div>
         <button class="btn btn-primary" id="btn-start-inventory" onclick="startInventory()" disabled>Iniciar inventario &rarr;</button>
-        <div id="error-1" style="display:none;margin-top:16px"></div>
       </div>
+      <!-- El error vive FUERA de `inv-start`, y no es un detalle de maqueta:
+           estaba dentro, y `startInventory` oculta ese bloque nada más
+           arrancar. Un fallo del Paso 1 se pintaba donde nadie podía verlo y
+           la pantalla quedaba en blanco, con el paso diciendo «En progreso…»
+           para siempre. Avisar dentro de lo que se esconde es no avisar. -->
+      <div id="error-1" style="display:none;margin-top:16px"></div>
 
       <!-- Log animado (oculto hasta pulsar) -->
       <div id="inv-log" style="display:none;margin-top:4px">
@@ -853,9 +863,14 @@ function urlAbsoluta(ruta) {
 }
 
 class FalloDelPanel extends Error {
-  constructor(mensaje, {url, http, reason, cuerpo} = {}) {
+  // `sinFin`: el flujo se cortó antes de que el servidor dijera que había
+  // terminado. Es lo único que distingue «no se completó» de «no se sabe si se
+  // completó», y de ello depende que la marca de operación en vuelo se borre o
+  // se quede puesta — ver `leerElFlujo`.
+  constructor(mensaje, {url, http, reason, cuerpo, sinFin} = {}) {
     super(mensaje);
     this.url = url; this.http = http; this.reason = reason; this.cuerpo = cuerpo;
+    this.sinFin = !!sinFin;
   }
 }
 
@@ -906,6 +921,10 @@ function mensajeHttp(http, texto, datos) {
           texto].filter(Boolean).join(' ');
 }
 
+// El tipo con que el servidor manda el registro según ocurre. Pedirlo es lo
+// que abre ese canal; sin él, la respuesta llega entera al final, como siempre.
+const TIPO_FLUJO = 'text/event-stream';
+
 /**
  * Llama al servidor y devuelve el sobre `{status, log, data}`.
  *
@@ -915,15 +934,24 @@ function mensajeHttp(http, texto, datos) {
  * queda a medias, y el Paso 5 devuelve `aborted` o `conflict` — son estados que
  * cada paso pinta a su manera, no fallos de transporte. Mirar solo el código
  * HTTP pintaría un deploy parcial como un éxito.
+ *
+ * Con `onLinea` pide además el registro **según ocurre** y llama a esa función
+ * con cada línea que va saliendo. El resultado es el mismo sobre de siempre:
+ * el flujo es un canal añadido, no otro contrato. Si el servidor no lo ofrece
+ * —o si este navegador no sabe leer cuerpos por trozos— se cae solo a la
+ * respuesta de una pieza, y lo único que se pierde es ver el registro llenarse.
  */
 async function llamar(ruta, opciones) {
   const conf = opciones || {};
   const url = urlAbsoluta(ruta);
+  const cabeceras = {};
+  if (conf.cuerpo) cabeceras['Content-Type'] = 'application/json';
+  if (conf.onLinea) cabeceras['Accept'] = TIPO_FLUJO;
   let respuesta;
   try {
     respuesta = await fetch(ruta, {
       method: conf.metodo || 'GET',
-      headers: conf.cuerpo ? {'Content-Type': 'application/json'} : undefined,
+      headers: Object.keys(cabeceras).length ? cabeceras : undefined,
       body: conf.cuerpo ? JSON.stringify(conf.cuerpo) : undefined,
       cache: 'no-store',
     });
@@ -933,6 +961,11 @@ async function llamar(ruta, opciones) {
         fallo.message : 'la petición no llegó a salir'}. Comprueba que el ` +
       `servicio está en marcha y que esta página se abrió desde él.`,
       {url});
+  }
+
+  const tipo = (respuesta.headers && respuesta.headers.get('Content-Type')) || '';
+  if (conf.onLinea && respuesta.body && tipo.indexOf(TIPO_FLUJO) !== -1) {
+    return leerElFlujo(respuesta, conf.onLinea, url);
   }
 
   const texto = await respuesta.text();
@@ -947,18 +980,7 @@ async function llamar(ruta, opciones) {
       `Normalmente significa que quien contestó no es este servidor.`,
       {url, http: respuesta.status});
   }
-  // El sobre es el contrato: sin `status`, `log` y `data` el panel no puede
-  // saber si algo salió bien. Un sobre incompleto se dice, no se rellena con
-  // valores por defecto que lo harían pasar por bueno.
-  const faltan = ['status','log','data'].filter(c => !(c in sobre));
-  if (faltan.length || !Array.isArray(sobre.log) ||
-      typeof sobre.data !== 'object' || sobre.data === null) {
-    throw new FalloDelPanel(
-      `La respuesta de ${url} no tiene la forma esperada ` +
-      `({status, log, data})${faltan.length ? ': faltan ' + faltan.join(', ') : ''}. ` +
-      `No se puede saber si la operación se completó.`,
-      {url, http: respuesta.status, cuerpo: sobre});
-  }
+  comprobarSobre(sobre, url, respuesta.status);
 
   if (!respuesta.ok) {
     throw new FalloDelPanel(
@@ -968,6 +990,107 @@ async function llamar(ruta, opciones) {
   }
   sobre.url = url;
   return sobre;
+}
+
+/**
+ * El sobre es el contrato: sin `status`, `log` y `data` el panel no puede saber
+ * si algo salió bien. Un sobre incompleto se dice, no se rellena con valores
+ * por defecto que lo harían pasar por bueno.
+ *
+ * Se comprueba igual venga de una respuesta de una pieza o del evento final del
+ * flujo: son dos transportes del mismo contrato, y bastaría relajarlo en uno
+ * para que el otro dejara de proteger nada.
+ */
+function comprobarSobre(sobre, url, http) {
+  const faltan = ['status','log','data'].filter(c => !(c in (sobre || {})));
+  if (!sobre || faltan.length || !Array.isArray(sobre.log) ||
+      typeof sobre.data !== 'object' || sobre.data === null) {
+    throw new FalloDelPanel(
+      `La respuesta de ${url} no tiene la forma esperada ` +
+      `({status, log, data})${faltan.length ? ': faltan ' + faltan.join(', ') : ''}. ` +
+      `No se puede saber si la operación se completó.`,
+      {url, http, cuerpo: sobre});
+  }
+}
+
+// Lo que se dice cuando el flujo se corta antes del evento de fin. No es un
+// error de red cualquiera: el paso pudo completarse entero del lado del
+// servidor y ser la conexión lo único que se perdió. Es el mismo criterio —y
+// casi las mismas palabras— que el aviso de «una operación se quedó sin
+// respuesta» que aparece al recargar a mitad de un paso.
+const AVISO_FLUJO_CORTADO =
+  'La conexión se cortó antes de que el servidor dijera que había terminado, ' +
+  'así que no se sabe si se completó. Pudo terminar igualmente: comprueba el ' +
+  'estado real antes de repetirla — volver a lanzarla a ciegas puede escribir ' +
+  'dos veces.';
+
+/**
+ * Lee el flujo de eventos y devuelve el sobre del evento final.
+ *
+ * **La marca de fin es explícita y su ausencia no se interpreta.** Una
+ * respuesta de una pieza llega entera o no llega, y las dos cosas se
+ * distinguen solas. Un flujo no: puede traer la mitad de las líneas y morir, y
+ * eso se parece muchísimo a un paso corto que terminó pronto. Sin el evento
+ * `fin` esto lanza, con `sinFin` puesto para que quien llame no borre la marca
+ * de operación en vuelo — es lo único que hará que, al recargar, el panel
+ * siga avisando de que hay algo sin confirmar.
+ *
+ * El código HTTP viaja dentro del evento final, no en la respuesta: las
+ * cabeceras salen antes de que el paso empiece, así que siempre son 200. A
+ * partir de ahí se trata igual que el de una respuesta normal.
+ */
+async function leerElFlujo(respuesta, onLinea, url) {
+  const lector = respuesta.body.getReader();
+  const decodificador = new TextDecoder();
+  let pendiente = '';
+  let fin = null;
+  while (true) {
+    const trozo = await lector.read();
+    if (trozo.done) break;
+    pendiente += typeof trozo.value === 'string'
+      ? trozo.value : decodificador.decode(trozo.value, {stream: true});
+    let corte;
+    // Los eventos se separan por una línea en blanco. Se procesa solo lo que
+    // haya llegado entero: un evento partido entre dos trozos se queda en
+    // `pendiente` hasta que llegue el resto.
+    while ((corte = pendiente.indexOf('\n\n')) !== -1) {
+      const evento = interpretarEvento(pendiente.slice(0, corte));
+      pendiente = pendiente.slice(corte + 2);
+      if (!evento) continue;
+      if (evento.nombre === 'log' && evento.datos && 'linea' in evento.datos) {
+        onLinea(evento.datos.linea);
+      } else if (evento.nombre === 'fin') {
+        fin = evento.datos;
+      }
+    }
+  }
+
+  if (!fin || typeof fin !== 'object') {
+    throw new FalloDelPanel(
+      `El servidor dejó de enviar en ${url} sin decir que hubiera terminado. ` +
+      AVISO_FLUJO_CORTADO, {url, sinFin: true});
+  }
+  const sobre = fin.sobre;
+  const http = fin.http || 200;
+  comprobarSobre(sobre, url, http);
+  if (http < 200 || http >= 300) {
+    throw new FalloDelPanel(
+      mensajeHttp(http, (sobre.log || []).join(' '), sobre.data),
+      {url, http, reason: (sobre.data || {}).reason, cuerpo: sobre});
+  }
+  sobre.url = url;
+  return sobre;
+}
+
+/** Un evento del flujo, o `null` si no lo es (un comentario, o basura). */
+function interpretarEvento(bloque) {
+  let nombre = null, datos = '';
+  bloque.split('\n').forEach(linea => {
+    if (linea.startsWith('event:')) nombre = linea.slice(6).trim();
+    else if (linea.startsWith('data:')) datos += linea.slice(5).trim();
+  });
+  if (!nombre) return null;
+  try { return {nombre, datos: JSON.parse(datos)}; } catch (e) { return null; }
 }
 
 /* ── El log de cada paso ────────────────────────────────────────────────────
@@ -986,13 +1109,26 @@ function pintarLog(bloqueId, lineas, limpiar) {
   const bloque = $(bloqueId);
   if (!bloque) return;
   if (limpiar) bloque.innerHTML = '';
-  (lineas || []).forEach(linea => {
-    const span = document.createElement('span');
-    span.className = claseDeLinea(linea);
-    span.textContent = String(linea);
-    bloque.appendChild(span);
-    bloque.appendChild(document.createTextNode('\n'));
-  });
+  (lineas || []).forEach(linea => pintarLinea(bloqueId, linea));
+  bloque.scrollTop = bloque.scrollHeight;
+}
+
+/**
+ * Una línea suelta, que es como llegan mientras el paso corre.
+ *
+ * Se inserta **antes del reloj de espera** si lo hay: el reloj vive al final
+ * del bloque y va contando segundos, así que añadir detrás dejaría el registro
+ * creciendo por debajo del contador, al revés de como se lee.
+ */
+function pintarLinea(bloqueId, linea) {
+  const bloque = $(bloqueId);
+  if (!bloque) return;
+  const span = document.createElement('span');
+  span.className = claseDeLinea(linea);
+  span.textContent = String(linea);
+  const reloj = bloque.querySelector('.reloj-de-espera');
+  bloque.insertBefore(span, reloj);
+  bloque.insertBefore(document.createTextNode('\n'), reloj);
   bloque.scrollTop = bloque.scrollHeight;
 }
 
@@ -1003,12 +1139,17 @@ function pintarLog(bloqueId, lineas, limpiar) {
  * cuenta segundos reales. Existe porque una llamada al pipeline puede tardar
  * minutos y una pantalla quieta se lee como colgada, que es lo que lleva a
  * recargar a mitad de una escritura.
+ *
+ * Sigue haciendo falta con el registro llegando según ocurre: entre dos líneas
+ * pueden pasar minutos —crear una versión y esperar su operación es una sola
+ * línea— y ahí el contador es lo único que distingue «trabajando» de «muerto».
  */
 function relojDeEspera(bloqueId, etiqueta) {
   const bloque = $(bloqueId);
   if (!bloque) return () => {};
   const linea = document.createElement('span');
-  linea.className = 'dim';
+  // La clase la usa `pintarLinea` para meter el registro por encima del reloj.
+  linea.className = 'dim reloj-de-espera';
   bloque.appendChild(linea);
   bloque.appendChild(document.createTextNode('\n'));
   const desde = Date.now();
@@ -1159,6 +1300,15 @@ let AGENTES = [];        // lo último que devolvió /discover para el proyecto
 let REPO_DEL_PROYECTO = null;
 let RAMA_PRINCIPAL_DEL_PROYECTO = null;
 
+// Descubrimientos en vuelo, uno por proyecto, y el proyecto que ya está
+// pintado en el desplegable. Los dos existen para lo mismo: no volver a pedir
+// lo que ya se está pidiendo o ya se tiene. Ver `cargarAgentes`.
+const DESCUBRIMIENTOS_EN_VUELO = new Map();
+let PROYECTO_PINTADO = null;
+
+// Cada petición de agentes lleva su número de orden. Ver `pedirAgentes`.
+let ULTIMA_PETICION_DE_AGENTES = 0;
+
 async function cargarProyectos() {
   const select = $('project-select');
   select.disabled = true;
@@ -1217,12 +1367,59 @@ function avisarListadoIncompleto(motivo) {
   if (motivo) pintarError('error-1', new Error(motivo));
 }
 
-async function cargarAgentes(project) {
+/**
+ * Los agentes de un proyecto, pedidos **una sola vez** por selección.
+ *
+ * Sin esta guarda, abrir el panel con un destino ya guardado pedía el mismo
+ * descubrimiento dos veces seguidas: `cargarProyectos` lo encadena al
+ * restaurar el estado, y en cuanto el desplegable se llena quien mira vuelve a
+ * elegir el proyecto —no tiene por qué saber que ya se está pidiendo, lo único
+ * que ve es un desplegable de agentes en «cargando…»— y el `onchange` lanza
+ * otra idéntica. Medido contra el servicio real: `/discover?project=…` dos
+ * veces en una sola carga, 12,8 s y 16,0 s, una detrás de otra porque el
+ * servicio corre con `--concurrency 1`, y las dos devolviendo lo mismo.
+ *
+ * Tres reglas, y ninguna guarda datos de una llamada para la siguiente:
+ *
+ * 1. Si ya hay una petición en vuelo para ese proyecto, se espera a ella en
+ *    vez de emitir otra: la respuesta que llegue sirve para las dos.
+ * 2. Si ese proyecto es el que ya está pintado, no se vuelve a pedir. Elegir
+ *    en el desplegable lo que ya está en pantalla no cambia nada.
+ * 3. `forzar` salta las dos, y lo usan los sitios que acaban de **escribir**
+ *    —dar de alta un agente, vincular el proyecto—. Ahí la respuesta anterior
+ *    ya no describe lo que hay: reutilizarla dejaría el desplegable diciendo
+ *    «sin dar de alta» de un agente que se acaba de dar de alta.
+ */
+function cargarAgentes(project, opciones) {
+  const forzar = !!(opciones && opciones.forzar);
+  if (!forzar) {
+    const enVuelo = DESCUBRIMIENTOS_EN_VUELO.get(project);
+    if (enVuelo) return enVuelo;
+    if (PROYECTO_PINTADO === project) return Promise.resolve();
+  }
+  const promesa = pedirAgentes(project).then(() => {
+    if (DESCUBRIMIENTOS_EN_VUELO.get(project) === promesa)
+      DESCUBRIMIENTOS_EN_VUELO.delete(project);
+  });
+  DESCUBRIMIENTOS_EN_VUELO.set(project, promesa);
+  return promesa;
+}
+
+/**
+ * La llamada de verdad. Numerada, para que una respuesta que llega tarde no
+ * pinte encima de otra más nueva: si mientras vuelve se ha elegido otro
+ * proyecto, dos peticiones distintas están en vuelo y pueden volver en
+ * cualquier orden. La vieja dejaría el desplegable con los agentes de un
+ * proyecto que ya no está elegido, y nada lo avisaría.
+ */
+async function pedirAgentes(project) {
+  const mia = ++ULTIMA_PETICION_DE_AGENTES;
   const agentSel = $('agent-select');
   agentSel.disabled = true;
   agentSel.innerHTML = '<option value="" selected disabled>cargando…</option>';
   try {
     const sobre = await llamar(`/discover?project=${encodeURIComponent(project)}`);
+    if (mia !== ULTIMA_PETICION_DE_AGENTES) return;
     AGENTES = sobre.data.agentes || [];
     REPO_DEL_PROYECTO = sobre.data.repo || null;
     RAMA_PRINCIPAL_DEL_PROYECTO = sobre.data.rama_principal || null;
@@ -1234,13 +1431,41 @@ async function cargarAgentes(project) {
     if (estado.agentId && AGENTES.some(a => a.agentId === estado.agentId)) {
       agentSel.value = estado.agentId;
     }
+    PROYECTO_PINTADO = project;
     actualizarCajaRepo();
+    avisarRegionesSinContestar(sobre.data.regiones_sin_contestar);
   } catch (error) {
+    if (mia !== ULTIMA_PETICION_DE_AGENTES) return;
+    // Se olvida qué proyecto está pintado: si no, el fallo se quedaría como
+    // «este proyecto ya está cargado» y volver a elegirlo no reintentaría.
+    PROYECTO_PINTADO = null;
     agentSel.innerHTML = '<option value="" selected disabled>—</option>';
     agentSel.disabled = true;
     actualizarCajaRepo();
     pintarError('error-1', error);
   }
+}
+
+/**
+ * Las regiones de CX que no contestaron al listar agentes.
+ *
+ * El servidor devuelve los agentes que sí encontró en vez de tumbar el
+ * descubrimiento entero, y dice cuáles se quedaron fuera. Sin enseñarlo, un
+ * agente que existe pero no aparece en el desplegable se lee como un agente
+ * que no existe — y lo que se hace entonces es crear otro.
+ */
+function avisarRegionesSinContestar(regiones) {
+  const caja = $('aviso-regiones-caidas');
+  if (!caja) return;
+  const fallidas = regiones || [];
+  if (!fallidas.length) { caja.style.display = 'none'; return; }
+  caja.innerHTML =
+    `<strong style="color:var(--gate)">&#9888; ${fallidas.length} regi&oacute;n(es) de CX no ` +
+    `contestaron.</strong> <span style="color:var(--text-2)">La lista de agentes puede ` +
+    `estar incompleta: si falta uno, puede vivir en ` +
+    fallidas.map(r => `<code>${esc(r.region || r)}</code>`).join(', ') +
+    `. ${esc(fallidas.map(r => r.error || '').filter(Boolean).join(' · '))}</span>`;
+  caja.style.display = 'block';
 }
 
 function agenteElegido() {
@@ -1370,7 +1595,9 @@ function darDeAltaAgente() {
           {url: sobre.url}));
         return;
       }
-      await cargarAgentes(estado.project);
+      // `forzar`: el alta acaba de crear la rama, así que la respuesta
+      // anterior ya no vale — decía «sin dar de alta» de este mismo agente.
+      await cargarAgentes(estado.project, {forzar: true});
       $('agent-select').value = agente.agentId;
       actualizarCajaRepo();
     } catch (error) {
@@ -1413,7 +1640,7 @@ function ejecutarToolOnboarding() {
       noRehabilitar('btn-tool-onboarding');
       // Si el proyecto vinculado es el que está elegido en el Paso 1, su caja
       // acaba de quedar desactualizada.
-      if (project === estado.project) await cargarAgentes(project);
+      if (project === estado.project) await cargarAgentes(project, {forzar: true});
     } catch (error) {
       parar();
       mostrar('tool-onboarding-start', true);
@@ -1434,12 +1661,16 @@ function startInventory() {
     pintarLog('inv-log-block', [], true);
     const parar = relojDeEspera('inv-log-block', 'leyendo el agente y el repositorio');
     marcarEnCurso(1, 'POST /step/1');
+    let sinFin = false;
     try {
       const sobre = await llamar('/step/1', {metodo:'POST', cuerpo:{
         project: estado.project, agent: estado.agentId,
-      }});
+      }, onLinea: l => pintarLinea('inv-log-block', l)});
       parar();
-      pintarLog('inv-log-block', sobre.log);
+      // Se repinta desde el sobre aunque las líneas ya se hayan visto llegar:
+      // el registro del sobre es el bueno, y así la pantalla queda igual se
+      // haya recibido por el flujo o de una pieza.
+      pintarLog('inv-log-block', sobre.log, true);
       if (sobre.status !== 'ok') throw new FalloDelPanel(
         `El inventario terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
         {url: sobre.url});
@@ -1454,22 +1685,26 @@ function startInventory() {
       noRehabilitar('btn-start-inventory');
     } catch (error) {
       parar();
+      sinFin = !!(error && error.sinFin);
       mostrar('inv-start', true);
-      pintarError('error-1', error);
+      pintarError('error-1', error, sinFin ? AVISO_FLUJO_CORTADO : null);
     } finally {
-      limpiarEnCurso();
+      // Un flujo cortado deja la operación sin confirmar: la marca se queda
+      // puesta para que, al recargar, el panel siga diciendo que hay algo de
+      // lo que no sabe el final.
+      if (!sinFin) limpiarEnCurso();
     }
   });
 }
 
-function tarjetaGrupo(clase, etiqueta, filas, descripcion, color, pie) {
+function tarjetaGrupo(clase, etiqueta, filas, descripcion, color, pie, coletilla) {
   const visibles = filas.slice(0, 3);
   const resto = filas.slice(3);
   const id = 'grupo-' + clase;
   return `
     <div class="grupo-card ${clase}" onclick="toggleGrupo(this)">
       <div class="grupo-label">${etiqueta}</div>
-      <div class="grupo-num" style="color:${color}">${filas.length}</div>
+      <div class="grupo-num" style="color:${color}">${filas.length}${coletilla || ''}</div>
       <div class="grupo-desc">${descripcion}</div>
       <div class="grupo-lista" id="${id}">${visibles.join('<br>') || '<span style="color:var(--text-3)">nada</span>'}
         ${resto.length ? `<span class="grupo-extra" style="display:none"><br>${resto.slice(0,20).join('<br>')}` +
@@ -1686,12 +1921,13 @@ function traerAlRepo() {
     pintarLog('traer-log-block', [], true);
     const parar = relojDeEspera('traer-log-block', 'escribiendo en el repositorio');
     marcarEnCurso(2, 'POST /step/2');
+    let sinFin = false;
     try {
       const sobre = await llamar('/step/2', {metodo:'POST', cuerpo:{
         project: estado.project, agent: estado.agentId, traer,
-      }});
+      }, onLinea: l => pintarLinea('traer-log-block', l)});
       parar();
-      pintarLog('traer-log-block', sobre.log);
+      pintarLog('traer-log-block', sobre.log, true);
       if (sobre.status !== 'ok') throw new FalloDelPanel(
         `Traer al repositorio terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
         {url: sobre.url});
@@ -1711,10 +1947,11 @@ function traerAlRepo() {
       noRehabilitar('btn-traer');
     } catch (error) {
       parar();
-      pintarError('error-2', error);
+      sinFin = !!(error && error.sinFin);
+      pintarError('error-2', error, sinFin ? AVISO_FLUJO_CORTADO : null);
       $('btn-eliminar').disabled = false;
     } finally {
-      limpiarEnCurso();
+      if (!sinFin) limpiarEnCurso();
     }
   });
 }
@@ -1864,14 +2101,16 @@ function ejecutarPaso3(opciones) {
     pintarLog('deploy-log-block', [], true);
     const parar = relojDeEspera('deploy-log-block', 'escribiendo en el borrador del agente');
     marcarEnCurso(3, 'POST /step/3');
+    let sinFin = false;
     try {
       const sobre = await llamar('/step/3', {metodo:'POST', cuerpo: Object.assign({
         project: estado.project, agent: estado.agentId,
         eliminar: estado.eliminar.map(e => ({tipo:e.tipo, cx_id:e.cx_id})),
       }, opciones.aplicar ? {aplicar: opciones.aplicar} : {},
-         opciones.only_pending ? {only_pending: opciones.only_pending} : {})});
+         opciones.only_pending ? {only_pending: opciones.only_pending} : {}),
+        onLinea: l => pintarLinea('deploy-log-block', l)});
       parar();
-      pintarLog('deploy-log-block', sobre.log);
+      pintarLog('deploy-log-block', sobre.log, true);
       estado.aplicadas = sobre.data;
       estado.paso3Cerrado = true;
       guardarEstado();
@@ -1888,10 +2127,11 @@ function ejecutarPaso3(opciones) {
       noRehabilitar(boton);
     } catch (error) {
       parar();
+      sinFin = !!(error && error.sinFin);
       mostrar('deploy-gate', true);
-      pintarError('error-3', error);
+      pintarError('error-3', error, sinFin ? AVISO_FLUJO_CORTADO : null);
     } finally {
-      limpiarEnCurso();
+      if (!sinFin) limpiarEnCurso();
     }
   });
 }
@@ -2031,13 +2271,14 @@ function confirmProduction() {
     pintarLog('prod-log-block', [], true);
     const parar = relojDeEspera('prod-log-block', 'fusionando, versionando y apuntando producción');
     marcarEnCurso(5, 'POST /step/5');
+    let sinFin = false;
     try {
       const sobre = await llamar('/step/5', {metodo:'POST', cuerpo:{
         project: estado.project, agent: estado.agentId,
         version_label: estado.versionLabel,
-      }});
+      }, onLinea: l => pintarLinea('prod-log-block', l)});
       parar();
-      pintarLog('prod-log-block', sobre.log);
+      pintarLog('prod-log-block', sobre.log, true);
       estado.publicacion = sobre.data;
       guardarEstado();
 
@@ -2070,10 +2311,14 @@ function confirmProduction() {
       }
     } catch (error) {
       parar();
+      // Publicar es el único paso donde la incertidumbre ya se explicaba
+      // entera, con las tres cosas que hace: sirve igual venga de una respuesta
+      // que no llegó o de un flujo que se cortó a mitad.
+      sinFin = !!(error && error.sinFin);
       mostrar('prod-gate', true);
       pintarError('error-5', error, AVISO_PUBLICAR_INCIERTO);
     } finally {
-      limpiarEnCurso();
+      if (!sinFin) limpiarEnCurso();
     }
   });
 }

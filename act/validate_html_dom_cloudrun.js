@@ -67,7 +67,8 @@ class ServidorFalso {
     const conf = opciones || {};
     const ruta = String(recurso);
     const cuerpo = conf.body ? JSON.parse(conf.body) : null;
-    this.llamadas.push({ruta, metodo: conf.method || 'GET', cuerpo});
+    this.llamadas.push({ruta, metodo: conf.method || 'GET', cuerpo,
+                        cabeceras: conf.headers || {}});
 
     const clave = Object.keys(this.rutas)
       .sort((a, b) => b.length - a.length)
@@ -76,22 +77,89 @@ class ServidorFalso {
       return Promise.reject(new TypeError(`Failed to fetch (ruta no declarada: ${ruta})`));
     }
     let respuesta = this.rutas[clave];
-    if (typeof respuesta === 'function') respuesta = respuesta(cuerpo, ruta);
+    if (typeof respuesta === 'function') respuesta = respuesta(cuerpo, ruta, conf);
     if (respuesta instanceof Error) return Promise.reject(respuesta);
 
     const http = respuesta.http || 200;
     const texto = respuesta.texto !== undefined
       ? respuesta.texto : JSON.stringify(respuesta.sobre);
-    return Promise.resolve({
+    const cabeceras = respuesta.cabeceras || {};
+    const entregar = () => ({
       ok: http >= 200 && http < 300,
       status: http,
+      // `headers.get` existe porque el panel negocia el flujo por el
+      // `Content-Type` de la respuesta. Devuelve `null` para lo no declarado,
+      // igual que `Headers` de verdad.
+      headers: {get: n => cabeceras[String(n).toLowerCase()] || null},
+      // El cuerpo como flujo, solo cuando el escenario lo declara: un `fetch`
+      // sin `body` es lo que ve el panel cuando el servidor contesta JSON de
+      // una pieza, y esa rama tiene que seguir funcionando igual.
+      body: respuesta.flujo || undefined,
       text: () => Promise.resolve(texto),
     });
+    // `espera` retiene la respuesta hasta que el escenario la suelte. Es lo
+    // que permite mirar la pantalla **con la petición todavía en vuelo**, que
+    // es donde ocurren los defectos de este archivo: un segundo clic que
+    // dispara una segunda llamada idéntica, o un log que no aparece hasta el
+    // final. Sin esto solo se puede comprobar el estado final, y ahí los dos
+    // defectos son invisibles.
+    return respuesta.espera ? respuesta.espera.then(entregar)
+                            : Promise.resolve(entregar());
   }
 
   llamadasA(fragmento) {
     return this.llamadas.filter(l => l.ruta.includes(fragmento));
   }
+}
+
+// ── Un cuerpo que llega por trozos ───────────────────────────────────────────
+//
+// El servidor puede mandar el registro de un paso largo según ocurre, en vez de
+// entero al terminar. Para probarlo hace falta un cuerpo que el escenario vaya
+// soltando a mano: si los trozos estuvieran todos listos de antemano, «llegó
+// según ocurría» y «llegó todo junto» serían indistinguibles desde la pantalla.
+
+const TIPO_FLUJO = 'text/event-stream';
+
+class FlujoDeMentira {
+  constructor() {
+    this.listos = [];      // trozos que ya se soltaron y nadie ha leído
+    this.esperando = [];   // lecturas pendientes de que llegue un trozo
+  }
+
+  _entregar(trozo) {
+    const lectura = this.esperando.shift();
+    if (lectura) lectura(trozo); else this.listos.push(trozo);
+  }
+
+  /** Un evento con nombre, tal cual lo escribe el servidor. */
+  evento(nombre, datos) {
+    this._entregar({done: false, value: new TextEncoder().encode(
+      `event: ${nombre}\ndata: ${JSON.stringify(datos)}\n\n`)});
+  }
+
+  /** Texto crudo, para partir un evento por la mitad o mandar comentarios. */
+  crudo(texto) {
+    this._entregar({done: false, value: new TextEncoder().encode(texto)});
+  }
+
+  /** Se acabó la conexión. Sin evento de fin, es un corte. */
+  cortar() { this._entregar({done: true}); }
+
+  get cuerpo() {
+    const yo = this;
+    return {getReader: () => ({
+      read: () => yo.listos.length
+        ? Promise.resolve(yo.listos.shift())
+        : new Promise(resolver => yo.esperando.push(resolver)),
+    })};
+  }
+}
+
+/** La respuesta con la que el servidor abre un flujo. */
+function respuestaEnFlujo(flujo) {
+  return {cabeceras: {'content-type': `${TIPO_FLUJO}; charset=utf-8`},
+          flujo: flujo.cuerpo, texto: ''};
 }
 
 // Respuestas que sirven de base a casi todos los escenarios. Cada uno cambia
@@ -265,6 +333,90 @@ const escenarios = [
 },
 
 {
+  nombre: 'Con el destino guardado, el Descubrimiento de ese proyecto se pide una sola vez',
+  porQue: 'Medido contra el servicio real: `/discover?project=…` dos veces en una sola carga, ' +
+          '12,8 s y 16,0 s, encoladas una detrás de otra porque el servicio corre con ' +
+          '`--concurrency 1`. La primera la encadena la restauración del estado; la segunda la ' +
+          'dispara quien vuelve a elegir el proyecto viendo el desplegable de agentes en ' +
+          '«cargando…». Las dos devuelven lo mismo, y el desplegable tarda el doble en llenarse.',
+  async ejecutar() {
+    let soltar;
+    const retenida = new Promise(r => { soltar = r; });
+    const servidor = new ServidorFalso(rutasBase({
+      '/discover?project=': {espera: retenida, sobre: sobre('ok', ['✓ 1 agentes'], {
+        proyectos: [], repo: REPO, rama_principal: 'principal-de-prueba',
+        ninguno_vinculado: false,
+        agentes: [{agentId: AGENTE, displayName: AGENTE_NOMBRE, region: 'europe-west1',
+                   repo: REPO, rama: 'rama-de-prueba', vinculado: true,
+                   registrado: true, rama_propuesta: null}],
+      })},
+    }));
+    // Estado guardado con el destino ya elegido: es la recarga a mitad de
+    // trabajo, el caso normal de este panel.
+    const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null}));
+    const traslaCarga = servidor.llamadasA('/discover?project=').length;
+
+    // La respuesta sigue sin llegar, y quien mira vuelve a elegir el proyecto.
+    const sel = dom.window.document.getElementById('project-select');
+    sel.value = PROYECTO;
+    dom.window.onProjectSelected();
+    await reposar(dom, 4);
+    const conUnaEnVuelo = servidor.llamadasA('/discover?project=').length;
+
+    // Llega la respuesta, y se vuelve a elegir lo que ya está en pantalla.
+    soltar();
+    await reposar(dom, 8);
+    dom.window.onProjectSelected();
+    await reposar(dom, 6);
+    const total = servidor.llamadasA('/discover?project=').length;
+    const agentes = [...dom.window.document.querySelectorAll('#agent-select option')]
+      .map(o => o.value).filter(Boolean);
+    return {
+      ok: traslaCarga === 1 && conUnaEnVuelo === 1 && total === 1
+          && agentes.length === 1 && agentes[0] === AGENTE,
+      detalle: `tras-la-carga=${traslaCarga} con-una-en-vuelo=${conUnaEnVuelo} ` +
+               `total=${total} agentes=${JSON.stringify(agentes)}`,
+    };
+  },
+},
+
+{
+  nombre: 'Dar de alta un agente sí vuelve a pedir el Descubrimiento: acaba de cambiar',
+  porQue: 'No pedir dos veces lo mismo no puede convertirse en no enterarse de lo que cambió. ' +
+          'El alta crea la rama del agente, y con la respuesta anterior el desplegable seguiría ' +
+          'diciendo «(sin dar de alta)» del agente que se acaba de dar de alta.',
+  async ejecutar() {
+    let dado = false;
+    const agenteDe = () => ({
+      agentId: AGENTE, displayName: AGENTE_NOMBRE, region: 'europe-west1', repo: REPO,
+      rama: dado ? 'rama-de-prueba' : null, vinculado: true, registrado: dado,
+      rama_propuesta: dado ? null : 'agente/propuesta',
+    });
+    const servidor = new ServidorFalso(rutasBase({
+      '/discover?project=': () => ({sobre: sobre('ok', ['✓ 1 agentes'], {
+        proyectos: [], repo: REPO, rama_principal: 'principal-de-prueba',
+        ninguno_vinculado: false, agentes: [agenteDe()],
+      })}),
+      '/register-agent': () => { dado = true;
+        return {sobre: sobre('ok', ['✓ rama creada'], {rama: 'rama-de-prueba'})}; },
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null, rama: ''}));
+    await reposar(dom, 8);
+    const antes = servidor.llamadasA('/discover?project=').length;
+    pulsar(dom, 'btn-alta-agente');
+    await reposar(dom, 12);
+    const despues = servidor.llamadasA('/discover?project=').length;
+    const opciones = [...dom.window.document.querySelectorAll('#agent-select option')]
+      .map(o => o.textContent);
+    return {
+      ok: antes === 1 && despues === 2
+          && !opciones.some(t => t.includes('sin dar de alta')),
+      detalle: `antes=${antes} después=${despues} opciones=${JSON.stringify(opciones)}`,
+    };
+  },
+},
+
+{
   nombre: 'Elegir Petal devuelve 403 y el panel lo explica como destino bloqueado, no como avería',
   porQue: 'La lista negra del servidor es una protección funcionando. Un mensaje ' +
           'genérico la convierte en lo que parece un fallo del panel, y se pierde ' +
@@ -355,6 +507,197 @@ const escenarios = [
           && resumen.includes('fedcba9') && avisoEntorno === true
           && cuerpo.project === PROYECTO && cuerpo.agent === AGENTE,
       detalle: `numeros=${numeros} entorno=${avisoEntorno} resumen=${resumen.slice(0,90)}`,
+    };
+  },
+},
+
+{
+  nombre: 'El registro del Paso 1 se pinta según llega, no al terminar el paso',
+  porQue: 'Un paso de minutos con la pantalla quieta se lee como colgado, y lo que se ' +
+          'hace entonces es recargar a mitad de una escritura. El pipeline ya emitía cada ' +
+          'línea en el momento; lo que faltaba era traerlas. Se comprueba **con el paso a ' +
+          'medias**: mirar el final no distingue «llegó según ocurría» de «llegó todo junto».',
+  async ejecutar() {
+    const flujo = new FlujoDeMentira();
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/1': respuestaEnFlujo(flujo),
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null}));
+    pulsar(dom, 'btn-start-inventory');
+    await reposar(dom, 4);
+    const pedidoAsi = ((servidor.llamadasA('/step/1')[0] || {}).cabeceras || {}).Accept;
+
+    flujo.evento('log', {linea: '· Leyendo Dialogflow CX'});
+    await reposar(dom, 4);
+    const conUna = texto(dom, 'inv-log-block') || '';
+    const terminadoAntesDeTiempo = visible(dom, 'inv-done');
+
+    flujo.evento('log', {linea: '✓ 10 resources en el borrador'});
+    await reposar(dom, 4);
+    const conDos = texto(dom, 'inv-log-block') || '';
+
+    flujo.evento('fin', {http: 200, sobre: sobre('ok',
+      ['· Leyendo Dialogflow CX', '✓ 10 resources en el borrador'], {
+        project: PROYECTO, agent_id: AGENTE, region: 'europe-west1', repo: REPO,
+        rama: 'rama-de-prueba', commit: 'fedcba9876', total_cx: 10,
+        total_borrador: 11, versiones: 4, total_archivos: 12,
+        tiene_entorno_produccion: true, otros_agentes: 0,
+        emparejados: [{tipo:'playbook', cx_id:'e1', display_name:'Uno', ruta:'a.yaml'}],
+        solo_cx: [], solo_repo: [], sin_agente: [],
+      })});
+    flujo.cortar();
+    await reposar(dom, 8);
+    const numeros = [...dom.window.document.querySelectorAll('#grupos-inventario .grupo-num')]
+      .map(e => e.textContent.trim());
+
+    return {
+      ok: pedidoAsi === TIPO_FLUJO
+          && conUna.includes('Leyendo Dialogflow CX')
+          && !conUna.includes('10 resources')
+          && !terminadoAntesDeTiempo
+          && conDos.includes('10 resources')
+          && visible(dom, 'inv-done')
+          && JSON.stringify(numeros) === JSON.stringify(['1','0','0','0']),
+      detalle: `accept=${pedidoAsi} con-una=${JSON.stringify(conUna.slice(0,60))} ` +
+               `terminado-antes=${terminadoAntesDeTiempo} números=${numeros}`,
+    };
+  },
+},
+
+{
+  nombre: 'El evento de fin trae el sobre entero, y es de él de donde sale la pantalla',
+  porQue: 'El flujo sirve para ver el registro llenarse; la fuente de verdad sigue siendo ' +
+          'el sobre. Si la pantalla se compusiera de las líneas sueltas, un flujo al que le ' +
+          'falta una llegaría a un resultado distinto del que dice el servidor.',
+  async ejecutar() {
+    const flujo = new FlujoDeMentira();
+    const servidor = new ServidorFalso(rutasBase({'/step/1': respuestaEnFlujo(flujo)}));
+    const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null}));
+    pulsar(dom, 'btn-start-inventory');
+    await reposar(dom, 4);
+    // Una línea suelta que el sobre final **no** repite: si la pantalla saliera
+    // del flujo y no del sobre, se quedaría dentro.
+    flujo.evento('log', {linea: '· línea que solo existe en el flujo'});
+    // Y un evento partido en dos trozos, que es lo que ocurre de verdad cuando
+    // el corte de red cae a mitad de un evento.
+    flujo.crudo('event: log\ndata: {"linea": "· partida');
+    flujo.crudo(' por la mitad"}\n\n');
+    await reposar(dom, 4);
+    const partidaLlego = (texto(dom, 'inv-log-block') || '').includes('partida por la mitad');
+
+    flujo.evento('fin', {http: 200, sobre: sobre('ok', ['✓ solo esto dice el sobre'], {
+      project: PROYECTO, agent_id: AGENTE, region: 'europe-west1', repo: REPO,
+      rama: 'rama-de-prueba', commit: 'abc1234567', total_cx: 3, total_borrador: 3,
+      versiones: 1, total_archivos: 4, tiene_entorno_produccion: true, otros_agentes: 0,
+      emparejados: [], solo_cx: [{tipo:'intent', cx_id:'i1', display_name:'X',
+                                  nativo:false, traible:true}],
+      solo_repo: [], sin_agente: [],
+    })});
+    flujo.cortar();
+    await reposar(dom, 8);
+    const registro = texto(dom, 'inv-log-block') || '';
+    const numeros = [...dom.window.document.querySelectorAll('#grupos-inventario .grupo-num')]
+      .map(e => e.textContent.trim());
+    const guardado = JSON.parse(
+      dom.window.localStorage.getItem('act_panel_cloudrun_v1') || '{}');
+    return {
+      ok: partidaLlego
+          && registro.includes('solo esto dice el sobre')
+          && !registro.includes('solo existe en el flujo')
+          && JSON.stringify(numeros) === JSON.stringify(['0','1','0','0'])
+          && guardado.inventario && guardado.inventario.total_cx === 3
+          && !guardado.enCurso,
+      detalle: `partida=${partidaLlego} números=${numeros} ` +
+               `registro=${JSON.stringify(registro.slice(0,70))} en-curso=${!!guardado.enCurso}`,
+    };
+  },
+},
+
+{
+  nombre: 'Un flujo cortado a mitad no se lee como terminado: se dice que no se sabe',
+  porQue: 'Una respuesta de una pieza llega o no llega, y las dos cosas se distinguen ' +
+          'solas. Un flujo puede traer la mitad de las líneas y morir, y eso se parece ' +
+          'muchísimo a un paso corto que acabó pronto. Sin el evento de fin, dar el paso ' +
+          'por bueno significa avanzar el pipeline sobre una escritura que nadie confirmó.',
+  async ejecutar() {
+    const flujo = new FlujoDeMentira();
+    const servidor = new ServidorFalso(rutasBase({'/step/2': respuestaEnFlujo(flujo)}));
+    const dom = await abrirPanel(servidor, estadoHasta(2, {
+      inventario: Object.assign(estadoHasta(2).inventario, {solo_cx: [
+        {tipo:'intent', cx_id:'i1', display_name:'Uno', nativo:false, traible:true},
+      ]}),
+    }));
+    dom.window.viewStep(2);
+    await reposar(dom, 4);
+    dom.window.marcarTodos('tabla-repo', true);
+    await reposar(dom, 2);
+    pulsar(dom, 'btn-traer');
+    await reposar(dom, 4);
+    flujo.evento('log', {linea: '· escribiendo en el repositorio'});
+    await reposar(dom, 4);
+    // Y aquí se muere la conexión, sin evento de fin.
+    flujo.cortar();
+    await reposar(dom, 10);
+
+    const caja = (texto(dom, 'error-2') || '').toLowerCase();
+    const guardado = JSON.parse(
+      dom.window.localStorage.getItem('act_panel_cloudrun_v1') || '{}');
+
+    // Y al recargar, el aviso de operación sin confirmar sigue ahí: es el
+    // mismo criterio que cuando la página se cierra a mitad de un paso.
+    const servidor2 = new ServidorFalso(rutasBase());
+    const dom2 = await abrirPanel(servidor2, guardado);
+    const alVolver = (texto(dom2, 'aviso-interrumpido') || '').toLowerCase();
+
+    return {
+      ok: visible(dom, 'error-2')
+          && caja.includes('no se sabe si se completó')
+          && caja.includes('comprueba el estado real')
+          && !visible(dom, 'traer-done')
+          && guardado.traido === null
+          && !!guardado.enCurso && guardado.enCurso.ruta === 'POST /step/2'
+          && visible(dom2, 'aviso-interrumpido')
+          && alVolver.includes('sin respuesta'),
+      detalle: `error=${JSON.stringify(caja.slice(0,90))} en-curso=${JSON.stringify(guardado.enCurso)} ` +
+               `traer-done=${visible(dom, 'traer-done')} al-volver=${JSON.stringify(alVolver.slice(0,60))}`,
+    };
+  },
+},
+
+{
+  nombre: 'Si el servidor contesta de una pieza aunque se le pida el flujo, el paso va igual',
+  porQue: 'El flujo es un canal añadido, no el único. Un servidor que no lo ofrezca —o una ' +
+          'versión anterior, o un proxy que lo convierta— tiene que seguir funcionando: si ' +
+          'el panel dependiera de él, negociar mal dejaría el pipeline sin camino.',
+  async ejecutar() {
+    const servidor = new ServidorFalso(rutasBase({
+      // Sin `content-type` de flujo y sin cuerpo por trozos: JSON de una pieza,
+      // exactamente lo que devolvía el servidor antes de que esto existiera.
+      '/step/1': {sobre: sobre('ok', ['✓ Emparejados 2'], {
+        project: PROYECTO, agent_id: AGENTE, region: 'europe-west1', repo: REPO,
+        rama: 'rama-de-prueba', commit: 'fedcba9876', total_cx: 5, total_borrador: 5,
+        versiones: 2, total_archivos: 6, tiene_entorno_produccion: true, otros_agentes: 0,
+        emparejados: [{tipo:'playbook', cx_id:'e1', display_name:'Uno', ruta:'a.yaml'},
+                      {tipo:'playbook', cx_id:'e2', display_name:'Dos', ruta:'b.yaml'}],
+        solo_cx: [], solo_repo: [], sin_agente: [],
+      })},
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(1, {inventario: null}));
+    pulsar(dom, 'btn-start-inventory');
+    await reposar(dom, 8);
+    const pedidoAsi = ((servidor.llamadasA('/step/1')[0] || {}).cabeceras || {}).Accept;
+    const numeros = [...dom.window.document.querySelectorAll('#grupos-inventario .grupo-num')]
+      .map(e => e.textContent.trim());
+    const guardado = JSON.parse(
+      dom.window.localStorage.getItem('act_panel_cloudrun_v1') || '{}');
+    return {
+      ok: pedidoAsi === TIPO_FLUJO
+          && visible(dom, 'inv-done')
+          && JSON.stringify(numeros) === JSON.stringify(['2','0','0','0'])
+          && (texto(dom, 'inv-log-block') || '').includes('Emparejados 2')
+          && guardado.inventario && guardado.inventario.total_cx === 5
+          && !guardado.enCurso,
+      detalle: `accept=${pedidoAsi} números=${numeros} done=${visible(dom, 'inv-done')}`,
     };
   },
 },

@@ -2158,6 +2158,222 @@ def nivel_0(runner):
     runner.check(0, "El log del Paso 5 ya no habla de «resources tocados»",
                  el_log_del_paso_5_no_habla_de_resources_tocados)
 
+    # ── El descubrimiento, región por región ─────────────────────────────────
+    #
+    # Las cuatro comprobaciones de abajo sustituyen las dos funciones que salen
+    # a la red (`list_cx_locations` y `list_cx_agents`) por dobles que tardan lo
+    # que se les diga y fallan cuando se les diga. Es la única forma de mirar lo
+    # que importa aquí —si las diecisiete llamadas se solapan, si el orden
+    # depende de quién conteste antes, si una región caída se nota— sin
+    # depender de que la red se porte de una manera concreta el día que se
+    # ejecuta el check.
+
+    def _regiones_falsas(agentes_por_region, retrasos=None, fallan=(),
+                         orden_regiones=None):
+        """Un doble de las dos llamadas a la API que hace el descubrimiento.
+
+        `agentes_por_region` dice qué devuelve cada región, `retrasos` cuánto
+        tarda cada una, `fallan` cuáles revientan y `orden_regiones` en qué
+        orden las lista la API — que no promete ninguno. Devuelve un contexto
+        que al salir deja `cx` como estaba y que apunta, mientras corre,
+        cuántas llamadas hubo a la vez: es lo que distingue «va en paralelo» de
+        «va rápido porque la máquina iba bien ese día».
+        """
+        import contextlib
+        import threading as _threading
+
+        estado = {"a_la_vez": 0, "pico": 0, "orden_de_llegada": []}
+        candado = _threading.Lock()
+        originales = (cx.list_cx_locations, cx.list_cx_agents)
+
+        def locations_falso(_project):
+            return list(orden_regiones or agentes_por_region)
+
+        def agents_falso(_project, region):
+            with candado:
+                estado["a_la_vez"] += 1
+                estado["pico"] = max(estado["pico"], estado["a_la_vez"])
+            try:
+                time.sleep((retrasos or {}).get(region, 0.15))
+                if region in fallan:
+                    raise cx.ApiError(f"la región {region} no contestó", 503)
+                return [{"agentId": a["agentId"], "displayName": a["displayName"],
+                         "name": f"projects/p/locations/{region}/agents/{a['agentId']}"}
+                        for a in agentes_por_region[region]]
+            finally:
+                with candado:
+                    estado["a_la_vez"] -= 1
+                    estado["orden_de_llegada"].append(region)
+
+        @contextlib.contextmanager
+        def usar():
+            cx.list_cx_locations, cx.list_cx_agents = locations_falso, agents_falso
+            try:
+                yield estado
+            finally:
+                cx.list_cx_locations, cx.list_cx_agents = originales
+
+        return usar()
+
+    # Diecisiete regiones, como las que la API devuelve de verdad.
+    _DIECISIETE = [f"region-{i:02d}" for i in range(17)]
+
+    def las_regiones_se_preguntan_a_la_vez():
+        """En serie, las diecisiete sumaban 13-14 s medidos contra un proyecto
+        real, con el desplegable de agentes en «cargando…» todo ese rato. Son
+        independientes entre sí: ninguna necesita el resultado de otra.
+
+        Se mide el pico de llamadas simultáneas, no solo el reloj: un
+        descubrimiento que fuera rápido por casualidad —una máquina descansada,
+        una red buena— pasaría un check que solo mirase el tiempo.
+        """
+        vacias = {r: [] for r in _DIECISIETE}
+        with _regiones_falsas(vacias) as estado:
+            comienzo = time.perf_counter()
+            cx.list_cx_agents_everywhere("proyecto-de-mentira")
+            tardanza = time.perf_counter() - comienzo
+        en_serie = 0.15 * len(_DIECISIETE)
+        problemas = []
+        if estado["pico"] < 2:
+            problemas.append(f"nunca hubo dos regiones a la vez (pico {estado['pico']})")
+        if estado["pico"] > cx.REGIONES_A_LA_VEZ:
+            problemas.append(f"pico de {estado['pico']} llamadas a la vez, por "
+                             f"encima del límite {cx.REGIONES_A_LA_VEZ}")
+        if tardanza > en_serie / 2:
+            problemas.append(f"tardó {tardanza:.2f}s, que no baja de la mitad de "
+                             f"las {en_serie:.2f}s en serie")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Las diecisiete regiones del descubrimiento se preguntan a la "
+                    "vez, sin pasar del límite de concurrencia",
+                 las_regiones_se_preguntan_a_la_vez)
+
+    def el_orden_no_depende_de_quien_conteste_antes():
+        """Tres corridas del mismo estado tienen que dar exactamente la misma
+        lista, cambiando lo único que puede cambiar: quién contesta antes, y en
+        qué orden lista las regiones la API —que no promete ninguno—.
+
+        Si el orden lo pusiera quien contesta primero, el desplegable bailaría
+        entre recargas y dos lecturas del mismo estado dejarían de poder
+        compararse. Los homónimos son el caso que lo destapa: mismo
+        `displayName` en dos regiones, que es donde deja de bastar ordenar por
+        nombre y hace falta el desempate.
+
+        Las tres son necesarias, y se comprobó: con solo las dos primeras, el
+        check pasaba **con el desempate quitado** —el `sort` de Python es
+        estable y las respuestas se juntan por índice de región, así que el
+        orden de llegada ya no lo tocaba—. Una prueba que pasa con el defecto
+        dentro no prueba nada; la tercera corrida es la que lo caza.
+        """
+        agentes = {
+            "region-00": [{"agentId": "a3", "displayName": "Zeta"}],
+            "region-01": [{"agentId": "a1", "displayName": "misma"}],
+            "region-02": [{"agentId": "a2", "displayName": "Misma"}],
+            "region-03": [{"agentId": "a4", "displayName": "alfa"}],
+        }
+        rapido_primero = {"region-00": 0.02, "region-01": 0.05,
+                          "region-02": 0.10, "region-03": 0.15}
+        al_reves = {r: 0.17 - t for r, t in rapido_primero.items()}
+
+        with _regiones_falsas(agentes, rapido_primero) as uno:
+            unos, _ = cx.list_cx_agents_everywhere("proyecto-de-mentira")
+        with _regiones_falsas(agentes, al_reves) as otro:
+            otros, _ = cx.list_cx_agents_everywhere("proyecto-de-mentira")
+        with _regiones_falsas(agentes, rapido_primero,
+                              orden_regiones=list(reversed(list(agentes)))):
+            del_reves, _ = cx.list_cx_agents_everywhere("proyecto-de-mentira")
+
+        clave = lambda lista: [(a["displayName"], a["region"], a["agentId"])
+                               for a in lista]
+        problemas = []
+        if uno["orden_de_llegada"] == otro["orden_de_llegada"]:
+            problemas.append("las dos corridas contestaron en el mismo orden: la "
+                             "prueba no llegó a poner a prueba nada")
+        if clave(unos) != clave(otros):
+            problemas.append(f"según quién conteste antes: {clave(unos)} != "
+                             f"{clave(otros)}")
+        if clave(unos) != clave(del_reves):
+            problemas.append(f"según cómo liste las regiones la API: {clave(unos)} "
+                             f"!= {clave(del_reves)}")
+        esperado = [("alfa", "region-03", "a4"), ("misma", "region-01", "a1"),
+                    ("Misma", "region-02", "a2"), ("Zeta", "region-00", "a3")]
+        if clave(unos) != esperado:
+            problemas.append(f"orden inesperado: {clave(unos)}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El orden del descubrimiento no depende de qué región "
+                    "conteste antes",
+                 el_orden_no_depende_de_quien_conteste_antes)
+
+    def una_region_caida_se_nombra_y_no_tumba_el_resto():
+        """Antes se hacía `continue` y el agente que vivía en esa región
+        desaparecía del desplegable como si no existiera — y lo que se hace
+        entonces es crear otro. Con hilos es todavía más fácil que ocurra: una
+        excepción que no se recoge se queda dentro del futuro sin llegar a
+        ningún sitio.
+
+        Se comprueba de punta a punta, hasta el sobre que recibe el panel: que
+        el pipeline lo cuente en el log y lo pase en `data` es lo que separa un
+        aviso de un dato que se queda en una capa intermedia.
+        """
+        agentes = {"region-00": [{"agentId": "a1", "displayName": "Vive"}],
+                   "region-01": [{"agentId": "a2", "displayName": "Tambien"}],
+                   "region-02": []}
+        with _regiones_falsas(agentes, fallan={"region-01"}):
+            encontrados, caidas = cx.list_cx_agents_everywhere("proyecto-de-mentira")
+            problemas = []
+            if [a["agentId"] for a in encontrados] != ["a1"]:
+                problemas.append(f"perdió lo que sí contestó: {encontrados}")
+            if [c["region"] for c in caidas] != ["region-01"]:
+                problemas.append(f"no nombra la región caída: {caidas}")
+
+            # Y el sobre que llega al panel, con Firestore doblado: el
+            # descubrimiento no puede depender del registro para avisar.
+            class _SinRegistro:
+                pass
+
+            originales = (store.get_project_mapping, store.list_agent_mappings)
+            store.get_project_mapping = lambda *a, **k: (_ for _ in ()).throw(
+                store.MappingNotFound("sin vincular"))
+            store.list_agent_mappings = lambda *a, **k: []
+            try:
+                sobre = pipeline.discover("proyecto-de-mentira",
+                                          client=_SinRegistro())
+            finally:
+                store.get_project_mapping, store.list_agent_mappings = originales
+
+            fuera = sobre["data"].get("regiones_sin_contestar")
+            if not fuera or fuera[0]["region"] != "region-01":
+                problemas.append(f"el sobre no lo pasa al panel: {fuera}")
+            if not any("region-01" in l for l in sobre["log"]):
+                problemas.append(f"el log no lo dice: {sobre['log']}")
+            return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Una región que no contesta se nombra y no tumba el "
+                    "descubrimiento entero",
+                 una_region_caida_se_nombra_y_no_tumba_el_resto)
+
+    def si_no_contesta_ninguna_region_el_descubrimiento_falla():
+        """«Cero agentes» y «no pude preguntar» no son lo mismo.
+
+        Cuando fallan todas, el problema no es una región: son las
+        credenciales, el permiso o la red. Devolver una lista vacía con los
+        fallos al lado se lee como un proyecto sin agentes, y un proyecto sin
+        agentes no parece que tenga nada que arreglar.
+        """
+        agentes = {r: [] for r in _DIECISIETE}
+        with _regiones_falsas(agentes, fallan=set(_DIECISIETE)):
+            try:
+                encontrados, caidas = cx.list_cx_agents_everywhere("proyecto-de-mentira")
+                return False, (f"devolvió {len(encontrados)} agentes y "
+                               f"{len(caidas)} caídas en vez de fallar")
+            except cx.ApiError as error:
+                return "no contestó" in str(error), str(error)[:90]
+
+    runner.check(0, "Si no contesta ninguna región, el descubrimiento falla en vez "
+                    "de decir que el proyecto no tiene agentes",
+                 si_no_contesta_ninguna_region_el_descubrimiento_falla)
+
 
 # ── Nivel 1 · Solo lectura ───────────────────────────────────────────────────
 

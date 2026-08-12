@@ -86,10 +86,12 @@ Uso:
 
 import argparse
 import ast
+import json
 import os
 import shutil
 import signal
 import socket
+import struct
 import subprocess
 import sys
 import tempfile
@@ -632,6 +634,242 @@ def nivel_0(runner):
 
     runner.check(0, "Sin credenciales ADC responde con un error claro, no con "
                     "una traza cruda", sin_credenciales_error_claro_y_no_una_traza)
+
+    # ── El registro según ocurre ─────────────────────────────────────────────
+    #
+    # Cuatro comprobaciones sobre el **transporte**, no sobre el trabajo: si las
+    # líneas salen por la conexión según ocurren o de golpe al final, si el
+    # final se marca de forma explícita, si quien no pide el flujo sigue
+    # recibiendo lo de siempre, y qué pasa cuando el que escucha se va.
+    #
+    # El paso se sustituye por uno lento de mentira con una precarga, dentro del
+    # servidor real. Es a propósito: con el Paso 1 de verdad haría falta un
+    # agente, credenciales y una red, y ninguna de las tres tiene nada que ver
+    # con lo que aquí se mide — pero las tres pueden hacer fallar el check por
+    # motivos que no son el suyo.
+    #
+    # Y por un socket de verdad, con el servidor arrancado como lo arranca el
+    # contenedor (`python act/server_cloudrun.py`, que es el `CMD` del
+    # Dockerfile). Un cliente de pruebas de Flask no atraviesa el servidor WSGI,
+    # que es justo donde vive el riesgo: acumular la respuesta hasta el final es
+    # lo normal en un servidor HTTP, y lo que hace falta demostrar es que este
+    # no lo hace.
+
+    LINEAS_FALSAS, PAUSA_FALSA = 4, 0.5
+    # Lo imprime el paso de mentira **después** de emitir su última línea, y es
+    # lo único que demuestra que llegó al final. Mirar la última línea del
+    # registro no vale: se imprime antes de entregarla, así que aparece igual
+    # aunque el paso se quede colgado justo después de imprimirla.
+    MARCA_PASO_ENTERO = "[paso] terminado entero"
+
+    def _precarga_paso_lento(revienta_en=None):
+        """Sustituye el Paso 1 por uno que emite N líneas con pausas."""
+        return (
+            f"import sys, time\nsys.path.insert(0, {str(REPO_ROOT)!r})\n"
+            "from act import act_cx_resources_deploy_cloudrun as pipeline\n"
+            "from act import server_cloudrun\n"
+            "def _lento(project, agent_id, client=None, gh=None, on_log=None):\n"
+            "    log = []\n"
+            f"    for i in range({LINEAS_FALSAS}):\n"
+            f"        time.sleep({PAUSA_FALSA})\n"
+            "        pipeline._emit(log, on_log, '· línea %d' % (i + 1))\n"
+            + (f"        if i + 1 == {revienta_en}:\n"
+               "            raise pipeline.PipelineError('reventón a propósito')\n"
+               if revienta_en else "")
+            + f"    print({MARCA_PASO_ENTERO!r}, flush=True)\n"
+            "    return pipeline.step_result('ok', log, {'total_cx': 42})\n"
+            "server_cloudrun.pipeline.step_1_inventory = _lento\n"
+        )
+
+    DESTINO_FALSO = {"project": "proyecto-de-mentira", "agent": "agente-de-mentira"}
+
+    def _leer_flujo(respuesta):
+        """Cada evento con el segundo en que llegó, desde que salió la petición."""
+        comienzo = time.time()
+        eventos, bloque = [], ""
+        for trozo in respuesta.iter_content(chunk_size=1, decode_unicode=True):
+            bloque += trozo if isinstance(trozo, str) else trozo.decode("utf-8")
+            while "\n\n" in bloque:
+                crudo, bloque = bloque.split("\n\n", 1)
+                nombre = datos = None
+                for linea in crudo.split("\n"):
+                    if linea.startswith("event:"):
+                        nombre = linea[6:].strip()
+                    elif linea.startswith("data:"):
+                        datos = json.loads(linea[5:].strip())
+                if nombre:
+                    eventos.append((round(time.time() - comienzo, 2), nombre, datos))
+        return eventos
+
+    def el_registro_sale_segun_ocurre_y_no_al_final():
+        """La razón de existir del canal. Se mide **cuándo** llega cada línea,
+        que es lo único que distingue un flujo de una respuesta normal: las dos
+        acaban trayendo lo mismo."""
+        with Servidor(precarga=_precarga_paso_lento()) as servidor:
+            if MARCA_PRECARGA not in servidor.log():
+                return False, "la precarga no se aplicó: el check no probaría nada"
+            respuesta = requests.post(
+                servidor.url("/step/1"), json=DESTINO_FALSO, stream=True,
+                headers={"Accept": "text/event-stream"}, timeout=120)
+            tipo = respuesta.headers.get("Content-Type", "")
+            trocea = respuesta.headers.get("Transfer-Encoding", "")
+            eventos = _leer_flujo(respuesta)
+
+        registros = [e for e in eventos if e[1] == "log"]
+        total = eventos[-1][0] if eventos else 0
+        esperado = LINEAS_FALSAS * PAUSA_FALSA
+        problemas = []
+        if "text/event-stream" not in tipo:
+            problemas.append(f"el tipo no es de flujo: {tipo!r}")
+        if trocea != "chunked":
+            problemas.append(f"no va troceada, así que se acumula: {trocea!r}")
+        if len(registros) != LINEAS_FALSAS:
+            problemas.append(f"llegaron {len(registros)} líneas de {LINEAS_FALSAS}")
+        elif registros[0][0] > esperado / 2:
+            # La primera línea sale a los 0,5 s de un paso de 2 s. Si llegara
+            # pasada la mitad, es que alguien las estaba acumulando.
+            problemas.append(f"la primera línea tardó {registros[0][0]}s de "
+                             f"{total}s: llegan al final, no según ocurren")
+        elif registros[-1][0] - registros[0][0] < PAUSA_FALSA:
+            problemas.append(f"las {len(registros)} líneas llegaron juntas, en "
+                             f"{registros[-1][0] - registros[0][0]}s")
+        return not problemas, (" · ".join(problemas) or
+                               f"llegadas {[e[0] for e in registros]} de {total}s")
+
+    runner.check(0, "El registro de un paso largo sale por la conexión según "
+                    "ocurre, no acumulado hasta el final",
+                 el_registro_sale_segun_ocurre_y_no_al_final)
+
+    def el_evento_de_fin_trae_el_sobre_entero():
+        """Un flujo puede morir a mitad, y media respuesta no puede leerse como
+        una respuesta. El evento de fin es la única marca de que terminó, y
+        lleva dentro el sobre completo y el código HTTP que le tocaba — las
+        cabeceras salieron antes de empezar, así que ahí siempre pone 200."""
+        problemas = []
+        for revienta, http_esperado, estado in ((None, 200, "ok"), (2, 400, "error")):
+            with Servidor(precarga=_precarga_paso_lento(revienta)) as servidor:
+                respuesta = requests.post(
+                    servidor.url("/step/1"), json=DESTINO_FALSO, stream=True,
+                    headers={"Accept": "text/event-stream"}, timeout=120)
+                eventos = _leer_flujo(respuesta)
+            finales = [e for e in eventos if e[1] == "fin"]
+            caso = "sin fallo" if revienta is None else "con fallo a mitad"
+            if len(finales) != 1:
+                problemas.append(f"{caso}: {len(finales)} eventos de fin")
+                continue
+            if eventos[-1][1] != "fin":
+                problemas.append(f"{caso}: el de fin no es el último")
+            datos = finales[0][2] or {}
+            sobre_final = datos.get("sobre") or {}
+            if datos.get("http") != http_esperado:
+                problemas.append(f"{caso}: http={datos.get('http')} "
+                                 f"en vez de {http_esperado}")
+            if sobre_final.get("status") != estado:
+                problemas.append(f"{caso}: status={sobre_final.get('status')}")
+            if not all(c in sobre_final for c in ("status", "log", "data")):
+                problemas.append(f"{caso}: al sobre le faltan campos: {sobre_final}")
+            # Y el registro entero dentro, no solo lo que quedaba por mandar.
+            emitidas = [e[2]["linea"] for e in eventos if e[1] == "log"]
+            if revienta is None and sobre_final.get("log") != emitidas:
+                problemas.append(f"{caso}: el log del sobre no es el que se "
+                                 f"emitió: {sobre_final.get('log')} vs {emitidas}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "El evento de fin trae el sobre entero y el código HTTP que "
+                    "le tocaba, también cuando el paso falla",
+                 el_evento_de_fin_trae_el_sobre_entero)
+
+    def sin_pedir_el_flujo_contesta_como_siempre():
+        """El sobre no cambia. Quien no negocie el flujo —`curl`, un cliente
+        viejo, el propio panel cuando solo quiere el resultado— tiene que
+        recibir exactamente lo de antes: un JSON al final, con el mismo
+        contenido que el evento de fin del flujo."""
+        with Servidor(precarga=_precarga_paso_lento()) as servidor:
+            de_una_pieza = requests.post(servidor.url("/step/1"),
+                                         json=DESTINO_FALSO, timeout=120)
+            en_flujo = requests.post(
+                servidor.url("/step/1"), json=DESTINO_FALSO, stream=True,
+                headers={"Accept": "text/event-stream"}, timeout=120)
+            eventos = _leer_flujo(en_flujo)
+        problemas = []
+        tipo = de_una_pieza.headers.get("Content-Type", "")
+        if "application/json" not in tipo:
+            problemas.append(f"sin Accept contesta {tipo!r}")
+        if de_una_pieza.status_code != 200:
+            problemas.append(f"HTTP {de_una_pieza.status_code}")
+        final = next((e[2] for e in eventos if e[1] == "fin"), {})
+        if de_una_pieza.json() != (final or {}).get("sobre"):
+            problemas.append(f"los dos caminos no devuelven lo mismo: "
+                             f"{de_una_pieza.json()} vs {(final or {}).get('sobre')}")
+        return not problemas, " · ".join(problemas)
+
+    runner.check(0, "Sin pedir el flujo, la respuesta es la misma de siempre: un "
+                    "JSON al final con el mismo sobre",
+                 sin_pedir_el_flujo_contesta_como_siempre)
+
+    def si_el_que_escucha_se_va_el_paso_sigue_y_el_servidor_tambien():
+        """Colgar el teléfono a mitad no puede tumbar el servidor ni abortar la
+        escritura en curso.
+
+        Es el otro lado de la marca de fin: quien llama no sabe si se completó
+        —y el panel lo dice así—, pero del lado del servidor el paso **sí**
+        termina, y hay que poder comprobar cuál de las dos cosas ocurrió. Se ve
+        en el log del contenedor: las líneas posteriores al corte siguen
+        apareciendo ahí.
+
+        **Se corta con un RST, no cerrando por las buenas**, y eso es lo que
+        hace que la prueba pruebe algo. Con un `close()` normal el sistema sigue
+        aceptando escrituras en el socket un rato largo, así que el servidor
+        vacía la cola contra un buffer que ya no lee nadie y todo parece ir
+        bien. Se comprobó: con la cola limitada a un elemento —el defecto que
+        este check dice cazar— la versión educada pasaba igual. Con el RST, la
+        escritura siguiente falla de verdad, el generador de la respuesta se
+        cierra, y solo entonces se ve si el paso puede terminar sin que nadie
+        escuche.
+        """
+        with Servidor(precarga=_precarga_paso_lento()) as servidor:
+            cuerpo = json.dumps(DESTINO_FALSO).encode()
+            conexion = socket.create_connection(("127.0.0.1", servidor.puerto),
+                                                timeout=60)
+            conexion.sendall(
+                b"POST /step/1 HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+                b"Accept: text/event-stream\r\nContent-Type: application/json\r\n"
+                b"Content-Length: " + str(len(cuerpo)).encode() + b"\r\n\r\n" + cuerpo)
+            recibido = b""
+            while b"nea 1" not in recibido:
+                trozo = conexion.recv(4096)
+                if not trozo:
+                    break
+                recibido += trozo
+            # `SO_LINGER` a cero: `close()` manda RST en vez de cerrar por las
+            # buenas. Es lo que ocurre cuando se cierra el portátil de golpe.
+            conexion.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER,
+                                struct.pack("ii", 1, 0))
+            conexion.close()
+
+            time.sleep(LINEAS_FALSAS * PAUSA_FALSA + 2)
+            registro = servidor.log()
+            sigue_vivo = servidor.vivo()
+            # Y sigue atendiendo, que es lo que de verdad importa después.
+            salud = requests.get(servidor.url("/health"), timeout=10).status_code
+
+        problemas = []
+        if b"nea 1" not in recibido:
+            problemas.append("no llegó a leerse ninguna línea antes de cortar: "
+                             "el corte no se produjo a mitad de nada")
+        if not sigue_vivo:
+            problemas.append("el servidor se murió cuando el cliente se fue")
+        if salud != 200:
+            problemas.append(f"dejó de atender: /health devolvió {salud}")
+        if MARCA_PASO_ENTERO not in registro:
+            problemas.append("el paso no llegó al final después de que el "
+                             "cliente se fuera: se quedó a medias con él")
+        return not problemas, (" · ".join(problemas) or
+                               f"vivo={sigue_vivo} salud={salud}")
+
+    runner.check(0, "Si quien escucha el flujo se va, el paso termina igual y el "
+                    "servidor sigue atendiendo",
+                 si_el_que_escucha_se_va_el_paso_sigue_y_el_servidor_tambien)
 
     # ── La GitHub App, con la API real ───────────────────────────────────────
 

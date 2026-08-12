@@ -2337,8 +2337,14 @@ def discover(project=None, client=None, on_log=None):
 
     registrados = {m["agent_id"]: m for m in
                    store.list_agent_mappings(firestore_client, project)}
+    # El cliente pregunta a todas las regiones de CX a la vez y dice cuáles no
+    # contestaron. Esa lista viaja hasta el panel en vez de quedarse aquí: un
+    # desplegable al que le falta un agente porque su región no respondió es
+    # indistinguible de uno completo, y quien lo mira concluye que el agente no
+    # existe.
+    encontrados, regiones_caidas = cx.list_cx_agents_everywhere(project)
     agentes = []
-    for agente in cx.list_cx_agents_everywhere(project):
+    for agente in encontrados:
         registro = registrados.get(agente["agentId"])
         agentes.append({
             **agente,
@@ -2362,12 +2368,17 @@ def discover(project=None, client=None, on_log=None):
           f"✓ {len(agentes)} agentes · repositorio del proyecto: "
           f"{proyecto['repo'] if proyecto else 'sin vincular'} · "
           f"{sum(1 for a in agentes if a['registrado'])} dados de alta")
+    for caida in regiones_caidas:
+        _emit(log, on_log,
+              f"⚠ la región {caida['region']} no contestó: {caida['error']} · "
+              f"si falta un agente, puede vivir ahí")
 
     return step_result("ok", log, {
         "proyectos": [], "agentes": agentes,
         "repo": proyecto["repo"] if proyecto else None,
         "rama_principal": proyecto["rama_principal"] if proyecto else None,
         "ninguno_vinculado": proyecto is None,
+        "regiones_sin_contestar": regiones_caidas,
     })
 
 

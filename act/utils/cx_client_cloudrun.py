@@ -26,6 +26,7 @@ Tres diferencias de fondo con el original:
 """
 
 import base64
+import concurrent.futures
 import threading
 
 import google.auth
@@ -104,13 +105,24 @@ def get_token(force_refresh=False):
 
     Nunca se registra en ningún log: los logs de Cloud Run se comparten entre
     invocaciones del mismo servicio.
+
+    El refresco va bajo candado, y se vuelve a comprobar dentro. Desde que el
+    descubrimiento pregunta a varias regiones **a la vez**
+    (`list_cx_agents_everywhere`), varios hilos comparten este mismo objeto de
+    credenciales: `google.auth` no lo protege por su cuenta, así que sin el
+    candado dos hilos pueden escribirle el token al mismo tiempo, y sin la
+    segunda comprobación los seis del pool pagan seis refrescos seguidos por un
+    token que ya había renovado el primero.
     """
     credentials = _load_credentials()
     if force_refresh or not credentials.valid:
-        try:
-            credentials.refresh(google.auth.transport.requests.Request())
-        except Exception as exc:
-            raise AuthError(f"No se pudo refrescar el token ADC: {exc}") from exc
+        with _credentials_lock:
+            if force_refresh or not credentials.valid:
+                try:
+                    credentials.refresh(google.auth.transport.requests.Request())
+                except Exception as exc:
+                    raise AuthError(
+                        f"No se pudo refrescar el token ADC: {exc}") from exc
     return credentials.token
 
 
@@ -511,23 +523,87 @@ def list_cx_agents(project, region):
     ]
 
 
-def list_cx_agents_everywhere(project):
+# Cuántas regiones se preguntan a la vez. Ni una (que es lo que había) ni las
+# diecisiete: la cuota de CX que dispara el 429 es **por minuto**, y lanzar las
+# diecisiete de golpe convierte en un pico lo que antes era un goteo. Con seis
+# el descubrimiento cabe en unas tres tandas y el pico se queda muy por debajo
+# de la cuota. `api_request` reintenta ante un 429, pero un reintento cuesta
+# segundos: acotar es más barato que recuperarse.
+REGIONES_A_LA_VEZ = 6
+
+
+def list_cx_agents_everywhere(project, a_la_vez=REGIONES_A_LA_VEZ):
     """Agentes de un proyecto en todas las regiones, con la región de cada uno.
+
+    Devuelve `(agentes, regiones_sin_contestar)`.
 
     El panel ofrece un desplegable de agentes por proyecto, y un agente puede
     vivir en cualquier región. Recorrer solo una dejaría fuera agentes reales
-    sin decirlo.
+    sin decirlo, y la API de CX no tiene ningún listado que cruce regiones: su
+    llamada es siempre proyecto + región.
+
+    **En paralelo, y no en serie.** Son diecisiete llamadas independientes
+    entre sí y ninguna necesita el resultado de la anterior. En serie sumaban
+    13-14 s medidos contra un proyecto real, con el desplegable en «cargando…»
+    todo ese rato. La concurrencia va acotada — ver `REGIONES_A_LA_VEZ`.
+
+    **El orden no depende de quién conteste antes.** Lo fija entera la clave de
+    ordenación: nombre, y los empates los rompen la región y el identificador.
+    Sin ese desempate, dos agentes con el mismo `displayName` quedan a merced
+    de en qué orden liste las regiones la API —que no promete ninguno— y el
+    desplegable baila entre recargas. Dos lecturas del mismo estado tienen que
+    poder compararse.
+
+    **Una región que falla se nombra, no se calla.** Antes se hacía `continue`
+    y el agente que vivía ahí desaparecía del desplegable como si no existiera
+    — y lo que se hace entonces es crear otro. Se devuelve lo encontrado, con
+    la lista de las que no contestaron, porque un proyecto normalmente tiene
+    regiones donde la API ni siquiera está habilitada: tumbar el descubrimiento
+    entero por eso lo dejaría inservible para todo el mundo.
+
+    **Salvo que fallen todas**, que entonces sí sube el error. Si ninguna
+    contesta, el problema no es una región: son las credenciales, el permiso o
+    la red. Devolver «cero agentes» con la lista de fallos al lado se lee como
+    un proyecto vacío, y un proyecto vacío no tiene nada que arreglar.
     """
-    found = []
-    for region in list_cx_locations(project):
-        try:
-            for agent in list_cx_agents(project, region):
-                found.append({**agent, "region": region})
-        except ApiError:
-            # Una región que rechaza el LIST no invalida el resto: puede ser
-            # una región donde el proyecto no tiene la API habilitada.
-            continue
-    return sorted(found, key=lambda item: item["displayName"].lower())
+    regiones = list_cx_locations(project)
+    if not regiones:
+        return [], []
+
+    # Una casilla por región. Cada hilo escribe solo en la suya, así que juntar
+    # los resultados no necesita candado ni depende del orden de llegada — lo
+    # que la lista de `caidas` sí necesita, y por eso se toca desde el hilo
+    # principal, dentro del bucle de `as_completed`.
+    por_region = [[] for _ in regiones]
+    caidas = []
+    primer_error = None
+
+    with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(a_la_vez, len(regiones)),
+            thread_name_prefix="cx-descubrimiento") as pool:
+        futuros = {pool.submit(list_cx_agents, project, region): (indice, region)
+                   for indice, region in enumerate(regiones)}
+        for futuro in concurrent.futures.as_completed(futuros):
+            indice, region = futuros[futuro]
+            try:
+                por_region[indice] = [{**agente, "region": region}
+                                      for agente in futuro.result()]
+            except Exception as error:      # noqa: BLE001 — se reporta, no se traga
+                # Amplio a propósito: dentro de un hilo, la excepción que no se
+                # recoge aquí no sube a ningún sitio — se queda en el futuro y
+                # el descubrimiento devuelve una lista corta sin decir por qué.
+                if primer_error is None:
+                    primer_error = error
+                caidas.append({"region": region,
+                               "error": f"{type(error).__name__}: {error}"})
+
+    if len(caidas) == len(regiones):
+        raise primer_error
+
+    encontrados = [agente for bloque in por_region for agente in bloque]
+    encontrados.sort(key=lambda item: (item["displayName"].lower(),
+                                       item["region"], item["agentId"]))
+    return encontrados, sorted(caidas, key=lambda item: item["region"])
 
 
 # ── Secret Manager ───────────────────────────────────────────────────────────
