@@ -1132,6 +1132,9 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
     # para contarlo: si un contenedor va a desaparecer de producción, esto es lo
     # único que lo dice antes de que pase, y el Paso 1 es el sitio donde saberlo
     # todavía no cuesta nada.
+    store.save_commit_visto(contexto.store, project, agent_id,
+                            repositorio["commit"])
+
     comparacion = _contenedores_cambiados(contexto, inventario, on_log, log)
     describir_lo_retirado(comparacion["borrados"], grupos["solo_repo"])
     for borrado in comparacion["borrados"]:
@@ -1275,19 +1278,8 @@ def _commit_que_dejo_el_pipeline(contexto):
     recién estrenado, o un historial podado. Sin referencia no se avisa: un
     aviso que salta sin saber es ruido, y el ruido se aprende a ignorar.
     """
-    try:
-        ejecuciones = store.list_runs(contexto.store, contexto.project,
-                                      contexto.agent_id)
-    except Exception:
-        # El historial es una ayuda, no un requisito: si Firestore no contesta,
-        # el paso sigue. Perder el aviso es peor que nada; parar el deploy por
-        # no poder darlo sería mucho peor.
-        return None
-    for ejecucion in ejecuciones:
-        commit = (ejecucion.get("data") or {}).get("commit")
-        if commit:
-            return commit
-    return None
+    return store.get_commit_visto(contexto.store, contexto.project,
+                                  contexto.agent_id)
 
 
 def _mensaje_del_paso_2(traidos, borrados, agent_id):
@@ -1423,6 +1415,8 @@ def step_2_pull_to_repo(project, agent_id, traer, borrar=(), client=None,
                 huella_cx=traido["huella"],
             )
 
+        store.save_commit_visto(contexto.store, project, agent_id,
+                                commit or repositorio["commit"])
         _emit(log, on_log,
               "Repositorio actualizado — haz `git pull` en local antes de "
               "seguir trabajando")
@@ -1567,10 +1561,12 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
         "sin_version": sin_version,
         "conflictos": conflictos,
     })
+    cabeza = contexto.gh.branch_head(contexto.rama)
+    store.save_commit_visto(contexto.store, project, agent_id, cabeza)
     store.record_run(contexto.store, project, agent_id, 3,
                      resultado["status"], log,
                      {"aplicadas": resultado["data"]["aplicadas"],
-                      "commit": contexto.gh.branch_head(contexto.rama)})
+                      "commit": cabeza})
     return resultado
 
 

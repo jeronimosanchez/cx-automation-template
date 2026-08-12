@@ -203,6 +203,57 @@ def save_agent_mapping(client, project, agent_id, region, rama,
     return documento
 
 
+def save_commit_visto(client, project, agent_id, commit):
+    """Dónde dejó el pipeline la rama de este agente.
+
+    Sirve para una sola pregunta, en el Paso 3: la rama, ¿se ha movido por
+    fuera? Cada paso vuelve a preguntar su punta, y eso está bien —el Paso 2
+    escribe commits y el Paso 3 tiene que ver lo que se acaba de traer—. Lo
+    que hay que distinguir es que avance por el pipeline de que avance por un
+    empujón de otro: en el segundo caso el plan incluye cambios que quien mira
+    el panel no ha visto nunca.
+
+    Va en el documento del agente y **no en el historial de ejecuciones**. El
+    historial es el rastro forense de lo que se escribió, y se poda: llenarlo
+    con lecturas del Paso 1 —que se corre muchas veces y no escribe nada—
+    echaría de él justamente los registros de escritura que existe para
+    guardar. Esto es estado, no contabilidad: un campo que se pisa.
+
+    Nunca propaga un fallo, por lo mismo que `record_run`: sin este dato se
+    pierde un aviso, y perder un aviso es mucho menos grave que convertir una
+    operación correcta en un error.
+    """
+    if not commit:
+        return False
+    try:
+        client.collection(COL_AGENTES).document(_doc_id(project, agent_id)).set(
+            {"ultimo_commit_visto": commit, "commit_visto_en": _now()},
+            merge=True)
+        return True
+    except Exception as error:
+        print(f"[auditoría] No se pudo anotar el commit visto de {agent_id}: "
+              f"{error}")
+        return False
+
+
+def get_commit_visto(client, project, agent_id):
+    """El último commit que el pipeline vio o dejó, o `None` si no hay ninguno.
+
+    `None` no se interpreta: sin referencia no se avisa. Un agente recién
+    vinculado no tiene historia, y un aviso que salta sin saber es ruido — y
+    el ruido enseña a ignorar el aviso, que es la única forma de que un aviso
+    no sirva para nada.
+    """
+    try:
+        snapshot = (client.collection(COL_AGENTES)
+                    .document(_doc_id(project, agent_id)).get())
+        if not snapshot.exists:
+            return None
+        return (snapshot.to_dict() or {}).get("ultimo_commit_visto")
+    except Exception:
+        return None
+
+
 def get_agent_mapping(client, project, agent_id):
     """Todo lo que define el destino de un agente, de sus dos documentos.
 
