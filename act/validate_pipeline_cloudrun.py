@@ -1804,6 +1804,33 @@ def nivel_0(runner):
             problemas.append(f"nombres: esperado {esperado} · real {real}")
         if rutas != rutas_esperadas:
             problemas.append(f"rutas: esperado {rutas_esperadas} · real {rutas}")
+
+        # Tercera fuente: el registro que el pipeline lleva de cada resource
+        # que escribe. Es la única memoria que sobrevive al caso peor —borrado
+        # en CX, versiones borradas con él, y el archivo reescrito con el
+        # identificador nuevo que CX asignó al recrearlo—. Sin ella el aviso
+        # sale con el identificador crudo, que no le dice nada a nadie.
+        class _ContextoDePrueba:
+            store, project, agent_id = object(), "p", "a"
+
+        registros = {("playbook", "solo-en-firestore"): {"display_name": "Compra"}}
+        original = pipeline.store.get_resource_record
+        pipeline.store.get_resource_record = (
+            lambda cliente, proyecto, agente, tipo, cx_id:
+            registros.get((tipo, cx_id)))
+        try:
+            huerfanos = [
+                {"tipo": "playbook", "cx_id": "solo-en-firestore", "display_name": ""},
+                {"tipo": "playbook", "cx_id": "en-ningun-sitio", "display_name": ""},
+            ]
+            pipeline.describir_lo_retirado(huerfanos, [], _ContextoDePrueba())
+        finally:
+            pipeline.store.get_resource_record = original
+        de_firestore = [h["display_name"] for h in huerfanos]
+        if de_firestore != ["Compra", ""]:
+            problemas.append(
+                f"registro del pipeline: esperado ['Compra', ''] · real {de_firestore}")
+
         return not problemas, " · ".join(problemas) or "nombres y rutas correctos"
 
     runner.check(0, "Lo retirado de producción dice su nombre y si su archivo "

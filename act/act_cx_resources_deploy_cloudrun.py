@@ -544,7 +544,7 @@ def es_nativo(tipo, item):
 TIPOS_FUERA_DEL_REPARTO = ("version", "environment")
 
 
-def describir_lo_retirado(borrados, solo_repo):
+def describir_lo_retirado(borrados, solo_repo, contexto=None):
     """Dice cómo se llama, y si su archivo sigue vivo, lo que producción sirve
     y el borrador ya no tiene.
 
@@ -558,9 +558,19 @@ def describir_lo_retirado(borrados, solo_repo):
     118a981f7638»: exacto e inútil, porque nadie decide sobre un identificador.
 
     Solo rellena el nombre que falta: si la versión lo dio, ese gana — es el de
-    lo que producción sirve de verdad. Y si tampoco hay archivo —borrado en los
-    dos sitios— se queda el identificador: es lo único que sobrevive, e
-    inventar un nombre sería peor que no darlo.
+    lo que producción sirve de verdad.
+
+    Y hay una tercera fuente, que es la que salva el caso peor. Borrar en la
+    consola de CX y dejar el archivo hace que el Paso 3 recree el resource con
+    un identificador **nuevo**, y que escriba ese identificador nuevo en la
+    cabecera del archivo. A partir de ahí el viejo no está en ningún sitio: ni
+    en CX, ni en sus versiones, ni en el archivo que antes lo describía. Pero
+    el pipeline lleva un registro de cada resource que escribe, con su nombre,
+    y ese registro no se borra con nada de eso. Es la única memoria de cómo se
+    llamaba lo que producción sigue sirviendo.
+
+    Si tampoco ahí hay nada —un resource que el pipeline nunca escribió— se
+    queda el identificador: inventar un nombre sería peor que no darlo.
 
     **La ruta.** Es la que decide qué va a pasar después, y son dos finales
     opuestos. Si el archivo sigue en el repositorio, el Paso 3 vuelve a crear
@@ -581,6 +591,17 @@ def describir_lo_retirado(borrados, solo_repo):
             (borrado.get("tipo"), borrado.get("cx_id"))) or {}
         if not borrado.get("display_name"):
             borrado["display_name"] = archivo.get("display_name", "")
+        if not borrado.get("display_name") and contexto is not None:
+            # Nunca propaga un fallo: sin este nombre el aviso sale con el
+            # identificador, que es feo pero cierto. Parar el Paso 1 porque
+            # Firestore no conteste sería cambiar un aviso pobre por ninguno.
+            try:
+                registro = store.get_resource_record(
+                    contexto.store, contexto.project, contexto.agent_id,
+                    borrado.get("tipo"), borrado.get("cx_id")) or {}
+                borrado["display_name"] = registro.get("display_name") or ""
+            except Exception:
+                pass
         # `None` es «tampoco está en el repositorio», que es una respuesta, no
         # un dato que falte: es la diferencia entre un borrado completo y uno
         # que el Paso 3 va a deshacer.
@@ -1136,7 +1157,8 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
                             repositorio["commit"])
 
     comparacion = _contenedores_cambiados(contexto, inventario, on_log, log)
-    describir_lo_retirado(comparacion["borrados"], grupos["solo_repo"])
+    describir_lo_retirado(comparacion["borrados"], grupos["solo_repo"],
+                          contexto)
     for borrado in comparacion["borrados"]:
         _emit(log, on_log,
               f"⚠ {borrado['tipo']} «{borrado['display_name'] or borrado['cx_id']}» "
