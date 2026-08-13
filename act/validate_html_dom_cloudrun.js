@@ -1823,8 +1823,10 @@ const escenarios = [
 
     const problemas = [];
     if (!politica) problemas.push('con un fantasma en la tabla no sale la política de borrado');
-    if (!/identificador nuevo/i.test(textoPolitica))
-      problemas.push('la política no avisa de que el Paso 3 lo recrearía con otro id');
+    // Y no repite el diagnóstico de la fila: lo hizo, y decir lo mismo en dos
+    // sitios obliga a leer dos veces para descubrir que es una sola cosa.
+    if (/se borró en la consola/i.test(textoPolitica))
+      problemas.push('la política repite el diagnóstico que ya da la fila');
     if (!/repositorio \(GitHub\)/.test(textoPolitica))
       problemas.push('la política no dice dónde se elimina primero');
     if (porques.length !== 2)
