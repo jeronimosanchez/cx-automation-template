@@ -100,6 +100,18 @@ def _now():
     return datetime.now(timezone.utc)
 
 
+def proyecto_del_servidor():
+    """En qué proyecto GCP corre este servidor.
+
+    Lo usa el Descubrimiento para no ofrecerse a sí mismo como destino: ahí
+    viven Cloud Run y Firestore, no agentes, y el pipeline nunca despliega
+    sobre el proyecto donde vive. Se pregunta en cada llamada y no se guarda
+    en una constante del módulo, porque en Cloud Run la variable de entorno
+    llega al arrancar y una constante evaluada antes se quedaría vacía.
+    """
+    return os.environ.get("FIRESTORE_PROJECT") or ""
+
+
 def get_client(firestore_project=None):
     """Cliente de Firestore del proyecto del propio servidor.
 

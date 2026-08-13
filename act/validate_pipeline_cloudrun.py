@@ -2152,6 +2152,51 @@ def nivel_0(runner):
                     "que no ha subido, lo que sigue vivo en CX y lo que no existe",
                  el_paso_2_solo_borra_restos)
 
+    def el_descubrimiento_no_se_ofrece_a_si_mismo():
+        """0.19c — el proyecto donde corre el servidor no es un destino.
+
+        Ahí viven Cloud Run y Firestore, no agentes, y el pipeline nunca
+        despliega sobre el proyecto donde vive. Ofrecerlo en el desplegable era
+        ruido que solo se descubría eligiéndolo y encontrando la lista vacía.
+
+        Se comprueba **llamando**, no leyendo el código: la primera versión de
+        esta prueba buscaba `!= propio` en la fuente y pasaba con el filtro
+        quitado, porque otra línea seguía nombrando la variable. Una prueba que
+        mira el texto del código aprueba cualquier cosa que se le parezca.
+        """
+        import os as _os
+        listador = pipeline.cx.list_gcp_projects
+        antes = _os.environ.get("FIRESTORE_PROJECT")
+        pipeline.cx.list_gcp_projects = lambda: [
+            {"project_id": "el-de-la-infra", "name": "ACT - infraestructura"},
+            {"project_id": "un-destino", "name": "Un destino"},
+            {"project_id": "otro-destino", "name": "Otro destino"},
+        ]
+        _os.environ["FIRESTORE_PROJECT"] = "el-de-la-infra"
+        try:
+            ids = [p["project_id"] for p in
+                   pipeline.discover()["data"]["proyectos"]]
+        finally:
+            pipeline.cx.list_gcp_projects = listador
+            if antes is None: _os.environ.pop("FIRESTORE_PROJECT", None)
+            else: _os.environ["FIRESTORE_PROJECT"] = antes
+
+        faltan = []
+        if "el-de-la-infra" in ids:
+            faltan.append("ofrece el proyecto donde corre el servidor")
+        if sorted(ids) != ["otro-destino", "un-destino"]:
+            faltan.append(f"y además se llevó por delante otros: {ids}")
+        # Y que excluya por ser el suyo, no por un id escrito en el código.
+        import re as _re
+        fuente = inspect.getsource(pipeline.discover)
+        for a_mano in _re.findall(r'"(cloud-run-[a-z0-9-]+|proyecto-fake-[0-9]+)"', fuente):
+            faltan.append(f"filtra por un id escrito a mano: {a_mano}")
+        return not faltan, " · ".join(faltan) or f"quedan {ids}"
+
+    runner.check(0, "El Descubrimiento no ofrece como destino el proyecto donde "
+                    "corre el propio servidor",
+                 el_descubrimiento_no_se_ofrece_a_si_mismo)
+
     def only_pending_del_paso_3_sigue_intacto():
         """0.19 — anti-regresión. Se llama parecido y no tiene nada que ver: es
         el filtro de «reintentar solo lo que falló», lo manda el panel en la

@@ -2592,7 +2592,19 @@ def discover(project=None, client=None, on_log=None):
 
     if not project:
         proyectos = cx.list_gcp_projects()
-        _emit(log, on_log, f"✓ {len(proyectos)} proyectos GCP")
+        # El proyecto donde vive este servidor no es un destino: ahí están
+        # Cloud Run y Firestore, no agentes, y el pipeline nunca despliega
+        # sobre sí mismo. Ofrecerlo en el desplegable era ruido que solo se
+        # descubre eligiéndolo y encontrando la lista de agentes vacía.
+        #
+        # Se excluye por ser el suyo y no por una lista escrita a mano: un id
+        # en el código habría que acordarse de cambiarlo el día que el
+        # servidor se mude, y nadie se acuerda de eso.
+        propio = store.proyecto_del_servidor()
+        fuera = [p for p in proyectos if p.get("project_id") == propio]
+        proyectos = [p for p in proyectos if p.get("project_id") != propio]
+        _emit(log, on_log, f"✓ {len(proyectos)} proyectos GCP" +
+              (f" (fuera {fuera[0].get('project_id')}: es donde corre este servidor)" if fuera else ""))
         return step_result("ok", log, {"proyectos": proyectos, "agentes": []})
 
     # El repositorio es del proyecto: o lo tienen todos sus agentes, o ninguno.
