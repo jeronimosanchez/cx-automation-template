@@ -476,6 +476,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
              Informa, no bloquea: casi siempre es un compañero trabajando, y
              aplicarlo puede ser justo lo que toca. Lo que no puede pasar es
              que ocurra sin que nadie lo sepa. -->
+        <!-- Qui&eacute;n se va con un borrado y qui&eacute;n se queda roto.
+
+             CX rechaza borrar un playbook al que otros apuntan, pero lo dice
+             con una excepci&oacute;n de Java cuando ya has pulsado y sin nombrar ni
+             una de las referencias. El dato est&aacute; en el repositorio y en el
+             inventario desde el principio del paso: solo faltaba mirarlo y
+             decirlo antes de que cueste.
+
+             Los hijos van aparte de las referencias porque son cosas
+             distintas: los hijos se van con &eacute;l y eso es lo que debe pasar;
+             las referencias se quedan apuntando a nada. Juntarlos har&iacute;a que
+             «borro un playbook» y «borro un playbook y sus once examples» se
+             leyeran igual. -->
+        <div id="aviso-dependencias" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
+          <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:6px">&#9888; Lo que arrastra cada borrado</p>
+          <div id="lista-dependencias" style="font-size:12px;color:var(--text-2);line-height:1.7"></div>
+        </div>
         <div id="aviso-rama-movida" style="display:none;margin:12px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
           <p style="font-size:12px;color:var(--gate);font-weight:700;margin-bottom:4px">&#9888; La rama se movi&oacute; desde el Paso 1</p>
           <p style="font-size:12px;color:var(--text-2);line-height:1.6" id="aviso-rama-movida-texto"></p>
@@ -2171,6 +2188,34 @@ function actualizarPies() {
     : '<span style="color:var(--text-3)">Nada marcado &mdash; no se tocar&aacute; CX</span>';
 }
 
+function pintarDependenciasDeBorrado() {
+  const caja = $('aviso-dependencias');
+  if (!caja) return;
+  const deps = ((estado.plan || {}).dependencias_de_borrado) || [];
+  if (!deps.length) { mostrar('aviso-dependencias', false); return; }
+  // El servidor los cuenta en el repositorio y en CX por separado, así que el
+  // mismo example llega dos veces. Aquí se dice una: el operador decide sobre
+  // resources, no sobre en cuántos sitios aparecen.
+  const unicos = lista => [...new Set(lista.map(x => x.display_name || x.cx_id))];
+  $('lista-dependencias').innerHTML = deps.map(d => {
+    const hijos = unicos(d.hijos || []);
+    const refs = unicos(d.referencias || []);
+    const partes = [];
+    if (hijos.length) partes.push(
+      `<div style="margin-top:4px">Se van con &eacute;l <strong>${hijos.length}</strong>: ` +
+      `<span style="color:var(--text-3)">${hijos.map(esc).join(', ')}</span></div>`);
+    if (refs.length) partes.push(
+      `<div style="margin-top:4px;color:var(--gate)">Lo referencian <strong>${refs.length}</strong> y se quedar&aacute;n apuntando a nada: ` +
+      `<span style="color:var(--text-2)">${refs.map(esc).join(', ')}</span>.<br>` +
+      `<strong>CX rechaza borrar un resource al que otros apuntan</strong>, as&iacute; que este borrado fallar&aacute; ` +
+      `mientras esas referencias existan.</div>`);
+    return `<div style="border-top:1px solid var(--border);padding:8px 0">` +
+           `<strong>${esc(NOMBRE_DE_TIPO[d.tipo]||d.tipo)} &middot; ${esc(d.resource || d.cx_id)}</strong>` +
+           partes.join('') + `</div>`;
+  }).join('');
+  mostrar('aviso-dependencias', true);
+}
+
 function pintarAvisoRamaMovida() {
   const caja = $('aviso-rama-movida');
   if (!caja) return;
@@ -2378,6 +2423,7 @@ function renderTablaCx() {
   if (selTodos) { selTodos.disabled = cerrado || !operaciones.length; if (cerrado) selTodos.checked = false; }
   actualizarPies();
   pintarAvisoRamaMovida();
+  pintarDependenciasDeBorrado();
 }
 
 function confirmDeploy() {
@@ -2982,7 +3028,7 @@ function resetDeploy() {
   setRunning(false);
 
   ['inv-log','inv-done','traer-log','traer-done','confirmar-borrado','deploy-log',
-   'confirmar-borrado-repo','aviso-rama-movida',
+   'confirmar-borrado-repo','aviso-rama-movida','aviso-dependencias',
    'deploy-done','deploy-fail','confirmar-terminar','tests-fail','tests-log',
    'prod-log','aviso-draft-movido','plan-log','panel-versiones','aviso-interrumpido',
   ].forEach(id => mostrar(id, false));

@@ -1046,6 +1046,68 @@ const escenarios = [
 },
 
 {
+  nombre: 'Antes de borrar, el plan dice quién se va con el resource y quién se queda roto',
+  porQue: 'CX rechaza borrar un resource al que otros apuntan, pero lo dice con una ' +
+          'excepción de Java cuando ya has pulsado y sin nombrar ni una referencia. ' +
+          'Pasó probándolo con Petal: cinco examples de Compra transferían a Checkout y ' +
+          'nada lo avisaba. Y los hijos van aparte de las referencias porque son cosas ' +
+          'distintas — los hijos se van con él, que es lo que debe pasar; las ' +
+          'referencias se quedan apuntando a nada. Juntarlos haría que «borro un ' +
+          'playbook» y «borro un playbook y sus once examples» se leyeran igual.',
+  async ejecutar() {
+    const monta = async deps => {
+      const servidor = new ServidorFalso(rutasBase({
+        '/step/3': () => ({sobre: sobre('ok', ['[dry-run]'], {
+          dry_run: true, rama: 'rama-de-prueba', repo: REPO, commit: 'nnnnnnn',
+          rama_movida: null, dependencias_de_borrado: deps,
+          operaciones: [{operacion:'DELETE', tipo:'playbook', cx_id:'ck1', ruta:null,
+                         resource:'Checkout', sin_version:false, conflicto:false, result:null}],
+          avisos_cambio_archivo: [], sin_version: [], conflictos: [],
+        })}),
+      }));
+      const dom = await abrirPanel(servidor, estadoHasta(3));
+      dom.window.viewStep(3);
+      await reposar(dom, 8);
+      return dom;
+    };
+
+    const conDeps = await monta([{
+      tipo: 'playbook', cx_id: 'ck1', resource: 'Checkout',
+      // El servidor los cuenta en el repositorio y en CX: el mismo llega dos veces.
+      hijos: [{donde:'repositorio', tipo:'example', cx_id:'e1', display_name:'Checkout Ex01'},
+              {donde:'CX', tipo:'example', cx_id:'e1', display_name:'Checkout Ex01'}],
+      referencias: [{donde:'repositorio', tipo:'playbook', cx_id:'cp', display_name:'Compra'},
+                    {donde:'CX', tipo:'playbook', cx_id:'cp', display_name:'Compra'},
+                    {donde:'repositorio', tipo:'example', cx_id:'x1', display_name:'ExA v10'}],
+    }]);
+    const seVe = visibleDeVerdad(conDeps, 'aviso-dependencias');
+    const texto1 = (texto(conDeps, 'lista-dependencias') || '').replace(/\s+/g, ' ');
+
+    const sinDeps = await monta([]);
+    const seVeSin = visibleDeVerdad(sinDeps, 'aviso-dependencias');
+
+    const problemas = [];
+    if (!seVe) problemas.push('con dependencias no avisa');
+    if (!/Se van con él 1/.test(texto1))
+      problemas.push(`no cuenta los hijos una sola vez: "${texto1.slice(0,110)}"`);
+    if (!/Lo referencian 2/.test(texto1))
+      problemas.push(`no cuenta las referencias una sola vez: "${texto1.slice(0,110)}"`);
+    if (!/Compra/.test(texto1) || !/ExA v10/.test(texto1))
+      problemas.push('no nombra quién lo referencia');
+    if (!/CX rechaza/.test(texto1))
+      problemas.push('no avisa de que CX rechazará el borrado');
+    if (seVeSin) problemas.push('avisa cuando no hay ninguna dependencia');
+    // Informa, no bloquea: el gate del Paso 3 sigue en pie.
+    if (!visibleDeVerdad(conDeps, 'btn-confirm-deploy'))
+      problemas.push('el aviso bloqueó el paso en vez de informar');
+
+    return {ok: problemas.length === 0,
+            detalle: problemas.length ? problemas.join(' · ')
+              : `aviso="${texto1.slice(0, 150)}" sin-dependencias=${seVeSin}`};
+  },
+},
+
+{
   nombre: 'Si la rama se movió por fuera del pipeline, el Paso 3 lo dice antes de aplicar',
   porQue: 'Cada paso vuelve a preguntar la punta de la rama, y eso está bien —el Paso ' +
           '2 escribe commits y el Paso 3 tiene que ver lo que se acaba de traer—. Lo ' +
