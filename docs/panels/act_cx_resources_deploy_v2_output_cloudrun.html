@@ -341,9 +341,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             Se va a aplicar en el repositorio (GitHub) <span class="dir-flecha">CX &rarr; repositorio</span>
           </div>
           <div class="dir-body">
-            <div id="aviso-deriva" style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:8px">
-              &#9888; <span id="num-deriva">0</span> resources en CX sin respaldo en el repositorio
-            </div>
             <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Lo que no marques se queda como est&aacute;.</p>
             <!-- La pol&iacute;tica, dicha donde se ve la consecuencia. No basta con
                  explicar qu&eacute; pasar&aacute;: hay que decir c&oacute;mo se hace bien, o se
@@ -396,7 +393,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="gate-block re-ejecuta" id="traer-gate">
         <div class="gate-title">&#9995; Acci&oacute;n requerida</div>
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Repositorio: <strong style="color:var(--text)" id="traer-repo">&mdash;</strong> &middot; Rama: <strong style="color:var(--text)" id="traer-rama">&mdash;</strong></p>
-        <p>Se van a traer <strong style="color:var(--text)"><span id="traer-count">0</span> resources</strong> de los marcados arriba. Lo que no marques se queda solo en CX, y el repositorio dejar&aacute; de retratar el agente entero.</p>
+        <p id="traer-resumen">Nada marcado &mdash; no se tocar&aacute; el repositorio.</p>
         <div class="action-bar">
           <button class="btn btn-gate" id="btn-traer" onclick="pedirAplicarEnRepositorio()" disabled>Aplicar en el repositorio (GitHub) &rarr;</button>
           <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
@@ -2022,7 +2019,11 @@ function filasDelRepositorio() {
 }
 
 const PILL_DEL_REPO = {traer: 'pill-new', borrar: 'pill-del'};
-const NOMBRE_DE_OPERACION_REPO = {traer: 'Traer', borrar: 'Eliminar'};
+const PORQUE_DE_LA_FILA = {
+  traer: 'est&aacute; en CX y no tiene archivo en el repositorio',
+  borrar: 'se borr&oacute; en la consola de CX. Si lo dejas, el Paso 3 lo crear&aacute; otra vez con un identificador nuevo',
+};
+const NOMBRE_DE_OPERACION_REPO = {traer: 'Crear en GitHub', borrar: 'Eliminar en GitHub'};
 
 function renderTablaRepo() {
   const cuerpo = document.querySelector('#tabla-repo tbody');
@@ -2038,7 +2039,9 @@ function renderTablaRepo() {
       <td><span class="pill ${PILL_DEL_REPO[f.operacion]}">${NOMBRE_DE_OPERACION_REPO[f.operacion]}</span></td>
       <td>${esc(NOMBRE_DE_TIPO[f.tipo]||f.tipo)}</td>
       <td><code>${esc(f.display_name || f.cx_id)}</code>${f.accionable ? '' :
-        ' <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span>'}</td>
+        ' <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span>'}
+        <div class="porque-fila" style="font-size:11px;color:${f.operacion === 'borrar' ? 'var(--gate)' : 'var(--text-3)'};margin-top:3px;line-height:1.5">
+          &#8627; ${PORQUE_DE_LA_FILA[f.operacion]}</div></td>
       <td>${f.operacion === 'borrar' ? celdaArchivo(f.ruta)
         : '<code style="color:var(--text-3)" title="La ruta la decide el servidor al traerlo">&mdash;</code>'}</td>
     </tr>`).join('');
@@ -2081,27 +2084,17 @@ function marcarTodos(tablaId, marcado) {
    el aviso quedaba del revés: señalaba un archivo huérfano diciendo que era un
    resource de CX sin guardar. Dos poblaciones opuestas bajo el mismo número.  */
 
+/* El resumen de arriba desapareció a propósito.
+
+   Decía «1 resource en CX sin respaldo» y «1 archivo del repositorio sin
+   resource en CX» sin nombrar ninguno de los dos, y debajo un párrafo que
+   hablaba de un borrado sin decir cuál. Tres avisos separados de las filas que
+   explicaban: había que emparejarlos de cabeza, y eso no se hace — se ignora.
+
+   Ahora cada fila lleva su porqué debajo. Arriba solo queda la política, que
+   no habla de ninguna fila en concreto sino de cómo se borra bien.          */
+
 function refrescarDeriva() {
-  const cuenta = sel => document.querySelectorAll(
-    '#tabla-repo tbody tr[data-operacion="' + sel + '"] input:not(:disabled)').length;
-  const filas = document.querySelectorAll('#tabla-repo tbody tr');
-  const traibles = cuenta('traer');
-  const borrables = cuenta('borrar');
-  const aviso = $('aviso-deriva');
-  if (aviso) {
-    const partes = [];
-    if (traibles) partes.push('&#9888; <span id="num-deriva">' + traibles + '</span> resource' +
-      (traibles === 1 ? '' : 's') + ' en CX sin respaldo en el repositorio');
-    if (borrables) partes.push('&#9888; <span id="num-restos">' + borrables + '</span> archivo' +
-      (borrables === 1 ? '' : 's') + ' del repositorio sin resource en CX');
-    if (!partes.length) {
-      aviso.innerHTML = filas.length
-        ? '<span style="color:var(--text-3)">Solo queda lo que no se puede traer al repositorio</span>'
-        : '<span style="color:var(--success)">&#10003; El repositorio y el agente dicen lo mismo</span>';
-    } else {
-      aviso.innerHTML = partes.join('<br>');
-    }
-  }
   const todas = [...document.querySelectorAll('#tabla-repo tbody input:not(:disabled)')];
   const todos = $('sel-todos-repo');
   if (todos) {
@@ -2124,8 +2117,22 @@ function actualizarPies() {
   const pieCx = $('pie-cx'), pieRepo = $('pie-repo');
   const contadorGate = $('deploy-count');
   if (contadorGate) contadorGate.textContent = cx.marcadas;
-  const contadorTraer = $('traer-count');
-  if (contadorTraer) contadorTraer.textContent = repo.marcadas;
+  // Lo que el gate promete tiene que ser lo que va a pasar. Decía «se van a
+  // traer N resources» con N contando también las eliminaciones: prometía
+  // traer lo que iba a borrar.
+  const resumen = $('traer-resumen');
+  if (resumen) {
+    const crear = document.querySelectorAll(
+      '#tabla-repo tbody tr[data-operacion="traer"] input:checked:not(:disabled)').length;
+    const borrar = document.querySelectorAll(
+      '#tabla-repo tbody tr[data-operacion="borrar"] input:checked:not(:disabled)').length;
+    const partes = [];
+    if (crear) partes.push(`<strong style="color:var(--text)">crear ${crear}</strong> archivo${crear === 1 ? '' : 's'}`);
+    if (borrar) partes.push(`<strong style="color:var(--error)">eliminar ${borrar}</strong> archivo${borrar === 1 ? '' : 's'}`);
+    resumen.innerHTML = partes.length
+      ? `Se van a ${partes.join(' y ')} en GitHub, en un solo commit. Lo que no marques se queda como est&aacute;.`
+      : 'Nada marcado &mdash; no se tocar&aacute; el repositorio.';
+  }
   const botonAplicar = $('btn-confirm-deploy');
   if (botonAplicar && !estado.paso3Cerrado) botonAplicar.disabled = cx.marcadas === 0;
   actualizarAvisoSinVersion();

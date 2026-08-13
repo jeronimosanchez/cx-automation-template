@@ -1784,7 +1784,11 @@ const escenarios = [
     // archivo huérfano bajo el rótulo «resources en CX sin respaldo», que es
     // exactamente lo contrario de lo que es. Se lee con la tabla llena: después
     // de aplicar ya no queda nada que contar.
-    const resumenTexto = (texto(dom, 'aviso-deriva') || '').replace(/\s+/g, ' ');
+    // El porqué vive en cada fila y el resumen en el gate. Estuvieron sueltos
+    // sobre la tabla, contando «1 y 1» sin decir cuáles: un aviso separado de
+    // lo que explica obliga a emparejarlos de cabeza, y eso no se hace.
+    const porques = [...doc.querySelectorAll('#tabla-repo tbody .porque-fila')]
+      .map(e => e.textContent.replace(/\s+/g, ' ').trim());
     // La política, no solo la consecuencia. Explicar qué pasará sin decir cómo
     // se hace bien deja repetir el error: quien borró en la consola de CX lo
     // volverá a hacer si nadie le dice cuál es el camino.
@@ -1804,6 +1808,10 @@ const escenarios = [
     const eliminarEncendido = doc.getElementById('btn-eliminar').disabled === false;
     pulsar(dom, 'btn-traer');
     await reposar(dom, 2);
+    // El gate promete lo que va a pasar, por operación. Decía «se van a traer
+    // N resources» contando también las eliminaciones: prometía traer lo que
+    // iba a borrar.
+    const gate = (texto(dom, 'traer-resumen') || '').replace(/\s+/g, ' ');
     const pideConfirmacion = visible(dom, 'confirmar-borrado-repo');
     pulsar(dom, 'btn-confirmar-borrado-repo');
     await reposar(dom, 8);
@@ -1819,16 +1827,22 @@ const escenarios = [
       problemas.push('la política no avisa de que el Paso 3 lo recrearía con otro id');
     if (!/repositorio \(GitHub\)/.test(textoPolitica))
       problemas.push('la política no dice dónde se elimina primero');
-    if (!/1 resource en CX sin respaldo/.test(resumenTexto))
-      problemas.push(`el resumen no cuenta lo de traer: "${resumenTexto}"`);
-    if (!/1 archivo del repositorio sin resource en CX/.test(resumenTexto))
-      problemas.push(`el resumen no cuenta lo de borrar: "${resumenTexto}"`);
+    if (porques.length !== 2)
+      problemas.push(`${porques.length} explicaciones de fila — debería haber una por fila`);
+    if (!/no tiene archivo en el repositorio/.test(porques[0] || ''))
+      problemas.push(`la fila de crear no dice por qué: "${porques[0]}"`);
+    if (!/identificador nuevo/.test(porques[1] || ''))
+      problemas.push(`la fila de eliminar no dice por qué: "${porques[1]}"`);
     if (JSON.stringify(resumen) !== JSON.stringify(['traer:Uno', 'borrar:Viejo']))
       problemas.push(`filas=${JSON.stringify(resumen)} — el sin cx_id no debería estar`);
     if (!eliminarApagado) problemas.push('«Eliminar de CX» se ofrece con solo una fila de borrar marcada');
     if (!aplicarEncendido) problemas.push('«Aplicar» sigue apagado con una fila marcada');
     if (!eliminarEncendido) problemas.push('«Eliminar de CX» sigue apagado con una fila de traer marcada');
     if (!pideConfirmacion) problemas.push('borra sin pedir confirmación');
+    if (!/crear 1 archivo/.test(gate) || !/eliminar 1 archivo/.test(gate))
+      problemas.push(`el gate no dice lo que hará por operación: "${gate}"`);
+    if (!/un solo commit/.test(gate))
+      problemas.push('el gate no dice que va en un solo commit');
     if (llamadas.length !== 1) problemas.push(`${llamadas.length} llamadas — debería ser una`);
     if (JSON.stringify(traer) !== JSON.stringify(['i1'])) problemas.push(`traer=${JSON.stringify(traer)}`);
     if (JSON.stringify(borrar) !== JSON.stringify(['muerto-1'])) problemas.push(`borrar=${JSON.stringify(borrar)}`);

@@ -806,6 +806,64 @@ def _marcar_conflicto(operacion, remoto, auditoria):
         }
 
 
+def quien_depende_de(inventario, repositorio, tipo, cx_id):
+    """Quién se va con un resource si se borra, y quién se queda roto.
+
+    Son dos cosas distintas y conviene no mezclarlas:
+
+    **Hijos** — cuelgan de él y CX los borra con él. Los examples de un
+    playbook desaparecen cuando el playbook desaparece: eso no es un error,
+    es lo que tiene que pasar. Pero hay que decirlo, porque «borro un
+    playbook» y «borro un playbook y sus once examples» son decisiones
+    distintas y desde el panel se ven iguales.
+
+    **Referencias** — lo mencionan desde fuera y se quedan apuntando a nada.
+    Un example de otro playbook con un `playbookTransition` hacia este; el
+    playbook que lo invoca. CX rechaza el borrado si existen —«Examples/Flows/
+    Pages/Playbooks are referencing the playbook»— pero lo dice con una
+    excepción de Java cuando ya has pulsado, y sin nombrar ni una.
+
+    Se busca en los dos sitios porque cuentan cosas distintas: el repositorio
+    dice qué archivos habría que tocar, y CX qué va a rechazar. Y no cuesta
+    ninguna llamada: los dos están leídos desde el principio del paso.
+    """
+    aguja = str(cx_id)
+    hijos, referencias = [], []
+
+    def mira(donde, otro_tipo, otro_id, cuerpo, ruta, nombre, padre):
+        if otro_tipo == tipo and otro_id == cx_id:
+            return
+        # El identificador aparece en el `name` de todo lo que cuelga de él;
+        # eso es parentesco, no referencia, y se cuenta aparte.
+        sin_name = {k: v for k, v in (cuerpo or {}).items() if k != "name"}
+        if padre == cx_id:
+            hijos.append({"donde": donde, "tipo": otro_tipo, "cx_id": otro_id,
+                          "ruta": ruta, "display_name": nombre})
+        elif aguja in json.dumps(sin_name, ensure_ascii=False, default=str):
+            referencias.append({"donde": donde, "tipo": otro_tipo, "cx_id": otro_id,
+                                "ruta": ruta, "display_name": nombre})
+
+    for otro_tipo, entradas in (repositorio.get("por_tipo") or {}).items():
+        for otro_id, entrada in entradas.items():
+            doc = entrada.get("documento") or {}
+            mira("repositorio", otro_tipo, otro_id, doc, entrada.get("ruta"),
+                 entrada.get("display_name", ""),
+                 (doc.get("metadata") or {}).get("padre"))
+
+    for otro_tipo, items in inventario.items():
+        if not isinstance(items, dict):
+            continue
+        for otro_id, item in items.items():
+            if not isinstance(item, dict):
+                continue
+            padre = (_padre_id_de(otro_tipo, item)
+                     if RESOURCE_TYPES.get(otro_tipo, {}).get("padre") else None)
+            mira("CX", otro_tipo, otro_id, item, None,
+                 item.get("displayName", ""), padre)
+
+    return {"hijos": hijos, "referencias": referencias}
+
+
 def _operaciones_de_borrado(inventario, repositorio, eliminar):
     """Convierte en operaciones las eliminaciones decididas en el Paso 2.
 
@@ -1525,6 +1583,32 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
               f"incluye lo que haya subido quien la movió, y eso no salió en "
               f"el Paso 1. Revísalo antes de aplicar")
 
+    # Quién se va con cada borrado y quién se queda roto. Se mira aquí, en el
+    # plan, porque es el único momento en que todavía no cuesta nada: CX
+    # rechaza borrar lo que otros referencian, pero lo dice con una excepción
+    # de Java cuando ya has pulsado, sin nombrar ni una de ellas.
+    dependencias = []
+    for op in operaciones:
+        if op["operacion"] != "DELETE":
+            continue
+        d = quien_depende_de(inventario, repositorio, op["tipo"], op["cx_id"])
+        if not d["hijos"] and not d["referencias"]:
+            continue
+        dependencias.append({"tipo": op["tipo"], "cx_id": op["cx_id"],
+                             "resource": op.get("resource"), **d})
+        if d["hijos"]:
+            _emit(log, on_log,
+                  f"· Borrar {op['tipo']}/{op.get('resource')} se lleva "
+                  f"{len(d['hijos'])} resources que cuelgan de él")
+        if d["referencias"]:
+            nombres = ", ".join(sorted({r.get("display_name") or r["cx_id"]
+                                        for r in d["referencias"]}))[:110]
+            _emit(log, on_log,
+                  f"⚠ {op['tipo']}/{op.get('resource')} lo referencian "
+                  f"{len(d['referencias'])} resources ({nombres}). CX rechaza "
+                  f"borrar lo que otros referencian: quita antes esas "
+                  f"referencias o el borrado fallará")
+
     conflictos = [op for op in operaciones if op["conflicto"]]
     for conflicto in conflictos:
         _emit(log, on_log,
@@ -1547,7 +1631,7 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
         return step_result("ok", log, {
             "operaciones": operaciones, "dry_run": True,
             "avisos_cambio_archivo": avisos, "sin_version": sin_version,
-            "conflictos": conflictos,
+            "conflictos": conflictos, "dependencias_de_borrado": dependencias,
             # De qué commit salió ESTE plan. Cada paso vuelve a preguntar la
             # punta de la rama, así que el commit del Paso 1 puede no ser el
             # que se acaba de leer aquí. El panel enlaza cada archivo a este
