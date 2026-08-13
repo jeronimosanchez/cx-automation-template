@@ -316,20 +316,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="diff-has-changes" style="display:none">
 
         <!-- Dirección 2: de CX hacia el repositorio -->
+        <!-- Una sola tabla para las dos operaciones que escriben en el
+             repositorio: traer lo que solo está en CX, y borrar los archivos
+             que describen algo que CX ya no tiene.
+
+             Estaban en dos tarjetas separadas, y la pantalla partía en dos lo
+             que por debajo es una sola cosa: el servidor las hace en la misma
+             llamada y, por tanto, en el mismo commit — partirlo en dos dejaría
+             el repositorio a medias si fallara entre medias. Una tabla con
+             columna de operación, como el Paso 3, dice lo que de verdad va a
+             pasar.
+
+             «Eliminar de CX» se queda como botón aparte a propósito: no
+             escribe en el repositorio, marca para que el Paso 3 borre. Meterlo
+             en una tabla que se llama «se va a aplicar en el repositorio»
+             sería mentir sobre lo que hace. -->
         <div class="dir-card hacia-repo">
           <div class="dir-head">
-            Se va a traer al repositorio <span class="dir-flecha">CX &rarr; repositorio</span>
+            Se va a aplicar en el repositorio <span class="dir-flecha">CX &rarr; repositorio</span>
           </div>
           <div class="dir-body">
             <div id="aviso-deriva" style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:8px">
               &#9888; <span id="num-deriva">0</span> resources en CX sin respaldo en el repositorio
             </div>
-            <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Alguien los cre&oacute; directamente en la consola de CX. Lo que no marques se queda como est&aacute;.</p>
+            <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Lo que no marques se queda como est&aacute;.</p>
             <div class="sel-todos"><label><input type="checkbox" id="sel-todos-repo" onchange="marcarTodos('tabla-repo', this.checked)"> Seleccionar todos</label></div>
             <div class="diff-wrap" style="margin-bottom:14px">
               <table class="diff-table" id="tabla-repo">
+                <thead><tr><th style="width:34px"></th><th>Operaci&oacute;n</th><th>Tipo</th><th>Resource</th><th>Archivo</th></tr></thead>
                 <tbody></tbody>
               </table>
+            </div>
+            <div class="legend" style="margin-bottom:4px">
+              <span class="legend-item"><span class="pill pill-new">Traer</span> Est&aacute; en CX y ning&uacute;n archivo lo reclama</span>
+              <span class="legend-item"><span class="pill pill-del">Borrar</span> Su archivo describe algo que CX ya no tiene</span>
             </div>
 
             <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
@@ -343,43 +363,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
                 <button class="btn btn-ghost" onclick="cancelarEliminarDeCx()">Cancelar</button>
               </div>
             </div>
-          </div>
-          <div class="dir-pie"><span id="pie-repo">&mdash;</span></div>
-        </div>
-
-        <!-- Direcci&oacute;n 3: restos en el repositorio de lo que CX ya no tiene.
-
-             Es la mitad que faltaba. Sin ella, borrar en la consola de CX no
-             borraba nada: el archivo sobreviv&iacute;a, el Paso 3 recreaba el
-             resource con un identificador NUEVO, y produccci&oacute;n se
-             quedaba con un puntero muerto apuntando al viejo. Pas&oacute; de
-             verdad probando el pipeline.
-
-             Va en el Paso 2 porque es el &uacute;nico paso que escribe en el
-             repositorio: ya tiene permiso, mensaje de commit y confirmaci&oacute;n.
-             Una segunda puerta al mismo caj&oacute;n ser&iacute;a otra cosa que
-             mantener.
-
-             Solo salen los de `cx_id fantasma` &mdash; con cabecera cuyo
-             identificador CX ya no reconoce. Un archivo SIN `cx_id` es lo
-             contrario: algo reci&eacute;n escrito que a&uacute;n no ha subido,
-             y ofrecer borrarlo ser&iacute;a ofrecer tirar el trabajo que se
-             acaba de hacer. -->
-        <div class="dir-card hacia-repo" id="dir-restos" style="display:none">
-          <div class="dir-head">
-            Se va a borrar del repositorio <span class="dir-flecha">restos sin resource en CX</span>
-          </div>
-          <div class="dir-body">
-            <div style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:8px">
-              &#9888; <span id="num-restos">0</span> archivos describen algo que CX ya no tiene
-            </div>
-            <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Se borraron en la consola de CX y su archivo sobrevivi&oacute;. <strong style="color:var(--gate)">Si lo dejas, el Paso 3 los crear&aacute; otra vez en CX con un identificador nuevo</strong> &mdash; y el puntero viejo se queda en producci&oacute;n apuntando a nada.</p>
-            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-restos" onchange="marcarTodos('tabla-restos', this.checked)"> Seleccionar todos</label></div>
-            <div class="diff-wrap" style="margin-bottom:14px">
-              <table class="diff-table" id="tabla-restos">
-                <tbody></tbody>
-              </table>
-            </div>
 
             <div id="confirmar-borrado-repo" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
               <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Borrar estos archivos del repositorio</div>
@@ -388,12 +371,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
                 Queda en el historial de git: <code>git show</code> del commit lo recupera.</p>
               <div id="lista-borrado-repo" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
               <div style="display:flex;gap:10px">
-                <button class="btn btn-danger" id="btn-confirmar-borrado-repo" onclick="borrarDelRepo()">S&iacute;, borrar del repositorio</button>
+                <button class="btn btn-danger" id="btn-confirmar-borrado-repo" onclick="aplicarEnRepositorio()">S&iacute;, aplicar en el repositorio</button>
                 <button class="btn btn-ghost" onclick="cancelarBorrarDelRepo()">Cancelar</button>
               </div>
             </div>
           </div>
-          <div class="dir-pie"><span id="pie-restos">&mdash;</span></div>
+          <div class="dir-pie"><span id="pie-repo">&mdash;</span></div>
         </div>
 
       <div class="gate-block re-ejecuta" id="traer-gate">
@@ -401,9 +384,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Repositorio: <strong style="color:var(--text)" id="traer-repo">&mdash;</strong> &middot; Rama: <strong style="color:var(--text)" id="traer-rama">&mdash;</strong></p>
         <p>Se van a traer <strong style="color:var(--text)"><span id="traer-count">0</span> resources</strong> de los marcados arriba. Lo que no marques se queda solo en CX, y el repositorio dejar&aacute; de retratar el agente entero.</p>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-traer" onclick="traerAlRepo()" disabled>Traer al repositorio &rarr;</button>
+          <button class="btn btn-gate" id="btn-traer" onclick="pedirAplicarEnRepositorio()" disabled>Aplicar en el repositorio &rarr;</button>
           <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
-          <button class="btn btn-danger" id="btn-borrar-repo" onclick="pedirBorrarDelRepo()" disabled>Borrar del repositorio</button>
         </div>
       </div>
 
@@ -1989,29 +1971,78 @@ function toggleGrupo(card) {
 
 /* ── Paso 2 · Traer al repositorio · POST /step/2 ─────────────────────────── */
 
-function renderTablaRepo() {
-  const cuerpo = document.querySelector('#tabla-repo tbody');
-  if (!cuerpo) return;
+/* Las dos operaciones que escriben en el repositorio, en una sola tabla.
+
+   Estaban en dos tarjetas y la pantalla partía en dos lo que por debajo es una
+   sola cosa: el servidor las hace en la misma llamada y en el mismo commit.
+   Una fila, una operación, como en el Paso 3.
+
+   `data-operacion` es lo que distingue las dos poblaciones después, y hace
+   falta: «Eliminar de CX» solo puede actuar sobre las de traer —las de borrar
+   ya no están en CX— y el botón de aplicar manda cada una a su lista.        */
+
+const MOTIVO_FANTASMA = 'cx_id fantasma';
+
+function filasDelRepositorio() {
   const traidos = new Set((estado.traido && estado.traido.traidos || [])
     .map(t => `${t.tipo}/${t.cx_id}`));
   const apuntados = new Set(estado.eliminar.map(e => `${e.tipo}/${e.cx_id}`));
-  const filas = ((estado.inventario && estado.inventario.solo_cx) || [])
-    .filter(f => !traidos.has(`${f.tipo}/${f.cx_id}`) && !apuntados.has(`${f.tipo}/${f.cx_id}`));
+  const borrados = new Set(((estado.traido && estado.traido.borrados_del_repo) || [])
+    .map(b => `${b.tipo}/${b.cx_id}`));
+  const inv = estado.inventario || {};
+
+  const traer = (inv.solo_cx || [])
+    .filter(f => !traidos.has(`${f.tipo}/${f.cx_id}`) && !apuntados.has(`${f.tipo}/${f.cx_id}`))
+    .map(f => ({...f, operacion: 'traer', accionable: !!f.traible, ruta: null}));
+
+  // Solo los restos: un archivo SIN cx_id no ha llegado nunca a CX, así que no
+  // es un resto sino trabajo recién escrito, y ofrecer borrarlo sería ofrecer
+  // tirarlo. El servidor lo rechaza igual; aquí ni se enseña.
+  const borrar = (inv.solo_repo || [])
+    .filter(f => f.motivo === MOTIVO_FANTASMA && f.cx_id &&
+                 !borrados.has(`${f.tipo}/${f.cx_id}`))
+    .map(f => ({...f, operacion: 'borrar', accionable: true}));
+
+  return traer.concat(borrar);
+}
+
+const PILL_DEL_REPO = {traer: 'pill-new', borrar: 'pill-del'};
+const NOMBRE_DE_OPERACION_REPO = {traer: 'Traer', borrar: 'Borrar'};
+
+function renderTablaRepo() {
+  const cuerpo = document.querySelector('#tabla-repo tbody');
+  if (!cuerpo) return;
+  const filas = filasDelRepositorio();
 
   cuerpo.innerHTML = filas.map(f => `
-    <tr data-tipo="${esc(f.tipo)}" data-cx-id="${esc(f.cx_id)}" data-nombre="${esc(f.display_name||f.cx_id)}">
-      <td style="width:34px"><input type="checkbox" ${f.traible ? '' : 'disabled'}
+    <tr data-tipo="${esc(f.tipo)}" data-cx-id="${esc(f.cx_id)}"
+        data-nombre="${esc(f.display_name||f.cx_id)}" data-operacion="${f.operacion}"
+        data-ruta="${esc(f.ruta||'')}">
+      <td style="width:34px"><input type="checkbox" ${f.accionable ? '' : 'disabled'}
           onchange="actualizarPies();refrescarDeriva()"></td>
+      <td><span class="pill ${PILL_DEL_REPO[f.operacion]}">${NOMBRE_DE_OPERACION_REPO[f.operacion]}</span></td>
       <td>${esc(NOMBRE_DE_TIPO[f.tipo]||f.tipo)}</td>
-      <td><code>${esc(f.display_name || f.cx_id)}</code>${f.traible ? '' :
+      <td><code>${esc(f.display_name || f.cx_id)}</code>${f.accionable ? '' :
         ' <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span>'}</td>
+      <td>${f.operacion === 'borrar' ? celdaArchivo(f.ruta)
+        : '<code style="color:var(--text-3)" title="La ruta la decide el servidor al traerlo">&mdash;</code>'}</td>
     </tr>`).join('');
 
-  const hayAlgo = filas.length > 0 || traidos.size > 0 || apuntados.size > 0;
+  const hayAlgo = filas.length > 0 || traidosOApuntados();
   mostrar('diff-has-changes', hayAlgo);
   mostrar('diff-no-changes', !hayAlgo);
   refrescarDeriva();
   actualizarPies();
+}
+
+function traidosOApuntados() {
+  const t = (estado.traido && estado.traido.traidos || []).length;
+  const b = ((estado.traido && estado.traido.borrados_del_repo) || []).length;
+  return t > 0 || b > 0 || estado.eliminar.length > 0;
+}
+
+function filasPorOperacion(operacion) {
+  return filasMarcadas('tabla-repo').filter(f => f.dataset.operacion === operacion);
 }
 
 function filasMarcadas(tablaId) {
@@ -2066,24 +2097,16 @@ function actualizarPies() {
   const botonAplicar = $('btn-confirm-deploy');
   if (botonAplicar && !estado.paso3Cerrado) botonAplicar.disabled = cx.marcadas === 0;
   actualizarAvisoSinVersion();
-  ['btn-traer', 'btn-eliminar'].forEach(id => {
-    const b = $(id);
-    if (b) b.disabled = repo.marcadas === 0;
-  });
-  // Los restos van por su cuenta: borrar del repositorio no depende de lo que
-  // se haya marcado para traer, y atarlos al mismo contador apagaría el botón
-  // con filas suyas marcadas delante.
-  const restos = cuenta('tabla-restos');
-  const botonRestos = $('btn-borrar-repo');
-  if (botonRestos) botonRestos.disabled = restos.marcadas === 0;
-  const pieRestos = $('pie-restos');
-  if (pieRestos) pieRestos.innerHTML = restos.total === 0
-    ? '<span style="color:var(--success)">&#10003; No queda ning&uacute;n archivo sin resource en CX</span>'
-    : (restos.marcadas
-      ? `<strong style="color:var(--error)">${restos.marcadas} de ${restos.total}</strong> se borrar&aacute;n del repositorio`
-      : '<span style="color:var(--text-3)">Nada marcado &mdash; el Paso 3 los recrear&aacute; en CX</span>');
-  const todosRestos = $('sel-todos-restos');
-  if (todosRestos && restos.total) todosRestos.checked = restos.marcadas === restos.total;
+  const botonAplicar2 = $('btn-traer');
+  if (botonAplicar2) botonAplicar2.disabled = repo.marcadas === 0;
+  // «Eliminar de CX» solo puede actuar sobre lo que sigue en CX, así que se
+  // cuenta aparte: atarlo al total encendería el botón con solo filas de
+  // borrar marcadas, y esas ya no están en CX.
+  const enCx = document.querySelectorAll(
+    '#tabla-repo tbody tr[data-operacion="traer"] input:checked:not(:disabled)').length;
+  const botonEliminar = $('btn-eliminar');
+  if (botonEliminar) botonEliminar.disabled = enCx === 0;
+
   if (pieCx && !estado.paso3Cerrado) pieCx.innerHTML = cx.marcadas
     ? `<strong style="color:#93c5fd">${cx.marcadas} de ${cx.total}</strong> se aplicar&aacute;n en CX al continuar`
     : '<span style="color:var(--text-3)">Nada marcado &mdash; no se tocar&aacute; CX</span>';
@@ -2118,12 +2141,45 @@ function actualizarAvisoSinVersion() {
   aviso.style.display = marcadas.some(Boolean) ? 'block' : 'none';
 }
 
-function traerAlRepo() {
-  const filas = filasMarcadas('tabla-repo');
-  if (!filas.length) return;
-  const traer = filas.map(f => ({tipo: f.dataset.tipo, cx_id: f.dataset.cxId}));
-  conBoton('btn-traer', async () => {
+// Lo marcado se congela al pedir la aplicación y es lo que se manda. Releer
+// la tabla después dejaría enseñar unas filas y aplicar otras: la
+// confirmación no tapa la tabla.
+let apuntadoParaElRepo = null;
+
+function pedirAplicarEnRepositorio() {
+  const traer = filasPorOperacion('traer').map(f => ({tipo: f.dataset.tipo, cx_id: f.dataset.cxId}));
+  const borrar = filasPorOperacion('borrar').map(f => ({
+    tipo: f.dataset.tipo, cx_id: f.dataset.cxId,
+    nombre: f.dataset.nombre, ruta: f.dataset.ruta}));
+  if (!traer.length && !borrar.length) return;
+  apuntadoParaElRepo = {traer, borrar};
+  // La confirmación solo aparece cuando algo se borra: pedirla para una
+  // traída, que no destruye nada, sería un trámite que se aprende a saltar sin
+  // leer — y entonces tampoco se leería el día que sí borra.
+  if (!borrar.length) { aplicarEnRepositorio(); return; }
+  $('lista-borrado-repo').innerHTML = borrar.map(
+    r => `· ${esc(NOMBRE_DE_TIPO[r.tipo]||r.tipo)} · ${esc(r.nombre)} ` +
+         `<span style="color:var(--text-3)">&middot; ${esc(r.ruta)}</span>`).join('<br>') +
+    (traer.length ? `<br><span style="color:var(--text-3)">&mdash; y ${traer.length} ` +
+      `resource${traer.length === 1 ? '' : 's'} que se traen, en el mismo commit</span>` : '');
+  mostrar('confirmar-borrado-repo', true);
+  mostrar('traer-gate', false);
+}
+
+function cancelarBorrarDelRepo() {
+  apuntadoParaElRepo = null;
+  mostrar('confirmar-borrado-repo', false);
+  mostrar('traer-gate', true);
+}
+
+function aplicarEnRepositorio() {
+  const apuntado = apuntadoParaElRepo;
+  if (!apuntado) return;
+  const boton = apuntado.borrar.length ? 'btn-confirmar-borrado-repo' : 'btn-traer';
+  conBoton(boton, async () => {
     limpiarError('error-2');
+    mostrar('confirmar-borrado-repo', false);
+    mostrar('traer-gate', true);
     $('btn-eliminar').disabled = true;
     mostrar('traer-log', true);
     pintarLog('traer-log-block', [], true);
@@ -2132,27 +2188,32 @@ function traerAlRepo() {
     let sinFin = false;
     try {
       const sobre = await llamar('/step/2', {metodo:'POST', cuerpo:{
-        project: estado.project, agent: estado.agentId, traer,
+        project: estado.project, agent: estado.agentId,
+        traer: apuntado.traer,
+        borrar_del_repo: apuntado.borrar.map(b => ({tipo: b.tipo, cx_id: b.cx_id})),
       }, onLinea: l => pintarLinea('traer-log-block', l)});
       parar();
       pintarLog('traer-log-block', sobre.log, true);
       if (sobre.status !== 'ok') throw new FalloDelPanel(
-        `Traer al repositorio terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
+        `Aplicar en el repositorio terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
         {url: sobre.url});
-      // Se acumula: dos traídas seguidas no pueden perder la primera.
-      const previos = (estado.traido && estado.traido.traidos) || [];
-      estado.traido = Object.assign({}, sobre.data,
-        {traidos: previos.concat(sobre.data.traidos || [])});
+      // Se acumula: dos pasadas seguidas no pueden perder la primera.
+      const antesT = (estado.traido && estado.traido.traidos) || [];
+      const antesB = (estado.traido && estado.traido.borrados_del_repo) || [];
+      estado.traido = Object.assign({}, estado.traido, sobre.data, {
+        traidos: antesT.concat(sobre.data.traidos || []),
+        borrados_del_repo: antesB.concat(sobre.data.borrados_del_repo || []),
+      });
       // El plan del Paso 3 se calculó contra un repositorio que ya no es este.
       estado.plan = null;
+      apuntadoParaElRepo = null;
       guardarEstado();
       renderTablaRepo();
       $('traer-commit').innerHTML = sobre.data.commit
         ? `commit <code>${esc(String(sobre.data.commit).slice(0,7))}</code> en <code>${esc(oNada(sobre.data.rama))}</code>`
-        : 'sin cambios reales — no se cre&oacute; ning&uacute;n commit';
+        : 'sin cambios reales &mdash; no se cre&oacute; ning&uacute;n commit';
       mostrar('traer-done', true);
       mostrar('sin-modificar-2', false);
-      noRehabilitar('btn-traer');
     } catch (error) {
       parar();
       sinFin = !!(error && error.sinFin);
@@ -2164,24 +2225,8 @@ function traerAlRepo() {
   });
 }
 
-// Borrar es la única acción destructiva del paso: se enseña qué se borra antes
-// de pedir la confirmación, no después.
-//
-// Y mientras esa confirmación está abierta se retira el bloque de acciones. Lo
-// que quedaba justo debajo de la caja roja era «Traer al repositorio» — la
-// acción **contraria** a la que se está confirmando, activa, sobre las mismas
-// filas marcadas y a un clic de distancia. Una confirmación que ofrece al lado
-// lo opuesto de lo que confirma no es una confirmación: es una bifurcación sin
-// avisar. Vuelve al cancelar y al confirmar.
-// Lo que se enseña en la confirmación es lo que se apunta. Se leía la tabla
-// otra vez al confirmar, y el diálogo no la tapa: bastaba tocar una casilla
-// con la confirmación abierta para apuntar algo distinto de lo que ponía
-// delante. Congelarlo al abrir es lo único que hace que la lista sea una
-// promesa y no una foto de un momento cualquiera.
-let cxApuntadosParaBorrar = [];
-
 function pedirEliminarDeCx() {
-  cxApuntadosParaBorrar = filasMarcadas('tabla-repo').map(f => ({
+  cxApuntadosParaBorrar = filasPorOperacion('traer').map(f => ({
     tipo: f.dataset.tipo, cx_id: f.dataset.cxId, resource: f.dataset.nombre,
   }));
   if (!cxApuntadosParaBorrar.length) return;
@@ -2206,121 +2251,6 @@ function confirmarEliminarDeCx() {
   mostrar('confirmar-borrado', false);
   mostrar('traer-gate', true);
   renderTablaRepo();
-}
-
-/* ── Paso 2 · Restos en el repositorio ─────────────────────────────────────
-   Archivos cuya cabecera lleva un `cx_id` que el agente ya no reconoce: el
-   resource se borró en la consola de CX y su archivo sobrevivió.
-
-   Solo esos. Un archivo sin `cx_id` no es un resto — es algo recién escrito
-   que aún no ha subido a CX, y ofrecer borrarlo sería ofrecer tirar el trabajo
-   que se acaba de hacer. El servidor lo rechaza igualmente; aquí ni se enseña,
-   porque una acción peligrosa que se ofrece y luego se rechaza es peor que no
-   ofrecerla.                                                                */
-
-const MOTIVO_FANTASMA = 'cx_id fantasma';
-
-function restosDelRepositorio() {
-  const yaBorrados = new Set(
-    ((estado.traido && estado.traido.borrados_del_repo) || [])
-      .map(b => `${b.tipo}/${b.cx_id}`));
-  return ((estado.inventario && estado.inventario.solo_repo) || []).filter(
-    f => f.motivo === MOTIVO_FANTASMA && f.cx_id &&
-         !yaBorrados.has(`${f.tipo}/${f.cx_id}`));
-}
-
-function renderTablaRestos() {
-  const cuerpo = document.querySelector('#tabla-restos tbody');
-  if (!cuerpo) return;
-  const filas = restosDelRepositorio();
-  cuerpo.innerHTML = filas.map(f => `
-    <tr data-tipo="${esc(f.tipo)}" data-cx-id="${esc(f.cx_id)}"
-        data-nombre="${esc(f.display_name || f.cx_id)}" data-ruta="${esc(f.ruta || '')}">
-      <td style="width:34px"><input type="checkbox" onchange="actualizarPies()"></td>
-      <td>${esc(NOMBRE_DE_TIPO[f.tipo]||f.tipo)}</td>
-      <td><code>${esc(f.display_name || f.cx_id)}</code></td>
-      <td><code style="color:var(--text-3)" title="${esc(f.ruta||'')}">${esc(String(f.ruta||'—').split('/').pop())}</code></td>
-    </tr>`).join('');
-  mostrar('dir-restos', filas.length > 0);
-  const num = $('num-restos');
-  if (num) num.textContent = filas.length;
-  const todos = $('sel-todos-restos');
-  if (todos) { todos.disabled = !filas.length; if (!filas.length) todos.checked = false; }
-  actualizarPies();
-}
-
-// La lista se congela al abrir la confirmación y es la que se borra. Leer las
-// casillas otra vez al confirmar dejaría enseñar unas y borrar otras si algo
-// las tocó en medio — el diálogo no tapa la tabla.
-let restosApuntados = [];
-
-function pedirBorrarDelRepo() {
-  restosApuntados = filasMarcadas('tabla-restos').map(f => ({
-    tipo: f.dataset.tipo, cx_id: f.dataset.cxId,
-    nombre: f.dataset.nombre, ruta: f.dataset.ruta,
-  }));
-  if (!restosApuntados.length) return;
-  $('lista-borrado-repo').innerHTML = restosApuntados.map(
-    r => `· ${esc(NOMBRE_DE_TIPO[r.tipo]||r.tipo)} · ${esc(r.nombre)} ` +
-         `<span style="color:var(--text-3)">&middot; ${esc(r.ruta)}</span>`).join('<br>');
-  mostrar('confirmar-borrado-repo', true);
-  mostrar('traer-gate', false);
-}
-
-function cancelarBorrarDelRepo() {
-  restosApuntados = [];
-  cxApuntadosParaBorrar = [];
-  mostrar('confirmar-borrado-repo', false);
-  mostrar('traer-gate', true);
-}
-
-function borrarDelRepo() {
-  const borrar = restosApuntados.map(r => ({tipo: r.tipo, cx_id: r.cx_id}));
-  if (!borrar.length) return;
-  conBoton('btn-confirmar-borrado-repo', async () => {
-    limpiarError('error-2');
-    mostrar('confirmar-borrado-repo', false);
-    mostrar('traer-gate', true);
-    mostrar('traer-log', true);
-    pintarLog('traer-log-block', [], true);
-    const parar = relojDeEspera('traer-log-block', 'borrando del repositorio');
-    marcarEnCurso(2, 'POST /step/2');
-    let sinFin = false;
-    try {
-      const sobre = await llamar('/step/2', {metodo:'POST', cuerpo:{
-        project: estado.project, agent: estado.agentId, traer: [],
-        borrar_del_repo: borrar,
-      }, onLinea: l => pintarLinea('traer-log-block', l)});
-      parar();
-      pintarLog('traer-log-block', sobre.log, true);
-      if (sobre.status !== 'ok') throw new FalloDelPanel(
-        `Borrar del repositorio terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
-        {url: sobre.url});
-      // Se acumula igual que lo traído: dos borrados seguidos no pueden perder
-      // el primero.
-      const previos = (estado.traido && estado.traido.borrados_del_repo) || [];
-      estado.traido = Object.assign({}, estado.traido, sobre.data, {
-        traidos: (estado.traido && estado.traido.traidos) || [],
-        borrados_del_repo: previos.concat(sobre.data.borrados_del_repo || []),
-      });
-      // El repositorio ya no es el que el Paso 3 midió.
-      estado.plan = null;
-      restosApuntados = [];
-      guardarEstado();
-      renderTablaRestos();
-      $('traer-commit').innerHTML = sobre.data.commit
-        ? `commit <code>${esc(String(sobre.data.commit).slice(0,7))}</code> en <code>${esc(oNada(sobre.data.rama))}</code>`
-        : 'sin cambios reales &mdash; no se cre&oacute; ning&uacute;n commit';
-      mostrar('traer-done', true);
-      mostrar('sin-modificar-2', false);
-    } catch (error) {
-      parar();
-      sinFin = !!(error && error.sinFin);
-      pintarError('error-2', error, sinFin ? AVISO_FLUJO_CORTADO : null);
-    } finally {
-      if (!sinFin) limpiarEnCurso();
-    }
-  });
 }
 
 /* ── Paso 3 · Aplicar en CX · POST /step/3 ────────────────────────────────── */
@@ -2949,7 +2879,7 @@ function viewStep(id) {
     // como quedó, sin los botones que lo volverían a ejecutar.
     v.classList.toggle('paso-cerrado', idx >= 0 && estado.stepStates[idx] === 'done');
   }
-  if (id === 2) { renderTablaRepo(); renderTablaRestos(); }
+  if (id === 2) renderTablaRepo();
   if (id === 3) {
     renderTablaCx();
     if (!estado.plan && !estado.paso3Cerrado) cargarPlan();
@@ -2993,7 +2923,7 @@ function resetDeploy() {
   setRunning(false);
 
   ['inv-log','inv-done','traer-log','traer-done','confirmar-borrado','deploy-log',
-   'confirmar-borrado-repo','dir-restos','aviso-rama-movida',
+   'confirmar-borrado-repo','aviso-rama-movida',
    'deploy-done','deploy-fail','confirmar-terminar','tests-fail','tests-log',
    'prod-log','aviso-draft-movido','plan-log','panel-versiones','aviso-interrumpido',
   ].forEach(id => mostrar(id, false));
@@ -3010,7 +2940,7 @@ function resetDeploy() {
   ].forEach(id => { const e = $(id); if (e) e.innerHTML = ''; });
   ['error-1','error-2','error-3','error-4','error-5','error-tool','error-versiones']
     .forEach(limpiarError);
-  ['btn-start-inventory','btn-traer','btn-eliminar','btn-borrar-repo','btn-confirm-deploy',
+  ['btn-start-inventory','btn-traer','btn-eliminar','btn-confirm-deploy',
    'btn-confirm-prod','btn-tests-ok','btn-tests-ko','btn-retry-failed',
    'btn-ver-versiones','btn-borrar-versiones',
   ].forEach(id => { const b = $(id); if (b) { delete b.dataset.rehabilitar; b.disabled = false; b.style.opacity = ''; } });
@@ -3019,10 +2949,8 @@ function resetDeploy() {
   if (cuerpoCx) cuerpoCx.innerHTML = '';
   const cuerpoRepo = document.querySelector('#tabla-repo tbody');
   if (cuerpoRepo) cuerpoRepo.innerHTML = '';
-  const cuerpoRestos = document.querySelector('#tabla-restos tbody');
-  if (cuerpoRestos) cuerpoRestos.innerHTML = '';
-  restosApuntados = [];
-  ['sel-todos-cx','sel-todos-repo','sel-todos-restos'].forEach(id => {
+  apuntadoParaElRepo = null;
+  ['sel-todos-cx','sel-todos-repo'].forEach(id => {
     const c = $(id); if (c) { c.checked = false; c.disabled = false; }
   });
   $('version-batch-label').value = generateVersionLabel();

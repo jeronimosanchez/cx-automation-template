@@ -1740,73 +1740,76 @@ const escenarios = [
 
 
 {
-  nombre: 'El Paso 2 ofrece borrar del repositorio solo los restos, nunca lo que aún no ha subido',
-  porQue: 'Borrar en la consola de CX no borraba nada: el archivo sobrevivía y el ' +
-          'Paso 3 recreaba el resource con un identificador NUEVO, dejando el ' +
-          'puntero viejo muerto en producción. Pasó probándolo. Pero la oferta tiene ' +
-          'que ser solo para los restos —cabecera con un cx_id que CX ya no ' +
-          'reconoce—: un archivo SIN cx_id es trabajo recién escrito que aún no ha ' +
-          'subido, y ofrecer borrarlo sería ofrecer tirarlo. Y la lista se congela al ' +
-          'confirmar: releer las casillas dejaría enseñar unas y borrar otras.',
+  nombre: 'El Paso 2 pone las dos escrituras del repositorio en una tabla, y las manda en un commit',
+  porQue: 'El servidor hace traer y borrar en la misma llamada, y por tanto en el ' +
+          'mismo commit: partirlo dejaría el repositorio a medias si fallara entre ' +
+          'medias. La pantalla las tenía en dos tarjetas separadas, partiendo en dos ' +
+          'lo que por debajo es una sola cosa. Y hay dos cosas que no pueden ' +
+          'mezclarse al juntarlas: un archivo SIN cx_id no es un resto sino trabajo ' +
+          'recién escrito sin subir —ofrecer borrarlo sería ofrecer tirarlo—, y ' +
+          '«Eliminar de CX» solo puede actuar sobre lo que sigue en CX.',
   async ejecutar() {
     const servidor = new ServidorFalso(rutasBase({
-      '/step/2': {sobre: sobre('ok', ['✗ borrado'], {
-        traidos: [], borrados_del_repo: [{tipo:'playbook', cx_id:'muerto-1',
-          ruta:'definitions/a/playbooks/viejo.yaml', display_name:'Viejo'}],
+      '/step/2': {sobre: sobre('ok', ['✓'], {
+        traidos: [{tipo:'intent', cx_id:'i1', ruta:'uno.yaml', display_name:'Uno'}],
+        borrados_del_repo: [{tipo:'playbook', cx_id:'muerto-1',
+          ruta:'a/viejo.yaml', display_name:'Viejo'}],
         commit:'ccccccc', repo: REPO, rama:'rama-de-prueba'})},
     }));
     const dom = await abrirPanel(servidor, estadoHasta(2, {
-      inventario: Object.assign(estadoHasta(2).inventario, {solo_cx: [], solo_repo: [
-        {tipo:'playbook', cx_id:'muerto-1', display_name:'Viejo',
-         ruta:'definitions/a/playbooks/viejo.yaml', motivo:'cx_id fantasma'},
-        {tipo:'playbook', cx_id:'muerto-2', display_name:'Otro viejo',
-         ruta:'definitions/a/playbooks/otro.yaml', motivo:'cx_id fantasma'},
-        {tipo:'example', cx_id:null, display_name:'Recién escrito',
-         ruta:'definitions/a/examples/nuevo.yaml', motivo:'sin cx_id'},
-      ]}),
+      inventario: Object.assign(estadoHasta(2).inventario, {
+        solo_cx: [{tipo:'intent', cx_id:'i1', display_name:'Uno', nativo:false, traible:true}],
+        solo_repo: [
+          {tipo:'playbook', cx_id:'muerto-1', display_name:'Viejo',
+           ruta:'a/viejo.yaml', motivo:'cx_id fantasma'},
+          {tipo:'example', cx_id:null, display_name:'Recién escrito',
+           ruta:'a/nuevo.yaml', motivo:'sin cx_id'},
+        ],
+      }),
     }));
     dom.window.viewStep(2);
     await reposar(dom, 4);
     const doc = dom.window.document;
+    const filas = [...doc.querySelectorAll('#tabla-repo tbody tr')];
+    const resumen = filas.map(f => `${f.dataset.operacion}:${f.dataset.nombre}`);
 
-    const filas = [...doc.querySelectorAll('#tabla-restos tbody tr')];
-    const nombres = filas.map(f => f.dataset.nombre);
-    const visible = dom.window.getComputedStyle(doc.getElementById('dir-restos')).display !== 'none';
-    // El botón no se ofrece hasta que hay algo marcado.
-    const apagadoSinMarcar = doc.getElementById('btn-borrar-repo').disabled === true;
-
-    // Se marca el primero y se abre la confirmación.
-    filas[0].querySelector('input').checked = true;
+    // «Eliminar de CX» apagado mientras solo hay marcada una fila de borrar.
+    filas.find(f => f.dataset.operacion === 'borrar').querySelector('input').checked = true;
     dom.window.actualizarPies();
-    const encendido = doc.getElementById('btn-borrar-repo').disabled === false;
-    dom.window.pedirBorrarDelRepo();
+    const eliminarApagado = doc.getElementById('btn-eliminar').disabled === true;
+    const aplicarEncendido = doc.getElementById('btn-traer').disabled === false;
+
+    // Se marca también la de traer y se aplica: confirmación —porque algo se
+    // borra— y una sola llamada con las dos listas.
+    filas.find(f => f.dataset.operacion === 'traer').querySelector('input').checked = true;
+    dom.window.actualizarPies();
+    const eliminarEncendido = doc.getElementById('btn-eliminar').disabled === false;
+    pulsar(dom, 'btn-traer');
     await reposar(dom, 2);
-    const enLaConfirmacion = (doc.getElementById('lista-borrado-repo').textContent || '');
-
-    // Alguien toca las casillas con el diálogo abierto: la lista congelada manda.
-    filas[0].querySelector('input').checked = false;
-    filas[1].querySelector('input').checked = true;
-
+    const pideConfirmacion = visible(dom, 'confirmar-borrado-repo');
     pulsar(dom, 'btn-confirmar-borrado-repo');
     await reposar(dom, 8);
-    const cuerpo = (servidor.llamadasA('/step/2')[0] || {}).cuerpo || {};
-    const mandados = (cuerpo.borrar_del_repo || []).map(b => b.cx_id);
+
+    const llamadas = servidor.llamadasA('/step/2');
+    const cuerpo = (llamadas[0] || {}).cuerpo || {};
+    const traer = (cuerpo.traer || []).map(x => x.cx_id);
+    const borrar = (cuerpo.borrar_del_repo || []).map(x => x.cx_id);
 
     const problemas = [];
-    if (!visible) problemas.push('el bloque de restos no se ve');
-    if (JSON.stringify(nombres) !== JSON.stringify(['Viejo', 'Otro viejo']))
-      problemas.push(`filas=${JSON.stringify(nombres)} — debería listar solo los dos fantasma`);
-    if (!apagadoSinMarcar) problemas.push('el botón se ofrece sin nada marcado');
-    if (!encendido) problemas.push('el botón sigue apagado con una fila marcada');
-    if (!/Viejo/.test(enLaConfirmacion)) problemas.push('la confirmación no nombra lo que va a borrar');
-    if (JSON.stringify(mandados) !== JSON.stringify(['muerto-1']))
-      problemas.push(`se mandó ${JSON.stringify(mandados)} y se había confirmado ["muerto-1"]`);
-    if ((cuerpo.traer || []).length) problemas.push('borrar arrastró un traer que nadie pidió');
+    if (JSON.stringify(resumen) !== JSON.stringify(['traer:Uno', 'borrar:Viejo']))
+      problemas.push(`filas=${JSON.stringify(resumen)} — el sin cx_id no debería estar`);
+    if (!eliminarApagado) problemas.push('«Eliminar de CX» se ofrece con solo una fila de borrar marcada');
+    if (!aplicarEncendido) problemas.push('«Aplicar» sigue apagado con una fila marcada');
+    if (!eliminarEncendido) problemas.push('«Eliminar de CX» sigue apagado con una fila de traer marcada');
+    if (!pideConfirmacion) problemas.push('borra sin pedir confirmación');
+    if (llamadas.length !== 1) problemas.push(`${llamadas.length} llamadas — debería ser una`);
+    if (JSON.stringify(traer) !== JSON.stringify(['i1'])) problemas.push(`traer=${JSON.stringify(traer)}`);
+    if (JSON.stringify(borrar) !== JSON.stringify(['muerto-1'])) problemas.push(`borrar=${JSON.stringify(borrar)}`);
 
     return {ok: problemas.length === 0,
             detalle: problemas.length ? problemas.join(' · ')
-              : `filas=${JSON.stringify(nombres)} mandados=${JSON.stringify(mandados)} ` +
-                `apagado-sin-marcar=${apagadoSinMarcar}`};
+              : `filas=${JSON.stringify(resumen)} una-llamada traer=${JSON.stringify(traer)} ` +
+                `borrar=${JSON.stringify(borrar)} confirmación=${pideConfirmacion}`};
   },
 },
 
