@@ -338,13 +338,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
              sería mentir sobre lo que hace. -->
         <div class="dir-card hacia-repo">
           <div class="dir-head">
-            Se va a aplicar en el repositorio <span class="dir-flecha">CX &rarr; repositorio</span>
+            Se va a aplicar en el repositorio (GitHub) <span class="dir-flecha">CX &rarr; repositorio</span>
           </div>
           <div class="dir-body">
             <div id="aviso-deriva" style="color:var(--gate);font-size:13px;font-weight:600;margin-bottom:8px">
               &#9888; <span id="num-deriva">0</span> resources en CX sin respaldo en el repositorio
             </div>
             <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">Lo que no marques se queda como est&aacute;.</p>
+            <!-- La pol&iacute;tica, dicha donde se ve la consecuencia. No basta con
+                 explicar qu&eacute; pasar&aacute;: hay que decir c&oacute;mo se hace bien, o se
+                 repite. Sale solo cuando hay fantasmas, para que no sea un
+                 p&aacute;rrafo fijo que se deja de leer. -->
+            <div id="aviso-politica-borrado" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--text-2);line-height:1.6">
+              <strong style="color:var(--gate)">&#9888; Se borr&oacute; en la consola de CX y su archivo sigue en el repositorio.</strong><br>
+              Si lo dejas as&iacute;, el Paso 3 lo crear&aacute; otra vez en CX <strong>con un identificador nuevo</strong>, y el puntero viejo se queda en producci&oacute;n apuntando a nada.<br><br>
+              <strong style="color:var(--text)">La forma correcta es al rev&eacute;s:</strong> se elimina primero el archivo del repositorio (GitHub) y el pipeline lo propaga a CX y a producci&oacute;n. M&aacute;rcalo abajo y queda hecho.
+            </div>
             <div class="sel-todos"><label><input type="checkbox" id="sel-todos-repo" onchange="marcarTodos('tabla-repo', this.checked)"> Seleccionar todos</label></div>
             <div class="diff-wrap" style="margin-bottom:14px">
               <table class="diff-table" id="tabla-repo">
@@ -354,7 +363,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             </div>
             <div class="legend" style="margin-bottom:4px">
               <span class="legend-item"><span class="pill pill-new">Traer</span> Est&aacute; en CX y ning&uacute;n archivo lo reclama</span>
-              <span class="legend-item"><span class="pill pill-del">Borrar</span> Su archivo describe algo que CX ya no tiene</span>
+              <span class="legend-item"><span class="pill pill-del">Eliminar</span> Se quita su archivo del repositorio (GitHub): describe algo que CX ya no tiene</span>
             </div>
 
             <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
@@ -376,7 +385,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
                 Queda en el historial de git: <code>git show</code> del commit lo recupera.</p>
               <div id="lista-borrado-repo" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
               <div style="display:flex;gap:10px">
-                <button class="btn btn-danger" id="btn-confirmar-borrado-repo" onclick="aplicarEnRepositorio()">S&iacute;, aplicar en el repositorio</button>
+                <button class="btn btn-danger" id="btn-confirmar-borrado-repo" onclick="aplicarEnRepositorio()">S&iacute;, eliminar del repositorio (GitHub)</button>
                 <button class="btn btn-ghost" onclick="cancelarBorrarDelRepo()">Cancelar</button>
               </div>
             </div>
@@ -389,7 +398,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Repositorio: <strong style="color:var(--text)" id="traer-repo">&mdash;</strong> &middot; Rama: <strong style="color:var(--text)" id="traer-rama">&mdash;</strong></p>
         <p>Se van a traer <strong style="color:var(--text)"><span id="traer-count">0</span> resources</strong> de los marcados arriba. Lo que no marques se queda solo en CX, y el repositorio dejar&aacute; de retratar el agente entero.</p>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-traer" onclick="pedirAplicarEnRepositorio()" disabled>Aplicar en el repositorio &rarr;</button>
+          <button class="btn btn-gate" id="btn-traer" onclick="pedirAplicarEnRepositorio()" disabled>Aplicar en el repositorio (GitHub) &rarr;</button>
           <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
         </div>
       </div>
@@ -2013,7 +2022,7 @@ function filasDelRepositorio() {
 }
 
 const PILL_DEL_REPO = {traer: 'pill-new', borrar: 'pill-del'};
-const NOMBRE_DE_OPERACION_REPO = {traer: 'Traer', borrar: 'Borrar'};
+const NOMBRE_DE_OPERACION_REPO = {traer: 'Traer', borrar: 'Eliminar'};
 
 function renderTablaRepo() {
   const cuerpo = document.querySelector('#tabla-repo tbody');
@@ -2034,6 +2043,7 @@ function renderTablaRepo() {
         : '<code style="color:var(--text-3)" title="La ruta la decide el servidor al traerlo">&mdash;</code>'}</td>
     </tr>`).join('');
 
+  mostrar('aviso-politica-borrado', filas.some(f => f.operacion === 'borrar'));
   const hayAlgo = filas.length > 0 || traidosOApuntados();
   mostrar('diff-has-changes', hayAlgo);
   mostrar('diff-no-changes', !hayAlgo);

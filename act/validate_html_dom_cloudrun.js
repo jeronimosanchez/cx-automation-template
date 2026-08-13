@@ -1785,6 +1785,11 @@ const escenarios = [
     // exactamente lo contrario de lo que es. Se lee con la tabla llena: después
     // de aplicar ya no queda nada que contar.
     const resumenTexto = (texto(dom, 'aviso-deriva') || '').replace(/\s+/g, ' ');
+    // La política, no solo la consecuencia. Explicar qué pasará sin decir cómo
+    // se hace bien deja repetir el error: quien borró en la consola de CX lo
+    // volverá a hacer si nadie le dice cuál es el camino.
+    const politica = visibleDeVerdad(dom, 'aviso-politica-borrado');
+    const textoPolitica = (texto(dom, 'aviso-politica-borrado') || '').replace(/\s+/g, ' ');
 
     // «Eliminar de CX» apagado mientras solo hay marcada una fila de borrar.
     filas.find(f => f.dataset.operacion === 'borrar').querySelector('input').checked = true;
@@ -1809,6 +1814,11 @@ const escenarios = [
     const borrar = (cuerpo.borrar_del_repo || []).map(x => x.cx_id);
 
     const problemas = [];
+    if (!politica) problemas.push('con un fantasma en la tabla no sale la política de borrado');
+    if (!/identificador nuevo/i.test(textoPolitica))
+      problemas.push('la política no avisa de que el Paso 3 lo recrearía con otro id');
+    if (!/repositorio \(GitHub\)/.test(textoPolitica))
+      problemas.push('la política no dice dónde se elimina primero');
     if (!/1 resource en CX sin respaldo/.test(resumenTexto))
       problemas.push(`el resumen no cuenta lo de traer: "${resumenTexto}"`);
     if (!/1 archivo del repositorio sin resource en CX/.test(resumenTexto))
