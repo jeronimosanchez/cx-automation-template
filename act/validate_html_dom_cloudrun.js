@@ -257,6 +257,22 @@ function visibleDeVerdad(dom, id) {
   return true;
 }
 
+/** Elige el destino de una fila del Paso 2 por el nombre de su resource.
+ *
+ *  La decisión ya no es una casilla con dos botones detrás: cada fila lleva su
+ *  propio desplegable con solo lo que ella puede hacer. Marcar y pulsar el
+ *  botón equivocado dejó de ser posible, y las pruebas tienen que hablar el
+ *  mismo idioma o comprobarían un panel que ya no existe.                    */
+function elegirDestino(dom, nombre, valor) {
+  const fila = [...dom.window.document.querySelectorAll('#tabla-repo tbody tr')]
+    .find(f => f.dataset.nombre === nombre);
+  if (!fila) throw new Error(`no hay fila para ${nombre}`);
+  const select = fila.querySelector('select');
+  if (!select) throw new Error(`la fila de ${nombre} no tiene desplegable`);
+  select.value = valor;
+  dom.window.elegirDestino(select);
+}
+
 function pulsar(dom, id) {
   const e = dom.window.document.getElementById(id);
   if (!e) throw new Error(`no existe el elemento ${id}`);
@@ -328,7 +344,7 @@ const escenarios = [
       'inv-log-block': 'inv-log', 'grupos-inventario': 'inv-done',
       // Paso 2 — los mandos son `traer-gate`, dentro del bloque «hay cambios».
       'traer-gate': 'diff-has-changes',
-      'btn-traer': 'traer-gate', 'btn-eliminar': 'traer-gate',
+      'btn-traer': 'traer-gate',
       'traer-log': 'diff-has-changes', 'traer-done': 'diff-has-changes',
       'error-2': 'diff-has-changes',
       'traer-log-block': 'traer-log',
@@ -763,7 +779,10 @@ const escenarios = [
     }));
     dom.window.viewStep(2);
     await reposar(dom, 4);
-    dom.window.marcarTodos('tabla-repo', true);
+    // Elegir destino en cada fila: ya no hay «seleccionar todos», porque cada
+    // una decide lo suyo y un «todos» tendría que decidir por ellas.
+    [...dom.window.document.querySelectorAll('#tabla-repo tbody tr')].forEach(
+      f => elegirDestino(dom, f.dataset.nombre, 'crear_repo'));
     await reposar(dom, 2);
     pulsar(dom, 'btn-traer');
     await reposar(dom, 4);
@@ -981,8 +1000,7 @@ const escenarios = [
     const dom = await abrirPanel(servidor, estadoHasta(2));
     dom.window.viewStep(2);
     await reposar(dom, 4);
-    const casilla = dom.window.document.querySelector('#tabla-repo tbody input:not(:disabled)');
-    casilla.click();
+    elegirDestino(dom, [...dom.window.document.querySelectorAll('#tabla-repo tbody tr')][0].dataset.nombre, 'crear_repo');
     pulsar(dom, 'btn-traer');
     const boton = dom.window.document.getElementById('btn-traer');
     const deshabilitadoAlInstante = boton.disabled;
@@ -1693,59 +1711,49 @@ const escenarios = [
 },
 
 {
-  nombre: 'Mientras se confirma un borrado no se ofrece la acción contraria, y al cerrar la confirmación vuelve',
-  porQue: 'Al marcar un resource y pulsar «Eliminar de CX» aparecía la ' +
-          'confirmación «Apuntar para borrar en el Paso 3» y justo debajo seguía ' +
-          '«Traer al repositorio» — lo opuesto de lo que se está confirmando, ' +
-          'activo y sobre las mismas filas marcadas. Una confirmación que ofrece ' +
-          'al lado lo contrario no confirma nada. Y tiene que volver al cerrarse: ' +
-          'un arreglo que dejara el Paso 2 sin sus botones cambiaría un defecto ' +
-          'por otro peor.',
+  nombre: 'Mientras se confirma un borrado no se ofrece seguir por otro lado, y al cerrar vuelve',
+  porQue: 'Una confirmación que deja activo debajo el botón que la haría innecesaria no ' +
+          'confirma nada. Y tiene que volver al cerrarse: un arreglo que dejara el Paso 2 ' +
+          'sin su botón cambiaría un defecto por otro peor.',
   async ejecutar() {
-    const servidor = new ServidorFalso(rutasBase());
-    const dom = await abrirPanel(servidor, estadoHasta(2));
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/2': {sobre: sobre('ok', ['✓'], {traidos: [], borrados_del_repo: [],
+        commit:'ccccccc', repo: REPO, rama:'rama-de-prueba'})},
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(2, {
+      inventario: Object.assign(estadoHasta(2).inventario, {solo_cx: [], solo_repo: [
+        {tipo:'playbook', cx_id:'muerto-1', display_name:'Viejo',
+         ruta:'a/viejo.yaml', motivo:'cx_id fantasma'},
+      ]}),
+    }));
     dom.window.viewStep(2);
     await reposar(dom, 4);
-    const traerAntes = visibleDeVerdad(dom, 'btn-traer');
+    const gateAntes = visibleDeVerdad(dom, 'btn-traer');
 
-    dom.window.document.querySelector('#tabla-repo tbody input:not(:disabled)').click();
-    pulsar(dom, 'btn-eliminar');
+    elegirDestino(dom, 'Viejo', 'eliminar_repo');
+    pulsar(dom, 'btn-traer');
     await reposar(dom, 2);
-    const confirmacion = visible(dom, 'confirmar-borrado');
-    const traerDurante = visibleDeVerdad(dom, 'btn-traer');
-    const listaBorrado = texto(dom, 'lista-borrado') || '';
+    const confirmacion = visible(dom, 'confirmar-borrado-repo');
+    const gateDurante = visibleDeVerdad(dom, 'btn-traer');
+    const lista = texto(dom, 'lista-borrado-repo') || '';
 
-    dom.window.cancelarEliminarDeCx();
+    dom.window.cancelarBorrarDelRepo();
     await reposar(dom, 2);
-    const traerTrasCancelar = visibleDeVerdad(dom, 'btn-traer');
-    const confirmacionTrasCancelar = visible(dom, 'confirmar-borrado');
+    const gateTrasCancelar = visibleDeVerdad(dom, 'btn-traer');
+    const confirmacionTrasCancelar = visible(dom, 'confirmar-borrado-repo');
 
-    // Y por el otro camino de salida: confirmando. Sigue marcado lo de antes,
-    // así que el botón de borrar continúa habilitado.
-    pulsar(dom, 'btn-eliminar');
-    await reposar(dom, 2);
-    // Lo que se enseña es lo que se apunta. El diálogo no tapa la tabla, así
-    // que se desmarca la fila con la confirmación ya abierta: si el confirmar
-    // releyera las casillas, se enseñaría una cosa y se apuntaría otra —o
-    // ninguna—. La lista congelada al abrir es la que manda.
-    dom.window.document.querySelector('#tabla-repo tbody input:not(:disabled)').checked = false;
-    dom.window.confirmarEliminarDeCx();
-    await reposar(dom, 2);
-    const traerTrasConfirmar = visibleDeVerdad(dom, 'btn-traer');
-    const apuntados = dom.window.eval('estado.eliminar.length');
-
-    return {
-      ok: traerAntes === true && confirmacion === true && traerDurante === false
-          && listaBorrado.includes('Solo en CX')
-          && traerTrasCancelar === true && confirmacionTrasCancelar === false
-          && traerTrasConfirmar === true && apuntados === 1,
-      detalle: `traer antes=${traerAntes} durante=${traerDurante} ` +
-               `tras-cancelar=${traerTrasCancelar} tras-confirmar=${traerTrasConfirmar} ` +
-               `confirmacion=${confirmacion} apuntados=${apuntados}`,
-    };
+    const problemas = [];
+    if (!gateAntes) problemas.push('el botón no se ofrece antes');
+    if (!confirmacion) problemas.push('no pide confirmación para borrar');
+    if (gateDurante) problemas.push('con la confirmación abierta sigue ofreciendo el botón debajo');
+    if (!/Viejo/.test(lista)) problemas.push('la confirmación no nombra lo que borra');
+    if (!gateTrasCancelar) problemas.push('al cancelar no vuelve el botón');
+    if (confirmacionTrasCancelar) problemas.push('al cancelar sigue abierta la confirmación');
+    return {ok: problemas.length === 0,
+            detalle: problemas.length ? problemas.join(' · ')
+              : `antes=${gateAntes} durante=${gateDurante} tras-cancelar=${gateTrasCancelar}`};
   },
 },
-
 
 {
   nombre: 'El Paso 2 pone las dos escrituras del repositorio en una tabla, y las manda en un commit',
@@ -1795,17 +1803,15 @@ const escenarios = [
     const politica = visibleDeVerdad(dom, 'aviso-politica-borrado');
     const textoPolitica = (texto(dom, 'aviso-politica-borrado') || '').replace(/\s+/g, ' ');
 
-    // «Eliminar de CX» apagado mientras solo hay marcada una fila de borrar.
-    filas.find(f => f.dataset.operacion === 'borrar').querySelector('input').checked = true;
-    dom.window.actualizarPies();
-    const eliminarApagado = doc.getElementById('btn-eliminar').disabled === true;
+    // El botón está apagado mientras no se elija ningún destino.
+    const apagadoSinElegir = doc.getElementById('btn-traer').disabled === true;
+    // Cada fila ofrece solo lo suyo: la de borrar no puede eliminarse de CX,
+    // porque ya no está en CX — antes eso se ignoraba en silencio.
+    const opcionesBorrar = [...filas.find(f => f.dataset.operacion === 'borrar')
+      .querySelectorAll('option')].map(o => o.value);
+    elegirDestino(dom, 'Viejo', 'eliminar_repo');
     const aplicarEncendido = doc.getElementById('btn-traer').disabled === false;
-
-    // Se marca también la de traer y se aplica: confirmación —porque algo se
-    // borra— y una sola llamada con las dos listas.
-    filas.find(f => f.dataset.operacion === 'traer').querySelector('input').checked = true;
-    dom.window.actualizarPies();
-    const eliminarEncendido = doc.getElementById('btn-eliminar').disabled === false;
+    elegirDestino(dom, 'Uno', 'crear_repo');
     pulsar(dom, 'btn-traer');
     await reposar(dom, 2);
     // El gate promete lo que va a pasar, por operación. Decía «se van a traer
@@ -1837,9 +1843,10 @@ const escenarios = [
       problemas.push(`la fila de eliminar no dice por qué: "${porques[1]}"`);
     if (JSON.stringify(resumen) !== JSON.stringify(['traer:Uno', 'borrar:Viejo']))
       problemas.push(`filas=${JSON.stringify(resumen)} — el sin cx_id no debería estar`);
-    if (!eliminarApagado) problemas.push('«Eliminar de CX» se ofrece con solo una fila de borrar marcada');
-    if (!aplicarEncendido) problemas.push('«Aplicar» sigue apagado con una fila marcada');
-    if (!eliminarEncendido) problemas.push('«Eliminar de CX» sigue apagado con una fila de traer marcada');
+    if (!apagadoSinElegir) problemas.push('el botón se ofrece sin haber elegido nada');
+    if (!aplicarEncendido) problemas.push('el botón sigue apagado con un destino elegido');
+    if (opcionesBorrar.includes('eliminar_cx'))
+      problemas.push('la fila de borrar ofrece eliminar de CX, y ya no está en CX');
     if (!pideConfirmacion) problemas.push('borra sin pedir confirmación');
     if (!/crear 1 archivo/.test(gate) || !/eliminar 1 archivo/.test(gate))
       problemas.push(`el gate no dice lo que hará por operación: "${gate}"`);
@@ -1852,7 +1859,7 @@ const escenarios = [
     return {ok: problemas.length === 0,
             detalle: problemas.length ? problemas.join(' · ')
               : `filas=${JSON.stringify(resumen)} una-llamada traer=${JSON.stringify(traer)} ` +
-                `borrar=${JSON.stringify(borrar)} confirmación=${pideConfirmacion}`};
+                `borrar=${JSON.stringify(borrar)} opciones-de-borrar=${JSON.stringify(opcionesBorrar)}`};
   },
 },
 
@@ -1874,10 +1881,11 @@ const escenarios = [
     }));
     dom.window.viewStep(2);
     await reposar(dom, 4);
-    const casillas = [...dom.window.document.querySelectorAll('#tabla-repo tbody input')];
-    const nativaBloqueada = casillas[1] && casillas[1].disabled === true;
-    dom.window.document.getElementById('sel-todos-repo').click();
-    dom.window.marcarTodos('tabla-repo', true);
+    const selects = [...dom.window.document.querySelectorAll('#tabla-repo tbody select')];
+    const nativaBloqueada = selects[1] && selects[1].disabled === true;
+    // Y lo nativo ni siquiera ofrece destino: un desplegable con opciones que
+    // el servidor va a rechazar es una trampa puesta a mano.
+    elegirDestino(dom, 'Uno', 'crear_repo');
     await reposar(dom, 2);
     pulsar(dom, 'btn-traer');
     await reposar(dom, 8);

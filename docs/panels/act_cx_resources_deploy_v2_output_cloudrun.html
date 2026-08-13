@@ -347,7 +347,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
                  repite. Sale solo cuando hay fantasmas, para que no sea un
                  p&aacute;rrafo fijo que se deja de leer. -->
             <div id="aviso-politica-borrado" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--text-2);line-height:1.6"><strong style="color:var(--text)">La forma correcta de borrar es aqu&iacute;:</strong> se elimina el archivo del repositorio (GitHub) y el pipeline lo propaga a CX y a producci&oacute;n. Cada fila dice abajo por qu&eacute; est&aacute; ah&iacute;.</div>
-            <div class="sel-todos"><label><input type="checkbox" id="sel-todos-repo" onchange="marcarTodos('tabla-repo', this.checked)"> Seleccionar todos</label></div>
             <div class="diff-wrap" style="margin-bottom:14px">
               <table class="diff-table" id="tabla-repo">
                 <thead><tr><th style="width:34px"></th><th>Operaci&oacute;n</th><th>Tipo</th><th>Resource (CX)</th><th>Archivo (GitHub)</th></tr></thead>
@@ -356,19 +355,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             </div>
             
 
-            <div id="confirmar-borrado" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
-              <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Apuntar para borrar en el Paso 3</div>
-              <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
-                Los resources de abajo <strong>se borrar&aacute;n al aplicar, en el Paso 3</strong>. Hasta entonces no se toca el agente: aqu&iacute; solo queda decidido su destino, y all&iacute; aparecer&aacute;n sin marcar como todo lo dem&aacute;s.<br>
-                Cuando se apliquen, el borrado <strong>no se puede deshacer desde el panel</strong> &mdash; solo recuperando una versi&oacute;n anterior.</p>
-              <div id="lista-borrado" style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-2);line-height:1.9;margin-bottom:14px"></div>
-              <div style="display:flex;gap:10px">
-                <button class="btn btn-danger" onclick="confirmarEliminarDeCx()">S&iacute;, apuntar para borrar</button>
-                <button class="btn btn-ghost" onclick="cancelarEliminarDeCx()">Cancelar</button>
-              </div>
-            </div>
-
-            <div id="confirmar-borrado-repo" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
+<div id="confirmar-borrado-repo" style="display:none;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:8px;padding:16px 18px;margin-top:16px">
               <div style="font-size:13px;font-weight:600;color:var(--error);margin-bottom:6px">&#9888; Borrar estos archivos del repositorio</div>
               <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.6">
                 Se borran <strong>ahora</strong>, en un commit de la rama &mdash; no espera al Paso 3. El resource que describ&iacute;an ya no existe en CX, as&iacute; que no se pierde nada vivo.<br>
@@ -387,8 +374,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <p style="margin-bottom:8px;font-size:12px;color:var(--text-3)">Repositorio: <strong style="color:var(--text)" id="traer-repo">&mdash;</strong> &middot; Rama: <strong style="color:var(--text)" id="traer-rama">&mdash;</strong></p>
         <p id="traer-resumen">Nada marcado &mdash; no se tocar&aacute; el repositorio.</p>
         <div class="action-bar">
-          <button class="btn btn-gate" id="btn-traer" onclick="pedirAplicarEnRepositorio()" disabled>Aplicar en el repositorio (GitHub) &rarr;</button>
-          <button class="btn btn-danger" id="btn-eliminar" onclick="pedirEliminarDeCx()" disabled>Eliminar de CX</button>
+          <button class="btn btn-gate" id="btn-traer" onclick="pedirAplicarEnRepositorio()" disabled>Aplicar &rarr;</button>
         </div>
       </div>
 
@@ -862,6 +848,10 @@ function estadoNuevo() {
     inventario:null,      // data del Paso 1
     traido:null,          // data del Paso 2
     eliminar:[],          // {tipo, cx_id, resource} apuntados en el Paso 2
+    // Qué se ha elegido hacer con cada fila del Paso 2, por resource.
+    // Vive en el estado y no en el desplegable: repintar la tabla —al traer
+    // algo, por ejemplo— borraba lo decidido en las demás filas.
+    destinosPaso2:{},
     plan:null,            // operaciones del Paso 3 en dry-run
     aplicadas:null,       // operaciones del Paso 3 ya ejecutadas
     paso3Cerrado:false,
@@ -2017,43 +2007,79 @@ const PORQUE_DE_LA_FILA = {
 };
 const NOMBRE_DE_OPERACION_REPO = {traer: 'Crear en GitHub', borrar: 'Eliminar en GitHub'};
 
+/* Cada fila elige su destino, y no una casilla con dos botones detrás.
+
+   Estaba montado al revés: una casilla que solo decía «seleccionado», y dos
+   botones opuestos —traer al repositorio y eliminar de CX— actuando sobre lo
+   mismo. Marcabas una fila que ponía «Crear en GitHub» y pulsabas «Eliminar de
+   CX»: la fila prometía una cosa y el botón hacía otra. Y como no todas las
+   filas valían para los dos botones, uno de ellos ignoraba algunas en silencio.
+
+   Con el destino en la fila eso no se puede ni formular: cada una ofrece
+   solo lo que ella puede hacer, y el botón único ejecuta lo que cada una diga. */
+
+const DESTINOS = {
+  traer:  [['', 'Nada'], ['crear_repo', 'Crear en GitHub'], ['eliminar_cx', 'Eliminar de CX']],
+  borrar: [['', 'Nada'], ['eliminar_repo', 'Eliminar en GitHub']],
+};
+
 function renderTablaRepo() {
   const cuerpo = document.querySelector('#tabla-repo tbody');
   if (!cuerpo) return;
   const filas = filasDelRepositorio();
+  const elegido = estado.destinosPaso2 || {};
 
-  cuerpo.innerHTML = filas.map(f => `
+  cuerpo.innerHTML = filas.map(f => {
+    const clave = `${f.tipo}/${f.cx_id}`;
+    const opciones = (DESTINOS[f.operacion] || []).map(([valor, texto]) =>
+      `<option value="${valor}"${elegido[clave] === valor ? ' selected' : ''}>${texto}</option>`).join('');
+    return `
     <tr data-tipo="${esc(f.tipo)}" data-cx-id="${esc(f.cx_id)}"
         data-nombre="${esc(f.display_name||f.cx_id)}" data-operacion="${f.operacion}"
-        data-ruta="${esc(f.ruta||'')}">
-      <td style="width:34px"><input type="checkbox" ${f.accionable ? '' : 'disabled'}
-          onchange="actualizarPies();refrescarDeriva()"></td>
-      <td><span class="pill ${PILL_DEL_REPO[f.operacion]}">${NOMBRE_DE_OPERACION_REPO[f.operacion]}</span></td>
-      <td>${esc(NOMBRE_DE_TIPO[f.tipo]||f.tipo)}</td>
-      <td><code>${esc(f.display_name || f.cx_id)}</code>${f.accionable ? '' :
+        data-ruta="${esc(f.ruta||'')}" data-clave="${esc(clave)}">
+      <td style="padding-right:10px;vertical-align:top">
+        <select class="snapshot-input destino-fila" style="width:100%;font-size:12px"
+                ${f.accionable ? '' : 'disabled'} onchange="elegirDestino(this)">${opciones}</select></td>
+      <td style="vertical-align:top;padding-top:9px">${esc(NOMBRE_DE_TIPO[f.tipo]||f.tipo)}</td>
+      <td style="vertical-align:top;padding-top:9px"><code>${esc(f.display_name || f.cx_id)}</code>${f.accionable ? '' :
         ' <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span>'}
         <div class="porque-fila" style="font-size:11px;color:${f.operacion === 'borrar' ? 'var(--gate)' : 'var(--text-3)'};margin-top:3px;line-height:1.5">
           &#8627; ${PORQUE_DE_LA_FILA[f.operacion]}</div></td>
-      <td>${f.operacion === 'borrar' ? celdaArchivo(f.ruta)
+      <td style="vertical-align:top;padding-top:9px">${f.operacion === 'borrar' ? celdaArchivo(f.ruta)
         : '<code style="color:var(--text-3)" title="La ruta la decide el servidor al traerlo">&mdash;</code>'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
-  mostrar('aviso-politica-borrado', filas.some(f => f.operacion === 'borrar'));
   const hayAlgo = filas.length > 0 || traidosOApuntados();
+  mostrar('aviso-politica-borrado', filas.some(f => f.operacion === 'borrar'));
   mostrar('diff-has-changes', hayAlgo);
   mostrar('diff-no-changes', !hayAlgo);
-  refrescarDeriva();
   actualizarPies();
+}
+
+// Lo elegido sobrevive a repintar la tabla: se guarda por resource, no en el
+// desplegable. Sin esto, traer algo borraba las decisiones de las demás filas.
+function elegirDestino(select) {
+  const fila = select.closest('tr');
+  estado.destinosPaso2 = estado.destinosPaso2 || {};
+  estado.destinosPaso2[fila.dataset.clave] = select.value;
+  guardarEstado();
+  actualizarPies();
+}
+
+function destinosElegidos() {
+  const por = {crear_repo: [], eliminar_repo: [], eliminar_cx: []};
+  document.querySelectorAll('#tabla-repo tbody tr').forEach(f => {
+    const v = (f.querySelector('select') || {}).value;
+    if (por[v]) por[v].push(f);
+  });
+  return por;
 }
 
 function traidosOApuntados() {
   const t = (estado.traido && estado.traido.traidos || []).length;
   const b = ((estado.traido && estado.traido.borrados_del_repo) || []).length;
   return t > 0 || b > 0 || estado.eliminar.length > 0;
-}
-
-function filasPorOperacion(operacion) {
-  return filasMarcadas('tabla-repo').filter(f => f.dataset.operacion === operacion);
 }
 
 function filasMarcadas(tablaId) {
@@ -2112,31 +2138,29 @@ function actualizarPies() {
   // Lo que el gate promete tiene que ser lo que va a pasar. Decía «se van a
   // traer N resources» con N contando también las eliminaciones: prometía
   // traer lo que iba a borrar.
+  const elegido = destinosElegidos();
   const resumen = $('traer-resumen');
   if (resumen) {
-    const crear = document.querySelectorAll(
-      '#tabla-repo tbody tr[data-operacion="traer"] input:checked:not(:disabled)').length;
-    const borrar = document.querySelectorAll(
-      '#tabla-repo tbody tr[data-operacion="borrar"] input:checked:not(:disabled)').length;
-    const partes = [];
-    if (crear) partes.push(`<strong style="color:var(--text)">crear ${crear}</strong> archivo${crear === 1 ? '' : 's'}`);
-    if (borrar) partes.push(`<strong style="color:var(--error)">eliminar ${borrar}</strong> archivo${borrar === 1 ? '' : 's'}`);
-    resumen.innerHTML = partes.length
-      ? `Se van a ${partes.join(' y ')} en GitHub, en un solo commit. Lo que no marques se queda como est&aacute;.`
-      : 'Nada marcado &mdash; no se tocar&aacute; el repositorio.';
+    const enGitHub = [];
+    if (elegido.crear_repo.length) enGitHub.push(
+      `<strong style="color:var(--text)">crear ${elegido.crear_repo.length}</strong> archivo${elegido.crear_repo.length === 1 ? '' : 's'}`);
+    if (elegido.eliminar_repo.length) enGitHub.push(
+      `<strong style="color:var(--error)">eliminar ${elegido.eliminar_repo.length}</strong> archivo${elegido.eliminar_repo.length === 1 ? '' : 's'}`);
+    const enCx = elegido.eliminar_cx.length
+      ? `<br><span style="color:var(--text-3)">En el Paso 3: se eliminar&aacute;n de CX <strong style="color:var(--error)">${elegido.eliminar_cx.length}</strong> ` +
+        `resource${elegido.eliminar_cx.length === 1 ? '' : 's'} (${elegido.eliminar_cx.map(f => esc(f.dataset.nombre)).join(', ')}).</span>`
+      : '';
+    resumen.innerHTML = enGitHub.length || enCx
+      ? (enGitHub.length ? `Ahora en GitHub: ${enGitHub.join(' y ')}, en un solo commit.` : 'Ahora en GitHub: nada.') + enCx
+      : 'Nada elegido &mdash; no se tocar&aacute; nada.';
   }
+  const botonAplicar1 = $('btn-traer');
+  if (botonAplicar1) botonAplicar1.disabled =
+    !(elegido.crear_repo.length || elegido.eliminar_repo.length || elegido.eliminar_cx.length);
+
   const botonAplicar = $('btn-confirm-deploy');
   if (botonAplicar && !estado.paso3Cerrado) botonAplicar.disabled = cx.marcadas === 0;
   actualizarAvisoSinVersion();
-  const botonAplicar2 = $('btn-traer');
-  if (botonAplicar2) botonAplicar2.disabled = repo.marcadas === 0;
-  // «Eliminar de CX» solo puede actuar sobre lo que sigue en CX, así que se
-  // cuenta aparte: atarlo al total encendería el botón con solo filas de
-  // borrar marcadas, y esas ya no están en CX.
-  const enCx = document.querySelectorAll(
-    '#tabla-repo tbody tr[data-operacion="traer"] input:checked:not(:disabled)').length;
-  const botonEliminar = $('btn-eliminar');
-  if (botonEliminar) botonEliminar.disabled = enCx === 0;
 
   if (pieCx && !estado.paso3Cerrado) pieCx.innerHTML = cx.marcadas
     ? `<strong style="color:#93c5fd">${cx.marcadas} de ${cx.total}</strong> se aplicar&aacute;n en CX al continuar`
@@ -2167,14 +2191,21 @@ function actualizarAvisoSinVersion() {
 // Lo marcado se congela al pedir la aplicación y es lo que se manda. Releer
 // la tabla después dejaría enseñar unas filas y aplicar otras: la
 // confirmación no tapa la tabla.
-let apuntadoParaElRepo = null;
 
 function pedirAplicarEnRepositorio() {
-  const traer = filasPorOperacion('traer').map(f => ({tipo: f.dataset.tipo, cx_id: f.dataset.cxId}));
-  const borrar = filasPorOperacion('borrar').map(f => ({
+  const elegido = destinosElegidos();
+  const traer = elegido.crear_repo.map(f => ({tipo: f.dataset.tipo, cx_id: f.dataset.cxId}));
+  const borrar = elegido.eliminar_repo.map(f => ({
     tipo: f.dataset.tipo, cx_id: f.dataset.cxId,
     nombre: f.dataset.nombre, ruta: f.dataset.ruta}));
-  if (!traer.length && !borrar.length) return;
+  // Lo de CX no se escribe aquí: se apunta y lo ejecuta el Paso 3, que es el
+  // paso que toca el agente. Se guarda antes de la confirmación porque no
+  // depende de ella — confirmar es para lo que se borra ahora.
+  estado.eliminar = elegido.eliminar_cx.map(f => ({
+    tipo: f.dataset.tipo, cx_id: f.dataset.cxId, resource: f.dataset.nombre}));
+  estado.plan = null;
+  guardarEstado();
+  if (!traer.length && !borrar.length) { renderTablaRepo(); avanzarTrasApuntar(); return; }
   apuntadoParaElRepo = {traer, borrar};
   // La confirmación solo aparece cuando algo se borra: pedirla para una
   // traída, que no destruye nada, sería un trámite que se aprende a saltar sin
@@ -2184,9 +2215,22 @@ function pedirAplicarEnRepositorio() {
     r => `· ${esc(NOMBRE_DE_TIPO[r.tipo]||r.tipo)} · ${esc(r.nombre)} ` +
          `<span style="color:var(--text-3)">&middot; ${esc(r.ruta)}</span>`).join('<br>') +
     (traer.length ? `<br><span style="color:var(--text-3)">&mdash; y ${traer.length} ` +
-      `resource${traer.length === 1 ? '' : 's'} que se traen, en el mismo commit</span>` : '');
+      `archivo${traer.length === 1 ? '' : 's'} que se crean, en el mismo commit</span>` : '');
   mostrar('confirmar-borrado-repo', true);
   mostrar('traer-gate', false);
+}
+
+// Si lo único elegido era eliminar de CX, no hay nada que escribir en el
+// repositorio: queda apuntado y el Paso 3 lo ejecuta. Decirlo, porque pulsar
+// un botón y que no pase nada visible se lee como que falló.
+function avanzarTrasApuntar() {
+  if (!(estado.eliminar || []).length) return;
+  $('traer-commit').innerHTML =
+    `${estado.eliminar.length} resource${estado.eliminar.length === 1 ? '' : 's'} ` +
+    `apuntado${estado.eliminar.length === 1 ? '' : 's'} para eliminar de CX. ` +
+    `Se borran al aplicar el Paso 3; el repositorio no se ha tocado.`;
+  mostrar('traer-done', true);
+  mostrar('sin-modificar-2', false);
 }
 
 function cancelarBorrarDelRepo() {
@@ -2203,7 +2247,6 @@ function aplicarEnRepositorio() {
     limpiarError('error-2');
     mostrar('confirmar-borrado-repo', false);
     mostrar('traer-gate', true);
-    $('btn-eliminar').disabled = true;
     mostrar('traer-log', true);
     pintarLog('traer-log-block', [], true);
     const parar = relojDeEspera('traer-log-block', 'escribiendo en el repositorio');
@@ -2220,60 +2263,33 @@ function aplicarEnRepositorio() {
       if (sobre.status !== 'ok') throw new FalloDelPanel(
         `Aplicar en el repositorio terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
         {url: sobre.url});
-      // Se acumula: dos pasadas seguidas no pueden perder la primera.
       const antesT = (estado.traido && estado.traido.traidos) || [];
       const antesB = (estado.traido && estado.traido.borrados_del_repo) || [];
       estado.traido = Object.assign({}, estado.traido, sobre.data, {
         traidos: antesT.concat(sobre.data.traidos || []),
         borrados_del_repo: antesB.concat(sobre.data.borrados_del_repo || []),
       });
-      // El plan del Paso 3 se calculó contra un repositorio que ya no es este.
       estado.plan = null;
+      estado.destinosPaso2 = {};
       apuntadoParaElRepo = null;
       guardarEstado();
       renderTablaRepo();
-      $('traer-commit').innerHTML = sobre.data.commit
+      const apuntadoCx = (estado.eliminar || []).length
+        ? ` &middot; ${estado.eliminar.length} apuntado${estado.eliminar.length === 1 ? '' : 's'} para eliminar de CX en el Paso 3`
+        : '';
+      $('traer-commit').innerHTML = (sobre.data.commit
         ? `commit <code>${esc(String(sobre.data.commit).slice(0,7))}</code> en <code>${esc(oNada(sobre.data.rama))}</code>`
-        : 'sin cambios reales &mdash; no se cre&oacute; ning&uacute;n commit';
+        : 'sin cambios reales &mdash; no se cre&oacute; ning&uacute;n commit') + apuntadoCx;
       mostrar('traer-done', true);
       mostrar('sin-modificar-2', false);
     } catch (error) {
       parar();
       sinFin = !!(error && error.sinFin);
       pintarError('error-2', error, sinFin ? AVISO_FLUJO_CORTADO : null);
-      $('btn-eliminar').disabled = false;
     } finally {
       if (!sinFin) limpiarEnCurso();
     }
   });
-}
-
-function pedirEliminarDeCx() {
-  cxApuntadosParaBorrar = filasPorOperacion('traer').map(f => ({
-    tipo: f.dataset.tipo, cx_id: f.dataset.cxId, resource: f.dataset.nombre,
-  }));
-  if (!cxApuntadosParaBorrar.length) return;
-  $('lista-borrado').innerHTML = cxApuntadosParaBorrar.map(
-    r => `· ${esc(NOMBRE_DE_TIPO[r.tipo]||r.tipo)} · ${esc(r.resource)}`).join('<br>');
-  mostrar('confirmar-borrado', true);
-  mostrar('traer-gate', false);
-}
-
-function cancelarEliminarDeCx() {
-  cxApuntadosParaBorrar = [];
-  mostrar('confirmar-borrado', false);
-  mostrar('traer-gate', true);
-}
-
-function confirmarEliminarDeCx() {
-  cxApuntadosParaBorrar.forEach(r => estado.eliminar.push(r));
-  cxApuntadosParaBorrar = [];
-  // Lo apuntado cambia lo que el Paso 3 va a hacer: el plan anterior ya no vale.
-  estado.plan = null;
-  guardarEstado();
-  mostrar('confirmar-borrado', false);
-  mostrar('traer-gate', true);
-  renderTablaRepo();
 }
 
 /* ── Paso 3 · Aplicar en CX · POST /step/3 ────────────────────────────────── */
@@ -2970,7 +2986,7 @@ function resetDeploy() {
   ].forEach(id => { const e = $(id); if (e) e.innerHTML = ''; });
   ['error-1','error-2','error-3','error-4','error-5','error-tool','error-versiones']
     .forEach(limpiarError);
-  ['btn-start-inventory','btn-traer','btn-eliminar','btn-confirm-deploy',
+  ['btn-start-inventory','btn-traer','btn-confirm-deploy',
    'btn-confirm-prod','btn-tests-ok','btn-tests-ko','btn-retry-failed',
    'btn-ver-versiones','btn-borrar-versiones',
   ].forEach(id => { const b = $(id); if (b) { delete b.dataset.rehabilitar; b.disabled = false; b.style.opacity = ''; } });
