@@ -1746,7 +1746,11 @@ const escenarios = [
     if (!gateAntes) problemas.push('el botón no se ofrece antes');
     if (!confirmacion) problemas.push('no pide confirmación para borrar');
     if (gateDurante) problemas.push('con la confirmación abierta sigue ofreciendo el botón debajo');
+    // La confirmación repite la tabla: cada fila con su verbo delante. Estaba
+    // escrita como «confirmación de borrado» con las creaciones en una nota al
+    // pie, y con dos filas se leía como si se fueran a borrar las dos.
     if (!/Viejo/.test(lista)) problemas.push('la confirmación no nombra lo que borra');
+    if (!/Eliminar/.test(lista)) problemas.push('la confirmación no dice el verbo de cada fila');
     if (!gateTrasCancelar) problemas.push('al cancelar no vuelve el botón');
     if (confirmacionTrasCancelar) problemas.push('al cancelar sigue abierta la confirmación');
     return {ok: problemas.length === 0,
@@ -1819,6 +1823,7 @@ const escenarios = [
     // iba a borrar.
     const gate = (texto(dom, 'traer-resumen') || '').replace(/\s+/g, ' ');
     const pideConfirmacion = visible(dom, 'confirmar-borrado-repo');
+    const confirmacion = (texto(dom, 'lista-borrado-repo') || '').replace(/\s+/g, ' ');
     pulsar(dom, 'btn-confirmar-borrado-repo');
     await reposar(dom, 8);
 
@@ -1852,6 +1857,8 @@ const escenarios = [
       problemas.push(`el gate no dice lo que hará por operación: "${gate}"`);
     if (!/un solo commit/.test(gate))
       problemas.push('el gate no dice que va en un solo commit');
+    if (!/Eliminar.*Viejo/.test(confirmacion) || !/Crear.*Uno/.test(confirmacion))
+      problemas.push(`la confirmación no repite las dos filas con su verbo: "${confirmacion}"`);
     if (llamadas.length !== 1) problemas.push(`${llamadas.length} llamadas — debería ser una`);
     if (JSON.stringify(traer) !== JSON.stringify(['i1'])) problemas.push(`traer=${JSON.stringify(traer)}`);
     if (JSON.stringify(borrar) !== JSON.stringify(['muerto-1'])) problemas.push(`borrar=${JSON.stringify(borrar)}`);
