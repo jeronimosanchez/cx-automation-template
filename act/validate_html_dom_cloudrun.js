@@ -1772,6 +1772,11 @@ const escenarios = [
     const doc = dom.window.document;
     const filas = [...doc.querySelectorAll('#tabla-repo tbody tr')];
     const resumen = filas.map(f => `${f.dataset.operacion}:${f.dataset.nombre}`);
+    // El resumen cuenta las dos poblaciones aparte. Contarlas juntas ponía un
+    // archivo huérfano bajo el rótulo «resources en CX sin respaldo», que es
+    // exactamente lo contrario de lo que es. Se lee con la tabla llena: después
+    // de aplicar ya no queda nada que contar.
+    const resumenTexto = (texto(dom, 'aviso-deriva') || '').replace(/\s+/g, ' ');
 
     // «Eliminar de CX» apagado mientras solo hay marcada una fila de borrar.
     filas.find(f => f.dataset.operacion === 'borrar').querySelector('input').checked = true;
@@ -1796,6 +1801,10 @@ const escenarios = [
     const borrar = (cuerpo.borrar_del_repo || []).map(x => x.cx_id);
 
     const problemas = [];
+    if (!/1 resource en CX sin respaldo/.test(resumenTexto))
+      problemas.push(`el resumen no cuenta lo de traer: "${resumenTexto}"`);
+    if (!/1 archivo del repositorio sin resource en CX/.test(resumenTexto))
+      problemas.push(`el resumen no cuenta lo de borrar: "${resumenTexto}"`);
     if (JSON.stringify(resumen) !== JSON.stringify(['traer:Uno', 'borrar:Viejo']))
       problemas.push(`filas=${JSON.stringify(resumen)} — el sin cx_id no debería estar`);
     if (!eliminarApagado) problemas.push('«Eliminar de CX» se ofrece con solo una fila de borrar marcada');
