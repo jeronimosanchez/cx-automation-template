@@ -652,32 +652,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="phase-eyebrow">Deploy completado</div>
       <div class="phase-title">&#10003; <span id="done-agente">&mdash;</span> en producci&oacute;n</div>
       <div class="phase-sub">Desplegado en producci&oacute;n &middot; validado contra el draft.</div>
-      <div class="done-banner"><span>&#127800;</span><p>Deploy completado &middot; <span id="done-timestamp">2026-07-28 &middot; 09:45 UTC</span> &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
-      <div style="margin:12px 0 20px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px">
-        <p style="font-size:12px;color:var(--text-2);line-height:1.5">&#9888; El cambio se ha aplicado, pero puede tardar unos minutos en propagarse a todos los usuarios. Si pruebas producci&oacute;n ahora mismo y ves comportamiento antiguo, espera y reintenta antes de asumir que el deploy fall&oacute;.</p>
-      </div>
+      <div class="done-banner"><span>&#127800;</span><p>Deploy a producci&oacute;n completado &middot; <span class="snapshot-name-ref">—</span> en producci&oacute;n</p></div>
 
       <div class="slabel" style="margin-bottom:12px">Acciones ejecutadas</div>
       <div style="margin-bottom:20px">
         <div class="action-result">
           <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
           <div class="action-result-body">
-            <div class="action-result-title">Fusi&oacute;n de la rama de trabajo en la principal</div>
+            <div class="action-result-title">Se ha fusionado en GitHub la rama de trabajo con la principal</div>
             <div class="action-result-desc" id="done-merge-desc">&mdash;</div>
           </div>
         </div>
         <div class="action-result">
           <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
           <div class="action-result-body">
-            <div class="action-result-title">Versiones creadas</div>
+            <div class="action-result-title" id="done-version-title">Se han creado las versiones</div>
             <div class="action-result-desc" id="done-version-desc">&mdash;</div>
           </div>
         </div>
         <div class="action-result">
           <div class="action-result-icon" style="color:var(--success)">&#10003;</div>
           <div class="action-result-body">
-            <div class="action-result-title">Promoci&oacute;n al entorno producci&oacute;n de CX</div>
+            <div class="action-result-title">Se ha promocionado al entorno de producci&oacute;n de CX</div>
             <div class="action-result-desc" id="done-prod-desc">&mdash;</div>
+            <!-- El aviso de propagaci&oacute;n vive aqu&iacute; y no arriba: es consecuencia de
+                 esta acci&oacute;n concreta. Suelto en cabecera obligaba a recordar a
+                 qu&eacute; se refer&iacute;a; pegado debajo se lee sin preguntarse nada. -->
+            <div class="action-result-desc" style="color:var(--gate);margin-top:6px">&#9888; El cambio se ha aplicado y puede tardar unos minutos en llegar a todos los usuarios.</div>
           </div>
         </div>
         <div class="action-result" id="fila-poda-pendiente" style="display:none">
@@ -2625,16 +2626,23 @@ function advanceToDone() {
 function renderResumenFinal() {
   const d = estado.publicacion || {};
   setVersionLabel(estado.versionLabel || '—');
-  const _d = new Date(), _p = n => String(n).padStart(2,'0');
-  $('done-timestamp').textContent = _d.getUTCFullYear() + '-' + _p(_d.getUTCMonth()+1) + '-' +
-    _p(_d.getUTCDate()) + ' · ' + _p(_d.getUTCHours()) + ':' + _p(_d.getUTCMinutes()) + ' UTC';
   $('done-merge-desc').innerHTML =
     `<code>${esc(oNada(estado.rama))}</code> fusionada en <code>${esc(oNada(d.rama_principal || estado.ramaPrincipal))}</code> de <code>${esc(oNada(d.repo || estado.repo))}</code>.`;
+  // El titular dice cuántas; los nombres completos van plegados. Son rutas de
+  // más de cien caracteres y ocupaban la pantalla entera para decir algo que
+  // casi nunca se mira — pero cuando se mira, se mira entero, así que se
+  // guardan enteros en vez de recortarlos.
   const creadas = d.versiones_creadas || [];
+  $('done-version-title').textContent = creadas.length
+    ? `Se ${creadas.length === 1 ? 'ha creado 1 versión' : `han creado ${creadas.length} versiones`}`
+    : 'No se ha creado ninguna versión';
   $('done-version-desc').innerHTML = creadas.length
-    ? `Se crearon ${creadas.length} versi&oacute;n(es) con la etiqueta <span class="snapshot-name-ref">${esc(estado.versionLabel)}</span>:<br>` +
-      creadas.map(v => `<code style="font-size:11px">${esc(v)}</code>`).join('<br>')
-    : 'No se cre&oacute; ninguna versi&oacute;n: lo aplicado es de tipos que CX no versiona, as&iacute; que producci&oacute;n sirve lo mismo que antes.';
+    ? `Con la etiqueta <span class="snapshot-name-ref">${esc(estado.versionLabel)}</span>. ` +
+      `<details style="margin-top:6px"><summary style="cursor:pointer;color:var(--accent-light)">Ver cu&aacute;les</summary>` +
+      `<div style="margin-top:6px">` +
+      creadas.map(v => `<code style="font-size:11px">${esc(v)}</code>`).join('<br>') +
+      `</div></details>`
+    : 'Lo aplicado es de tipos que CX no versiona, as&iacute; que producci&oacute;n sirve lo mismo que antes.';
   const anteriores = d.versiones_anteriores || [];
   $('done-prod-desc').innerHTML =
     `Producci&oacute;n apunta ya a la publicaci&oacute;n nueva. ` +

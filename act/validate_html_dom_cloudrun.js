@@ -1315,7 +1315,11 @@ const escenarios = [
     const enDone = dom.window.document.getElementById('view-done').classList.contains('visible');
     const poda = visible(dom, 'fila-poda-pendiente');
     const total = texto(dom, 'poda-total');
-    const versiones = texto(dom, 'done-version-desc') || '';
+    // El titular dice cuántas y la descripción el porqué: se miran los dos,
+    // porque «ninguna» pasó del cuerpo al titular al simplificar la pantalla y
+    // mirar solo uno haría pasar por bueno un resumen que no lo dijera.
+    const versiones = ((texto(dom, 'done-version-title') || '') + ' ' +
+                       (texto(dom, 'done-version-desc') || ''));
     return {
       ok: enDone && poda && total === '1' && versiones.includes('versions/9'),
       detalle: `done=${enDone} poda=${poda} total=${total}`,
@@ -1341,9 +1345,13 @@ const escenarios = [
     pulsar(dom, 'btn-confirm-prod');
     await reposar(dom, 8);
     const poda = visible(dom, 'fila-poda-pendiente');
-    const versiones = texto(dom, 'done-version-desc') || '';
+    // Titular y descripción: «ninguna» pasó del cuerpo al titular al
+    // simplificar la pantalla, y mirar solo uno dejaría pasar un resumen que
+    // no lo dijera en ninguno de los dos.
+    const versiones = ((texto(dom, 'done-version-title') || '') + ' ' +
+                       (texto(dom, 'done-version-desc') || ''));
     return {
-      ok: poda === false && /no se cre/i.test(versiones),
+      ok: poda === false && /no se ha creado ninguna/i.test(versiones),
       detalle: `poda=${poda} texto=${versiones.slice(0,90)}`,
     };
   },
