@@ -1822,6 +1822,56 @@ const escenarios = [
 },
 
 {
+  nombre: 'Cada tabla tiene tantas columnas en la cabecera como celdas en sus filas',
+  porQue: 'Una cabecera con más columnas que la fila corre todo a la izquierda: los ' +
+          'rótulos dejan de corresponder con lo que hay debajo y una celda acaba ' +
+          'aplastada en el ancho de otra. Pasó — la cabecera se quedó con las cinco ' +
+          'columnas del modelo de casillas mientras las filas pasaban a emitir cuatro, ' +
+          'y el desplegable de destino desapareció dentro de una columna de 34px. ' +
+          'Los checks miraban qué filas salían y qué se mandaba, nunca si la tabla ' +
+          'estaba cuadrada: se puede acertar en todo y enseñarlo descolocado.',
+  async ejecutar() {
+    // Paso 2 con sus dos poblaciones, y Paso 3 con su plan: las dos tablas
+    // que pintan filas desde JavaScript.
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/3': () => ({sobre: sobre('ok', ['[dry-run]'], {
+        dry_run: true, rama: 'rama-de-prueba', repo: REPO, commit: 'nnnnnnn',
+        operaciones: [{operacion:'PATCH', tipo:'playbook', cx_id:'p1', ruta:'a.yaml',
+                       resource:'Uno', sin_version:false, conflicto:false, result:null}],
+        avisos_cambio_archivo: [], sin_version: [], conflictos: [],
+      })}),
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(3, {
+      inventario: Object.assign(estadoHasta(3).inventario, {
+        solo_cx: [{tipo:'intent', cx_id:'i1', display_name:'Uno', nativo:false, traible:true}],
+        solo_repo: [{tipo:'playbook', cx_id:'m1', display_name:'Viejo',
+                     ruta:'a/viejo.yaml', motivo:'cx_id fantasma'}],
+      }),
+    }));
+    dom.window.viewStep(2); await reposar(dom, 4);
+    dom.window.viewStep(3); await reposar(dom, 8);
+
+    const problemas = [];
+    for (const tabla of ['tabla-repo', 'tabla-cx']) {
+      const t = dom.window.document.getElementById(tabla);
+      if (!t) { problemas.push(`${tabla}: no existe`); continue; }
+      const cabecera = t.querySelectorAll('thead th').length;
+      const filas = [...t.querySelectorAll('tbody tr')];
+      if (!filas.length) { problemas.push(`${tabla}: sin filas que comprobar`); continue; }
+      filas.forEach((f, i) => {
+        const celdas = f.querySelectorAll('td').length;
+        // Una fila de «nada que hacer» usa colspan y no cuenta.
+        if (f.querySelector('td[colspan]')) return;
+        if (celdas !== cabecera)
+          problemas.push(`${tabla}: cabecera ${cabecera} columnas, fila ${i} ${celdas} celdas`);
+      });
+    }
+    return {ok: problemas.length === 0,
+            detalle: problemas.length ? problemas.join(' · ') : 'las dos tablas cuadran'};
+  },
+},
+
+{
   nombre: 'El Paso 2 pone las dos escrituras del repositorio en una tabla, y las manda en un commit',
   porQue: 'El servidor hace traer y borrar en la misma llamada, y por tanto en el ' +
           'mismo commit: partirlo dejaría el repositorio a medias si fallara entre ' +
