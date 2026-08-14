@@ -1822,6 +1822,46 @@ const escenarios = [
 },
 
 {
+  nombre: 'El gate cuenta lo elegido, no lo que hay en la tabla',
+  porQue: 'Con 29 filas y tres elegidas tiene que decir tres. Un contador que mire ' +
+          'cuántas filas hay en vez de cuántas se han marcado prometería escribir ' +
+          'veintinueve archivos, y quien lo lea aprobará algo que no pidió.',
+  async ejecutar() {
+    const CUANTAS = 29;
+    const servidor = new ServidorFalso(rutasBase());
+    const dom = await abrirPanel(servidor, estadoHasta(2, {
+      inventario: Object.assign(estadoHasta(2).inventario, {
+        solo_cx: Array.from({length: CUANTAS}, (_, i) => ({
+          tipo: 'example', cx_id: 'ex' + i, display_name: 'Ejemplo ' + i,
+          nativo: false, traible: true})),
+        solo_repo: [],
+      }),
+    }));
+    dom.window.viewStep(2);
+    await reposar(dom, 4);
+    const doc = dom.window.document;
+    const filas = [...doc.querySelectorAll('#tabla-repo tbody tr')];
+    const leer = () => (texto(dom, 'traer-resumen') || '').replace(/\s+/g, ' ');
+
+    const sinElegir = leer();
+    for (const i of [0, 1, 2]) elegirDestino(dom, filas[i].dataset.nombre, 'crear_repo');
+    const conTres = leer();
+    const cuenta = dom.window.destinosElegidos().crear_repo.length;
+
+    const problemas = [];
+    if (filas.length !== CUANTAS) problemas.push(`se pintaron ${filas.length} filas de ${CUANTAS}`);
+    if (!/Nada elegido/.test(sinElegir))
+      problemas.push(`sin elegir nada dice: "${sinElegir}"`);
+    if (cuenta !== 3) problemas.push(`destinosElegidos cuenta ${cuenta}, no 3`);
+    if (!/crear 3 archivos/.test(conTres))
+      problemas.push(`con 3 elegidas dice: "${conTres}"`);
+    return {ok: problemas.length === 0,
+            detalle: problemas.length ? problemas.join(' · ')
+              : `${CUANTAS} filas · 3 elegidas · "${conTres.slice(0, 80)}"`};
+  },
+},
+
+{
   nombre: 'Cada tabla tiene tantas columnas en la cabecera como celdas en sus filas',
   porQue: 'Una cabecera con más columnas que la fila corre todo a la izquierda: los ' +
           'rótulos dejan de corresponder con lo que hay debajo y una celda acaba ' +
