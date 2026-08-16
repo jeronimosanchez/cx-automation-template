@@ -349,7 +349,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div id="aviso-politica-borrado" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--text-2);line-height:1.6"><strong style="color:var(--text)">La forma correcta de borrar es aqu&iacute;:</strong> se elimina el archivo del repositorio (GitHub) y el pipeline lo propaga a CX y a producci&oacute;n. Cada fila dice abajo por qu&eacute; est&aacute; ah&iacute;.</div>
             <div class="diff-wrap" style="margin-bottom:14px">
               <table class="diff-table" id="tabla-repo">
-                <thead><tr><th style="width:210px">Qu&eacute; hacer</th><th style="width:74px">Tipo</th><th>Resource</th><th style="width:128px">Archivo (GitHub)</th></tr></thead>
+                <thead><tr><th style="width:34px"><input type="checkbox" id="sel-todos-repo" onclick="marcarTodasRepo(this.checked)"></th><th style="width:150px">Operaci&oacute;n</th><th style="width:74px">Tipo</th><th>Resource</th><th style="width:128px">Archivo (GitHub)</th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
@@ -446,7 +446,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="legend" style="margin-bottom:0">
               <span class="legend-item"><span class="pill pill-new">Crear</span> A&uacute;n no existe en CX</span>
               <span class="legend-item"><span class="pill pill-mod">Modificar</span> Existe y el archivo dice otra cosa</span>
-              <span class="legend-item"><span class="pill pill-del">Eliminar</span> Se ha decidido borrarlo</span>
+              <!-- Dec&iacute;a «se ha decidido borrarlo» &mdash; en otro sitio, dos pantallas
+                   antes. Ahora es un hecho que se comprueba aqu&iacute; mismo. -->
+              <span class="legend-item"><span class="pill pill-del">Eliminar</span> Est&aacute; en CX y ning&uacute;n archivo lo reclama</span>
             </div>
           </div>
           <div class="dir-pie"><span id="pie-cx">&mdash;</span></div>
@@ -868,11 +870,15 @@ function estadoNuevo() {
     current:1, viewingStep:1,
     inventario:null,      // data del Paso 1
     traido:null,          // data del Paso 2
-    eliminar:[],          // {tipo, cx_id, resource} apuntados en el Paso 2
-    // Qué se ha elegido hacer con cada fila del Paso 2, por resource.
-    // Vive en el estado y no en el desplegable: repintar la tabla —al traer
-    // algo, por ejemplo— borraba lo decidido en las demás filas.
-    destinosPaso2:{},
+    // Qué filas del Paso 2 están marcadas, por resource. Vive en el estado y
+    // no en la casilla: repintar la tabla —al traer algo, por ejemplo— borraba
+    // lo marcado en las demás filas.
+    //
+    // Ya no hay un `eliminar` aquí. Los borrados de CX se decidían en este paso
+    // y se ejecutaban en el 3, con el apunte esperando en el navegador entre
+    // medias: una recarga lo perdía. Ahora se deciden en el Paso 3, que es
+    // donde ocurren.
+    marcadosPaso2:{},
     plan:null,            // operaciones del Paso 3 en dry-run
     aplicadas:null,       // operaciones del Paso 3 ya ejecutadas
     paso3Cerrado:false,
@@ -2001,13 +2007,12 @@ const MOTIVO_FANTASMA = 'cx_id fantasma';
 function filasDelRepositorio() {
   const traidos = new Set((estado.traido && estado.traido.traidos || [])
     .map(t => `${t.tipo}/${t.cx_id}`));
-  const apuntados = new Set(estado.eliminar.map(e => `${e.tipo}/${e.cx_id}`));
   const borrados = new Set(((estado.traido && estado.traido.borrados_del_repo) || [])
     .map(b => `${b.tipo}/${b.cx_id}`));
   const inv = estado.inventario || {};
 
   const traer = (inv.solo_cx || [])
-    .filter(f => !traidos.has(`${f.tipo}/${f.cx_id}`) && !apuntados.has(`${f.tipo}/${f.cx_id}`))
+    .filter(f => !traidos.has(`${f.tipo}/${f.cx_id}`))
     .map(f => ({...f, operacion: 'traer', accionable: !!f.traible, ruta: null}));
 
   // Solo los restos: un archivo SIN cx_id no ha llegado nunca a CX, así que no
@@ -2032,52 +2037,49 @@ function filasDelRepositorio() {
   return traer.concat(actualizar).concat(borrar);
 }
 
-const PILL_DEL_REPO = {traer: 'pill-new', borrar: 'pill-del', actualizar: 'pill-mod'};
 const PORQUE_DE_LA_FILA = {
   traer: 'est&aacute; en CX y no tiene archivo en el repositorio',
   borrar: 'se borr&oacute; en la consola de CX. Si lo dejas, el Paso 3 lo crear&aacute; otra vez con un identificador nuevo',
   actualizar: 'la &uacute;ltima escritura de este archivo fue en la consola de CX. Se muestra aqu&iacute; para que valores traer ese cambio a GitHub',
 };
-const NOMBRE_DE_OPERACION_REPO = {traer: 'Crear en GitHub', borrar: 'Eliminar en GitHub',
-                                  actualizar: 'Actualizar en GitHub'};
 
-/* Cada fila elige su destino, y no una casilla con dos botones detrás.
+/* Etiqueta y casilla, igual que el Paso 3.
 
-   Estaba montado al revés: una casilla que solo decía «seleccionado», y dos
-   botones opuestos —traer al repositorio y eliminar de CX— actuando sobre lo
-   mismo. Marcabas una fila que ponía «Crear en GitHub» y pulsabas «Eliminar de
-   CX»: la fila prometía una cosa y el botón hacía otra. Y como no todas las
-   filas valían para los dos botones, uno de ellos ignoraba algunas en silencio.
+   Hubo un desplegable por fila, y estuvo bien mientras una misma fila tenía dos
+   salidas opuestas: traer al repositorio o eliminar de CX. Pero «eliminar de
+   CX» nunca fue de este paso —este escribe en GitHub, y el que toca el agente
+   es el 3—, así que se fue allí. Sin esa segunda salida cada fila vuelve a
+   tener una sola acción posible, y «hacerlo o no hacerlo» es justo lo que dice
+   una casilla: un desplegable de dos opciones donde una es «Nada» pide dos
+   clics para decir lo mismo.
 
-   Con el destino en la fila eso no se puede ni formular: cada una ofrece
-   solo lo que ella puede hacer, y el botón único ejecuta lo que cada una diga. */
+   Lo que no puede volver es la casilla muda de antes, la que solo decía
+   «seleccionado» con dos botones opuestos debajo. Por eso la operación va
+   escrita en la propia fila. */
 
-const DESTINOS = {
-  traer:  [['', 'Nada'], ['crear_repo', 'Crear en GitHub'], ['eliminar_cx', 'Eliminar de CX']],
-  borrar: [['', 'Nada'], ['eliminar_repo', 'Eliminar en GitHub']],
-  // Una sola salida: el archivo existe y CX es quien avanzó. La contraria
-  // —llevar el archivo viejo a CX— es justo lo que hay que impedir, y por eso
-  // no se ofrece aquí ni se puede marcar en el Paso 3.
-  actualizar: [['', 'Nada'], ['actualizar_repo', 'Actualizar en GitHub']],
+const OPERACION_DEL_REPO = {
+  traer: {pill: 'pill-new', texto: 'Crear en GitHub'},
+  actualizar: {pill: 'pill-mod', texto: 'Actualizar en GitHub'},
+  borrar: {pill: 'pill-del', texto: 'Eliminar en GitHub'},
 };
 
 function renderTablaRepo() {
   const cuerpo = document.querySelector('#tabla-repo tbody');
   if (!cuerpo) return;
   const filas = filasDelRepositorio();
-  const elegido = estado.destinosPaso2 || {};
+  const marcado = estado.marcadosPaso2 || {};
 
   cuerpo.innerHTML = filas.map(f => {
     const clave = `${f.tipo}/${f.cx_id}`;
-    const opciones = (DESTINOS[f.operacion] || []).map(([valor, texto]) =>
-      `<option value="${valor}"${elegido[clave] === valor ? ' selected' : ''}>${texto}</option>`).join('');
+    const op = OPERACION_DEL_REPO[f.operacion] || {pill: 'pill-dim', texto: f.operacion};
     return `
     <tr data-tipo="${esc(f.tipo)}" data-cx-id="${esc(f.cx_id)}"
         data-nombre="${esc(f.display_name||f.cx_id)}" data-operacion="${f.operacion}"
         data-ruta="${esc(f.ruta||'')}" data-clave="${esc(clave)}">
-      <td style="padding-right:10px;vertical-align:top">
-        <select class="snapshot-input destino-fila" style="width:100%;font-size:12px"
-                ${f.accionable ? '' : 'disabled'} onchange="elegirDestino(this)">${opciones}</select></td>
+      <td style="width:34px;vertical-align:top;padding-top:8px"><input type="checkbox"
+          ${f.accionable ? '' : 'disabled'} ${marcado[clave] ? 'checked' : ''}
+          onchange="marcarFilaRepo(this)"></td>
+      <td style="vertical-align:top;padding-top:6px"><span class="pill ${op.pill}">${op.texto}</span></td>
       <td style="vertical-align:top;padding-top:9px">${esc(NOMBRE_DE_TIPO[f.tipo]||f.tipo)}</td>
       <td style="vertical-align:top;padding-top:9px"><code>${esc(f.display_name || f.cx_id)}</code>${f.accionable ? '' :
         ' <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span>'}
@@ -2095,21 +2097,29 @@ function renderTablaRepo() {
   actualizarPies();
 }
 
-// Lo elegido sobrevive a repintar la tabla: se guarda por resource, no en el
-// desplegable. Sin esto, traer algo borraba las decisiones de las demás filas.
-function elegirDestino(select) {
-  const fila = select.closest('tr');
-  estado.destinosPaso2 = estado.destinosPaso2 || {};
-  estado.destinosPaso2[fila.dataset.clave] = select.value;
+// Lo marcado sobrevive a repintar la tabla: se guarda por resource, no en la
+// casilla. Sin esto, traer algo borraba las decisiones de las demás filas.
+function marcarFilaRepo(casilla) {
+  const fila = casilla.closest('tr');
+  estado.marcadosPaso2 = estado.marcadosPaso2 || {};
+  estado.marcadosPaso2[fila.dataset.clave] = casilla.checked;
   guardarEstado();
   actualizarPies();
 }
 
+function marcarTodasRepo(valor) {
+  document.querySelectorAll('#tabla-repo tbody input[type=checkbox]:not(:disabled)')
+    .forEach(c => { c.checked = valor; marcarFilaRepo(c); });
+}
+
 function destinosElegidos() {
-  const por = {crear_repo: [], eliminar_repo: [], eliminar_cx: [], actualizar_repo: []};
+  const por = {crear_repo: [], eliminar_repo: [], actualizar_repo: []};
+  const donde = {traer: 'crear_repo', actualizar: 'actualizar_repo', borrar: 'eliminar_repo'};
   document.querySelectorAll('#tabla-repo tbody tr').forEach(f => {
-    const v = (f.querySelector('select') || {}).value;
-    if (por[v]) por[v].push(f);
+    const c = f.querySelector('input[type=checkbox]');
+    if (!c || !c.checked || c.disabled) return;
+    const destino = donde[f.dataset.operacion];
+    if (destino) por[destino].push(f);
   });
   return por;
 }
@@ -2117,7 +2127,7 @@ function destinosElegidos() {
 function traidosOApuntados() {
   const t = (estado.traido && estado.traido.traidos || []).length;
   const b = ((estado.traido && estado.traido.borrados_del_repo) || []).length;
-  return t > 0 || b > 0 || estado.eliminar.length > 0;
+  return t > 0 || b > 0;
 }
 
 function filasMarcadas(tablaId) {
@@ -2188,18 +2198,14 @@ function actualizarPies() {
       `<strong style="color:var(--text)">actualizar ${elegido.actualizar_repo.length}</strong> archivo${elegido.actualizar_repo.length === 1 ? '' : 's'} con lo que dice CX`);
     if (elegido.eliminar_repo.length) enGitHub.push(
       `<strong style="color:var(--error)">eliminar ${elegido.eliminar_repo.length}</strong> archivo${elegido.eliminar_repo.length === 1 ? '' : 's'}`);
-    const enCx = elegido.eliminar_cx.length
-      ? `<br><span style="color:var(--text-3)">En el Paso 3: se eliminar&aacute;n de CX <strong style="color:var(--error)">${elegido.eliminar_cx.length}</strong> ` +
-        `resource${elegido.eliminar_cx.length === 1 ? '' : 's'} (${elegido.eliminar_cx.map(f => esc(f.dataset.nombre)).join(', ')}).</span>`
-      : '';
-    resumen.innerHTML = enGitHub.length || enCx
-      ? (enGitHub.length ? `Ahora en GitHub: ${enGitHub.join(' y ')}, en un solo commit.` : 'Ahora en GitHub: nada.') + enCx
-      : 'Nada elegido &mdash; no se tocar&aacute; nada.';
+    resumen.innerHTML = enGitHub.length
+      ? `Ahora en GitHub: ${enGitHub.join(' y ')}, en un solo commit.`
+      : 'Nada marcado &mdash; no se tocar&aacute; nada.';
   }
   const botonAplicar1 = $('btn-traer');
   if (botonAplicar1) botonAplicar1.disabled =
     !(elegido.crear_repo.length || elegido.eliminar_repo.length ||
-      elegido.eliminar_cx.length || elegido.actualizar_repo.length);
+      elegido.actualizar_repo.length);
 
   const botonAplicar = $('btn-confirm-deploy');
   if (botonAplicar && !estado.paso3Cerrado) botonAplicar.disabled = cx.marcadas === 0;
@@ -2273,14 +2279,9 @@ function pedirAplicarEnRepositorio() {
   const borrar = elegido.eliminar_repo.map(f => ({
     tipo: f.dataset.tipo, cx_id: f.dataset.cxId,
     nombre: f.dataset.nombre, ruta: f.dataset.ruta}));
-  // Lo de CX no se escribe aquí: se apunta y lo ejecuta el Paso 3, que es el
-  // paso que toca el agente. Se guarda antes de la confirmación porque no
-  // depende de ella — confirmar es para lo que se borra ahora.
-  estado.eliminar = elegido.eliminar_cx.map(f => ({
-    tipo: f.dataset.tipo, cx_id: f.dataset.cxId, resource: f.dataset.nombre}));
   estado.plan = null;
   guardarEstado();
-  if (!traer.length && !borrar.length) { renderTablaRepo(); avanzarTrasApuntar(); return; }
+  if (!traer.length && !borrar.length) { renderTablaRepo(); return; }
   apuntadoParaElRepo = {traer, borrar};
   // La confirmación solo aparece cuando algo se borra: pedirla para una
   // traída, que no destruye nada, sería un trámite que se aprende a saltar sin
@@ -2302,19 +2303,6 @@ function pedirAplicarEnRepositorio() {
     `${borrar.length === 1 ? 'el archivo queda' : 'los archivos quedan'} en el historial de git.`;
   mostrar('confirmar-borrado-repo', true);
   mostrar('traer-gate', false);
-}
-
-// Si lo único elegido era eliminar de CX, no hay nada que escribir en el
-// repositorio: queda apuntado y el Paso 3 lo ejecuta. Decirlo, porque pulsar
-// un botón y que no pase nada visible se lee como que falló.
-function avanzarTrasApuntar() {
-  if (!(estado.eliminar || []).length) return;
-  $('traer-commit').innerHTML =
-    `${estado.eliminar.length} resource${estado.eliminar.length === 1 ? '' : 's'} ` +
-    `apuntado${estado.eliminar.length === 1 ? '' : 's'} para eliminar de CX. ` +
-    `Se borran al aplicar el Paso 3; el repositorio no se ha tocado.`;
-  mostrar('traer-done', true);
-  mostrar('sin-modificar-2', false);
 }
 
 function cancelarBorrarDelRepo() {
@@ -2354,16 +2342,13 @@ function aplicarEnRepositorio() {
         borrados_del_repo: antesB.concat(sobre.data.borrados_del_repo || []),
       });
       estado.plan = null;
-      estado.destinosPaso2 = {};
+      estado.marcadosPaso2 = {};
       apuntadoParaElRepo = null;
       guardarEstado();
       renderTablaRepo();
-      const apuntadoCx = (estado.eliminar || []).length
-        ? ` &middot; ${estado.eliminar.length} apuntado${estado.eliminar.length === 1 ? '' : 's'} para eliminar de CX en el Paso 3`
-        : '';
-      $('traer-commit').innerHTML = (sobre.data.commit
+      $('traer-commit').innerHTML = sobre.data.commit
         ? `commit <code>${esc(String(sobre.data.commit).slice(0,7))}</code> en <code>${esc(oNada(sobre.data.rama))}</code>`
-        : 'sin cambios reales &mdash; no se cre&oacute; ning&uacute;n commit') + apuntadoCx;
+        : 'sin cambios reales &mdash; no se cre&oacute; ning&uacute;n commit';
       mostrar('traer-done', true);
       mostrar('sin-modificar-2', false);
     } catch (error) {
@@ -2391,7 +2376,6 @@ async function cargarPlan() {
   try {
     const sobre = await llamar('/step/3', {metodo:'POST', cuerpo:{
       project: estado.project, agent: estado.agentId, dry_run: true,
-      eliminar: estado.eliminar.map(e => ({tipo:e.tipo, cx_id:e.cx_id})),
     }});
     if (sobre.status !== 'ok') throw new FalloDelPanel(
       `El plan terminó con estado «${sobre.status}»: ${(sobre.log||[]).join(' ')}`,
@@ -2540,7 +2524,6 @@ function ejecutarPaso3(opciones) {
     try {
       const sobre = await llamar('/step/3', {metodo:'POST', cuerpo: Object.assign({
         project: estado.project, agent: estado.agentId,
-        eliminar: estado.eliminar.map(e => ({tipo:e.tipo, cx_id:e.cx_id})),
       }, opciones.aplicar ? {aplicar: opciones.aplicar} : {},
          opciones.only_pending ? {only_pending: opciones.only_pending} : {}),
         onLinea: l => pintarLinea('deploy-log-block', l)});

@@ -151,9 +151,36 @@ def test_el_dry_run_enseña_lo_bloqueado_en_vez_de_esconderlo(banco):
     """Esconderlo haría que el plan mintiera sobre lo que difiere."""
     banco.con_movimiento("ambos")
     datos = pipeline.step_3_apply_to_cx(PROJECT, AGENT, dry_run=True)["data"]
-    assert [o["cx_id"] for o in datos["operaciones"]] == ["p1"]
+    # p1 difiere y se movió en los dos lados; p2 solo está en CX y por eso
+    # aparece como candidato a borrarse — ofrecerse no es aplicarse.
+    assert [o["cx_id"] for o in datos["operaciones"]] == ["p1", "p2"]
     assert [o["cx_id"] for o in datos["no_aplicables"]] == ["p1"]
     assert banco.escrito_en_cx == [], "un dry-run no escribe"
+
+
+def test_un_huerfano_se_ofrece_en_el_plan_pero_no_se_borra_solo(banco):
+    """Aparecer en el plan y aplicarse son dos cosas distintas.
+
+    Antes la decisión se tomaba en el Paso 2 y se ejecutaba en el 3, con la
+    nota viviendo en el navegador entre medias: una recarga la perdía y los
+    borrados marcados se evaporaban. Ahora se decide donde se ejecuta, y el
+    precio de eso es que el plan enseña candidatos — que no se pueden aplicar
+    en bloque.
+    """
+    banco.con_movimiento("repo")
+    plan = pipeline.step_3_apply_to_cx(PROJECT, AGENT, dry_run=True)["data"]
+    huerfano = next(o for o in plan["operaciones"] if o["cx_id"] == "p2")
+    assert huerfano["operacion"] == "DELETE" and huerfano["candidato"] is True
+
+    # Aplicar sin marcar nada NO se lo lleva por delante.
+    pipeline.step_3_apply_to_cx(PROJECT, AGENT)
+    assert banco.escrito_en_cx == ["p1"], "borró un candidato sin marcarlo"
+
+    # Y marcándolo, sí.
+    banco.escrito_en_cx.clear()
+    pipeline.step_3_apply_to_cx(
+        PROJECT, AGENT, aplicar=[{"tipo": "playbook", "cx_id": "p2"}])
+    assert banco.escrito_en_cx == ["p2"]
 
 
 # ── Paso 2: lo editado en CX vuelve al repositorio ───────────────────────────

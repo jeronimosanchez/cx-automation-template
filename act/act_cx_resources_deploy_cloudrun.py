@@ -715,6 +715,11 @@ def calcular_diff(contexto, inventario, repositorio, eliminar=()):
     operaciones.extend(
         _operaciones_de_borrado(inventario, repositorio, eliminar)
     )
+    # Y lo que está en CX sin que ningún archivo lo reclame, como candidato.
+    pedidos = {(p.get("tipo"), p.get("cx_id")) for p in eliminar or ()}
+    operaciones.extend(
+        _huerfanos_borrables(inventario, repositorio, pedidos)
+    )
 
     operaciones.sort(key=lambda op: (
         DEPLOY_ORDER.index(op["tipo"]) if op["tipo"] in DEPLOY_ORDER
@@ -739,6 +744,9 @@ def _operacion(verbo, tipo, cx_id, entrada, local, remote_name=None):
         # Cuál de los dos lados cambió: "repo", "cx", "ambos" o None si no se
         # sabe. Decide en qué paso se ofrece esta fila. Ver `_quien_se_movio`.
         "movimiento": None,
+        # Crear y modificar salen del repositorio: nadie las ofrece, se
+        # deducen. Solo los borrados se ofrecen para que alguien decida.
+        "candidato": False,
         "result": None,
     }
 
@@ -934,13 +942,46 @@ def quien_depende_de(inventario, repositorio, tipo, cx_id):
     return {"hijos": hijos, "referencias": referencias}
 
 
+def _operacion_de_borrado(tipo, cx_id, remoto, candidato=False):
+    """Una fila DELETE del plan, con la misma forma que las demás.
+
+    `candidato` distingue las que se ofrecen de las que se han pedido: un
+    huérfano aparece en el plan para que alguien decida, y hasta que no se
+    marca no se borra nada.
+    """
+    return {
+        "operacion": "DELETE",
+        "tipo": tipo,
+        "cx_id": cx_id,
+        "ruta": None,
+        # De quién cuelga, capturado ANTES de borrarlo: después ya no existe
+        # en el agente y el Paso 5 no sabría qué versionar.
+        "padre": (_padre_id_de(tipo, remoto)
+                  if RESOURCE_TYPES[tipo].get("padre") else None),
+        "resource": remoto.get("displayName", cx_id),
+        "local": None,
+        "remote_name": remoto.get("name"),
+        "sin_version": tipo in TIPOS_SIN_VERSION,
+        # Las mismas claves que pone _operacion(): los dos caminos tienen que
+        # producir la misma forma, o el resto del código tendría que acordarse
+        # de cuál le falta a cuál.
+        "conflicto": False,
+        "cambio_externo": None,
+        # Un borrado no tiene dirección que averiguar: no viene de ningún lado,
+        # lo decide una persona. La clave está igual porque quien lee el plan
+        # no sabe de qué constructor salió cada fila, y no debería saberlo.
+        "movimiento": None,
+        "candidato": candidato,
+        "result": None,
+    }
+
+
 def _operaciones_de_borrado(inventario, repositorio, eliminar):
-    """Convierte en operaciones las eliminaciones decididas en el Paso 2.
+    """Las eliminaciones pedidas explícitamente.
 
     Cada una se comprueba contra el estado real antes de aceptarla: tiene que
-    existir en CX y no tener archivo en el repositorio, que es la única
-    categoría que el Paso 2 ofrece borrar. Sin esta comprobación, el servidor
-    estaría borrando lo que le pidan sin mirar.
+    existir en CX y no tener archivo en el repositorio. Sin esta comprobación,
+    el servidor estaría borrando lo que le pidan sin mirar.
     """
     operaciones = []
     for peticion in eliminar or ():
@@ -955,31 +996,44 @@ def _operaciones_de_borrado(inventario, repositorio, eliminar):
                 f"Se pidió borrar {tipo}/{cx_id}, pero tiene archivo en el "
                 f"repositorio. Quita antes el YAML."
             )
-        operaciones.append({
-            "operacion": "DELETE",
-            "tipo": tipo,
-            "cx_id": cx_id,
-            "ruta": None,
-            # De quién cuelga, capturado ANTES de borrarlo: después ya no
-            # existe en el agente y el Paso 5 no sabría qué versionar.
-            "padre": (_padre_id_de(tipo, remoto)
-                      if RESOURCE_TYPES[tipo].get("padre") else None),
-            "resource": remoto.get("displayName", cx_id),
-            "local": None,
-            "remote_name": remoto.get("name"),
-            "sin_version": tipo in TIPOS_SIN_VERSION,
-            # Las mismas claves que pone _operacion(): los dos caminos tienen
-            # que producir la misma forma, o el resto del código tendría que
-            # acordarse de cuál le falta a cuál.
-            "conflicto": False,
-            "cambio_externo": None,
-            # Un borrado no viene de ningún lado: lo decidió una persona en el
-            # Paso 2. No hay dirección que averiguar, pero la clave tiene que
-            # estar igual — quien lee el plan no sabe de qué constructor salió
-            # cada fila, y no debería tener que saberlo.
-            "movimiento": None,
-            "result": None,
-        })
+        operaciones.append(_operacion_de_borrado(tipo, cx_id, remoto))
+    return operaciones
+
+
+def _huerfanos_borrables(inventario, repositorio, ya_pedidos):
+    """Lo que está en CX y ningún archivo del repositorio reclama.
+
+    Salen aquí, en el plan, y no como una nota traída del Paso 2. El motivo es
+    de coherencia y de memoria a partes iguales:
+
+    - **Coherencia.** El Paso 2 se anuncia como «escribe en el repositorio» y
+      ofrecía una salida que escribía en CX, en el paso siguiente. Cada paso
+      ofrece ahora solo lo que él mismo hace.
+    - **Memoria.** La decisión se tomaba en un paso y se ejecutaba en otro, con
+      la nota viviendo en el navegador entre medias. Una recarga la perdía, y
+      seis borrados marcados se evaporaron así sin que nadie lo notara.
+
+    Y borrar de CX lo que el repositorio no tiene **es** hacer que CX se
+    parezca al repositorio, que es exactamente lo que dice el Paso 3.
+
+    Van marcados como candidatos: aparecer no es lo mismo que aplicarse.
+    """
+    operaciones = []
+    for tipo, items in inventario.items():
+        if tipo in TIPOS_NO_DESPLEGABLES or not isinstance(items, dict):
+            continue
+        del_repo = repositorio["por_tipo"].get(tipo, {})
+        for cx_id, item in items.items():
+            if not isinstance(item, dict) or cx_id in del_repo:
+                continue
+            if (tipo, cx_id) in ya_pedidos:
+                continue
+            # Lo nativo de la plataforma no se borra: no lo creó nadie y
+            # ofrecerlo sería ofrecer romper el agente.
+            if es_nativo(tipo, item):
+                continue
+            operaciones.append(
+                _operacion_de_borrado(tipo, cx_id, item, candidato=True))
     return operaciones
 
 
@@ -1684,6 +1738,12 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
             if (op["cx_id"] and (op["tipo"], op["cx_id"]) in por_id)
             or (op["ruta"] and (op["tipo"], op["ruta"]) in por_ruta)
         ]
+    elif not dry_run:
+        # Sin lista de marcados no se borra ningún candidato. «Aplica todo lo
+        # que diga el plan» es una orden razonable para crear y modificar —eso
+        # sale del repositorio, que es la fuente— pero un borrado no sale de
+        # ningún sitio: lo elige una persona, y una a una.
+        operaciones = [op for op in operaciones if not op.get("candidato")]
     if only_pending:
         pendientes = {(p.get("tipo"), p.get("cx_id")) for p in only_pending}
         operaciones = [op for op in operaciones

@@ -257,20 +257,37 @@ function visibleDeVerdad(dom, id) {
   return true;
 }
 
-/** Elige el destino de una fila del Paso 2 por el nombre de su resource.
+/** Marca una fila del Paso 2 por el nombre de su resource.
  *
- *  La decisión ya no es una casilla con dos botones detrás: cada fila lleva su
- *  propio desplegable con solo lo que ella puede hacer. Marcar y pulsar el
- *  botón equivocado dejó de ser posible, y las pruebas tienen que hablar el
- *  mismo idioma o comprobarían un panel que ya no existe.                    */
-function elegirDestino(dom, nombre, valor) {
+ *  Hubo un desplegable por fila, y fue lo correcto mientras una misma fila
+ *  tenía dos salidas opuestas: traer al repositorio o eliminar de CX. Al
+ *  llevarse esa segunda al Paso 3 —que es el que escribe en CX— cada fila se
+ *  quedó con una sola acción, y «hacerlo o no» es lo que dice una casilla.
+ *
+ *  La operación va escrita en la propia fila, que es lo que impide volver a la
+ *  casilla muda de antes: aquella solo decía «seleccionado» y dos botones
+ *  opuestos debajo decidían qué le pasaba.                                    */
+function marcarFila(dom, nombre) {
   const fila = [...dom.window.document.querySelectorAll('#tabla-repo tbody tr')]
     .find(f => f.dataset.nombre === nombre);
   if (!fila) throw new Error(`no hay fila para ${nombre}`);
-  const select = fila.querySelector('select');
-  if (!select) throw new Error(`la fila de ${nombre} no tiene desplegable`);
-  select.value = valor;
-  dom.window.elegirDestino(select);
+  const casilla = fila.querySelector('input[type=checkbox]');
+  if (!casilla) throw new Error(`la fila de ${nombre} no tiene casilla`);
+  if (casilla.disabled) throw new Error(`la casilla de ${nombre} está bloqueada`);
+  casilla.checked = true;
+  dom.window.marcarFilaRepo(casilla);
+}
+
+/** Qué operación anuncia una fila del Paso 2. Es lo que sustituye a leer las
+ *  opciones del desplegable: antes la fila ofrecía salidas, ahora declara una. */
+function operacionDeLaFila(dom, nombre) {
+  const fila = [...dom.window.document.querySelectorAll('#tabla-repo tbody tr')]
+    .find(f => f.dataset.nombre === nombre);
+  if (!fila) throw new Error(`no hay fila para ${nombre}`);
+  const pill = fila.querySelector('.pill');
+  return {operacion: fila.dataset.operacion,
+          texto: pill ? pill.textContent.trim() : null,
+          bloqueada: (fila.querySelector('input[type=checkbox]') || {}).disabled};
 }
 
 function pulsar(dom, id) {
@@ -782,7 +799,7 @@ const escenarios = [
     // Elegir destino en cada fila: ya no hay «seleccionar todos», porque cada
     // una decide lo suyo y un «todos» tendría que decidir por ellas.
     [...dom.window.document.querySelectorAll('#tabla-repo tbody tr')].forEach(
-      f => elegirDestino(dom, f.dataset.nombre, 'crear_repo'));
+      f => marcarFila(dom, f.dataset.nombre));
     await reposar(dom, 2);
     pulsar(dom, 'btn-traer');
     await reposar(dom, 4);
@@ -1000,7 +1017,7 @@ const escenarios = [
     const dom = await abrirPanel(servidor, estadoHasta(2));
     dom.window.viewStep(2);
     await reposar(dom, 4);
-    elegirDestino(dom, [...dom.window.document.querySelectorAll('#tabla-repo tbody tr')][0].dataset.nombre, 'crear_repo');
+    marcarFila(dom, [...dom.window.document.querySelectorAll('#tabla-repo tbody tr')][0].dataset.nombre);
     pulsar(dom, 'btn-traer');
     const boton = dom.window.document.getElementById('btn-traer');
     const deshabilitadoAlInstante = boton.disabled;
@@ -1792,7 +1809,7 @@ const escenarios = [
     await reposar(dom, 4);
     const gateAntes = visibleDeVerdad(dom, 'btn-traer');
 
-    elegirDestino(dom, 'Viejo', 'eliminar_repo');
+    marcarFila(dom, 'Viejo');
     pulsar(dom, 'btn-traer');
     await reposar(dom, 2);
     const confirmacion = visible(dom, 'confirmar-borrado-repo');
@@ -1844,14 +1861,14 @@ const escenarios = [
     const leer = () => (texto(dom, 'traer-resumen') || '').replace(/\s+/g, ' ');
 
     const sinElegir = leer();
-    for (const i of [0, 1, 2]) elegirDestino(dom, filas[i].dataset.nombre, 'crear_repo');
+    for (const i of [0, 1, 2]) marcarFila(dom, filas[i].dataset.nombre);
     const conTres = leer();
     const cuenta = dom.window.destinosElegidos().crear_repo.length;
 
     const problemas = [];
     if (filas.length !== CUANTAS) problemas.push(`se pintaron ${filas.length} filas de ${CUANTAS}`);
-    if (!/Nada elegido/.test(sinElegir))
-      problemas.push(`sin elegir nada dice: "${sinElegir}"`);
+    if (!/Nada marcado/.test(sinElegir))
+      problemas.push(`sin marcar nada dice: "${sinElegir}"`);
     if (cuenta !== 3) problemas.push(`destinosElegidos cuenta ${cuenta}, no 3`);
     if (!/crear 3 archivos/.test(conTres))
       problemas.push(`con 3 elegidas dice: "${conTres}"`);
@@ -1965,9 +1982,9 @@ const escenarios = [
     // porque ya no está en CX — antes eso se ignoraba en silencio.
     const opcionesBorrar = [...filas.find(f => f.dataset.operacion === 'borrar')
       .querySelectorAll('option')].map(o => o.value);
-    elegirDestino(dom, 'Viejo', 'eliminar_repo');
+    marcarFila(dom, 'Viejo');
     const aplicarEncendido = doc.getElementById('btn-traer').disabled === false;
-    elegirDestino(dom, 'Uno', 'crear_repo');
+    marcarFila(dom, 'Uno');
     pulsar(dom, 'btn-traer');
     await reposar(dom, 2);
     // El gate promete lo que va a pasar, por operación. Decía «se van a traer
@@ -2040,11 +2057,10 @@ const escenarios = [
     }));
     dom.window.viewStep(2);
     await reposar(dom, 4);
-    const selects = [...dom.window.document.querySelectorAll('#tabla-repo tbody select')];
-    const nativaBloqueada = selects[1] && selects[1].disabled === true;
-    // Y lo nativo ni siquiera ofrece destino: un desplegable con opciones que
-    // el servidor va a rechazar es una trampa puesta a mano.
-    elegirDestino(dom, 'Uno', 'crear_repo');
+    // Y lo nativo ni siquiera se puede marcar: una casilla que el servidor va
+    // a rechazar es una trampa puesta a mano.
+    const nativaBloqueada = operacionDeLaFila(dom, 'code-interpreter').bloqueada === true;
+    marcarFila(dom, 'Uno');
     await reposar(dom, 2);
     pulsar(dom, 'btn-traer');
     await reposar(dom, 8);
@@ -2092,12 +2108,11 @@ const escenarios = [
     const doc = dom.window.document;
     const filas = [...doc.querySelectorAll('#tabla-repo tbody tr')];
     const bajaron = filas.map(f => `${f.dataset.operacion}:${f.dataset.nombre}`);
-    // Solo la de CX, y con su porqué y su única salida.
-    const opciones = filas.length === 1
-      ? [...filas[0].querySelectorAll('option')].map(o => o.value) : [];
+    // Solo la de CX, con su porqué y anunciando qué le va a pasar.
+    const anuncio = filas.length === 1 ? operacionDeLaFila(dom, 'Compra') : {};
     const porque = filas.length === 1
       ? (filas[0].querySelector('.porque-fila') || {}).textContent.replace(/\s+/g,' ').trim() : '';
-    elegirDestino(dom, 'Compra', 'actualizar_repo');
+    marcarFila(dom, 'Compra');
     await reposar(dom, 2);
     // El gate no puede decir «crear»: escribe encima de un archivo que existe.
     const gate = (texto(dom, 'traer-resumen') || '').replace(/\s+/g, ' ');
@@ -2107,11 +2122,14 @@ const escenarios = [
     const traer = ((llamada && llamada.cuerpo.traer) || []).map(t => t.cx_id);
     const soloLaDeCx = JSON.stringify(bajaron) === JSON.stringify(['actualizar:Compra']);
     const diceActualizar = /actualizar 1 archivo/i.test(gate) && !/crear/i.test(gate);
-    const salidaUnica = JSON.stringify(opciones) === JSON.stringify(['', 'actualizar_repo']);
+    // La fila declara una operación, y dice cuál: sin eso la casilla vuelve a
+    // ser muda y marcarla no dice qué va a pasar.
+    const salidaUnica = anuncio.operacion === 'actualizar'
+      && /Actualizar en GitHub/i.test(anuncio.texto || '');
     return {
       ok: soloLaDeCx && salidaUnica && diceActualizar && /consola de CX/i.test(porque)
           && JSON.stringify(traer) === JSON.stringify(['p9']),
-      detalle: `bajaron=${JSON.stringify(bajaron)} opciones=${JSON.stringify(opciones)} ` +
+      detalle: `bajaron=${JSON.stringify(bajaron)} anuncio=${JSON.stringify(anuncio)} ` +
                `gate="${gate}" traer=${JSON.stringify(traer)} porque="${porque.slice(0,60)}"`,
     };
   },
@@ -2169,6 +2187,93 @@ const escenarios = [
       detalle: `filas=${filas.length} con-casilla=${JSON.stringify(conCasilla)} ` +
                `enlaces=${JSON.stringify(enlaces)} pie="${pie}" ` +
                `conflicto="${textoConflicto.slice(0,90)}" de-cx="${textoDeCx.slice(0,60)}"`,
+    };
+  },
+},
+
+{
+  nombre: 'Cada paso solo ofrece lo que él mismo escribe: el Paso 2 ya no borra de CX',
+  porQue: 'El Paso 2 se anuncia como «escribe en el repositorio · CX → repositorio» y ' +
+          'ofrecía «Eliminar de CX», que escribe en CX y lo ejecutaba el paso ' +
+          'siguiente. Además de incoherente era frágil: la decisión se tomaba aquí y ' +
+          'se ejecutaba allí, con el apunte esperando en el navegador entre medias. ' +
+          'Una recarga lo perdía, y seis borrados marcados se evaporaron así sin que ' +
+          'nadie lo notara.',
+  async ejecutar() {
+    const dom = await abrirPanel(new ServidorFalso(rutasBase({})), estadoHasta(2, {
+      inventario: Object.assign(estadoHasta(2).inventario, {
+        solo_cx: [{tipo:'example', cx_id:'e1', display_name:'Huérfano', nativo:false, traible:true}],
+        solo_repo: [{tipo:'playbook', cx_id:'muerto-1', display_name:'Fantasma',
+                     ruta:'a/viejo.yaml', motivo:'cx_id fantasma'}],
+      }),
+    }));
+    dom.window.viewStep(2);
+    await reposar(dom, 4);
+    const doc = dom.window.document;
+    const tabla = doc.querySelector('#tabla-repo');
+    // Ni un desplegable, ni una opción, ni una palabra que prometa tocar CX.
+    const desplegables = tabla.querySelectorAll('tbody select').length;
+    const casillas = tabla.querySelectorAll('tbody input[type=checkbox]').length;
+    const textoTabla = tabla.textContent.replace(/\s+/g, ' ');
+    const prometeCx = /eliminar de cx/i.test(textoTabla);
+    // Y cada fila dice qué le va a pasar: sin eso la casilla es muda otra vez.
+    const anuncios = [...tabla.querySelectorAll('tbody tr')]
+      .map(f => (f.querySelector('.pill') || {}).textContent);
+    marcarFila(dom, 'Huérfano');
+    await reposar(dom, 2);
+    const gate = (texto(dom, 'traer-resumen') || '').replace(/\s+/g, ' ');
+    return {
+      ok: desplegables === 0 && casillas === 2 && !prometeCx
+          && JSON.stringify(anuncios) === JSON.stringify(['Crear en GitHub', 'Eliminar en GitHub'])
+          && /GitHub/.test(gate) && !/CX/.test(gate),
+      detalle: `desplegables=${desplegables} casillas=${casillas} promete-cx=${prometeCx} ` +
+               `anuncios=${JSON.stringify(anuncios)} gate="${gate}"`,
+    };
+  },
+},
+
+{
+  nombre: 'El huérfano se ofrece para borrar en el Paso 3, y no se borra sin marcarlo',
+  porQue: 'Borrar de CX lo que ningún archivo reclama ES hacer que CX se parezca al ' +
+          'repositorio, que es el lema del Paso 3. Pero ofrecerse y aplicarse son dos ' +
+          'cosas: crear y modificar salen del repositorio —hay una fuente que lo ' +
+          'pide— y un borrado no sale de ningún sitio, lo elige una persona. Por eso ' +
+          'viaja marcado como candidato y el gate no puede contarlo hasta que se marca.',
+  async ejecutar() {
+    const operaciones = [
+      {operacion:'PATCH', tipo:'playbook', cx_id:'p1', ruta:'p/uno.yaml',
+       resource:'DelRepo', sin_version:false, conflicto:false, movimiento:'repo', candidato:false},
+      {operacion:'DELETE', tipo:'example', cx_id:'e9', ruta:null,
+       resource:'Huérfano', sin_version:false, conflicto:false, movimiento:null, candidato:true},
+    ];
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/3': () => ({sobre: sobre('ok', ['[dry-run]'], {
+        dry_run: true, rama: 'rama-de-prueba', repo: REPO, commit: 'nnnnnnn',
+        rama_movida: null, operaciones, no_aplicables: []})}),
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(3));
+    dom.window.viewStep(3);
+    await reposar(dom, 8);
+    const doc = dom.window.document;
+    const filas = [...doc.querySelectorAll('#tabla-cx tbody tr')];
+    const borrado = filas.find(f => f.dataset.cxId === 'e9');
+    const etiqueta = borrado ? (borrado.querySelector('.pill') || {}).textContent : null;
+    const marcable = !!(borrado && borrado.querySelector('input[type=checkbox]'));
+    // La leyenda ya no puede decir «se ha decidido borrarlo»: no se decidió antes.
+    const leyenda = (doc.querySelector('.legend-item .pill-del') || {}).parentElement;
+    const textoLeyenda = leyenda ? leyenda.textContent.replace(/\s+/g,' ') : '';
+    // Sin marcar nada, el gate no promete ningún borrado.
+    const pieVacio = (texto(dom, 'pie-cx') || '').replace(/\s+/g, ' ');
+    borrado.querySelector('input[type=checkbox]').checked = true;
+    dom.window.actualizarPies();
+    const pieConUna = (texto(dom, 'pie-cx') || '').replace(/\s+/g, ' ');
+    return {
+      ok: filas.length === 2 && /Eliminar/i.test(etiqueta || '') && marcable
+          && !/se ha decidido/i.test(textoLeyenda)
+          && /ning[uú]n archivo lo reclama/i.test(textoLeyenda)
+          && /Nada marcado/i.test(pieVacio) && /1 de 2/.test(pieConUna),
+      detalle: `filas=${filas.length} etiqueta="${etiqueta}" marcable=${marcable} ` +
+               `leyenda="${textoLeyenda}" vacio="${pieVacio}" con-una="${pieConUna}"`,
     };
   },
 },
