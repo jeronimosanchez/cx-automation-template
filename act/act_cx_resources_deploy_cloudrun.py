@@ -2063,12 +2063,66 @@ def _hijos_en_la_version(version, tipo):
     return {_cx_id_de(hijo): hijo for hijo in (version.get(clave) or [])}
 
 
-def _huella_contenedor(item, hijos):
+REFERENCIA_EN_TEXTO = re.compile(r"\$\{(PLAYBOOK|TOOL|FLOW):([^}]+)\}")
+
+# Lo que la API devuelve en lugar de un secreto al leerlo. No es un valor: es
+# la marca de que no piensa enseñarlo.
+SECRETO_OCULTO = "REDACTED"
+
+
+def _mapa_de_nombres(inventario):
+    """De nombre visible a identificador, por tipo. Para resolver referencias."""
+    prefijos = {"playbook": "PLAYBOOK", "tool": "TOOL", "flow": "FLOW"}
+    mapa = {}
+    for tipo, prefijo in prefijos.items():
+        for cx_id, item in (inventario.get(tipo) or {}).items():
+            if isinstance(item, dict) and item.get("displayName"):
+                mapa[(prefijo, item["displayName"])] = cx_id
+    return mapa
+
+
+def _mismo_idioma(valor, nombres):
+    """El mismo contenido escrito siempre igual, para poder compararlo.
+
+    CX devuelve **lo mismo de dos formas** según de dónde se lea, y sin
+    igualarlo antes la comparación encuentra cambios donde no los hay:
+
+    - Una referencia entre resources sale por nombre en el borrador
+      (`${PLAYBOOK:Handoff}`) y resuelta a identificador en la versión
+      congelada. Se pasa todo a identificador, que es lo que no cambia si
+      alguien renombra el destino.
+    - Un secreto sale como `REDACTED` al leer el borrador y entero dentro de la
+      versión. Ese campo **no se compara nunca**: la API no enseña el del
+      borrador, así que un cambio de clave no es detectable por aquí venga como
+      venga. Fingir que se compara es lo que dejaba el tool marcado como
+      cambiado para siempre.
+
+    Sin esto, cualquier playbook que mencione a otro salía como distinto de
+    producción en cada publicación, y el Paso 5 lo versionaba de nuevo cada vez
+    — quemando huecos de un límite que en CX es real (100 por playbook).
+    """
+    if isinstance(valor, str):
+        return REFERENCIA_EN_TEXTO.sub(
+            lambda m: "${%s:%s}" % (
+                m.group(1), nombres.get((m.group(1), m.group(2)), m.group(2))),
+            valor)
+    if isinstance(valor, list):
+        return [_mismo_idioma(v, nombres) for v in valor]
+    if isinstance(valor, dict):
+        return {k: (SECRETO_OCULTO if isinstance(v, str) and k == "apiKey"
+                    else _mismo_idioma(v, nombres))
+                for k, v in valor.items()}
+    return valor
+
+
+def _huella_contenedor(item, hijos, nombres=None):
     """Resumen estable del contenido de un contenedor junto con sus hijos.
 
     Se apoya en `huella_resource`, que ya excluye los campos que la API gestiona
     por su cuenta (`CAMPOS_LEIDOS_NO_ENVIADOS`). Comparar en crudo haría que
     `createTime` o `tokenCount` sacaran todo como cambiado siempre.
+
+    Y antes de eso, los dos lados se pasan al mismo idioma: ver `_mismo_idioma`.
 
     Los hijos entran por su identificador y ordenados por él, no por su
     posición: CX no garantiza el orden del LIST, y así la huella no depende de
@@ -2077,9 +2131,10 @@ def _huella_contenedor(item, hijos):
     tiene en el borrador—, así que un cambio de contenido de un hijo concreto se
     ve, y no solo un cambio en el conjunto.
     """
-    marcas = [huella_resource(item) or ""]
+    nombres = nombres or {}
+    marcas = [huella_resource(_mismo_idioma(item, nombres)) or ""]
     for cx_id, hijo in sorted(hijos.items()):
-        marcas.append(f"{cx_id}:{huella_resource(hijo)}")
+        marcas.append(f"{cx_id}:{huella_resource(_mismo_idioma(hijo, nombres))}")
     return hashlib.sha256("|".join(marcas).encode()).hexdigest()[:32]
 
 
@@ -2146,10 +2201,14 @@ def _misma_foto(contexto, inventario, version_name, tipo, contenedor):
     congelado = (version or {}).get(CONTENIDO_EN_LA_VERSION[tipo])
     if not isinstance(congelado, dict):
         return None
+    # El mapa sale del borrador, que es donde están todos los resources vivos:
+    # una referencia por nombre solo puede apuntar a algo que existe ahora.
+    nombres = _mapa_de_nombres(inventario)
     return (
-        _huella_contenedor(congelado, _hijos_en_la_version(version, tipo))
+        _huella_contenedor(congelado, _hijos_en_la_version(version, tipo), nombres)
         == _huella_contenedor(
-            contenedor, _hijos_en_el_borrador(inventario, tipo, _cx_id_de(contenedor))
+            contenedor, _hijos_en_el_borrador(inventario, tipo, _cx_id_de(contenedor)),
+            nombres
         )
     )
 
