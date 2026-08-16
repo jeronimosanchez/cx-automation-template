@@ -973,6 +973,11 @@ def _operaciones_de_borrado(inventario, repositorio, eliminar):
             # acordarse de cuál le falta a cuál.
             "conflicto": False,
             "cambio_externo": None,
+            # Un borrado no viene de ningún lado: lo decidió una persona en el
+            # Paso 2. No hay dirección que averiguar, pero la clave tiene que
+            # estar igual — quien lee el plan no sabe de qué constructor salió
+            # cada fila, y no debería tener que saberlo.
+            "movimiento": None,
             "result": None,
         })
     return operaciones

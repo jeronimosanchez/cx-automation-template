@@ -65,7 +65,11 @@ def banco(monkeypatch):
     registrado = []
 
     inventario = {tipo: {} for tipo in pipeline.RESOURCE_TYPES}
-    inventario["playbook"] = {"p1": REMOTO}
+    # p1 tiene archivo; p2 solo está en CX, que es el único que se puede borrar.
+    inventario["playbook"] = {
+        "p1": REMOTO,
+        "p2": {"name": f"p/agents/{AGENT}/playbooks/p2", "displayName": "Sobra"},
+    }
     repositorio = {
         "commit": "aaaaaaa", "total_archivos": 1, "sin_cx_id": [],
         "por_tipo": {"playbook": {"p1": {
@@ -195,6 +199,49 @@ def test_el_paso_2_no_sobrescribe_cuando_no_se_sabe_de_que_lado_vino(banco):
 
     assert datos["traidos"] == []
     assert banco.gh.commits == []
+
+
+# ── La forma del plan ────────────────────────────────────────────────────────
+
+def test_los_dos_constructores_de_operacion_dan_las_mismas_claves():
+    """Un plan con un borrado dentro tiene que leerse como cualquier otro.
+
+    Las filas del plan salen de dos sitios: `_operacion` para crear y modificar,
+    y `_operaciones_de_borrado` para los borrados. Quien lee el plan no sabe de
+    cuál vino cada una y no debería tener que saberlo.
+
+    Está escrito contra un fallo real: al añadir `movimiento` se puso en el
+    primero y no en el segundo. Todo pasaba —las suites no llevaban ningún plan
+    con borrados— hasta que el Paso 3 se encontró uno en un agente de verdad y
+    devolvió un 500 con `KeyError`. La comprobación no mira una clave concreta a
+    propósito: la que se añada mañana también tiene que estar en los dos.
+    """
+    entrada = {"ruta": "a/uno.yaml", "padre": None, "display_name": "Uno"}
+    crear = pipeline._operacion("PATCH", "playbook", "p1", entrada,
+                                {"displayName": "Uno"})
+
+    inventario = {t: {} for t in pipeline.RESOURCE_TYPES}
+    inventario["playbook"] = {"p2": {"name": "p/playbooks/p2",
+                                     "displayName": "Dos"}}
+    repositorio = {"por_tipo": {}, "sin_cx_id": []}
+    borrar = pipeline._operaciones_de_borrado(
+        inventario, repositorio, [{"tipo": "playbook", "cx_id": "p2"}])
+
+    assert len(borrar) == 1
+    assert set(crear) == set(borrar[0]), (
+        "el plan tendría filas de dos formas distintas: "
+        f"solo en crear/modificar {sorted(set(crear) - set(borrar[0]))} · "
+        f"solo en borrar {sorted(set(borrar[0]) - set(crear))}"
+    )
+
+
+def test_un_plan_con_borrados_no_revienta_al_mirar_la_direccion(banco):
+    """El 500 tal como salió: el Paso 3 mirando `movimiento` en un DELETE."""
+    banco.con_movimiento("repo")
+    datos = pipeline.step_3_apply_to_cx(
+        PROJECT, AGENT, eliminar=[{"tipo": "playbook", "cx_id": "p2"}],
+        dry_run=True)["data"]
+    assert any(o["operacion"] == "DELETE" for o in datos["operaciones"])
 
 
 def test_al_sobrescribir_se_guardan_las_dos_huellas(banco):
