@@ -2018,15 +2018,28 @@ function filasDelRepositorio() {
                  !borrados.has(`${f.tipo}/${f.cx_id}`))
     .map(f => ({...f, operacion: 'borrar', accionable: true}));
 
-  return traer.concat(borrar);
+  // Y lo que ya tiene archivo pero se editó en la consola de CX. Es la
+  // dirección que no existía: el Paso 2 se negaba a tocar un archivo
+  // existente, así que cualquier diferencia acababa en el Paso 3 — que la
+  // habría revertido escribiendo encima el contenido viejo del repositorio.
+  //
+  // Solo entran las que el servidor marca como movidas EN CX. Las movidas en
+  // los dos lados no salen aquí ni en el Paso 3: no hay dirección segura.
+  const actualizar = (inv.difieren_del_repositorio || [])
+    .filter(f => f.movimiento === 'cx' && !traidos.has(`${f.tipo}/${f.cx_id}`))
+    .map(f => ({...f, operacion: 'actualizar', accionable: true}));
+
+  return traer.concat(actualizar).concat(borrar);
 }
 
-const PILL_DEL_REPO = {traer: 'pill-new', borrar: 'pill-del'};
+const PILL_DEL_REPO = {traer: 'pill-new', borrar: 'pill-del', actualizar: 'pill-mod'};
 const PORQUE_DE_LA_FILA = {
   traer: 'est&aacute; en CX y no tiene archivo en el repositorio',
   borrar: 'se borr&oacute; en la consola de CX. Si lo dejas, el Paso 3 lo crear&aacute; otra vez con un identificador nuevo',
+  actualizar: 'la &uacute;ltima escritura de este archivo fue en la consola de CX. Se muestra aqu&iacute; para que valores traer ese cambio a GitHub',
 };
-const NOMBRE_DE_OPERACION_REPO = {traer: 'Crear en GitHub', borrar: 'Eliminar en GitHub'};
+const NOMBRE_DE_OPERACION_REPO = {traer: 'Crear en GitHub', borrar: 'Eliminar en GitHub',
+                                  actualizar: 'Actualizar en GitHub'};
 
 /* Cada fila elige su destino, y no una casilla con dos botones detrás.
 
@@ -2042,6 +2055,10 @@ const NOMBRE_DE_OPERACION_REPO = {traer: 'Crear en GitHub', borrar: 'Eliminar en
 const DESTINOS = {
   traer:  [['', 'Nada'], ['crear_repo', 'Crear en GitHub'], ['eliminar_cx', 'Eliminar de CX']],
   borrar: [['', 'Nada'], ['eliminar_repo', 'Eliminar en GitHub']],
+  // Una sola salida: el archivo existe y CX es quien avanzó. La contraria
+  // —llevar el archivo viejo a CX— es justo lo que hay que impedir, y por eso
+  // no se ofrece aquí ni se puede marcar en el Paso 3.
+  actualizar: [['', 'Nada'], ['actualizar_repo', 'Actualizar en GitHub']],
 };
 
 function renderTablaRepo() {
@@ -2066,7 +2083,7 @@ function renderTablaRepo() {
         ' <span style="color:var(--text-3);font-size:11px">&middot; nativo de CX, no se puede traer</span>'}
         <div class="porque-fila" style="font-size:11px;color:${f.operacion === 'borrar' ? 'var(--gate)' : 'var(--text-3)'};margin-top:3px;line-height:1.5">
           &#8627; ${PORQUE_DE_LA_FILA[f.operacion]}</div></td>
-      <td style="vertical-align:top;padding-top:9px">${f.operacion === 'borrar' ? celdaArchivo(f.ruta)
+      <td style="vertical-align:top;padding-top:9px">${f.ruta ? celdaArchivo(f.ruta)
         : '<code style="color:var(--text-3)" title="La ruta la decide el servidor al traerlo">&mdash;</code>'}</td>
     </tr>`;
   }).join('');
@@ -2089,7 +2106,7 @@ function elegirDestino(select) {
 }
 
 function destinosElegidos() {
-  const por = {crear_repo: [], eliminar_repo: [], eliminar_cx: []};
+  const por = {crear_repo: [], eliminar_repo: [], eliminar_cx: [], actualizar_repo: []};
   document.querySelectorAll('#tabla-repo tbody tr').forEach(f => {
     const v = (f.querySelector('select') || {}).value;
     if (por[v]) por[v].push(f);
@@ -2165,6 +2182,10 @@ function actualizarPies() {
     const enGitHub = [];
     if (elegido.crear_repo.length) enGitHub.push(
       `<strong style="color:var(--text)">crear ${elegido.crear_repo.length}</strong> archivo${elegido.crear_repo.length === 1 ? '' : 's'}`);
+    // Se cuenta aparte de «crear» porque no es lo mismo: actualizar escribe
+    // encima de un archivo que ya existe, y el gate tiene que decirlo.
+    if (elegido.actualizar_repo.length) enGitHub.push(
+      `<strong style="color:var(--text)">actualizar ${elegido.actualizar_repo.length}</strong> archivo${elegido.actualizar_repo.length === 1 ? '' : 's'} con lo que dice CX`);
     if (elegido.eliminar_repo.length) enGitHub.push(
       `<strong style="color:var(--error)">eliminar ${elegido.eliminar_repo.length}</strong> archivo${elegido.eliminar_repo.length === 1 ? '' : 's'}`);
     const enCx = elegido.eliminar_cx.length
@@ -2177,7 +2198,8 @@ function actualizarPies() {
   }
   const botonAplicar1 = $('btn-traer');
   if (botonAplicar1) botonAplicar1.disabled =
-    !(elegido.crear_repo.length || elegido.eliminar_repo.length || elegido.eliminar_cx.length);
+    !(elegido.crear_repo.length || elegido.eliminar_repo.length ||
+      elegido.eliminar_cx.length || elegido.actualizar_repo.length);
 
   const botonAplicar = $('btn-confirm-deploy');
   if (botonAplicar && !estado.paso3Cerrado) botonAplicar.disabled = cx.marcadas === 0;
@@ -2243,7 +2265,11 @@ function actualizarAvisoSinVersion() {
 
 function pedirAplicarEnRepositorio() {
   const elegido = destinosElegidos();
-  const traer = elegido.crear_repo.map(f => ({tipo: f.dataset.tipo, cx_id: f.dataset.cxId}));
+  // Crear y actualizar viajan en la misma lista: para el servidor las dos son
+  // «escribe en el repositorio lo que dice CX». Lo que las separa —si ya hay
+  // archivo— lo decide él releyendo el repositorio, no el panel.
+  const traer = elegido.crear_repo.concat(elegido.actualizar_repo)
+    .map(f => ({tipo: f.dataset.tipo, cx_id: f.dataset.cxId}));
   const borrar = elegido.eliminar_repo.map(f => ({
     tipo: f.dataset.tipo, cx_id: f.dataset.cxId,
     nombre: f.dataset.nombre, ruta: f.dataset.ruta}));
@@ -2383,6 +2409,49 @@ async function cargarPlan() {
   }
 }
 
+/* De qué lado vino el cambio, dicho en la fila.
+
+   El diff solo ve dos estados y con dos no se distingue quién se movió, así
+   que todo se atribuía al repositorio y acababa aquí — incluido lo editado en
+   la consola de CX, que este paso habría revertido sin decirlo. El servidor
+   añade ahora un tercer punto (cómo quedaron los dos lados en la última
+   escritura) y con él sale la dirección. */
+
+function enlaceConsolaCx() {
+  const p = estado.inventario || {};
+  const project = p.project, agente = p.agent_id, region = p.region || 'europe-west1';
+  if (!project || !agente) return null;
+  return `https://dialogflow.cloud.google.com/cx/projects/${project}/locations/${region}/agents/${agente}`;
+}
+
+function avisoDeMovimiento(op) {
+  if (op.movimiento === 'cx') {
+    return ' <span style="color:var(--gate);font-size:11px">&middot; la &uacute;ltima escritura de este archivo fue en CX. ' +
+           'Tr&aacute;elo a GitHub en el Paso 2</span>';
+  }
+  if (op.movimiento === 'ambos') {
+    // Decirle a alguien que compare dos versiones sin darle dónde mirar es un
+    // mensaje que suena bien y no sirve. Los dos enlaces son la mitad útil.
+    const cx = enlaceConsolaCx();
+    const enlaces = [
+      op.ruta && baseDeGitHub() ? `<a href="${baseDeGitHub()}${op.ruta}" target="_blank" rel="noopener">ver en GitHub</a>` : null,
+      cx ? `<a href="${cx}" target="_blank" rel="noopener">ver en CX</a>` : null,
+    ].filter(Boolean).join(' &middot; ');
+    return '<div style="color:var(--error);font-size:11px;margin-top:3px;line-height:1.5">' +
+           '<strong>Conflicto:</strong> este archivo se ha modificado por separado en GitHub y en CX. ' +
+           'Mover en cualquiera de las dos direcciones borrar&iacute;a el cambio del otro lado. ' +
+           'Revisa las dos versiones y decide cu&aacute;l conservar antes de mover nada.' +
+           (enlaces ? `<br>${enlaces}` : '') + '</div>';
+  }
+  // Sin tercer punto de referencia no se sabe qué hizo el repositorio, pero sí
+  // que CX se movió por fuera — y aplicar aquí se lo llevaría por delante. Es
+  // menos de lo que dicen los otros dos casos, y sigue siendo un conflicto.
+  if (op.conflicto) {
+    return ' <span style="color:var(--gate);font-size:11px">&middot; conflicto: cambi&oacute; tambi&eacute;n en CX</span>';
+  }
+  return '';
+}
+
 function renderTablaCx() {
   const cuerpo = document.querySelector('#tabla-cx tbody');
   if (!cuerpo) return;
@@ -2404,17 +2473,23 @@ function renderTablaCx() {
                    ERROR:'<span class="pill pill-err">Error</span>',
                    NO_INTENTADO:'<span class="pill pill-dim">No intentado</span>'}[op.result]
       || (cerrado ? '<span class="pill pill-dim">Qued&oacute; fuera</span>' : '');
+    // Esta dirección no vale para esta fila. Se enseña igual —esconderla haría
+    // que el plan mintiera sobre lo que difiere— pero sin casilla: el servidor
+    // la rechazaría de todos modos, y una casilla que no se puede usar solo
+    // sirve para descubrirlo después de pulsar.
+    const bloqueada = op.movimiento === 'cx' || op.movimiento === 'ambos';
     return `
     <tr data-tipo="${esc(op.tipo)}" data-cx-id="${esc(op.cx_id||'')}" data-ruta="${esc(op.ruta||'')}"
-        data-sin-version="${op.sin_version ? 'si' : 'no'}"
+        data-sin-version="${op.sin_version ? 'si' : 'no'}" data-movimiento="${esc(op.movimiento||'')}"
         style="${cerrado && !op.result ? 'opacity:.55' : ''}">
-      ${cerrado ? '' : `<td style="width:34px"><input type="checkbox"
-          onchange="actualizarPies();refrescarDeriva()"></td>`}
+      ${cerrado ? '' : (bloqueada
+        ? '<td style="width:34px"></td>'
+        : `<td style="width:34px"><input type="checkbox"
+          onchange="actualizarPies();refrescarDeriva()"></td>`)}
       <td><span class="pill ${PILL_DE_OPERACION[op.operacion]||'pill-dim'}">${esc(NOMBRE_DE_OPERACION[op.operacion]||op.operacion)}</span> ${marca}
         ${op.error ? `<div style="color:#f87171;font-size:11px;margin-top:4px">${esc(op.error)}</div>` : ''}</td>
       <td>${esc(NOMBRE_DE_TIPO[op.tipo]||op.tipo)}</td>
-      <td><code>${esc(op.resource)}</code>${op.conflicto ?
-        ' <span style="color:var(--gate);font-size:11px">&middot; conflicto: cambi&oacute; tambi&eacute;n en CX</span>' : ''}</td>
+      <td><code>${esc(op.resource)}</code>${avisoDeMovimiento(op)}</td>
       <td>${celdaArchivo(op.ruta)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="${cerrado ? 4 : 5}" style="color:var(--text-3)">Nada que aplicar: el repositorio y el agente dicen lo mismo.</td></tr>`;

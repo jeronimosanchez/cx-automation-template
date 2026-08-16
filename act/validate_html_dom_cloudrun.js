@@ -2057,6 +2057,122 @@ const escenarios = [
   },
 },
 
+{
+  nombre: 'Lo editado en la consola de CX se ofrece en el Paso 2, y se manda como una traída más',
+  porQue: 'Era la dirección que no existía. El Paso 2 se negaba a tocar un archivo ' +
+          'que ya existía —«ya tiene archivo, se omite»— así que lo editado en la ' +
+          'consola no tenía camino de vuelta: se quedaba como diferencia eterna y el ' +
+          'Paso 3 lo habría revertido escribiendo encima el contenido viejo del ' +
+          'repositorio. Y va en la lista de traer, no en una nueva: para el servidor ' +
+          'crear y actualizar son lo mismo, «escribe lo que dice CX»; quién ya tiene ' +
+          'archivo lo decide él releyendo el repositorio, no el panel.',
+  async ejecutar() {
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/2': {sobre: sobre('ok', ['✓'], {
+        traidos: [{tipo:'playbook', cx_id:'p9', ruta:'p/nueve.yaml', display_name:'Compra'}],
+        borrados_del_repo: [], commit:'ccccccc', repo: REPO, rama:'rama-de-prueba'})},
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(2, {
+      inventario: Object.assign(estadoHasta(2).inventario, {
+        solo_cx: [], solo_repo: [],
+        difieren_del_repositorio: [
+          {tipo:'playbook', cx_id:'p9', ruta:'p/nueve.yaml',
+           display_name:'Compra', operacion:'PATCH', conflicto:true, movimiento:'cx'},
+          // Movida en el repositorio: esta NO baja al Paso 2, se lleva a CX.
+          {tipo:'playbook', cx_id:'p8', ruta:'p/ocho.yaml',
+           display_name:'Checkout', operacion:'PATCH', conflicto:false, movimiento:'repo'},
+          // Movida en los dos: tampoco, no hay dirección segura.
+          {tipo:'intent', cx_id:'i7', ruta:'i/siete.yaml',
+           display_name:'Saludo', operacion:'PATCH', conflicto:true, movimiento:'ambos'},
+        ],
+      }),
+    }));
+    dom.window.viewStep(2);
+    await reposar(dom, 4);
+    const doc = dom.window.document;
+    const filas = [...doc.querySelectorAll('#tabla-repo tbody tr')];
+    const bajaron = filas.map(f => `${f.dataset.operacion}:${f.dataset.nombre}`);
+    // Solo la de CX, y con su porqué y su única salida.
+    const opciones = filas.length === 1
+      ? [...filas[0].querySelectorAll('option')].map(o => o.value) : [];
+    const porque = filas.length === 1
+      ? (filas[0].querySelector('.porque-fila') || {}).textContent.replace(/\s+/g,' ').trim() : '';
+    elegirDestino(dom, 'Compra', 'actualizar_repo');
+    await reposar(dom, 2);
+    // El gate no puede decir «crear»: escribe encima de un archivo que existe.
+    const gate = (texto(dom, 'traer-resumen') || '').replace(/\s+/g, ' ');
+    pulsar(dom, 'btn-traer');
+    await reposar(dom, 8);
+    const llamada = servidor.llamadasA('/step/2')[0];
+    const traer = ((llamada && llamada.cuerpo.traer) || []).map(t => t.cx_id);
+    const soloLaDeCx = JSON.stringify(bajaron) === JSON.stringify(['actualizar:Compra']);
+    const diceActualizar = /actualizar 1 archivo/i.test(gate) && !/crear/i.test(gate);
+    const salidaUnica = JSON.stringify(opciones) === JSON.stringify(['', 'actualizar_repo']);
+    return {
+      ok: soloLaDeCx && salidaUnica && diceActualizar && /consola de CX/i.test(porque)
+          && JSON.stringify(traer) === JSON.stringify(['p9']),
+      detalle: `bajaron=${JSON.stringify(bajaron)} opciones=${JSON.stringify(opciones)} ` +
+               `gate="${gate}" traer=${JSON.stringify(traer)} porque="${porque.slice(0,60)}"`,
+    };
+  },
+},
+
+{
+  nombre: 'En el Paso 3, lo que no vino del repositorio no se puede marcar, y el conflicto dice dónde mirar',
+  porQue: 'Aplicar una fila que se movió en CX la revertiría en silencio, y una que ' +
+          'se movió en los dos lados borraría uno de los dos trabajos. El servidor las ' +
+          'rechaza, así que una casilla marcable solo sirve para descubrirlo después ' +
+          'de pulsar. Se enseñan igual —esconderlas haría que el plan mintiera sobre ' +
+          'lo que difiere— pero sin casilla. Y el conflicto lleva los dos enlaces: ' +
+          'decirle a alguien «revisa las dos versiones» sin darle dónde mirar es un ' +
+          'mensaje que suena bien y no sirve.',
+  async ejecutar() {
+    const operaciones = [
+      {operacion:'PATCH', tipo:'playbook', cx_id:'p1', ruta:'p/uno.yaml',
+       resource:'DelRepo', sin_version:false, conflicto:false, movimiento:'repo'},
+      {operacion:'PATCH', tipo:'playbook', cx_id:'p2', ruta:'p/dos.yaml',
+       resource:'DeCX', sin_version:false, conflicto:true, movimiento:'cx'},
+      {operacion:'PATCH', tipo:'intent', cx_id:'i3', ruta:'i/tres.yaml',
+       resource:'DeLosDos', sin_version:false, conflicto:true, movimiento:'ambos'},
+    ];
+    const servidor = new ServidorFalso(rutasBase({
+      '/step/3': () => ({sobre: sobre('ok', ['[dry-run]'], {
+        dry_run: true, rama: 'rama-de-prueba', repo: REPO, commit: 'nnnnnnn',
+        rama_movida: null, operaciones,
+        no_aplicables: operaciones.filter(o => o.movimiento !== 'repo'),
+      })}),
+    }));
+    const dom = await abrirPanel(servidor, estadoHasta(3));
+    dom.window.viewStep(3);
+    await reposar(dom, 8);
+    const doc = dom.window.document;
+    const filas = [...doc.querySelectorAll('#tabla-cx tbody tr')];
+    const conCasilla = filas.filter(f => f.querySelector('input[type=checkbox]'))
+      .map(f => f.dataset.cxId);
+    const filaConflicto = filas.find(f => f.dataset.movimiento === 'ambos');
+    const textoConflicto = filaConflicto
+      ? filaConflicto.textContent.replace(/\s+/g, ' ') : '';
+    const enlaces = filaConflicto
+      ? [...filaConflicto.querySelectorAll('a')].map(a => a.getAttribute('href')) : [];
+    const filaDeCx = filas.find(f => f.dataset.movimiento === 'cx');
+    const textoDeCx = filaDeCx ? filaDeCx.textContent.replace(/\s+/g, ' ') : '';
+    // Y el pie no puede prometer más de lo que se puede marcar.
+    const pie = (texto(dom, 'pie-cx') || '').replace(/\s+/g, ' ');
+    const aGitHub = enlaces.some(h => /github\.com/.test(h));
+    const aCx = enlaces.some(h => /dialogflow\.cloud\.google\.com/.test(h));
+    return {
+      ok: filas.length === 3
+          && JSON.stringify(conCasilla) === JSON.stringify(['p1'])
+          && /conflicto/i.test(textoConflicto)
+          && /decide cu[aá]l conservar/i.test(textoConflicto)
+          && /Paso 2/.test(textoDeCx) && aGitHub && aCx,
+      detalle: `filas=${filas.length} con-casilla=${JSON.stringify(conCasilla)} ` +
+               `enlaces=${JSON.stringify(enlaces)} pie="${pie}" ` +
+               `conflicto="${textoConflicto.slice(0,90)}" de-cx="${textoDeCx.slice(0,60)}"`,
+    };
+  },
+},
+
 ];
 
 // ── Ejecución ────────────────────────────────────────────────────────────────

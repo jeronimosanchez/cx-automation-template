@@ -699,6 +699,9 @@ def calcular_diff(contexto, inventario, repositorio, eliminar=()):
                     remote_name=remotos[cx_id].get("name"),
                 )
                 _marcar_conflicto(operacion, remotos[cx_id], auditoria)
+                operacion["movimiento"] = _quien_se_movio(
+                    operacion, remotos[cx_id], auditoria
+                )
                 operaciones.append(operacion)
 
     for entrada in repositorio["sin_cx_id"]:
@@ -733,6 +736,9 @@ def _operacion(verbo, tipo, cx_id, entrada, local, remote_name=None):
         "sin_version": tipo in TIPOS_SIN_VERSION,
         "conflicto": False,
         "cambio_externo": None,
+        # Cuál de los dos lados cambió: "repo", "cx", "ambos" o None si no se
+        # sabe. Decide en qué paso se ofrece esta fila. Ver `_quien_se_movio`.
+        "movimiento": None,
         "result": None,
     }
 
@@ -754,6 +760,26 @@ def huella_resource(item):
     comparable = {k: v for k, v in item.items()
                   if k not in CAMPOS_LEIDOS_NO_ENVIADOS}
     serializado = json.dumps(comparable, sort_keys=True, ensure_ascii=False,
+                             default=str)
+    return hashlib.sha256(serializado.encode()).hexdigest()[:32]
+
+
+def huella_local(local):
+    """Lo mismo, para lo que el repositorio declara de un resource.
+
+    Es el gemelo de `huella_resource`, y existe aparte a propósito: `differs`
+    compara **solo los campos que el YAML declara**, así que el payload local
+    es un subconjunto del remoto y las dos huellas nunca darían lo mismo
+    aunque el repositorio y CX estuviesen de acuerdo.
+
+    Por eso ninguna se compara con la otra. Cada una mide un lado **contra su
+    propio pasado** —el repo de ahora contra el repo de la última escritura, CX
+    de ahora contra CX de la última escritura— y de ahí sale quién se movió.
+    Cruzarlas daría «los dos cambiaron» siempre.
+    """
+    if not isinstance(local, dict) or not local:
+        return None
+    serializado = json.dumps(local, sort_keys=True, ensure_ascii=False,
                              default=str)
     return hashlib.sha256(serializado.encode()).hexdigest()[:32]
 
@@ -804,6 +830,50 @@ def _marcar_conflicto(operacion, remoto, auditoria):
             "huella_tras_la_ultima_escritura": registro["huella_cx"],
             "archivo": registro.get("archivo"),
         }
+
+
+def _quien_se_movio(operacion, remoto, auditoria):
+    """Cuál de los dos lados cambió desde la última vez que escribió el pipeline.
+
+    Devuelve `"repo"`, `"cx"`, `"ambos"` o `None`, y es lo que decide **en qué
+    paso** se ofrece la fila: lo que se movió en el repositorio se lleva a CX
+    (Paso 3), lo que se movió en CX se trae al repositorio (Paso 2), y lo que
+    se movió en los dos no puede ir a ninguno sin borrar el trabajo del otro
+    lado.
+
+    `None` significa «no se sabe», no «no se movió nada». Pasa con los
+    resources escritos antes de que existiera `huella_repo` y con los que el
+    pipeline nunca escribió. Se devuelve aparte en vez de adivinar porque las
+    dos direcciones no cuestan lo mismo: llevar a CX de más se ve y se corrige,
+    traer al repositorio de más **sobrescribe un archivo** y se lleva por
+    delante lo que hubiera dentro. Quien lo reciba debe tratarlo como hasta
+    ahora — ofrecerlo en el Paso 3 y nunca traerlo solo.
+    """
+    registro = auditoria.get((operacion["tipo"], operacion["cx_id"]))
+    if not registro:
+        return None
+    previa_cx = registro.get("huella_cx")
+    previa_repo = registro.get("huella_repo")
+    if not previa_cx or not previa_repo:
+        return None
+
+    cx_ahora = huella_resource(remoto)
+    repo_ahora = huella_local(operacion["local"])
+    if not cx_ahora or not repo_ahora:
+        return None
+
+    se_movio_cx = cx_ahora != previa_cx
+    se_movio_repo = repo_ahora != previa_repo
+    if se_movio_cx and se_movio_repo:
+        return "ambos"
+    if se_movio_cx:
+        return "cx"
+    if se_movio_repo:
+        return "repo"
+    # Difieren pero ninguno se ha movido desde la última escritura: el
+    # pipeline los dejó ya distintos. Pasa cuando una escritura falló a medias.
+    # No es ninguno de los tres casos y adivinar aquí sería inventar.
+    return None
 
 
 def quien_depende_de(inventario, repositorio, tipo, cx_id):
@@ -1107,6 +1177,9 @@ def aplicar_operaciones(contexto, operaciones, inventario, repositorio=None,
                     # Cómo queda CX tras esta escritura. Es contra esto contra
                     # lo que el diff siguiente detecta un cambio externo.
                     huella_cx=huella_resource(creado),
+                    # Y cómo queda el repositorio: lo que se acaba de mandar es
+                    # exactamente lo que el archivo dice ahora mismo.
+                    huella_repo=huella_local(operacion["local"]),
                     # De quién cuelga. Al publicar, un resource borrado ya no
                     # está en el agente: sin este dato no habría forma de saber
                     # qué playbook o flow hay que versionar para que el borrado
@@ -1240,7 +1313,9 @@ def step_1_inventory(project, agent_id, client=None, gh=None, on_log=None):
     difieren = [
         {"tipo": o["tipo"], "cx_id": o["cx_id"], "ruta": o["ruta"],
          "display_name": o["resource"], "operacion": o["operacion"],
-         "conflicto": o["conflicto"]}
+         "conflicto": o["conflicto"],
+         # De qué lado vino el cambio, y por tanto en qué paso se resuelve.
+         "movimiento": o["movimiento"]}
         for o in operaciones if o["operacion"] == "PATCH"
     ]
     if difieren:
@@ -1337,6 +1412,23 @@ def _yaml_para_repo(tipo, item, padre_id=None, agente=None):
     return yaml.safe_dump(documento, allow_unicode=True, sort_keys=False)
 
 
+def _huella_del_archivo(tipo, texto_yaml):
+    """La huella del repositorio a partir del texto del archivo, no del objeto.
+
+    Se hace la ida y la vuelta —volcar a YAML y volver a leerlo— porque es lo
+    que hará el diff siguiente, que solo tiene el archivo. Calcularla sobre el
+    objeto de CX daría otra cosa en cuanto el volcado normalizara algo, y el
+    resource saldría como movido en el repositorio nada más traerlo.
+    """
+    try:
+        documento = yaml.safe_load(texto_yaml)
+    except yaml.YAMLError:
+        return None
+    if not isinstance(documento, dict):
+        return None
+    return huella_local(payloads.comparable_local(tipo, documento))
+
+
 def _commit_que_dejo_el_pipeline(contexto):
     """El último commit de la rama que el propio pipeline vio o escribió.
 
@@ -1397,6 +1489,13 @@ def step_2_pull_to_repo(project, agent_id, traer, borrar=(), client=None,
         inventario, _, _ = inventariar_cx(contexto, on_log, log)
         repositorio, _ = cargar_repositorio(contexto, on_log, log)
 
+        # De qué lado vino cada cambio. Es lo que decide si un resource que ya
+        # tiene archivo se puede sobrescribir: solo cuando el que se movió fue
+        # CX. No cuesta ninguna llamada — el inventario y el repositorio ya
+        # están leídos.
+        movimientos = {(o["tipo"], o["cx_id"]): o["movimiento"]
+                       for o in calcular_diff(contexto, inventario, repositorio)}
+
         archivos = {}
         traidos = []
         for peticion in traer or ():
@@ -1412,9 +1511,19 @@ def step_2_pull_to_repo(project, agent_id, traer, borrar=(), client=None,
                     f"traer al repositorio."
                 )
             if cx_id in repositorio["por_tipo"].get(tipo, {}):
+                # Hasta aquí llegaba el paso: un archivo existente no se tocaba
+                # nunca, y lo editado en la consola de CX no tenía forma de
+                # volver. Ahora se sobrescribe, pero **solo** si el repositorio
+                # no se ha movido desde la última escritura del pipeline: si se
+                # movieron los dos, traer borraría el trabajo del repositorio,
+                # y esa decisión no es de un paso automático.
+                if movimientos.get((tipo, cx_id)) != "cx":
+                    _emit(log, on_log,
+                          f"· {tipo}/{cx_id} ya tiene archivo — se omite")
+                    continue
                 _emit(log, on_log,
-                      f"· {tipo}/{cx_id} ya tiene archivo — se omite")
-                continue
+                      f"· {tipo}/{cx_id} se editó en CX — se sobrescribe el "
+                      f"archivo")
 
             padre_id = None
             if RESOURCE_TYPES[tipo].get("padre"):
@@ -1429,7 +1538,15 @@ def step_2_pull_to_repo(project, agent_id, traer, borrar=(), client=None,
                             # anotarlo, traer un resource dejaría su registro
                             # sin huella y la detección de conflicto quedaría
                             # ciega justo para lo que se acaba de traer.
-                            "huella": huella_resource(item)})
+                            "huella": huella_resource(item),
+                            # Y cómo queda el archivo. Se calcula releyendo el
+                            # YAML que se acaba de escribir, no el objeto de
+                            # CX, porque es exactamente lo que hará el diff
+                            # siguiente al cargar el repositorio: si la ida y
+                            # la vuelta no dieran lo mismo, el resource
+                            # aparecería como movido nada más traerlo.
+                            "huella_repo": _huella_del_archivo(
+                                tipo, archivos[ruta])})
             _emit(log, on_log, f"✓ {ruta}")
 
         # Y lo contrario: archivos que describen algo que ya no está en CX.
@@ -1493,6 +1610,7 @@ def step_2_pull_to_repo(project, agent_id, traer, borrar=(), client=None,
                 traido["cx_id"], traido["ruta"],
                 display_name=traido["display_name"], operacion="PULL",
                 huella_cx=traido["huella"],
+                huella_repo=traido["huella_repo"],
             )
 
         store.save_commit_visto(contexto.store, project, agent_id,
@@ -1616,6 +1734,29 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
               f"cambió en el repositorio y también en CX por fuera del "
               f"pipeline. Aplicarlo se lleva por delante el cambio de CX")
 
+    # Lo que se movió en CX no se lleva **a** CX: se trae al repositorio, y eso
+    # es el Paso 2. Aplicarlo desde aquí revertiría en silencio lo que alguien
+    # escribió en la consola — el fallo que el enrutado viene a cerrar. Que el
+    # panel no lo ofrezca es interfaz; esto es lo que lo impide, porque el
+    # servidor no se fía de la lista que le manden (S1).
+    no_aplicables = [op for op in operaciones
+                     if op["movimiento"] in ("cx", "ambos")]
+    for op in no_aplicables:
+        _emit(log, on_log,
+              f"⚠ {op['tipo']}/{op['resource']} no se aplica desde aquí: "
+              + ("cambió en los dos sitios por separado — decide cuál "
+                 "conservar" if op["movimiento"] == "ambos" else
+                 "la última escritura fue en CX — tráelo en el Paso 2"))
+    if no_aplicables and not dry_run:
+        raise PipelineError(
+            f"{len(no_aplicables)} resources no se pueden aplicar desde el "
+            f"Paso 3: " + ", ".join(
+                f"{op['tipo']}/{op['resource']}" for op in no_aplicables[:5])
+            + ". Lo que se editó en CX se trae al repositorio en el Paso 2; lo "
+              "que cambió en los dos sitios se resuelve a mano antes de mover "
+              "nada."
+        )
+
     sin_version = sorted({op["tipo"] for op in operaciones if op["sin_version"]})
     if sin_version:
         _emit(log, on_log,
@@ -1632,6 +1773,11 @@ def step_3_apply_to_cx(project, agent_id, aplicar=None, eliminar=(),
             "operaciones": operaciones, "dry_run": True,
             "avisos_cambio_archivo": avisos, "sin_version": sin_version,
             "conflictos": conflictos, "dependencias_de_borrado": dependencias,
+            # Las que difieren pero no van en esta dirección: las de CX se
+            # traen en el Paso 2 y las de los dos lados las resuelve una
+            # persona. Viajan al panel para que las pinte sin casilla — se ven,
+            # pero no se pueden marcar.
+            "no_aplicables": no_aplicables,
             # De qué commit salió ESTE plan. Cada paso vuelve a preguntar la
             # punta de la rama, así que el commit del Paso 1 puede no ser el
             # que se acaba de leer aquí. El panel enlaza cada archivo a este
