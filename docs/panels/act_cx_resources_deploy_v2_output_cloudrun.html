@@ -332,10 +332,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
              columna de operación, como el Paso 3, dice lo que de verdad va a
              pasar.
 
-             «Eliminar de CX» se queda como botón aparte a propósito: no
-             escribe en el repositorio, marca para que el Paso 3 borre. Meterlo
-             en una tabla que se llama «se va a aplicar en el repositorio»
-             sería mentir sobre lo que hace. -->
+             Aquí hubo un «Eliminar de CX», primero como botón aparte y luego
+             como opción de cada fila. Se fue al Paso 3, que es el que escribe
+             en CX: en una tarjeta que se llama «se va a aplicar en el
+             repositorio» era mentir sobre lo que hace. -->
         <div class="dir-card hacia-repo">
           <div class="dir-head">
             Se va a aplicar en el repositorio (GitHub) <span class="dir-flecha">CX &rarr; repositorio</span>
@@ -1992,15 +1992,15 @@ function toggleGrupo(card) {
 
 /* ── Paso 2 · Traer al repositorio · POST /step/2 ─────────────────────────── */
 
-/* Las dos operaciones que escriben en el repositorio, en una sola tabla.
+/* Las tres operaciones que escriben en el repositorio, en una sola tabla.
 
    Estaban en dos tarjetas y la pantalla partía en dos lo que por debajo es una
    sola cosa: el servidor las hace en la misma llamada y en el mismo commit.
    Una fila, una operación, como en el Paso 3.
 
-   `data-operacion` es lo que distingue las dos poblaciones después, y hace
-   falta: «Eliminar de CX» solo puede actuar sobre las de traer —las de borrar
-   ya no están en CX— y el botón de aplicar manda cada una a su lista.        */
+   `data-operacion` es lo que distingue las tres poblaciones después, y hace
+   falta: el botón de aplicar manda cada una a su lista —crear, actualizar o
+   eliminar— y las tres viajan en el mismo commit.                            */
 
 const MOTIVO_FANTASMA = 'cx_id fantasma';
 
