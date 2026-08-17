@@ -156,12 +156,55 @@ def test_el_mas_viejo_es_el_que_se_va(cliente):
 
 # ── El 429 ───────────────────────────────────────────────────────────────────
 
-def test_el_429_se_explica_por_lo_que_es(monkeypatch):
-    """Decía «no se pudo descargar el repositorio: 429» y el volcado de GitHub.
+def test_con_codeload_limitado_se_lee_por_el_arbol(monkeypatch):
+    """El 429 no puede parar el pipeline: hay otro camino y no está agotado.
 
-    Eso manda a buscar el fallo en las credenciales o en el agente, que es donde
-    no está: es el límite de descargas de código, se cuenta aparte de la cuota de
-    la API y se levanta solo.
+    `codeload` y la API de GitHub tienen cuotas distintas. Cuando la primera
+    corta, leer archivo a archivo cuesta sesenta y tantas peticiones en vez de
+    una —por eso no es el camino normal— pero usa la cuota que sí está libre.
+    Un pipeline lento es mucho mejor que un pipeline parado.
+    """
+    gh._CACHE_REPO.clear()
+    monkeypatch.setattr(gh.requests, "get",
+                        lambda url, **k: _Respuesta(429, b"", "Too Many Requests"))
+    c = gh.GitHubAppClient.__new__(gh.GitHubAppClient)
+    c.repo = "org/repo"
+    monkeypatch.setattr(type(c), "_headers", lambda self: {}, raising=False)
+    monkeypatch.setattr(type(c), "list_tree",
+                        lambda self, ref, sufijos=None: [{"path": "definitions/a.yaml", "sha": "s1"}],
+                        raising=False)
+    monkeypatch.setattr(type(c), "read_blob",
+                        lambda self, sha: b"metadata:\n  tipo: playbook\n", raising=False)
+
+    archivos = c.read_repo_files("abc1234")
+    assert archivos == {"definitions/a.yaml": b"metadata:\n  tipo: playbook\n"}
+
+
+def test_lo_leido_por_el_arbol_tambien_se_guarda(monkeypatch):
+    """Si no, cada paso de la vuelta repetiría las sesenta y tantas peticiones."""
+    gh._CACHE_REPO.clear()
+    blobs = []
+    monkeypatch.setattr(gh.requests, "get",
+                        lambda url, **k: _Respuesta(429, b"", "Too Many Requests"))
+    c = gh.GitHubAppClient.__new__(gh.GitHubAppClient)
+    c.repo = "org/repo"
+    monkeypatch.setattr(type(c), "_headers", lambda self: {}, raising=False)
+    monkeypatch.setattr(type(c), "list_tree",
+                        lambda self, ref, sufijos=None: [{"path": "a.yaml", "sha": "s1"}], raising=False)
+    def leer(self, sha):
+        blobs.append(sha); return b"metadata:\n  tipo: playbook\n"
+    monkeypatch.setattr(type(c), "read_blob", leer, raising=False)
+
+    c.read_repo_files("abc1234")
+    c.read_repo_files("abc1234")
+    assert len(blobs) == 1, f"se leyeron {len(blobs)} blobs: no se guardó"
+
+
+def test_si_tambien_falla_el_arbol_el_error_es_el_del_arbol(monkeypatch):
+    """Con las dos vías caídas hay que fallar, pero diciendo cuál fue la última.
+
+    El mensaje del tarball hablaría de un límite que ya se esquivó; el que sirve
+    es el de la lectura que se intentó de verdad.
     """
     gh._CACHE_REPO.clear()
     monkeypatch.setattr(gh.requests, "get",
@@ -170,15 +213,16 @@ def test_el_429_se_explica_por_lo_que_es(monkeypatch):
     c.repo = "org/repo"
     monkeypatch.setattr(type(c), "_headers", lambda self: {}, raising=False)
 
+    def revienta(self, ref, sufijos=None):
+        raise gh.GitHubError("No se pudo leer el árbol: 403", status_code=403)
+    monkeypatch.setattr(type(c), "list_tree", revienta, raising=False)
+
     with pytest.raises(gh.GitHubError) as error:
         c.read_repo_files("abc1234")
-    texto = str(error.value)
-    assert error.value.status_code == 429
-    assert "no es la cuota de la api" in texto.lower()
-    assert "se levanta" in texto.lower()
+    assert "árbol" in str(error.value)
 
 
-def test_un_429_no_deja_nada_guardado(monkeypatch):
+def test_un_fallo_no_deja_nada_guardado(monkeypatch):
     """Si se guardara un fallo, el reintento devolvería el fallo para siempre."""
     gh._CACHE_REPO.clear()
     monkeypatch.setattr(gh.requests, "get",
@@ -186,6 +230,9 @@ def test_un_429_no_deja_nada_guardado(monkeypatch):
     c = gh.GitHubAppClient.__new__(gh.GitHubAppClient)
     c.repo = "org/repo"
     monkeypatch.setattr(type(c), "_headers", lambda self: {}, raising=False)
+    monkeypatch.setattr(type(c), "list_tree",
+                        lambda self, ref, sufijos=None: (_ for _ in ()).throw(
+                            gh.GitHubError("sin árbol", status_code=403)), raising=False)
     with pytest.raises(gh.GitHubError):
         c.read_repo_files("abc1234")
     assert len(gh._CACHE_REPO) == 0

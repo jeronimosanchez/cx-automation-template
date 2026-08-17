@@ -115,6 +115,26 @@ def same_references(local_value, remote_value):
     return sorted(map(str, local_value)) == sorted(map(str, remote_value))
 
 
+# Campos que CX **deriva** del contenido, no acepta imponer. Se leen y se
+# guardan en el YAML porque describen el resource, pero compararlos es pedir un
+# bucle: mandas tu valor, CX escribe el suyo, y la ejecución siguiente vuelve a
+# ver una diferencia.
+#
+# Solo `referencedPlaybooks`, y está comprobado contra la API: al crear un
+# playbook SIN declarar ninguna referencia pero con un `${PLAYBOOK:…}` en el
+# texto, CX la encontró igualmente —rechazó la creación nombrando ese playbook—.
+# La deduce del texto, así que no se le puede imponer.
+#
+# `referencedTools` NO va aquí: los playbooks de Petal declaran una tool y
+# ninguno la menciona con `${TOOL:…}` en su texto, así que ese campo manda desde
+# el archivo y quitarlo de la comparación escondería un cambio real.
+#
+# Pasó en Petal V2: la instrucción del orquestador mencionaba siete playbooks y
+# su lista declaraba cinco, así que el Paso 3 decía «aplicado» —y lo estaba—
+# pero el Paso 1 siguiente lo volvía a marcar como cambiado, una y otra vez.
+CAMPOS_DERIVADOS = ("referencedPlaybooks",)
+
+
 def differs(remote, local):
     """Si algún campo declarado en el YAML no coincide con el remoto.
 
@@ -128,6 +148,9 @@ def differs(remote, local):
     PATCH en cada ejecución y se rompe la idempotencia (CLAUDE.md §3.4).
     """
     for field, value in local.items():
+        # Lo que CX calcula solo no se compara: ver CAMPOS_DERIVADOS.
+        if field in CAMPOS_DERIVADOS:
+            continue
         remote_value = remote.get(field)
         if remote_value == value:
             continue

@@ -206,3 +206,36 @@ def test_build_create_body_no_manda_name():
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
+
+# ── Campos que CX calcula por su cuenta ──────────────────────────────────────
+
+def test_referenced_playbooks_no_cuenta_como_diferencia():
+    """CX lo deriva del texto de la instrucción; imponerlo es un bucle.
+
+    Pasó en Petal V2: la instrucción del orquestador mencionaba siete playbooks
+    y su `referencedPlaybooks` declaraba cinco. El Paso 3 decía «aplicado» —y lo
+    estaba— pero CX volvía a escribir su lista de siete, así que el Paso 1
+    siguiente lo marcaba otra vez como cambiado. Aplicar no lo arreglaba nunca.
+    """
+    remoto = {"displayName": "Orq", "referencedPlaybooks": ["p/1", "p/2", "p/3"]}
+    local = {"displayName": "Orq", "referencedPlaybooks": ["p/1", "p/2"]}
+    assert payloads.differs(remoto, local) is False
+
+
+def test_referenced_tools_si_sigue_contando():
+    """Solo se ignora lo que CX deduce, y `referencedTools` no lo deduce.
+
+    Comprobado con los playbooks de Petal: declaran una tool y ninguno la
+    menciona con `${TOOL:…}` en su texto, así que ese campo manda desde el
+    archivo. Ignorarlo escondería que alguien le quitó una tool a un playbook.
+    """
+    remoto = {"displayName": "X", "referencedTools": ["a", "b"]}
+    local = {"displayName": "X", "referencedTools": ["a"]}
+    assert payloads.differs(remoto, local) is True
+
+
+def test_pero_lo_demas_sigue_comparandose():
+    """Ignorar un campo derivado no puede volver ciega la comparación entera."""
+    remoto = {"displayName": "Orq", "goal": "uno", "referencedPlaybooks": ["p/1"]}
+    local = {"displayName": "Orq", "goal": "otro", "referencedPlaybooks": []}
+    assert payloads.differs(remoto, local) is True

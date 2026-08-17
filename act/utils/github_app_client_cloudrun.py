@@ -288,17 +288,18 @@ class GitHubAppClient:
             headers=self._headers(), timeout=120,
         )
         if respuesta.status_code == 429:
-            # No es la cuota de la API: es `codeload`, la protección antiscraping
-            # de las descargas de repositorio. Se cuenta aparte, no aparece en
-            # /rate_limit y se levanta sola. Decirlo evita buscar el fallo en las
-            # credenciales o en el agente, que es donde no está.
-            raise GitHubError(
-                f"GitHub está limitando las descargas del repositorio "
-                f"{self.repo} (429). No es la cuota de la API ni un problema de "
-                f"permisos: es el límite de descargas de código, que se levanta "
-                f"solo en unos minutos. Vuelve a intentarlo entonces.",
-                status_code=429,
-            )
+            # `codeload` limitado — no es la cuota de la API, es la protección
+            # antiscraping de las descargas de repositorio, que se cuenta aparte
+            # y no aparece en /rate_limit.
+            #
+            # En vez de rendirse, se lee por el árbol de Git: una llamada por el
+            # listado y una por archivo. Es lo que el tarball vino a sustituir y
+            # por eso no es el camino normal —sesenta y tantas peticiones frente
+            # a una— pero usa la cuota de la API, que no es la que está agotada.
+            # Un pipeline lento es mucho mejor que un pipeline parado.
+            archivos = self._read_repo_files_por_blobs(ref, sufijos)
+            _cache_put(clave, archivos)
+            return archivos
         if respuesta.status_code != 200:
             raise GitHubError(
                 f"No se pudo descargar el repositorio {self.repo}@{ref}: "
@@ -319,6 +320,19 @@ class GitHubAppClient:
                 if extraido is not None:
                     archivos[ruta] = extraido.read()
         _cache_put(clave, archivos)
+        return archivos
+
+    def _read_repo_files_por_blobs(self, ref, sufijos):
+        """El repositorio archivo a archivo, cuando el tarball no está disponible.
+
+        Solo se usa como plan B: ver el 429 en `read_repo_files`. Si además
+        fallara esto, el error que sale es el de la lectura del árbol, que ya
+        distingue un truncado de un fallo de permisos.
+        """
+        entradas = self.list_tree(ref, sufijos=sufijos)
+        archivos = {}
+        for item in entradas:
+            archivos[item["path"]] = self.read_blob(item["sha"])
         return archivos
 
     def read_blob(self, sha):
