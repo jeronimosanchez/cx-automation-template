@@ -27,6 +27,7 @@ reutilizado entre peticiones de dos repositorios distintos no comparte token.
 """
 
 import base64
+import collections
 import io
 import os
 import tarfile
@@ -50,6 +51,36 @@ JWT_TTL_SECONDS = 540
 TOKEN_MARGIN_SECONDS = 300
 
 MODO_ARCHIVO = "100644"
+
+
+# Contenido del repositorio ya descargado, por (repo, commit). El contenido de un
+# commit **no cambia nunca**, así que pedir dos veces el mismo SHA es desperdicio
+# puro. Y no era teórico: una vuelta del pipeline llama a `cargar_repositorio` en
+# los pasos 1, 2, 3 y 5 —cuatro descargas del repositorio entero— y GitHub cortó
+# con un 429 de `codeload`, su protección antiscraping, que no es el límite de la
+# API y no se ve venir en la cuota.
+#
+# El servidor corre con `concurrency 1` y `max-instances 1`, así que un solo
+# contenedor atiende toda la vuelta y el caché en memoria le sirve entera. Se
+# guardan pocos: un tarball descomprimido de este repositorio son cientos de KB,
+# y lo único que hace falta es que un paso encuentre lo que descargó el anterior.
+CACHE_MAX_COMMITS = 4
+_CACHE_REPO = collections.OrderedDict()
+
+
+def _cache_get(clave):
+    if clave not in _CACHE_REPO:
+        return None
+    _CACHE_REPO.move_to_end(clave)
+    # Copia: quien lo reciba puede tocar su diccionario sin envenenar el caché.
+    return dict(_CACHE_REPO[clave])
+
+
+def _cache_put(clave, archivos):
+    _CACHE_REPO[clave] = dict(archivos)
+    _CACHE_REPO.move_to_end(clave)
+    while len(_CACHE_REPO) > CACHE_MAX_COMMITS:
+        _CACHE_REPO.popitem(last=False)
 
 
 class GitHubError(RuntimeError):
@@ -245,10 +276,29 @@ class GitHubAppClient:
         cabecera, no dónde está. Leerlo todo y repartir después es lo único
         que respeta esa regla — y ahora cuesta una petición.
         """
+        # Si ya se descargó este commit en esta vuelta, no se vuelve a pedir.
+        # Ver `_CACHE_REPO`: el contenido de un SHA es inmutable.
+        clave = (self.repo, ref, sufijos)
+        guardado = _cache_get(clave)
+        if guardado is not None:
+            return guardado
+
         respuesta = requests.get(
             f"{GITHUB_API}/repos/{self.repo}/tarball/{ref}",
             headers=self._headers(), timeout=120,
         )
+        if respuesta.status_code == 429:
+            # No es la cuota de la API: es `codeload`, la protección antiscraping
+            # de las descargas de repositorio. Se cuenta aparte, no aparece en
+            # /rate_limit y se levanta sola. Decirlo evita buscar el fallo en las
+            # credenciales o en el agente, que es donde no está.
+            raise GitHubError(
+                f"GitHub está limitando las descargas del repositorio "
+                f"{self.repo} (429). No es la cuota de la API ni un problema de "
+                f"permisos: es el límite de descargas de código, que se levanta "
+                f"solo en unos minutos. Vuelve a intentarlo entonces.",
+                status_code=429,
+            )
         if respuesta.status_code != 200:
             raise GitHubError(
                 f"No se pudo descargar el repositorio {self.repo}@{ref}: "
@@ -268,6 +318,7 @@ class GitHubAppClient:
                 extraido = tar.extractfile(miembro)
                 if extraido is not None:
                     archivos[ruta] = extraido.read()
+        _cache_put(clave, archivos)
         return archivos
 
     def read_blob(self, sha):
