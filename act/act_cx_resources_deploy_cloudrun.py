@@ -124,6 +124,28 @@ DEPLOY_ORDER = [
 # Environments y Versions no salen del diff: se manejan en el Paso 5.
 TIPOS_NO_DESPLEGABLES = ("environment", "version")
 
+# Tipos que el pipeline COMPARA pero nunca ESCRIBE: se suben a mano.
+#
+# Un tool es el único resource que guarda un secreto —la clave del backend— y
+# CX no la devuelve al leer: manda "REDACTED" si hay clave y nada si no la hay.
+# Eso deja al Full Update sin forma segura de tocarlo: mandar el marcador puede
+# escribir la palabra "REDACTED" como clave, y omitirlo puede borrarla. Las dos
+# roturas son silenciosas — el tool empieza a dar 401 y nada lo explica.
+#
+# Y el coste de excluirlos es casi cero, medido sobre el historial real:
+#
+#     Petal V2    4 de 107 commits tocan tools    3,7 %  (dos son del pipeline)
+#     Petal 1.1   7 de 439 commits                1,6 %
+#
+# Automatizar algo que cambia dos veces no ahorra nada, y aquí encima arriesga.
+# La regla que queda: **el pipeline despliega contenido; los secretos los pone
+# una persona.**
+#
+# SIGUEN SALIENDO EN EL PASO 1. Excluirlos de aplicar, no de mirar: si
+# desaparecieran del inventario dejarías de enterarte de que un tool cambió en
+# CX o de que el repo y CX divergen, que es peor que el problema que se quita.
+TIPOS_SOLO_A_MANO = ("tool",)
+
 # La tabla que consulta todo lo que escribe un resource, que hoy es solo el
 # Paso 3. No contiene `environment`, así que ningún camino de escritura puede
 # construir una URL con `/environments/` aunque se le pida: no es una
@@ -131,12 +153,13 @@ TIPOS_NO_DESPLEGABLES = ("environment", "version")
 # que sabe escribir esa URL es `_apuntar_entorno`, y solo la alcanza el Paso 5.
 TIPOS_DESPLEGABLES = {
     tipo: spec for tipo, spec in RESOURCE_TYPES.items()
-    if tipo not in TIPOS_NO_DESPLEGABLES
+    if tipo not in TIPOS_NO_DESPLEGABLES and tipo not in TIPOS_SOLO_A_MANO
 }
 
 # Tipos que CX no puede congelar en una versión: lo que se les aplique lo ven
 # los usuarios en el acto, sin pasar por el gate del Paso 4.
 TIPOS_SIN_VERSION = ("agent_config", "generator")
+
 
 ENTORNO_PRODUCCION = "production"
 
@@ -691,6 +714,11 @@ def calcular_diff(contexto, inventario, repositorio, eliminar=()):
         remotos = inventario.get(tipo, {})
         for cx_id, entrada in del_repo.items():
             local = payloads.comparable_local(tipo, entrada["documento"])
+            # Los de TIPOS_SOLO_A_MANO no generan operación. Se siguen
+            # comparando, pero eso lo hace `avisos_a_mano`, que es a quien
+            # pregunta el panel.
+            if tipo in TIPOS_SOLO_A_MANO:
+                continue
             if cx_id not in remotos:
                 operaciones.append(_operacion("POST", tipo, cx_id, entrada, local))
             elif payloads.differs(remotos[cx_id], local):
@@ -706,6 +734,8 @@ def calcular_diff(contexto, inventario, repositorio, eliminar=()):
 
     for entrada in repositorio["sin_cx_id"]:
         if entrada["tipo"] in TIPOS_NO_DESPLEGABLES:
+            continue
+        if entrada["tipo"] in TIPOS_SOLO_A_MANO:
             continue
         local = payloads.comparable_local(entrada["tipo"], entrada["documento"])
         operaciones.append(_operacion(
@@ -726,6 +756,42 @@ def calcular_diff(contexto, inventario, repositorio, eliminar=()):
         else len(DEPLOY_ORDER)
     ))
     return operaciones
+
+
+def avisos_a_mano(inventario, repositorio):
+    """Los resources que el pipeline compara pero no escribe: ver TIPOS_SOLO_A_MANO.
+
+    Se calcula aparte del diff a propósito. `calcular_diff` devuelve lo que se va
+    a APLICAR, y meter aquí dentro cosas que no se aplican es cómo se cuela una
+    escritura por accidente el día que alguien recorra la lista sin mirar.
+
+    Lo que devuelve es informativo: el panel lo enseña para que sepas que ese
+    tool difiere y hay que subirlo a mano.
+    """
+    avisos = []
+    for tipo in TIPOS_SOLO_A_MANO:
+        del_repo = repositorio["por_tipo"].get(tipo, {})
+        remotos = inventario.get(tipo, {})
+        for cx_id, entrada in del_repo.items():
+            local = payloads.comparable_local(tipo, entrada["documento"])
+            if cx_id in remotos and not payloads.differs(remotos[cx_id], local):
+                continue
+            avisos.append({
+                "tipo": tipo, "cx_id": cx_id, "ruta": entrada["ruta"],
+                "display_name": entrada["display_name"],
+                # La misma clave que usa `_operacion`: un consumidor no debería tener
+                # que saber de dónde salió la fila para leerla.
+                "operacion": "POST" if cx_id not in remotos else "PATCH",
+                "motivo": "guarda un secreto que CX no devuelve",
+            })
+    for entrada in repositorio.get("sin_cx_id", ()):
+        if entrada["tipo"] in TIPOS_SOLO_A_MANO:
+            avisos.append({
+                "tipo": entrada["tipo"], "cx_id": None, "ruta": entrada["ruta"],
+                "display_name": entrada["display_name"], "operacion": "POST",
+                "motivo": "guarda un secreto que CX no devuelve",
+            })
+    return avisos
 
 
 def _operacion(verbo, tipo, cx_id, entrada, local, remote_name=None):
