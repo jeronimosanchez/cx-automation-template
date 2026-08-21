@@ -66,7 +66,10 @@ def test_una_clave_de_verdad_en_el_yaml_tampoco_se_compara():
 
     Se ignora igual: el campo no es nuestro, venga como venga.
     """
-    local = _tool(auth=_auth(apiKey="AIzaSyD-clave-de-verdad"))
+    # Deliberadamente NO parece una clave real: el repo es público y un
+    # literal con pinta de credencial dispara escáneres de secretos y enseña
+    # un patrón que no queremos copiado.
+    local = _tool(auth=_auth(apiKey="una-clave-cualquiera-no-real"))
     remoto = _tool(auth=_auth(apiKey="REDACTED"))
     assert not payloads.differs(remoto, local)
 
