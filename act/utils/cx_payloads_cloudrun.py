@@ -135,6 +135,62 @@ def same_references(local_value, remote_value):
 CAMPOS_DERIVADOS = ("referencedPlaybooks",)
 
 
+# Lo que CX GUARDA y no devuelve. Distinto de CAMPOS_DERIVADOS: aquello CX lo
+# calcula a partir de otra cosa, esto lo esconde a propósito porque es un
+# secreto. No se compara NI se envía, nunca, a ninguna profundidad.
+#
+# Al leer el borrador, `apiKey` de un tool vuelve de dos formas según el estado:
+#
+#     tool CON clave guardada     apiKey: "REDACTED"   ← un marcador, no el valor
+#     tool SIN clave guardada     el campo no aparece
+#
+# Y el YAML de un tool creado copiando otro arrastra la cadena literal
+# "REDACTED", porque eso es lo que se leyó al exportarlo. De ahí dos fallos:
+#
+#   · contra un tool CON clave  → coinciden por casualidad y no salta
+#   · contra un tool SIN clave  → sale «con cambios» en cada vuelta del Paso 1
+#   · y si llega a aplicarse    → el PATCH escribe la palabra "REDACTED" como
+#                                 clave, el tool empieza a dar 401 contra el
+#                                 backend y nada en el sistema lo explica
+#
+# Verificado el 2026-08-21 en el agente de Petal V2: GestionPedidoTool salía
+# como cambiado con el textSchema idéntico al byte (3.135 caracteres), y la
+# única diferencia era este campo.
+#
+# El segundo fallo es el grave, y no lo tapa arreglar el primero: ignorar el
+# campo al comparar hace que el recurso deje de salir marcado, pero el día que
+# se aplique por otra razón la clave se pierde igual. Por eso se usa en los dos
+# sitios — `differs` y `build_full_update_body`.
+#
+# ── CONSECUENCIA ACEPTADA A PROPÓSITO, no una limitación descubierta después ──
+#
+# A partir de aquí, una clave de API **no se puede rotar por el pipeline**. Lo
+# que se escriba en ese campo del YAML se ignora siempre al aplicar, así que
+# cambiar una clave es por consola, y solo por consola.
+#
+# Se acepta porque una clave no debería vivir en git de ninguna forma: el repo
+# es público en intención —se enseña como portfolio— y un secreto commiteado no
+# se borra del historial. El pipeline pierde una capacidad que no debía tener.
+#
+# Si algún día hace falta rotar claves de forma automatizada, la vía no es
+# quitar esto: es un gestor de secretos (Secret Manager) que el pipeline
+# referencie por nombre, nunca por valor.
+CAMPOS_SECRETOS = ("apiKey",)
+
+
+def _sin_secretos(valor):
+    """El mismo objeto sin los campos secretos, a cualquier profundidad.
+
+    Se copia en vez de modificar: el cuerpo que se manda a la API no debe poder
+    alterar el documento local del que salió.
+    """
+    if isinstance(valor, dict):
+        return {k: _sin_secretos(v) for k, v in valor.items() if k not in CAMPOS_SECRETOS}
+    if isinstance(valor, list):
+        return [_sin_secretos(v) for v in valor]
+    return valor
+
+
 def differs(remote, local):
     """Si algún campo declarado en el YAML no coincide con el remoto.
 
@@ -150,6 +206,9 @@ def differs(remote, local):
     for field, value in local.items():
         # Lo que CX calcula solo no se compara: ver CAMPOS_DERIVADOS.
         if field in CAMPOS_DERIVADOS:
+            continue
+        # Ni lo que CX guarda y esconde: ver CAMPOS_SECRETOS.
+        if field in CAMPOS_SECRETOS:
             continue
         remote_value = remote.get(field)
         if remote_value == value:
@@ -179,7 +238,10 @@ def build_full_update_body(remote, local, ignore_fields=None):
     3. Quita los campos de solo lectura, que la API rechaza como entrada.
     """
     merged = dict(remote)
-    merged.update(local)
+    # El local va sin secretos: si el YAML trae `apiKey: "REDACTED"`, mandarlo
+    # sobrescribiría la clave de verdad con esa palabra. Quitándolo del local,
+    # el valor del remoto sobrevive al merge y el PATCH lo devuelve intacto.
+    merged.update(_sin_secretos(local))
     fields = ignore_fields if ignore_fields is not None else PLAYBOOK_IGNORE_FIELDS
     for field in fields:
         merged.pop(field, None)
@@ -188,7 +250,7 @@ def build_full_update_body(remote, local, ignore_fields=None):
 
 def build_create_body(tipo, document):
     """Cuerpo del POST: el YAML sin `metadata` ni campos locales."""
-    body = comparable_local(tipo, document)
+    body = _sin_secretos(comparable_local(tipo, document))
     for field in IGNORE_FIELDS_BY_TYPE.get(tipo, DEFAULT_IGNORE_FIELDS):
         body.pop(field, None)
     return body
