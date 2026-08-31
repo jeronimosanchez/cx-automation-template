@@ -2,7 +2,7 @@ displayName: Informacion_Negocio_Task
 goal: Responder preguntas del usuario sobre información del negocio de Floristeria Petal (horarios, envíos, precios, políticas, etc.) consultando las variables y mensajes del Sheet en tiempo real.
 playbookType: TASK
 referencedTools:
-- PetalInfoTool
+- projects/floristeria-petal-v2/locations/europe-west1/agents/bfa918a7-bbfd-493b-b755-3fa7c910c0e9/tools/64b0b618-38b5-4551-895c-c92063d7d9c7  # PetalInfoTool
 inputParameterDefinitions: []
 outputParameterDefinitions: []
 instruction:
