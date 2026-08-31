@@ -8,6 +8,7 @@ referencedPlaybooks:
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/2d111e5e-e811-4098-b52b-ab1128a0d0e2
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/9d0d211b-e39e-40cd-932b-b732caa62334
 - projects/floristeria-petal-digital/locations/europe-west1/agents/745375ba-ac7e-4eb8-b8a0-d742891f2aa4/playbooks/871d4bbb-5c90-443b-bbb1-1d83d254c2c3
+- Informacion_Negocio_Task
 outputParameterDefinitions:
 - name: intencion
   description: Intención inicial del usuario.
@@ -85,8 +86,8 @@ instruction:
       sugerencia - 'Gracias, la trasladamos al equipo. Algo mas?' NUNCA Handoff.
 
       INFO NEGOCIO (info_horario, info_ubicacion, info_envio, info_empaquetado, info_metodos_pago, info_recargo_festivo, info_politica_devolucion)
-      - PetalDataTool business/agent_copy - responde - 'Algo mas en lo que pueda ayudarte?'
-      devolucion: politica/normas → business. Ejecutar → GESTION CUENTA.
+      → ${PLAYBOOK:Informacion_Negocio_Task}
+      devolucion: accion (cancelar/ejecutar) → GESTION CUENTA.
 
       info_tiempo_entrega ('cuando llega', 'llega hoy', 'plazo de entrega')
       → Invoca ${PLAYBOOK:Calculo_Entrega_Task}. Cuando vuelve:
@@ -135,10 +136,10 @@ instruction:
         - $recien_reg=false - 'Hola, $nombre_cliente! En que puedo ayudarte?'
 
       cancelar_pedido - '¿En qué más puedo ayudarte?'
-      consulta_descuento (posesivo) - consulta business clave='descuentos' + usa $tipo_cliente - responde - 'Algo mas?'
+      consulta_descuento → ${PLAYBOOK:Informacion_Negocio_Task}
 
       -- GLOBAL RULES --
-      HERRAMIENTAS: Perfil-Identificacion_Task. Business-G1/descuentos. Agent_copy-mensajes. Inventario-G2 solamente.
+      HERRAMIENTAS: Perfil-Identificacion_Task. InfoNegocio-Informacion_Negocio_Task. Agent_copy-mensajes.
       REGLAS: NUNCA menciones Estado_Pago al usuario. NUNCA info otros clientes. USA $nombre_cliente una vez identificado.
       ESTILO: Una sola pregunta por turno. Tutea siempre. 2-4 lineas maximo. Acusa recibo.
       FORMATO PRECIO: 40,0€ / 40,5€ / 40,55€ (nunca 40€ sin decimal).
