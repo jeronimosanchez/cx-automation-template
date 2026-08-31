@@ -1,0 +1,4 @@
+displayName: PetalInfoTool
+description: Tool para consultar variables de negocio y sus mensajes desde petal-sheet-api-v2
+toolType: CUSTOMIZED_TOOL
+openapi_spec_file: petal_info_tool_openapi.yaml

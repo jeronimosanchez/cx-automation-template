@@ -1,0 +1,71 @@
+openapi: 3.0.0
+info:
+  title: PetalInfoTool
+  version: 1.0.0
+  description: API para consultar variables de negocio y mensajes de Floristeria Petal
+servers:
+  - url: https://petal-sheet-api-v2-932621635598.europe-west1.run.app
+security:
+  - apiKey: []
+paths:
+  /data:
+    get:
+      operationId: consultarInfoNegocio
+      summary: Consulta variables de negocio o sus mensajes asociados
+      parameters:
+        - name: recurso
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [business, mensajes]
+          description: >-
+            'business' para obtener la lista de variables con sus valores.
+            'mensajes' para obtener el mensaje asociado a una variable.
+        - name: clave
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Nombre exacto de la variable (ej. 'horario_apertura').
+            Obligatorio cuando recurso=mensajes.
+        - name: situacion
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [general, error]
+          description: >-
+            Situacion del mensaje. 'general' para respuesta normal al usuario.
+            'error' para cuando el dato no está disponible o hay un problema.
+            Solo aplica cuando recurso=mensajes. Default: general.
+      responses:
+        '200':
+          description: Respuesta exitosa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  recurso:
+                    type: string
+                  count:
+                    type: integer
+                  resultados:
+                    type: array
+                    items:
+                      type: object
+                      description: >-
+                        Para recurso=business: {variable, valor, ...}.
+                        Para recurso=mensajes: {variable, situacion, tipo, texto}.
+        '401':
+          description: No autorizado - API key incorrecta o ausente
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
