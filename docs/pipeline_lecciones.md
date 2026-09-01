@@ -87,3 +87,15 @@ curl -X POST "https://europe-west1-dialogflow.googleapis.com/v3/projects/$PROJEC
     }
   }'
 ```
+
+---
+
+## L7 · Tool con apiKeyConfig siempre aparece como "Modificar" (falso positivo)
+
+**Síntoma:** tras subir la tool a CX con el spec correcto, el pipeline sigue mostrando `Modificar · PetalInfoTool` en cada inventario.
+
+**Causa:** CX nunca devuelve la clave en las respuestas GET por seguridad (`authentication: {}`). El pipeline compara el YAML (que sí tiene `apiKey`) contra el GET de CX (que no lo devuelve) → siempre detecta diferencia en el bloque `authentication`.
+
+**Regla:** es un falso positivo estructural e irreversible. La tool funciona correctamente en CX. Dos opciones al llegar al Paso 3:
+- **Ignorar** (no marcar la tool) — si el spec y la clave ya están correctos en CX.
+- **Aplicar** — el pipeline hace PATCH con la clave del YAML, no rompe nada, pero el `Modificar` reaparecerá en el siguiente inventario.
